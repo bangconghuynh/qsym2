@@ -11,29 +11,26 @@
 //! both threshold levels, or when a consistent symmetry group has been found at the `target` level
 //! for a specified number of consecutive iterations.
 
-use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::{ensure, format_err};
-use argmin_math::ArgminL2Norm;
 use derive_builder::Builder;
 use itertools::Itertools;
-use nalgebra::{Point3, Vector3};
-use ndarray::{Array1, Array2, Axis, ShapeBuilder};
+use nalgebra::Point3;
+use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::auxiliary::geometry::Transform;
-use crate::auxiliary::misc::HashableFloat;
 use crate::auxiliary::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
-    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
+    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
 use crate::io::format::{
-    log_subtitle, log_title, nice_bool, qsym2_output, qsym2_warn, QSym2Output,
+    log_subtitle, log_title, nice_bool, qsym2_output, QSym2Output,
 };
 use crate::io::QSym2FileType;
 use crate::permutation::IntoPermutation;
@@ -55,7 +52,7 @@ fn default_true() -> bool {
     true
 }
 fn default_max_iterations() -> usize {
-    30
+    50
 }
 fn default_consistent_iterations() -> usize {
     10
@@ -101,7 +98,7 @@ pub struct MoleculeSymmetrisationBootstrapParams {
     pub target_distance_threshold: f64,
 
     /// The maximum number of symmetrisation iterations.
-    #[builder(default = "30")]
+    #[builder(default = "50")]
     #[serde(default = "default_max_iterations")]
     pub max_iterations: usize,
 
@@ -349,12 +346,24 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
 
         log_subtitle("Iterative molecule symmetry bootstrapping");
         qsym2_output!("");
-        qsym2_output!("Convergence criteria:");
+        qsym2_output!("Thresholds:");
         qsym2_output!(
-            "  - either when the loose-threshold symmetry agrees with the target-threshold symmetry,",
+            "  Loose : {:.3e} (MoI) - {:.3e} (distance)",
+            params.loose_distance_threshold,
+            params.loose_moi_threshold,
         );
         qsym2_output!(
-            "  - or when the target-threshold symmetry contains more elements than the loose-threshold symmetry and has been consistently identified for {} consecutive iteration{}.",
+            "  Target: {:.3e} (MoI) - {:.3e} (distance)",
+            params.target_moi_threshold,
+            params.target_distance_threshold
+        );
+        qsym2_output!("");
+        qsym2_output!("Convergence criteria:");
+        qsym2_output!(
+            "  either: (1) when the loose-threshold symmetry agrees with the target-threshold symmetry,",
+        );
+        qsym2_output!(
+            "  or    : (2) when the target-threshold symmetry contains more elements than the loose-threshold symmetry and has been consistently identified for {} consecutive iteration{}.",
             params.consistent_target_symmetry_iterations,
             if params.consistent_target_symmetry_iterations == 1 { "" } else { "s" }
         );
@@ -446,7 +455,7 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            // Apply the totally-symmetric projection operator to the ordinary atoms
+            // Apply symmetry operations to the ordinary atoms
             let loose_ord_coords = Array2::from_shape_vec(
                 (loose_mol.atoms.len(), 3),
                 loose_mol
@@ -479,7 +488,7 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                     )
                 });
 
-            // Apply the totally-symmetric projection operator to the magnetic atoms, if any
+            // Apply symmetry operations to the magnetic atoms, if any
             if let Some(mag_atoms) = loose_mol.magnetic_atoms.as_mut() {
                 let loose_mag_coords = Array2::from_shape_vec(
                     (mag_atoms.len(), 3),
@@ -516,7 +525,7 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                 });
             }
 
-            // Apply the totally-symmetric projection operator to the electric atoms, if any
+            // Apply symmetry operations to the electric atoms, if any
             if let Some(elec_atoms) = loose_mol.electric_atoms.as_mut() {
                 let loose_elec_coords = Array2::from_shape_vec(
                     (elec_atoms.len(), 3),
@@ -552,8 +561,10 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                     )
                 });
             }
+
             trial_mol = loose_mol;
 
+            // Recentre and reorientate after symmetrisation
             trial_mol.recentre_mut();
             if params.reorientate_molecule {
                 // If reorientation is requested, the trial molecule is reoriented prior to
@@ -564,9 +575,9 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                 trial_mol.reorientate_mut(params.target_moi_threshold);
             };
 
-            // ----------------
-            // Target threshold
-            // ----------------
+            // -------------------------------
+            // Target threshold symmetry check
+            // -------------------------------
             let target_mol = trial_mol.adjust_threshold(self.parameters.target_distance_threshold);
             let target_presym = PreSymmetry::builder()
                 .moi_threshold(self.parameters.target_moi_threshold)
@@ -579,16 +590,6 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
             let mut target_sym = Symmetry::new();
 
             let _ = target_sym.analyse(&target_presym, params.use_magnetic_group);
-
-            // println!(
-            //     "Unisym: {:?} ({}, {}) vs {:?} ({}, {})",
-            //     target_sym.group_name,
-            //     target_sym.n_elements(),
-            //     target_presym.rotational_symmetry,
-            //     loose_sym.group_name,
-            //     loose_sym.n_elements(),
-            //     loose_presym.rotational_symmetry
-            // );
 
             let target_loose_consistent = target_sym.n_elements() == loose_sym.n_elements()
                 && target_sym.group_name.is_some()
@@ -606,6 +607,17 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                 consistent_target_sym_count >= params.consistent_target_symmetry_iterations;
 
             converged = target_loose_consistent || target_consistent;
+            let converged_reason = [target_loose_consistent, target_consistent]
+                .iter()
+                .enumerate()
+                .filter_map(|(i, c)| {
+                    if *c {
+                        Some(format!("({})", i + 1))
+                    } else {
+                        None
+                    }
+                })
+                .join("");
 
             qsym2_output!(
                 " {:>count_length$} {:>22} {:>19}  {:>22} {:>19}  {:>10}",
@@ -622,22 +634,75 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                     target_sym.group_name.as_ref().unwrap_or(&"--".to_string()),
                     target_sym.n_elements()
                 ),
-                if converged { "yes" } else { "no" },
+                if converged {
+                    "yes ".to_string() + &converged_reason
+                } else {
+                    "no".to_string()
+                },
             );
 
             loose_ops =
                 target_sym.generate_all_operations(self.parameters.infinite_order_to_finite);
         }
         qsym2_output!("{}", "┈".repeat(count_length + 101));
+        qsym2_output!("");
+
+        // --------------------------------
+        // Verify the symmetrisation result
+        // --------------------------------
+        qsym2_output!("Verifying symmetrisation results...");
+        qsym2_output!("");
+        let verifying_pd_params = SymmetryGroupDetectionParams::builder()
+            .moi_thresholds(&[params.target_moi_threshold])
+            .distance_thresholds(&[params.target_distance_threshold])
+            .time_reversal(params.use_magnetic_group)
+            .write_symmetry_elements(true)
+            .result_save_name(params.symmetrised_result_save_name.clone())
+            .build()?;
+        let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
+            .parameters(&verifying_pd_params)
+            .molecule(Some(&trial_mol))
+            .build()?;
+        verifying_pd_driver.run()?;
+        let verifying_pd_res = verifying_pd_driver.result()?;
+        let verifying_group_name = if params.use_magnetic_group {
+            verifying_pd_res
+                .magnetic_symmetry
+                .as_ref()
+                .and_then(|magsym| magsym.group_name.as_ref())
+        } else {
+            verifying_pd_res
+                .unitary_symmetry
+                .group_name
+                .as_ref()
+        };
+        ensure!(
+            prev_target_sym_group_name.as_ref() == verifying_group_name,
+            "Mismatched symmetry: iterative symmetry bootstrapping found {}, but verification found {}.",
+            prev_target_sym_group_name.as_ref().unwrap_or(&"--".to_string()),
+            verifying_group_name.unwrap_or(&"--".to_string()),
+
+        );
+        qsym2_output!("Verifying symmetrisation results... Done.");
+        qsym2_output!("");
+
+        // --------------
+        // Saving results
+        // --------------
+        self.result = Some(
+            MoleculeSymmetrisationBootstrapResult::builder()
+                .parameters(self.parameters)
+                .symmetrised_molecule(trial_mol.clone())
+                .build()?,
+        );
 
         if let Some(xyz_name) = params.symmetrised_result_xyz.as_ref() {
             let mut path = xyz_name.clone();
             path.set_extension("xyz");
-            trial_mol.to_xyz(&path)?;
-            // verifying_pd_res
-            //     .pre_symmetry
-            //     .recentred_molecule
-            //     .to_xyz(&path)?;
+            verifying_pd_res
+                .pre_symmetry
+                .recentred_molecule
+                .to_xyz(&path)?;
             qsym2_output!("Symmetrised molecule written to: {}", path.display());
             qsym2_output!("");
         }

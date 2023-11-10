@@ -21,7 +21,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 #[test]
 fn test_drivers_molecule_symmetrisation_bootstrap_benzene() {
     log4rs::init_file("log4rs.yml", Default::default()).unwrap();
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/h100_imperfect.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2_imperfect.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     // mol.set_magnetic_field(Some(0.1 * Vector3::z()));
 
@@ -29,7 +29,7 @@ fn test_drivers_molecule_symmetrisation_bootstrap_benzene() {
         .reorientate_molecule(true)
         .use_magnetic_group(false)
         .loose_moi_threshold(1e-1)
-        .loose_distance_threshold(5e-1)
+        .loose_distance_threshold(8e-1)
         .target_moi_threshold(1e-8)
         .target_distance_threshold(1e-8)
         .infinite_order_to_finite(Some(8))
