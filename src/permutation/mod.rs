@@ -5,11 +5,11 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use anyhow::{self, format_err};
 use bitvec::prelude::*;
 use derive_builder::Builder;
 use factorial::Factorial;
 use indexmap::IndexSet;
-use log;
 use num::{integer::lcm, Integer, Unsigned};
 use num_traits::{Inv, Pow, PrimInt};
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,7 @@ mod permutation_tests;
 /// can be permuted.
 pub trait PermutableCollection
 where
+    Self: Sized,
     Self::Rank: PermutationRank,
 {
     /// The type of the rank of the permutation.
@@ -40,10 +41,10 @@ where
 
     /// Permutes the items in the current collection by `perm` and returns a new collection with
     /// the permuted items.
-    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self;
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Result<Self, anyhow::Error>;
 
     /// Permutes in-place the items in the current collection by `perm`.
-    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>);
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error>;
 }
 
 /// Trait defining an action on a permutable collection that can be converted into an equivalent
@@ -91,11 +92,14 @@ impl<T: PermutationRank> PermutationBuilder<T> {
     /// then this gives the result of the action.
     pub fn image(&mut self, perm: Vec<T>) -> &mut Self {
         let mut uniq = HashSet::<T>::new();
-        assert!(
-            perm.iter().all(move |x| uniq.insert(*x)),
-            "The permutation image `{perm:?}` contains repeated elements."
-        );
-        self.image = Some(perm);
+        // assert!(
+        //     perm.iter().all(move |x| uniq.insert(*x)),
+        //     "The permutation image `{perm:?}` contains repeated elements."
+        // );
+        if perm.iter().all(move |x| uniq.insert(*x)) {
+            // The permutation contains all distinct elements.
+            self.image = Some(perm);
+        }
         self
     }
 }
@@ -122,14 +126,11 @@ impl<T: PermutationRank> Permutation<T> {
     /// # Panics
     ///
     /// Panics if `image` contains repeated elements.
-    pub fn from_image(image: Vec<T>) -> Self {
+    pub fn from_image(image: Vec<T>) -> Result<Self, anyhow::Error> {
         Self::builder()
             .image(image.clone())
             .build()
-            .unwrap_or_else(|err| {
-                log::error!("{err}");
-                panic!("Unable to construct a `Permutation` from `{image:?}`.")
-            })
+            .map_err(|err| format_err!(err))
     }
 
     /// Constructs a permutation from its disjoint cycles.
@@ -145,7 +146,7 @@ impl<T: PermutationRank> Permutation<T> {
     /// # Panics
     ///
     /// Panics if the cycles in `cycles` contain repeated elements.
-    pub fn from_cycles(cycles: &[Vec<T>]) -> Self {
+    pub fn from_cycles(cycles: &[Vec<T>]) -> Result<Self, anyhow::Error> {
         let mut uniq = HashSet::<T>::new();
         assert!(
             cycles.iter().flatten().all(move |x| uniq.insert(*x)),
@@ -177,7 +178,7 @@ impl<T: PermutationRank> Permutation<T> {
     /// Constructs a permutation from its Lehmer encoding.
     ///
     /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
-    pub fn from_lehmer(lehmer: Vec<T>) -> Self
+    pub fn from_lehmer(lehmer: Vec<T>) -> Result<Self, anyhow::Error>
     where
         <T as TryFrom<usize>>::Error: fmt::Debug,
         std::ops::Range<T>: Iterator,
@@ -209,9 +210,12 @@ impl<T: PermutationRank> Permutation<T> {
     ///
     /// # Returns
     ///
-    /// Returns the corresponding permutation, or `None` if `index` is not valid for a permutation
-    /// of rank `rank`.
-    pub fn from_lehmer_index(index: usize, rank: T) -> Option<Self>
+    /// Returns the corresponding permutation.
+    ///
+    /// # Errors
+    ///
+    /// If `index` is not valid for a permutation of rank `rank`.
+    pub fn from_lehmer_index(index: usize, rank: T) -> Result<Self, anyhow::Error>
     where
         <T as TryFrom<usize>>::Error: fmt::Debug,
         std::ops::Range<T>: Iterator,
@@ -230,12 +234,12 @@ impl<T: PermutationRank> Permutation<T> {
             i += 1;
         }
         if lehmer.len() > rank.into() {
-            None
+            Err(format_err!("The Lehmer encode length is larger than the rank of the permutation."))
         } else {
             while lehmer.len() < rank.into() {
                 lehmer.push_front(T::zero());
             }
-            Some(Self::from_lehmer(lehmer.into_iter().collect::<Vec<_>>()))
+            Self::from_lehmer(lehmer.into_iter().collect::<Vec<_>>())
         }
     }
 

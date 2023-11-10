@@ -151,6 +151,7 @@ dependencies = [
  "paste",
  "rand",
  "rand_xoshiro",
+ "rayon",
  "serde",
  "serde_json",
  "slog",

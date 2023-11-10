@@ -344,13 +344,11 @@ impl<'a> MoleculeSprucingDriver<'a> {
                         .len()
                         .to_f64()
                         .expect("Unable to convert the number of SEAs in this set to `f64`.");
-                // println!("For equiv cols {equiv_col_indices:?} and equiv rows {equiv_row_indices:?}, scaled_sum_sorted_cols is {scaled_sum_sorted_cols:?}.");
                 let sub_equiv_row_indicess = scaled_sum_sorted_cols
                     .indexed_iter()
                     .tuple_windows()
                     .fold(vec![vec![0]], |mut acc, ((_, disti), (j, distj))| {
-                        if approx::abs_diff_eq!(disti, distj, epsilon = loose_tolerance,) {
-                            println!("{disti} == {distj}");
+                        if approx::abs_diff_eq!(disti, distj, epsilon = 2e-1,) {
                             let n = acc.len();
                             acc[n - 1].push(j);
                         } else {
@@ -358,7 +356,6 @@ impl<'a> MoleculeSprucingDriver<'a> {
                         }
                         acc
                     });
-                // println!("For equiv cols {equiv_col_indices:?} and equiv rows {equiv_row_indices:?}, sub_equiv_row_indicess are {sub_equiv_row_indicess:?}.");
                 sub_equiv_row_indicess
                     .iter()
                     .for_each(|sub_equiv_row_indices| {
@@ -374,7 +371,6 @@ impl<'a> MoleculeSprucingDriver<'a> {
                         sub_equiv_row_indices.iter().for_each(|i| {
                             equiv_col_indices.iter().zip(sort_indicess.iter()).for_each(
                                 |(j, sort_indices_j)| {
-                                    // println!("For equiv cols {equiv_col_indices:?} and equiv rows {equiv_row_indices:?}, setting {}, {j} to {ave_dist}.", equiv_row_indices[sort_indices_j[*i]]);
                                     spruced_distmat[(equiv_row_indices[sort_indices_j[*i]], *j)] =
                                         ave_dist;
                                 },
@@ -411,7 +407,7 @@ impl<'a> MoleculeSprucingDriver<'a> {
         );
         let solver: BFGS<_, f64> =
             BFGS::new(linesearch)
-            // .with_tolerance_cost(params.optimisation_gradient_threshold)?
+            .with_tolerance_cost(1e-30)?
             .with_tolerance_grad(params.optimisation_gradient_threshold)?;
 
         qsym2_output!("Solver: BFGS with backtracking line search");
@@ -620,7 +616,7 @@ impl CostFunction for MoleculeSprucingProblem {
             .iter()
             .map(|v| v.powi(2))
             .sum::<f64>();
-        println!("S: {distmat_diff} {translation_diff} {rotation_diff}");
+        println!("S = {}", distmat_diff + translation_diff + rotation_diff);
         Ok(distmat_diff + translation_diff + rotation_diff)
     }
 }
@@ -703,11 +699,10 @@ impl Gradient for MoleculeSprucingProblem {
                             .iter()
                             .map(|rot_coords_i| rot_coords_i[b])
                             .sum::<f64>();
-                println!("Atom {k}, coord {a}: {} {} {}", distmat_diff_grad, translation_diff_grad, rotation_diff_grad);
                 distmat_diff_grad + translation_diff_grad + rotation_diff_grad
             })
             .collect_vec();
-        println!("dS: {}", dfdr.l2_norm());
+        println!("dS = {}", dfdr.l2_norm());
         Ok(Array1::from_vec(dfdr))
     }
 }

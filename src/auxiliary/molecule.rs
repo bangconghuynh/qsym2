@@ -980,7 +980,7 @@ impl PermutableCollection for Molecule {
                     .copied()
             })
             .collect();
-        image_opt.map(Permutation::from_image)
+        image_opt.and_then(|image| Permutation::from_image(image).ok())
     }
 
     /// Permutes *all* atoms in this molecule (including special fictitious atoms) and places them
@@ -1000,10 +1000,10 @@ impl PermutableCollection for Molecule {
     /// Panics if the rank of `perm` does not match the number of atoms in this molecule, or if the
     /// permutation results in atoms of different kind (*e.g.* ordinary and magnetic) are permuted
     /// into each other.
-    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Result<Self, anyhow::Error> {
         let mut p_mol = self.clone();
-        p_mol.permute_mut(perm);
-        p_mol
+        p_mol.permute_mut(perm)?;
+        Ok(p_mol)
     }
 
     /// Permutes in-place *all* atoms in this molecule (including special fictitious atoms).
@@ -1021,9 +1021,9 @@ impl PermutableCollection for Molecule {
     /// Panics if the rank of `perm` does not match the number of atoms in this molecule, or if the
     /// permutation results in atoms of different kind (*e.g.* ordinary and magnetic) are permuted
     /// into each other.
-    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         let n_ordinary = self.atoms.len();
-        let perm_ordinary = Permutation::from_image(perm.image()[0..n_ordinary].to_vec());
+        let perm_ordinary = Permutation::from_image(perm.image()[0..n_ordinary].to_vec())?;
         permute_inplace(&mut self.atoms, &perm_ordinary);
 
         let n_last = if let Some(mag_atoms) = self.magnetic_atoms.as_mut() {
@@ -1033,7 +1033,7 @@ impl PermutableCollection for Molecule {
                     .iter()
                     .map(|x| x - n_ordinary)
                     .collect::<Vec<_>>(),
-            );
+            )?;
             permute_inplace(mag_atoms, &perm_magnetic);
             n_ordinary + n_magnetic
         } else {
@@ -1047,8 +1047,9 @@ impl PermutableCollection for Molecule {
                     .iter()
                     .map(|x| x - n_last)
                     .collect::<Vec<_>>(),
-            );
+            )?;
             permute_inplace(elec_atoms, &perm_electric);
         }
+        Ok(())
     }
 }

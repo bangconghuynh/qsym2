@@ -52,7 +52,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.raw_perm_indices
             .next()
-            .and_then(|index| Permutation::<T>::from_lehmer_index(index, self.rank))
+            .and_then(|index| Permutation::<T>::from_lehmer_index(index, self.rank).ok())
     }
 }
 
@@ -199,7 +199,7 @@ impl PermutationGroupProperties
         let perms = (0..rank)
             .permutations(usize::from(rank))
             .map(Permutation::from_image)
-            .collect_vec();
+            .collect::<Result<Vec<_>, _>>()?;
         log::debug!("Generating all permutations of rank {rank}... Done.");
         log::debug!("Collecting all permutations into a unitary-represented group...");
         let mut group = UnitaryRepresentedGroup::<
@@ -255,7 +255,7 @@ impl GroupProperties for PermutationGroup {
     }
 
     fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
-        Permutation::from_lehmer_index(index, self.rank)
+        Permutation::from_lehmer_index(index, self.rank).ok()
     }
 
     fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {
@@ -361,7 +361,7 @@ impl ClassProperties for PermutationGroup {
         let e2ccs: Vec<(usize, u16)> = (0..self.order())
             .into_par_iter()
             .map(|i| {
-                let p_i = Permutation::from_lehmer_index(i, self.rank).ok_or_else(|| {
+                let p_i = Permutation::from_lehmer_index(i, self.rank).map_err(|_| {
                     format_err!(
                         "Unable to construct a permutation of rank {} with Lehmer index {i}.",
                         self.rank
@@ -408,7 +408,7 @@ impl ClassProperties for PermutationGroup {
     }
 
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
-        let perm = Permutation::from_lehmer_index(e_idx, self.rank)?;
+        let perm = Permutation::from_lehmer_index(e_idx, self.rank).ok()?;
         self.cycle_patterns
             .as_ref()
             .expect("Cycle patterns not found.")
@@ -429,7 +429,7 @@ impl ClassProperties for PermutationGroup {
                 Some(cycle)
             })
             .collect_vec();
-        Some(Permutation::from_cycles(&cycles))
+        Permutation::from_cycles(&cycles).ok()
     }
 
     fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize> {

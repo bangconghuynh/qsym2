@@ -387,7 +387,7 @@ impl SymmetryElementBuilder {
     /// * `axs` - The raw axis which will be normalised.
     pub fn raw_axis(&mut self, axs: Vector3<f64>) -> &mut Self {
         let thresh = self.threshold.expect("Threshold value has not been set.");
-        if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
+        if approx::abs_diff_eq!(axs.norm(), 1.0, epsilon = thresh) {
             self.raw_axis = Some(axs);
         } else {
             log::warn!("Axis not normalised. Normalising...");
@@ -563,26 +563,23 @@ impl SymmetryElement {
                 }
             }
             ElementOrder::Inf => {
-                if approx::relative_eq!(
+                if approx::abs_diff_eq!(
                     self.proper_angle.expect("No proper angles found."),
                     std::f64::consts::PI,
-                    max_relative = self.threshold,
                     epsilon = self.threshold
                 ) {
                     // Binary proper rotations
                     geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
-                } else if approx::relative_ne!(
+                } else if approx::abs_diff_ne!(
                     self.proper_angle.expect("No proper angles found."),
                     0.0,
-                    max_relative = self.threshold,
                     epsilon = self.threshold
                 ) {
                     self.proper_angle.expect("No proper angles found.").signum() * self.raw_axis
                 } else {
-                    approx::assert_relative_eq!(
+                    approx::assert_abs_diff_eq!(
                         self.proper_angle.expect("No proper angles found."),
                         0.0,
-                        max_relative = self.threshold,
                         epsilon = self.threshold
                     );
                     Vector3::zeros()
@@ -703,11 +700,10 @@ impl SymmetryElement {
                 .map(|frac| frac.is_zero())
                 .or_else(|| {
                     self.proper_angle.map(|proper_angle| {
-                        approx::relative_eq!(
+                        approx::abs_diff_eq!(
                             proper_angle,
                             0.0,
                             epsilon = self.threshold,
-                            max_relative = self.threshold
                         )
                     })
                 })
@@ -735,11 +731,10 @@ impl SymmetryElement {
                         .map(|frac| frac == F::new(1u32, 2u32))
                         .or_else(|| {
                             self.proper_angle.map(|proper_angle| {
-                                approx::relative_eq!(
+                                approx::abs_diff_eq!(
                                     proper_angle,
                                     std::f64::consts::PI,
                                     epsilon = self.threshold,
-                                    max_relative = self.threshold
                                 )
                             })
                         })
@@ -752,11 +747,10 @@ impl SymmetryElement {
                         .map(|frac| frac.is_zero())
                         .or_else(|| {
                             self.proper_angle.map(|proper_angle| {
-                                approx::relative_eq!(
+                                approx::abs_diff_eq!(
                                     proper_angle,
                                     0.0,
                                     epsilon = self.threshold,
-                                    max_relative = self.threshold
                                 )
                             })
                         })
@@ -785,11 +779,10 @@ impl SymmetryElement {
                 .map(|frac| frac == F::new(1u32, 2u32))
                 .or_else(|| {
                     self.proper_angle.map(|proper_angle| {
-                        approx::relative_eq!(
+                        approx::abs_diff_eq!(
                             proper_angle,
                             std::f64::consts::PI,
                             epsilon = self.threshold,
-                            max_relative = self.threshold
                         )
                     })
                 })
@@ -817,11 +810,10 @@ impl SymmetryElement {
                         .map(|frac| frac.is_zero())
                         .or_else(|| {
                             self.proper_angle.map(|proper_angle| {
-                                approx::relative_eq!(
+                                approx::abs_diff_eq!(
                                     proper_angle,
                                     0.0,
                                     epsilon = self.threshold,
-                                    max_relative = self.threshold
                                 )
                             })
                         })
@@ -834,11 +826,10 @@ impl SymmetryElement {
                         .map(|frac| frac == F::new(1u32, 2u32))
                         .or_else(|| {
                             self.proper_angle.map(|proper_angle| {
-                                approx::relative_eq!(
+                                approx::abs_diff_eq!(
                                     proper_angle,
                                     std::f64::consts::PI,
                                     epsilon = self.threshold,
-                                    max_relative = self.threshold
                                 )
                             })
                         })

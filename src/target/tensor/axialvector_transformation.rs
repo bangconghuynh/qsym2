@@ -1,7 +1,7 @@
 //! Implementation of symmetry transformation for axial vectors.
 
 use nalgebra::Vector3;
-use ndarray::{Axis, Array1, Array2, LinalgScalar, ScalarOperand};
+use ndarray::{Array1, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::solve::Determinant;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
@@ -26,18 +26,16 @@ where
         &mut self,
         rmat: &Array2<f64>,
         _perm: Option<&Permutation<usize>>,
-    ) -> &mut Self {
+    ) -> Result<&mut Self, anyhow::Error> {
         // rmat is in (y, z, x) order. We must first reorder into (x, y, z) order.
-        let rmat_xyz = rmat
-            .select(Axis(0), &[2, 0, 1])
-            .select(Axis(1), &[2, 0, 1]);
+        let rmat_xyz = rmat.select(Axis(0), &[2, 0, 1]).select(Axis(1), &[2, 0, 1]);
         let det = rmat_xyz
             .det()
             .expect("Unable to obtain the determinant of the transformation matrix.");
         let old_components = Array1::from_iter(self.components.iter().cloned());
         let new_components = rmat_xyz.mapv(|x| (det * x).into()).dot(&old_components);
         self.components = Vector3::from_iterator(new_components.into_iter());
-        self
+        Ok(self)
     }
 }
 
@@ -104,6 +102,6 @@ where
         &self,
         _symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError> {
-        Ok(Permutation::from_image(vec![0]))
+        Permutation::from_image(vec![0]).map_err(|err| TransformationError(err.to_string()))
     }
 }

@@ -90,7 +90,7 @@ pub trait SpatialUnitaryTransformable: Clone {
         &mut self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> &mut Self;
+    ) -> Result<&mut Self, anyhow::Error>;
 
     // ----------------
     // Provided methods
@@ -105,10 +105,14 @@ pub trait SpatialUnitaryTransformable: Clone {
     /// # Returns
     ///
     /// The transformed result.
-    fn transform_spatial(&self, rmat: &Array2<f64>, perm: Option<&Permutation<usize>>) -> Self {
+    fn transform_spatial(
+        &self,
+        rmat: &Array2<f64>,
+        perm: Option<&Permutation<usize>>,
+    ) -> Result<Self, anyhow::Error> {
         let mut tself = self.clone();
-        tself.transform_spatial_mut(rmat, perm);
-        tself
+        tself.transform_spatial_mut(rmat, perm)?;
+        Ok(tself)
     }
 }
 
@@ -212,11 +216,12 @@ pub trait TimeReversalTransformable:
 
 /// Marker trait indicating that the implementing type should get the blanket implementation for
 /// [`TimeReversalTransformable`].
-pub trait DefaultTimeReversalTransformable:
-{}
+pub trait DefaultTimeReversalTransformable {}
 
 impl<T> TimeReversalTransformable for T where
-    T: DefaultTimeReversalTransformable + SpinUnitaryTransformable + ComplexConjugationTransformable
+    T: DefaultTimeReversalTransformable
+        + SpinUnitaryTransformable
+        + ComplexConjugationTransformable
 {
 }
 
@@ -258,7 +263,8 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ) -> Result<&mut Self, TransformationError> {
         let rmat = symop.get_3d_spatial_matrix();
         let perm = self.sym_permute_sites_spatial(symop)?;
-        self.transform_spatial_mut(&rmat, Some(&perm));
+        self.transform_spatial_mut(&rmat, Some(&perm))
+            .map_err(|err| TransformationError(err.to_string()))?;
         Ok(self)
     }
 
@@ -450,9 +456,9 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
     bao: &BasisAngularOrder,
     rmat: &Array2<f64>,
     perm: Option<&Permutation<usize>>,
-) -> Vec<Array2<f64>> {
+) -> Result<Vec<Array2<f64>>, anyhow::Error> {
     let pbao = if let Some(p) = perm {
-        bao.permute(p)
+        bao.permute(p)?
     } else {
         bao.clone()
     };
@@ -481,7 +487,7 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
         .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, PureOrder::increasingm))
         .collect();
 
-    pbao.basis_shells()
+    let rmats = pbao.basis_shells()
         .map(|shl| {
             let l = usize::try_from(shl.l).unwrap_or_else(|_| {
                 panic!(
@@ -556,5 +562,6 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                 }
             }
         })
-        .collect::<Vec<Array2<f64>>>()
+        .collect::<Vec<Array2<f64>>>();
+    Ok(rmats)
 }
