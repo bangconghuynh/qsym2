@@ -37,8 +37,8 @@ use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 
 #[cfg(test)]
-#[path = "molecule_symmetrisation_tests.rs"]
-mod molecule_symmetrisation_tests;
+#[path = "molecule_symmetrisation_bootstrap_tests.rs"]
+mod molecule_symmetrisation_bootstrap_tests;
 
 // ==================
 // Struct definitions
