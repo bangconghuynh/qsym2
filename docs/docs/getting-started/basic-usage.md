@@ -68,7 +68,7 @@ qsym2 run -c path/to/config -o output_name
 ```
 takes a configuration YAML file as a parameter, performs the specified symmetry analysis, and displays the results in the specified output file.
 
-Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the project's [Wiki](https://gitlab.com/bangconghuynh/qsym2/-/wikis/home) page.
+Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the [User guide](../user-guide/symmetry-group-detection.md).
 
 
 ## Python interface
