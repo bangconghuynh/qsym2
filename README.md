@@ -19,7 +19,9 @@ for the following targets:
 
 QSym² has been integrated with [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview). QSym² can also work with [Q-Chem](https://www.q-chem.com/) HDF5 archive files and [Orca](https://orcaforum.kofo.mpg.de/index.php) output files.
 
-The public API documentation for QSym² can be found [here](https://api.qsym2.dev/).
+The main website for QSym² can be found [here](https://qsym2.dev).
+
+The public API documentation for QSym² can be found [here](https://qsym2.dev/api).
 
 ## Table of contents
 
@@ -33,7 +35,13 @@ Developmental and programming issues with the crate `qsym2` can be reported on [
 
 The following instructions for installing QSym² from source are specific to Debian/Ubuntu operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
 
-### Features
+There are two main ways of installing QSym²:
+- as a binary named `qsym2` providing the command-line interface, or
+- as a Python library named `qsym2` providing the exposed Python bindings.
+
+Both methods can be configured via Rust features.
+
+### Rust features
 
 The QSym² crate defines the following features that can be specified at compilation via `cargo`. Some of these features are mutually exclusive.
 
@@ -84,6 +92,7 @@ The installation of QSym² requires the following:
 | `python`           | Python, which is best managed via Anaconda                                                        | Installs the Python bindings for core functionalities of QSym²                                                                                                                               |
 
 ### Binary compilation
+
 The following instructions assume that the `full` feature is to be installed on a Debian/Ubuntu distro to make available the `qsym2` binary.
 
 1. Install the basic dependencies by running the following commands (sudo privileges required):
@@ -114,7 +123,7 @@ The following instructions assume that the `full` feature is to be installed on 
     ```
     which will compile and install the `qsym2` binary into `$HOME/.cargo/bin` to allow for system-wide availability.
 
-    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [**Features**](#features) section and can be modified to select other features to be installed as appropriate.
+    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [**Rust features**](#rust-features) section and can be modified to select other features to be installed as appropriate.
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
@@ -123,6 +132,7 @@ The following instructions assume that the `full` feature is to be installed on 
     instead. The custom path `/custom/install/path/for/qsym2` must then be added to the `$PATH` environment variable to make `qsym2` discoverable by the operating system.
 
 ### Python-library compilation
+
 The following instructions assume that the `openblas-static`, `integrals`, and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment. These features are specified in the [`pyproject.toml`](/pyproject.toml) file.
 
 1. Follow steps 1 to 4 under the [**Binary compilation**](#binary-compilation) section above to install the required prerequisites.
@@ -145,22 +155,28 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
 
 ## Usage
 
-There are two main ways of running QSym²: either via the command-line interface provided by the binary `qsym2`, or via the exposed Python bindings.
+There are two main ways of running QSym²:
+- via the command-line interface provided by the binary `qsym2`, or
+- via the exposed Python bindings provided by the Python library `qsym2`.
 
 ### Command-line interface
 
+#### Scope
+
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
-- Hartree--Fock or Kohn--Sham molecular orbitals, and
+- Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals, and
 - vibrational coordinates
 
 that have been exported by Q-Chem 6 to a HDF5 file named `qarchive.h5` saved in the job's scratch directory,
 
 or
 - Slater determinants, and
-- Hartree--Fock or Kohn--Sham molecular orbitals
+- Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals
 
 that have been stored in binary files, together with other basis-set-related data.
+
+#### Instructions
 
 The command-line interface supports several subcommands and options:
 ```bash
@@ -199,18 +215,22 @@ qsym2 run -c path/to/config -o output_name
 ```
 takes a configuration YAML file as a parameter, performs the specified symmetry analysis, and displays the results in the specified output file.
 
-Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the project's [Wiki](https://gitlab.com/bangconghuynh/qsym2/-/wikis/home) page.
+Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found on [QSym²'s website](https://qsym2.dev).
 
 
 ### Python interface
 
+#### Scope
+
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
-- Hartree--Fock or Kohn--Sham molecular orbitals,
+- Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals,
 - vibrational coordinates, and
 - one-electron densities
 
 that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly.
+
+#### Instructions
 
 To view the documentation for the Python API, execute the following Python commands inside the `qsym2-python` conda environment (see [above](#python-library-compilation)), either interactively or in a Python script:
 ```python
@@ -224,6 +244,6 @@ Another example where the Python bindings of QSym² are used extensively for the
 
 ## Authors and acknowledgement
 
-QSym² is developed and maintained by Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from the ERC grant under the *topDFT* project.
+QSym² has been developed and maintained by Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK since July 2022 with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from the ERC grant under the *topDFT* project.
 
 The logo for QSym², which is a stylised stellated octahedron, was designed with artistic support from Mr [Thinh Nguyen](https://www.linkedin.com/in/thinh-nguyen-a38b7856/).

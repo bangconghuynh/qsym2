@@ -5,6 +5,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -39,7 +40,7 @@ where
     // ----------------
 
     /// Computes the class structure of the group and store the result.
-    fn compute_class_structure(&mut self);
+    fn compute_class_structure(&mut self) -> Result<(), anyhow::Error>;
 
     /// Given a class index, returns an optional shared reference to the set containing the indices
     /// of all elements in that class.
@@ -605,7 +606,7 @@ where
     /// ```math
     ///     g \sim h \Leftrightarrow \exists u : h = u g u^{-1}.
     /// ```
-    fn compute_class_structure(&mut self) {
+    fn compute_class_structure(&mut self) -> Result<(), anyhow::Error> {
         log::debug!("Finding unitary conjugacy classes...");
         let order = self.abstract_group.order();
         let (ccs, e2ccs) = if self.abstract_group.is_abelian() {
@@ -637,9 +638,11 @@ where
                 for s in 0usize..order {
                     let sg = ctb[[s, g]];
                     let ctb_xs = ctb.slice(s![.., s]);
-                    let h = ctb_xs.iter().position(|&x| x == sg).unwrap_or_else(|| {
-                        panic!("No element `{sg}` can be found in column `{s}` of Cayley table.")
-                    });
+                    let h = ctb_xs.iter().position(|&x| x == sg).ok_or_else(|| {
+                        format_err!(
+                            "No element `{sg}` can be found in column `{s}` of Cayley table."
+                        )
+                    })?;
                     if remaining_elements.contains(&h) {
                         remaining_elements.remove(&h);
                         cur_cc.insert(h);
@@ -663,6 +666,7 @@ where
             EagerClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding unitary conjugacy classes... Done.");
+        Ok(())
     }
 
     #[must_use]
@@ -789,7 +793,7 @@ where
     /// ```
     ///
     /// where $`u`$ is unitary-represented and $`a`$ is antiunitary-represented in the group.
-    fn compute_class_structure(&mut self) {
+    fn compute_class_structure(&mut self) -> Result<(), anyhow::Error> {
         log::debug!("Finding magnetic conjugacy classes...");
         let order = self.abstract_group.order();
         let mut ccs: Vec<HashSet<usize>> = vec![HashSet::from([0usize])];
@@ -831,16 +835,16 @@ where
                     // s denotes a.
                     let sginv = ctb[[s, ginv]];
                     let ctb_xs = ctb.slice(s![.., s]);
-                    ctb_xs.iter().position(|&x| x == sginv).unwrap_or_else(|| {
-                        panic!("No element `{sginv}` can be found in column `{s}` of Cayley table.")
-                    })
+                    ctb_xs.iter().position(|&x| x == sginv).ok_or_else(|| {
+                        format_err!("No element `{sginv}` can be found in column `{s}` of Cayley table.")
+                    })?
                 } else {
                     // s denotes u.
                     let sg = ctb[[s, g]];
                     let ctb_xs = ctb.slice(s![.., s]);
-                    ctb_xs.iter().position(|&x| x == sg).unwrap_or_else(|| {
-                        panic!("No element `{sg}` can be found in column `{s}` of Cayley table.")
-                    })
+                    ctb_xs.iter().position(|&x| x == sg).ok_or_else(|| {
+                        format_err!("No element `{sg}` can be found in column `{s}` of Cayley table.")
+                    })?
                 };
                 if remaining_unitary_elements.contains(&h) {
                     remaining_unitary_elements.remove(&h);
@@ -857,7 +861,7 @@ where
         ccs.iter().enumerate().for_each(|(i, cc)| {
             cc.iter().for_each(|&j| e2ccs[j] = Some(i));
         });
-        assert!(e2ccs
+        ensure!(e2ccs
             .iter()
             .skip(1)
             .all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
@@ -866,6 +870,7 @@ where
             EagerClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding magnetic conjugacy classes... Done.");
+        Ok(())
     }
 
     #[must_use]

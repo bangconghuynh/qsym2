@@ -303,27 +303,24 @@ impl SymmetryOperation {
                 -1.0 - thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [-1, +1]."
             );
-            let (axis, order, power, su2_grp) = if approx::relative_eq!(
+            let (axis, order, power, su2_grp) = if approx::abs_diff_eq!(
                 scalar_part,
                 1.0,
                 epsilon = thresh,
-                max_relative = thresh
             ) {
                 // Zero-degree rotation, i.e. identity or inversion, class 0
                 (Vector3::z(), 1u32, 1u32, SU2_0)
-            } else if approx::relative_eq!(
+            } else if approx::abs_diff_eq!(
                 scalar_part,
                 -1.0,
                 epsilon = thresh,
-                max_relative = thresh
             ) {
                 // 360-degree rotation, i.e. identity or inversion, class 1
                 (Vector3::z(), 1u32, 1u32, SU2_1)
-            } else if approx::relative_eq!(
+            } else if approx::abs_diff_eq!(
                 scalar_part,
                 0.0,
                 epsilon = thresh,
-                max_relative = thresh
             ) {
                 // 180-degree rotation, i.e. binary rotation or reflection. Whether the resultant
                 // operation is in class 0 or class 1 depends on whether the vector part is in the
@@ -396,11 +393,10 @@ impl SymmetryOperation {
                 -thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [0, +1] when only SO(3) rotations are considered."
             );
-            let (axis, order, power) = if approx::relative_eq!(
+            let (axis, order, power) = if approx::abs_diff_eq!(
                 scalar_part,
                 1.0,
                 epsilon = thresh,
-                max_relative = thresh
             ) {
                 // Zero-degree rotation, i.e. identity or inversion
                 (Vector3::z(), 1u32, 1i32)
@@ -509,10 +505,9 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        debug_assert!(if approx::relative_eq!(
+        debug_assert!(if approx::abs_diff_eq!(
             scalar_part,
             0.0,
-            max_relative = c_self.generating_element.threshold,
             epsilon = c_self.generating_element.threshold
         ) {
             c_self
@@ -595,10 +590,9 @@ impl SymmetryOperation {
                 }
             }
             ElementOrder::Inf => {
-                if approx::relative_eq!(
+                if approx::abs_diff_eq!(
                     op.total_proper_angle,
                     std::f64::consts::PI,
-                    max_relative = op.generating_element.threshold,
                     epsilon = op.generating_element.threshold
                 ) {
                     // Binary rotations or reflections
@@ -612,18 +606,16 @@ impl SymmetryOperation {
                                 op.generating_element.threshold,
                             ),
                     )
-                } else if approx::relative_ne!(
+                } else if approx::abs_diff_ne!(
                     op.total_proper_angle,
                     0.0,
-                    max_relative = op.generating_element.threshold,
                     epsilon = op.generating_element.threshold
                 ) {
                     Point3::from(op.total_proper_angle.signum() * op.generating_element.raw_axis)
                 } else {
-                    approx::assert_relative_eq!(
+                    approx::assert_abs_diff_eq!(
                         op.total_proper_angle,
                         0.0,
-                        max_relative = op.generating_element.threshold,
                         epsilon = op.generating_element.threshold
                     );
                     Point3::from(Vector3::z())
@@ -686,10 +678,9 @@ impl SymmetryOperation {
                 }
             }
             ElementOrder::Inf => {
-                if approx::relative_eq!(
+                if approx::abs_diff_eq!(
                     self.total_proper_angle,
                     std::f64::consts::PI,
-                    max_relative = self.generating_element.threshold,
                     epsilon = self.generating_element.threshold
                 ) {
                     // Binary rotations or reflections
@@ -703,20 +694,18 @@ impl SymmetryOperation {
                                 self.generating_element.threshold,
                             ),
                     )
-                } else if approx::relative_ne!(
+                } else if approx::abs_diff_ne!(
                     self.total_proper_angle,
                     0.0,
-                    max_relative = self.generating_element.threshold,
                     epsilon = self.generating_element.threshold
                 ) {
                     Point3::from(
                         self.total_proper_angle.signum() * self.generating_element.raw_axis,
                     )
                 } else {
-                    approx::assert_relative_eq!(
+                    approx::assert_abs_diff_eq!(
                         self.total_proper_angle,
                         0.0,
-                        max_relative = self.generating_element.threshold,
                         epsilon = self.generating_element.threshold
                     );
                     Point3::from(Vector3::z())
@@ -1032,10 +1021,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     .total_proper_fraction
                     .expect("Total proper fraction not found for a finite-order operation.")
                     .is_zero(),
-                ElementOrder::Inf => approx::relative_eq!(
+                ElementOrder::Inf => approx::abs_diff_eq!(
                     self.total_proper_angle,
                     0.0,
-                    max_relative = self.generating_element.threshold,
                     epsilon = self.generating_element.threshold
                 ),
             }
@@ -1056,10 +1044,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         == F::new(1u32, 2u32)
                 }
                 ElementOrder::Inf => {
-                    approx::relative_eq!(
+                    approx::abs_diff_eq!(
                         self.total_proper_angle,
                         std::f64::consts::PI,
-                        max_relative = self.generating_element.threshold,
                         epsilon = self.generating_element.threshold
                     )
                 }
@@ -1080,10 +1067,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                             .expect("Total proper fraction not found for a finite-order operation.")
                             == F::new(1u32, 2u32)
                     } else {
-                        approx::relative_eq!(
+                        approx::abs_diff_eq!(
                             self.total_proper_angle,
                             std::f64::consts::PI,
-                            max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
                     }
@@ -1094,10 +1080,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                             .expect("Total proper fraction not found for a finite-order operation.")
                             .is_zero()
                     } else {
-                        approx::relative_eq!(
+                        approx::abs_diff_eq!(
                             self.total_proper_angle,
                             0.0,
-                            max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
                     }
@@ -1120,10 +1105,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                             .expect("Total proper fraction not found for a finite-order operation.")
                             .is_zero()
                     } else {
-                        approx::relative_eq!(
+                        approx::abs_diff_eq!(
                             self.total_proper_angle,
                             0.0,
-                            max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
                     }
@@ -1134,10 +1118,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                             .expect("Total proper fraction not found for a finite-order operation.")
                             == F::new(1u32, 2u32)
                     } else {
-                        approx::relative_eq!(
+                        approx::abs_diff_eq!(
                             self.total_proper_angle,
                             std::f64::consts::PI,
-                            max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
                     }

@@ -6,13 +6,13 @@ use anyhow::{self, bail, Context};
 use log;
 use serde::{Deserialize, Serialize};
 
-use crate::drivers::molecule_symmetrisation::MoleculeSymmetrisationDriver;
+use crate::auxiliary::molecule::Molecule;
+use crate::drivers::molecule_symmetrisation_bootstrap::MoleculeSymmetrisationBootstrapDriver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
-use crate::io::format::qsym2_output;
 use crate::interfaces::input::analysis::{
     AnalysisTarget, SlaterDeterminantSource, SlaterDeterminantSourceHandle,
 };
@@ -21,6 +21,7 @@ use crate::interfaces::input::analysis::{
     VibrationalCoordinateSource, VibrationalCoordinateSourceHandle,
 };
 use crate::interfaces::InputHandle;
+use crate::io::format::qsym2_output;
 #[allow(unused_imports)]
 use crate::io::{read_qsym2_binary, QSym2FileType};
 
@@ -88,42 +89,42 @@ impl InputHandle for Input {
             } => {
                 qsym2_output!("");
                 log::debug!("Analysis target: Molecular symmetry");
-                let pd_params = match pd_params_inp {
-                    SymmetryGroupDetectionInputKind::Parameters(pd_params) => pd_params,
-                    SymmetryGroupDetectionInputKind::FromFile(_) => {
-                        bail!(
-                            "It is pointless to provide a pre-calculated symmetry-group \
-                            detection result when only symmetry-group detection is required."
-                        )
-                    }
-                };
-                log::debug!(
-                    "Molecular symmetry group will be identified based on specified parameters."
-                );
-                let mut pd_driver = SymmetryGroupDetectionDriver::builder()
-                    .parameters(pd_params)
-                    .xyz(Some(xyz.into()))
-                    .build()
-                    .with_context(|| "Unable to construct a symmetry-group detection driver while handling molecular symmetry analysis target")?;
-                let pd_res = pd_driver
-                    .run()
-                    .with_context(|| "Unable to execute the symmetry-group detection driver successfully while handling molecular symmetry analysis target");
-                if let Some(ms_params) = symmetrisation.as_ref() {
-                    log::debug!("Performing molecule symmetrisation...");
-                    let pd_res = pd_driver
-                        .result()
-                        .with_context(|| "Unable to extract the target symmetry-group detection result for molecule symmetrisation while handling molecular symmetry analysis target")?;
-                    let mut ms_driver = MoleculeSymmetrisationDriver::builder()
-                        .parameters(ms_params)
-                        .target_symmetry_result(pd_res)
+                let mol = Molecule::from_xyz(xyz, 1e-7);
+                if let Some(msb_params) = symmetrisation.as_ref() {
+                    log::debug!("Performing molecule symmetrisation by bootstrapping...");
+                    let mut msb_driver = MoleculeSymmetrisationBootstrapDriver::builder()
+                        .parameters(msb_params)
+                        .molecule(&mol)
                         .build()
-                        .with_context(|| "Unable to construct a molecule symmetrisation driver while handling molecular symmetry analysis target")?;
-                    let ms_res = ms_driver
+                        .with_context(|| "Unable to construct a molecule symmetrisation by bootstrapping driver while handling molecular symmetry analysis target")?;
+                    let msb_res = msb_driver
                         .run()
-                        .with_context(|| "Unable to execute the molecule symmetrisation driver successfully while handling molecular symmetry analysis target");
-                    log::debug!("Performing molecule symmetrisation... Done.");
-                    ms_res
+                        .with_context(|| "Unable to execute the molecule symmetrisation by bootstrapping driver successfully while handling molecular symmetry analysis target");
+                    log::debug!("Performing molecule symmetrisation by bootstrapping... Done.");
+                    msb_res
                 } else {
+                    log::debug!("Performing symmetry-group detection without symmetrisation...");
+                    let pd_params = match pd_params_inp {
+                        SymmetryGroupDetectionInputKind::Parameters(pd_params) => pd_params,
+                        SymmetryGroupDetectionInputKind::FromFile(_) => {
+                            bail!(
+                                "It is pointless to provide a pre-calculated symmetry-group \
+                                detection result when only symmetry-group detection is required."
+                            )
+                        }
+                    };
+                    log::debug!(
+                        "Molecular symmetry group will be identified based on specified parameters."
+                    );
+                    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+                        .parameters(pd_params)
+                        .xyz(Some(xyz.into()))
+                        .build()
+                        .with_context(|| "Unable to construct a symmetry-group detection driver while handling molecular symmetry analysis target")?;
+                    let pd_res = pd_driver
+                        .run()
+                        .with_context(|| "Unable to execute the symmetry-group detection driver successfully while handling molecular symmetry analysis target");
+                    log::debug!("Performing symmetry-group detection without symmetrisation... Done.");
                     pd_res
                 }
             }

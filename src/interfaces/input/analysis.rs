@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow;
 use serde::{Deserialize, Serialize};
 
-use crate::drivers::molecule_symmetrisation::MoleculeSymmetrisationParams;
+use crate::drivers::molecule_symmetrisation_bootstrap::MoleculeSymmetrisationBootstrapParams;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::drivers::representation_analysis::vibrational_coordinate::VibrationalCoordinateRepAnalysisParams;
@@ -35,7 +35,7 @@ pub enum AnalysisTarget {
         xyz: PathBuf,
 
         /// Optional parameters for performing symmetrisation on the structure.
-        symmetrisation: Option<MoleculeSymmetrisationParams>,
+        symmetrisation: Option<MoleculeSymmetrisationBootstrapParams>,
     },
 
     /// Variant representing the choice of Slater determinant as the target for representation
@@ -55,7 +55,7 @@ impl AnalysisTarget {
         vec![
             AnalysisTarget::MolecularSymmetry {
                 xyz: PathBuf::from("path/to/xyz"),
-                symmetrisation: Some(MoleculeSymmetrisationParams::default()),
+                symmetrisation: Some(MoleculeSymmetrisationBootstrapParams::default()),
             },
             AnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default()),
             #[cfg(feature = "qchem")]

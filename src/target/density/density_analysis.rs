@@ -131,7 +131,7 @@ where
     origin: &'a Density<'a, T>,
 
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
-    linear_independence_threshold: <T as ComplexFloat>::Real,
+    pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
 
     /// The threshold for determining if calculated multiplicities in representation analysis are
     /// integral.

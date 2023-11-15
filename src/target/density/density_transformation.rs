@@ -25,13 +25,13 @@ where
         &mut self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> &mut Self {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
+    ) -> Result<&mut Self, anyhow::Error> {
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)?
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))
             .collect();
         let pbao = if let Some(p) = perm {
-            self.bao.permute(p)
+            self.bao.permute(p)?
         } else {
             self.bao.clone()
         };
@@ -78,7 +78,7 @@ where
         )
         .expect("Unable to concatenate the transformed columns for the various shells.");
         self.density_matrix = new_denmat;
-        self
+        Ok(self)
     }
 }
 

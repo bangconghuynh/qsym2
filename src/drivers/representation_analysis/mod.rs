@@ -11,7 +11,7 @@ use crate::group::class::ClassPropertiesSummary;
 use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 
 pub mod angular_function;
-// pub mod density;
+pub mod density;
 pub mod slater_determinant;
 pub mod vibrational_coordinate;
 

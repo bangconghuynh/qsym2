@@ -2756,7 +2756,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_dyy.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||F~|_(g)|").unwrap()
     );
 
     let mut orbit_cg_u_oh_double_spin_spatial_dxz = SlaterDeterminantSymmetryOrbit::builder()
@@ -2774,6 +2774,6 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_dxz.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||F~|_(g)|").unwrap()
     );
 }

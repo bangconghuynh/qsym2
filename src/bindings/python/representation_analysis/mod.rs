@@ -1,9 +1,12 @@
 //! Python bindings for QSym² symmetry analysis via representation and corepresentation theories.
+//!
+//! See [`crate::drivers::representation_analysis`] for more information.
 
 use num_complex::Complex;
 use numpy::{PyArray2, PyArray4};
 use pyo3::prelude::*;
 
+pub mod density;
 pub mod slater_determinant;
 pub mod vibrational_coordinate;
 
