@@ -24,7 +24,7 @@ macro_rules! qsym2_output {
     ($fmt:expr $(, $($arg:tt)*)?) => { log::info!(target: "qsym2-output", $fmt, $($($arg)*)?); }
 }
 
-pub(crate) use {qsym2_output};
+pub(crate) use {qsym2_error, qsym2_output, qsym2_warn};
 
 /// Writes a nicely formatted section title.
 pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Result {
