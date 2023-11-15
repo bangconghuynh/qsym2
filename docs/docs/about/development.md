@@ -38,41 +38,42 @@ This prompted the integration of `poly-inspect` with [QUEST](https://quest.codes
 Fortunately, minimal effort was required to port over all symmetry analysis functionalities of `poly-inspect` to QUEST.
 
 However, `poly-inspect`'s inability for character table generation meant that users of QUEST who would like to obtain symmetry analysis results for their calculations would have had to carry out many manual steps to obtain definitive symmetry assignments.
-To remedy this, the author decided to explore options to implement an algorithm for generating character tables automatically based on the symmetry elements locatable by `poly-inspect`.
-Work thus began to allow symmetry operations generatable from located geometrical symmetry elements to be accurately and efficiently represented computationally in such a way that also enables their multiplication to be performed with ease.
+To remedy this, the author decided to explore options for generating character tables automatically based on the symmetry elements locatable by `poly-inspect`.
 
-Once a multiplicative structure of symmetry operations had been implemented and tested, it became possible to transition from concrete symmetry-group structures to equivalent abstract group structures, which in turn enabled character tables to be constructed symbolically and efficiently over finite fields via the [Burnside&ndash;Dixon algorithm](https://doi.org/10.1007/BF02162877).
-This was very exciting because, for the first time, it was possible to perform symmetry analysis for quantum-chemical calculations in any arbitrary point groups without needing pre-tabulated character tables or requiring that molecules have to be in some standard orientation.
+Work thus began to allow symmetry operations that can be obtained from geometrical symmetry elements to be accurately and efficiently represented in such a way that enables their multiplication to be performed with ease.
+Once a multiplicative structure of symmetry operations had been implemented and tested, it became possible to transition from concrete symmetry-group structures to equivalent abstract group structures, which in turn enabled character tables to be constructed symbolically and efficiently over finite Galois fields via the [Burnside&ndash;Dixon algorithm](https://doi.org/10.1007/BF02162877).
+This was very exciting because, for the first time, it was possible to perform symmetry analysis for quantum-chemical calculations in any arbitrary point groups, Abelian or not, without needing pre-tabulated character tables or requiring that molecules have to be in some standard orientation.
 
 As one of the most distintive features of QUEST is its ability to carry out non-perturbative electronic-structure calculations in the presence of external electric and magnetic fields, the added capability of symmetry analysis in any symmetry point groups means that it was then also possible to investigate the effects of external fields on the symmetry of quantum-chemical properties.
-This in fact led to several pieces of joint work with Dr Tom J. P. Irons and Dr Meilani Wibowo in the group in which the understanding from symmetry helps us make sense of the behaviours of chemical systems under the influence of strong magnetic fields.
+This in fact led to two pieces of joint work with Dr Tom J. P. Irons and Dr Meilani Wibowo in the group in which the understanding from symmetry helps make sense of the behaviours of chemical systems under the influence of strong magnetic fields.
 
 ### The Rust redevelopment
 
-Despite having a working symmetry analysis implementation in QUEST, the author was not entirely happy that it was written in Python, because of the known performance limitations that are inherent in this language.
+Despite having a working symmetry analysis implementation in QUEST, the author was not entirely happy that it was written in Python because of the known performance limitations that are inherent in this language.
 Having been very impressed with the design of the modern system programming language Rust that prioritises safety and performance, the author decided that the symmetry analysis code would benefit from a redevelopment in Rust.
+This was, in fact, also a perfect opportunity for the author to get into Rust as he had been rather keen to learn this language for a while.
 And so, around April 2022, the work to rebuild the entire symmetry analysis suite in Rust began.
-This started out as a side project, but with the scientific support from Prof. Andrew M. Teale and Dr Meilani Wibowo, the redevelopment work gradually became a full-time project that constantly received ideas and suggestions for more functionalities.
+This started out as a side project, but with the scientific support and advice from Prof. Andrew M. Teale and Dr Meilani Wibowo, the redevelopment work gradually became a full-time project that constantly received ideas and suggestions for more functionalities.
 
 During the initial redevelopment period, the Rust codebase was given the name `rusty-inspect`.
-However, in the summer of 2022, after having used the abbreviation 'sym' on multiple occasions in the codebase to refer to both 'symmetry' and 'symbolic' or 'symbol', the author realised that the codebase could be renamed in such a way that would include both meanings of 'sym'.
-It was a small leap then to arrive at the name QSym² that has gone on to become the official name for this program.
+However, in the summer of 2022, after having used the abbreviation 'sym' on multiple occasions in the codebase to refer to both 'symmetry' and 'symbolic' or 'symbol', the author realised that the codebase could be renamed in a cunning way that would include both meanings of 'sym'.
+It was a small leap then to arrive at the name **QSym²**, which stands for **Q**uantum **Sym**bolic **Sym**metry and which is pronounced *q-sym-squared*, that has gone on to become the official name of this program.
 
 Most symmetry analysis functionalities that had been implemented in QUEST prior to this redevelopment were successfully ported to QSym² by early 2023.
-However, it did not sit well with the author and his collaborators that QSym² was limited to only unitary symmetry representation analysis, given that the framework of QSym² and the type system of Rust are both sufficiently generic to go much further beyond this.
-And thus commenced the period of feature expansions and code refactoring with the aim to distinguish implementations that are specific to a particular physical problem (*e.g.* point-transformation symmetry operations) from implementations that are fundamentally abstract because of the abstract structure of groups (*e.g.* character table generation).
+However, it did not sit well with the author and his advisors that QSym² was limited to only unitary symmetry representation analysis, given that QSym² was already capable of handling magnetic fields and that the framework of QSym² and the type system of Rust are both sufficiently generic to go much further beyond this.
+And thus commenced the period of feature expansions and code refactoring with the aim to distinguish implementations that are specific to a particular physical problem (*e.g.* point-transformation symmetry operations) from implementations that are fundamentally generic because of the abstract structure of groups (*e.g.* character table generation).
 This period occupied a good part of the first half of 2023.
 
 The outcome from this period is a plethora of new features introduced to QSym² that, to the best of the author's knowledge, have not been seen before in any other quantum-chemical calculation programs.
-These features include the abilities to handle magnetic symmetry via corepresentations, to incorporate spin symmetry explicitly via projective (co)representations, and to apply symmetry analysis to a wide range of linear-space quantities that go beyond Slater determinants such as electron densities and vibrational coordinates.
-It was at this stage that the author and his collaborators felt that QSym² had reached a suitable standard for being released.
-It was also during this period that the author had the pleasure to congratulate his collaborators on their holy matrimony.
+These features include the abilities to handle magnetic symmetry via corepresentations, incorporate spin symmetry explicitly via projective (co)representations, and apply symmetry analysis to a wide range of linear-space quantities that go beyond Slater determinants such as electron densities and vibrational coordinates.
+It was at this stage that the author and his advisors felt that QSym² had attained a suitable standard for being released.
+It was also during this period that the author had the pleasure to congratulate his advisors on their Holy Matrimony.
 
 Since then, the focus has been to test and improve QSym² rigorously to get it ready for a public release.
-A major aspect of this preparation is the development of drivers, bindings, and interfaces to expose the features QSym² to end-users in multiple ways.
+A major aspect of this preparation is the development of drivers, bindings, and interfaces to expose the low-level features of QSym² to high-level users in a number of ways.
 This has since enabled QSym² to work with QUEST, [Q-Chem](https://www.q-chem.com/), [Orca](https://orcaforum.kofo.mpg.de/), or even raw binary files.
 These are by no means everything that QSym² will ever support, and interfaces with other quantum chemistry packages will continue to be added in the future.
-But for now, these are sufficient to demonstrate that the design of QSym² is flexible and general enough to be used with a variety of programs.
+But for now, they are sufficient to demonstrate the flexibility and generality of the design of QSym² that enables it to be used with a variety of comtemporary programs for quantum-chemical calculations.
 
 ## Acknowledgement
 
