@@ -83,6 +83,7 @@ The author would like to acknowledge the following individuals for their support
 - Dr Tom J. P. Irons (Nottingham, UK)
 - Dr Alex J. W. Thom (Cambridge, UK)
 - Dr Benjamin Speake (Nottingham, UK)
+- Prof. Paul Geerlings (Brussels, Belgium)
 - Mr Benjamin Mokhtar (Paris, France)
 - Dr Dr Aleksandra Foerster (Nottingham, UK)
 - Mr Thinh Nguyen (Los Angeles, California, US)
