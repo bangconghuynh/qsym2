@@ -108,5 +108,6 @@ nav:
   - Developer guide:
     - API documentation: https://qsym2.dev/api
   - About:
-    - about/authors.md
+    - about/authorship.md
+    - about/development.md
     - about/license.md
