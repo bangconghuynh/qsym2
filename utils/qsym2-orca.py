@@ -89,7 +89,7 @@ def orca_rep_analyse_slater_determinant(
         time_reversal=False,
         write_symmetry_elements=True,
         fictitious_magnetic_field=None,
-        fictitious_electric_field=None
+        fictitious_electric_field=None,
     )
 
     def pure_order(l_symbol: str) -> list[int]:

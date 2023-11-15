@@ -111,6 +111,22 @@ release:
     - job: cibuildwheel-linux
       artifacts: true
 
+mkdocs:
+  stage: Deploy
+  image: python:latest
+  script:
+    - pip install "mkdocs-material[imaging]"
+    - pip install mkdocs-git-revision-date-localized-plugin
+    - cd docs
+    - mkdocs build --site-dir public
+    - cd ..
+    - mv docs/public .
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_TAG
+
 pages:
   stage: Deploy
   tags:
@@ -122,11 +138,11 @@ pages:
     - apt-get install gfortran build-essential cmake -y
   script:
     - cargo doc --no-deps --features full,python
-    - mv target/doc public
-    - mkdir public/images
-    - cp images/qsym2_logo_no_text_no_background.svg public/images
-    - cp images/qsym2_icon.png public/images
-    - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/index.html
+    - mv target/doc public/api
+    - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/api/index.html
+  needs:
+    - job: mkdocs
+      artifacts: true
   artifacts:
     paths:
       - public

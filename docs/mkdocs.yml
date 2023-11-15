@@ -1,0 +1,116 @@
+site_name: QSym²
+site_url: https://qsym2.dev
+repo_name: bangconghuynh/qsym2
+repo_url: https://gitlab.com/bangconghuynh/qsym2
+copyright: Copyright &copy; 2023 Bang C. Huynh
+theme:
+  name: material
+  logo: assets/logos/qsym2_logo_no_text_no_background.svg
+  favicon: assets/logos/qsym2_icon.png
+  icon:
+    repo: fontawesome/brands/gitlab
+  font:
+    text: Outfit
+    code: Fira Mono
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: qsym2-light
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: qsym2-dark
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.footer
+    - navigation.indexes
+    - navigation.tabs
+    - navigation.top
+    - search.suggest
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      auto_title: true
+      line_spans: __span
+      use_pygments: true
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tilde
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - toc:
+      permalink: true
+plugins:
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: date
+  - search
+  - social:
+      cards_layout_options:
+        color: hsl(169.00, 46.00%, 64.00%)
+        background_color: hsl(173.15, 3%, 12%)
+        font_family: Outfit
+extra:
+  social:
+    - icon: fontawesome/brands/gitlab
+      link: https://gitlab.com/bangconghuynh
+      name: bangconghuynh on GitLab
+    - icon: fontawesome/brands/slack
+      link: https://qsym2.slack.com
+      name: QSym² workspace on Slack
+    - icon: fontawesome/brands/orcid
+      link: https://orcid.org/0000-0002-5226-4054
+      name: Bang C. Huynh's ORCID
+extra_css:
+  - stylesheets/card.css
+  - stylesheets/elements.css
+  - stylesheets/qsym2-light.css
+  - stylesheets/qsym2-dark.css
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+nav:
+  - index.md
+  - Getting started:
+    - getting-started/prerequisites.md
+    - getting-started/installation.md
+    - getting-started/basic-usage.md
+  - Methodologies:
+    - methodologies/character-table-generation.md
+    - methodologies/external-fields.md
+    - methodologies/orbit-based-representation-analysis.md
+  - User guide:
+    - user-guide/symmetry-group-detection.md
+    - user-guide/molecule-symmetrisation.md
+    - Representation analysis:
+      - user-guide/representation-analysis/slater-determinant.md
+      - user-guide/representation-analysis/vibrational-coordinates.md
+      - user-guide/representation-analysis/electron-densities.md
+  - Developer guide:
+    - API documentation: https://qsym2.dev/api
+  - About:
+    - about/authorship.md
+    - about/development.md
+    - about/license.md

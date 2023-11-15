@@ -1,6 +1,6 @@
 #![doc(
-    html_logo_url = "https://api.qsym2.dev/images/qsym2_logo_no_text_no_background.svg",
-    html_favicon_url = "https://api.qsym2.dev/images/qsym2_icon.png"
+    html_logo_url = "https://qsym2.dev/assets/logos/qsym2_logo_no_text_no_background.svg",
+    html_favicon_url = "https://qsym2.dev/assets/logos/qsym2_icon.png"
 )]
 
 //! # QSym²: A Program for Quantum Symbolic Symmetry
@@ -23,6 +23,8 @@
 //! GUI, [QuestView](https://gitlab.com/Bspeake/questview). QSym² can also work with
 //! [Q-Chem](https://www.q-chem.com/) HDF5 archive files and
 //! [Orca](https://orcaforum.kofo.mpg.de/index.php) output files.
+//!
+//! The main website for QSym² can be found [here](https://qsym2.dev).
 //!
 //! QSym² is hosted on [GitLab](https://gitlab.com/bangconghuynh/qsym2). Please submit
 //! an issue there if you've encountered anything that is unclear or that you feel needs improving.
@@ -99,7 +101,8 @@
 //! functions. For more explanation, please consult this documentation.
 //!
 //! For usage of the compiled `qsym2` binary or Python library, please consult the `README.md` file
-//! and the Wiki on [GitLab](https://gitlab.com/bangconghuynh/qsym2).
+//! on [GitLab](https://gitlab.com/bangconghuynh/qsym2) and the documentations on
+//! [QSym²'s website](https://qsym2.dev).
 //!
 //! ## License
 //!
@@ -107,10 +110,11 @@
 //!
 //! ## Authors and acknowledgement
 //!
-//! QSym² is developed and maintained by
+//! QSym² has been developed and maintained by
 //! Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK
-//! with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143)
-//! and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from
+//! since July 2022 with scientific support from Prof.
+//! [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr
+//! [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from
 //! the ERC grant under the *topDFT* project.
 //!
 //! The logo for QSym², which is a stylised stellated octahedron, was designed with

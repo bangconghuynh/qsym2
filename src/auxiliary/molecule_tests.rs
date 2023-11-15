@@ -295,25 +295,25 @@ fn test_molecule_get_perm_of() {
     let mol4 = Molecule::from_atoms(&[atom_0p, atom_1, atom_4, atom_3, atom_2], 1e-7);
 
     assert_eq!(
-        mol1.get_perm_of(&mol2),
-        Some(Permutation::<usize>::from_image(vec![0, 4, 1, 2, 3]))
+        mol1.get_perm_of(&mol2).unwrap(),
+        Permutation::<usize>::from_image(vec![0, 4, 1, 2, 3]).unwrap()
     );
     assert_eq!(
-        mol1.get_perm_of(&mol3),
-        Some(Permutation::<usize>::from_image(vec![0, 1, 4, 3, 2]))
+        mol1.get_perm_of(&mol3).unwrap(),
+        Permutation::<usize>::from_image(vec![0, 1, 4, 3, 2]).unwrap()
     );
     assert_eq!(mol1.get_perm_of(&mol4), None);
     assert_eq!(
-        mol2.get_perm_of(&mol1),
-        Some(Permutation::<usize>::from_image(vec![0, 2, 3, 4, 1]))
+        mol2.get_perm_of(&mol1).unwrap(),
+        Permutation::<usize>::from_image(vec![0, 2, 3, 4, 1]).unwrap()
     );
     assert_eq!(
-        mol2.get_perm_of(&mol2),
-        Some(Permutation::<usize>::from_image(vec![0, 1, 2, 3, 4]))
+        mol2.get_perm_of(&mol2).unwrap(),
+        Permutation::<usize>::from_image(vec![0, 1, 2, 3, 4]).unwrap()
     );
     assert_eq!(
-        mol2.get_perm_of(&mol3),
-        Some(Permutation::<usize>::from_image(vec![0, 4, 3, 2, 1]))
+        mol2.get_perm_of(&mol3).unwrap(),
+        Permutation::<usize>::from_image(vec![0, 4, 3, 2, 1]).unwrap()
     );
 }
 
@@ -336,8 +336,8 @@ fn test_molecule_permute() {
         1e-7,
     );
 
-    let perm = Permutation::<usize>::from_image(vec![0, 4, 3, 1, 2]);
-    let mol2 = mol1.permute(&perm);
+    let perm = Permutation::<usize>::from_image(vec![0, 4, 3, 1, 2]).unwrap();
+    let mol2 = mol1.permute(&perm).unwrap();
     assert_eq!(
         mol2.atoms,
         &[
@@ -349,8 +349,8 @@ fn test_molecule_permute() {
         ]
     );
 
-    let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2]);
-    let mol3 = mol1.permute(&perm2);
+    let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2]).unwrap();
+    let mol3 = mol1.permute(&perm2).unwrap();
     assert_eq!(
         mol3.atoms,
         &[
@@ -398,8 +398,8 @@ fn test_molecule_permute_with_special_atoms() {
         1e-7,
     );
 
-    let perm = Permutation::<usize>::from_image(vec![0, 4, 3, 1, 2, 5, 6, 7]);
-    let mol2 = mol1.permute(&perm);
+    let perm = Permutation::<usize>::from_image(vec![0, 4, 3, 1, 2, 5, 6, 7]).unwrap();
+    let mol2 = mol1.permute(&perm).unwrap();
     assert_eq!(
         mol2.atoms,
         &[
@@ -416,8 +416,8 @@ fn test_molecule_permute_with_special_atoms() {
     );
     assert_eq!(mol2.electric_atoms.unwrap(), &[atom_e1.clone(),]);
 
-    let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2, 6, 5, 7]);
-    let mol3 = mol1.permute(&perm2);
+    let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2, 6, 5, 7]).unwrap();
+    let mol3 = mol1.permute(&perm2).unwrap();
     assert_eq!(
         mol3.atoms,
         &[
@@ -444,8 +444,8 @@ fn test_molecule_permute_with_special_atoms() {
         1e-7,
     );
 
-    let perm3 = Permutation::<usize>::from_image(vec![0, 1, 3, 4, 2, 6, 5]);
-    let mol5 = mol4.permute(&perm3);
+    let perm3 = Permutation::<usize>::from_image(vec![0, 1, 3, 4, 2, 6, 5]).unwrap();
+    let mol5 = mol4.permute(&perm3).unwrap();
     assert_eq!(mol5.atoms, &[atom_0, atom_1, atom_3, atom_4, atom_2,]);
     assert_eq!(mol5.electric_atoms.unwrap(), &[atom_e2, atom_e1,]);
 }

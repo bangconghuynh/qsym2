@@ -245,7 +245,7 @@ pub enum PyVibrationalCoordinateCollection {
 /// symmetry group is to be printed out. Python type: `bool`.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for the symmetrisation. Python type: `Optional[int]`.
+/// will be used for symmetry analysis. Python type: `Optional[int]`.
 /// * `angular_function_integrality_threshold` - The threshold for verifying if subspace
 /// multiplicities are integral for the symmetry analysis of angular functions. Python type:
 /// `float`.

@@ -208,17 +208,18 @@ impl PermutableCollection for PureOrder {
             .collect();
         let image_opt: Option<Vec<Self::Rank>> =
             self.mls.iter().map(|s_m| o_mls.get(s_m).copied()).collect();
-        image_opt.map(Permutation::from_image)
+        image_opt.and_then(|image| Permutation::from_image(image).ok())
     }
 
-    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Result<Self, anyhow::Error> {
         let mut p_pureorder = self.clone();
-        p_pureorder.permute_mut(perm);
-        p_pureorder
+        p_pureorder.permute_mut(perm)?;
+        Ok(p_pureorder)
     }
 
-    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.mls, perm);
+        Ok(())
     }
 }
 
@@ -484,17 +485,18 @@ impl PermutableCollection for CartOrder {
             .iter()
             .map(|s_cart_tuple| o_cart_tuples.get(s_cart_tuple).copied())
             .collect();
-        image_opt.map(Permutation::from_image)
+        image_opt.and_then(|image| Permutation::from_image(image).ok())
     }
 
-    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Result<Self, anyhow::Error> {
         let mut p_cartorder = self.clone();
-        p_cartorder.permute_mut(perm);
-        p_cartorder
+        p_cartorder.permute_mut(perm)?;
+        Ok(p_cartorder)
     }
 
-    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.cart_tuples, perm);
+        Ok(())
     }
 }
 
@@ -871,7 +873,7 @@ impl<'a> BasisAngularOrder<'a> {
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()
-                .map(|image_by_shells| {
+                .and_then(|image_by_shells| {
                     let flattened_image = image_by_shells.into_iter().flatten().collect_vec();
                     Permutation::from_image(flattened_image)
                 });
@@ -910,17 +912,18 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
             .iter()
             .map(|s_basis_atom| o_basis_atoms.get(s_basis_atom).copied())
             .collect();
-        image_opt.map(Permutation::from_image)
+        image_opt.and_then(|image| Permutation::from_image(image).ok())
     }
 
-    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Result<Self, anyhow::Error> {
         let mut p_bao = self.clone();
-        p_bao.permute_mut(perm);
-        p_bao
+        p_bao.permute_mut(perm)?;
+        Ok(p_bao)
     }
 
-    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.basis_atoms, perm);
+        Ok(())
     }
 }
 

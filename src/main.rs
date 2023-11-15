@@ -26,9 +26,11 @@ fn try_main() -> Result<(), anyhow::Error> {
             let name = name.clone().unwrap_or(PathBuf::from("template_config"));
             let default_input = Input::default();
             write_qsym2_yaml(&name, &default_input)?;
+            let mut path = name.to_path_buf();
+            path.set_extension("yml");
             println!(
-                "The default YAML configuration has been written to {}.yml.",
-                name.display()
+                "The default YAML configuration has been written to {}.",
+                path.display()
             );
             Ok(())
         }

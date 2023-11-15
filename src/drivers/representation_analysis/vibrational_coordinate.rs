@@ -712,100 +712,43 @@ where
     }
 }
 
-// Specific for unitary-represented symmetry groups and determinant numeric type f64
-// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary/magnetic-represented groups and vibration numeric type f64/Complex<f64>
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+#[duplicate_item(
+    duplicate!{
+        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            gtype_ [ UnitaryRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            analyse_fn_ [ analyse_representation ]
+        ]
+    }
+    duplicate!{
+        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            gtype_ [ MagneticRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            analyse_fn_ [ analyse_corepresentation ]
+        ]
+    }
+)]
 impl<'a> QSym2Driver
-    for VibrationalCoordinateRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
+    for VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_>
 {
     type Params = VibrationalCoordinateRepAnalysisParams<f64>;
 
-    type Outcome = VibrationalCoordinateRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, f64>;
+    type Outcome = VibrationalCoordinateRepAnalysisResult<'a, gtype_, dtype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
             .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
+            .ok_or_else(|| format_err!("No vibrational representation analysis results found."))
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
         self.log_output_display();
-        self.analyse_representation()?;
-        self.result()?.log_output_display();
-        Ok(())
-    }
-}
-
-// Specific for unitary-represented symmetry groups and determinant numeric type Complex<f64>
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-impl<'a> QSym2Driver
-    for VibrationalCoordinateRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
-{
-    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
-
-    type Outcome =
-        VibrationalCoordinateRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>;
-
-    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
-    }
-
-    fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.log_output_display();
-        self.analyse_representation()?;
-        self.result()?.log_output_display();
-        Ok(())
-    }
-}
-
-// Specific for magnetic-represented symmetry groups and determinant numeric type f64
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-impl<'a> QSym2Driver
-    for VibrationalCoordinateRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64>
-{
-    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
-
-    type Outcome =
-        VibrationalCoordinateRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, f64>;
-
-    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
-    }
-
-    fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.log_output_display();
-        self.analyse_corepresentation()?;
-        self.result()?.log_output_display();
-        Ok(())
-    }
-}
-
-// Specific for magnetic-represented symmetry groups and determinant numeric type Complex<f64>
-// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-impl<'a> QSym2Driver
-    for VibrationalCoordinateRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
-{
-    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
-
-    type Outcome =
-        VibrationalCoordinateRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>;
-
-    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
-    }
-
-    fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.log_output_display();
-        self.analyse_corepresentation()?;
+        self.analyse_fn_()?;
         self.result()?.log_output_display();
         Ok(())
     }

@@ -46,7 +46,7 @@ fn test_symmetry_transformation_permute_array_by_atoms() {
         [19.0, 19.0, 19.0],
     ];
 
-    let perm0 = Permutation::<usize>::from_image(vec![1, 0, 3, 2]);
+    let perm0 = Permutation::<usize>::from_image(vec![1, 0, 3, 2]).unwrap();
     let perm_arr_0 = permute_array_by_atoms(&arr, &perm0, &[Axis(0)], &bao_c4);
     assert_eq!(
         perm_arr_0,
@@ -74,7 +74,7 @@ fn test_symmetry_transformation_permute_array_by_atoms() {
         ]
     );
 
-    let perm1 = Permutation::<usize>::from_image(vec![1, 3, 2, 0]);
+    let perm1 = Permutation::<usize>::from_image(vec![1, 3, 2, 0]).unwrap();
     let perm_arr_1 = permute_array_by_atoms(&arr, &perm1, &[Axis(0)], &bao_c4);
     assert_eq!(
         perm_arr_1,
@@ -120,7 +120,7 @@ fn test_symmetry_transformation_permute_array_by_atoms() {
         [30.0, 31.0, 32.0, 33.0, 34.0, 35.0],
     ];
 
-    let perm2 = Permutation::<usize>::from_image(vec![1, 0, 2]);
+    let perm2 = Permutation::<usize>::from_image(vec![1, 0, 2]).unwrap();
     let perm_arr2_0 = permute_array_by_atoms(&arr2, &perm2, &[Axis(0), Axis(1)], &bao_h3);
     assert_eq!(
         perm_arr2_0,

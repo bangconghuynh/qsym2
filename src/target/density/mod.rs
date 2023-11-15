@@ -2,10 +2,11 @@
 
 use std::fmt;
 use std::iter::Sum;
-use std::ops::{Add, Sub, Index};
+use std::ops::{Add, Index, Sub};
 
 use approx;
 use derive_builder::Builder;
+use itertools::Itertools;
 use log;
 use ndarray::Array2;
 use ndarray_linalg::types::Lapack;
@@ -130,6 +131,19 @@ where
 
     pub fn iter(&self) -> impl Iterator<Item = &Density<'a, T>> {
         self.densities.iter()
+    }
+}
+
+impl<'b, 'a: 'b, T> DensitiesOwned<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    pub fn as_ref(&'a self) -> Densities<'b, T> {
+        Densities::builder()
+            .spin_constraint(self.spin_constraint.clone())
+            .densities(self.iter().collect_vec())
+            .build()
+            .expect("Unable to convert `DensitiesOwned` to `Densities`.")
     }
 }
 

@@ -1856,8 +1856,10 @@ fn _search_proper_rotations(
         } // end match k_sea
 
         // Search for any remaining C2 axes
+        log::debug!("Searching for any remaining C2 axes in this SEA group...");
         for atom2s in sea_group.iter().combinations(2) {
             if asymmetric && count_c2 == 3 {
+                log::debug!("Three C2 axes have been found for an asymmetric top. No more C2 axes will be found. The C2 search has completed.");
                 break;
             }
             let atom_i_pos = atom2s[0].coordinates;
@@ -1875,6 +1877,10 @@ fn _search_proper_rotations(
             }
 
             // Case A: C2 might cross through the midpoint of two atoms
+            // Care needs to be taken if the midpoint is at the centre of mass of the molecule,
+            // because then `midvec` would be a zero vector and `c2_check` would be `None`,
+            // regardless of whether there is actually a C2 axis passing through this midpoint or
+            // not.
             let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
             let c2_check = presym.check_proper(&ORDER_2, &midvec, tr);
             if midvec.norm() > presym.dist_threshold && c2_check.is_some() {
@@ -1901,8 +1907,21 @@ fn _search_proper_rotations(
                         proper_kind.contains_time_reversal(),
                     ));
                 }
+            } else if midvec.norm() <= presym.dist_threshold {
+                for principal_axis in &presym.recentred_molecule.calc_moi().1 {
+                    if let Some(proper_kind) = presym.check_proper(&ORDER_2, principal_axis, tr) {
+                        count_c2 += usize::from(sym.add_proper(
+                            ORDER_2,
+                            principal_axis,
+                            false,
+                            presym.dist_threshold,
+                            proper_kind.contains_time_reversal(),
+                        ));
+                    }
+                }
             }
         }
+        log::debug!("Searching for any remaining C2 axes in this SEA group... Done.");
     } // end for sea_group in presym.sea_groups.iter()
     log::debug!("++++++++++++++++++++++++");
     log::debug!("SEA group analysis ends.");
