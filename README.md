@@ -19,7 +19,9 @@ for the following targets:
 
 QSym² has been integrated with [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview). QSym² can also work with [Q-Chem](https://www.q-chem.com/) HDF5 archive files and [Orca](https://orcaforum.kofo.mpg.de/index.php) output files.
 
-The public API documentation for QSym² can be found [here](https://api.qsym2.dev/).
+The main website for QSym² can be found [here](https://qsym2.dev).
+
+The public API documentation for QSym² can be found [here](https://qsym2.dev/api).
 
 ## Table of contents
 

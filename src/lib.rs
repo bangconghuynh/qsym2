@@ -24,6 +24,8 @@
 //! [Q-Chem](https://www.q-chem.com/) HDF5 archive files and
 //! [Orca](https://orcaforum.kofo.mpg.de/index.php) output files.
 //!
+//! The main website for QSym² can be found [here](https://qsym2.dev).
+//!
 //! QSym² is hosted on [GitLab](https://gitlab.com/bangconghuynh/qsym2). Please submit
 //! an issue there if you've encountered anything that is unclear or that you feel needs improving.
 //!
