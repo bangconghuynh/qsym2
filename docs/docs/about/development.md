@@ -72,7 +72,7 @@ Since then, the focus has been to test and improve QSym² rigorously to get it r
 A major aspect of this preparation is the development of drivers, bindings, and interfaces to expose the features QSym² to end-users in multiple ways.
 This has since enabled QSym² to work with QUEST, [Q-Chem](https://www.q-chem.com/), [Orca](https://orcaforum.kofo.mpg.de/), or even raw binary files.
 These are by no means everything that QSym² will ever support, and interfaces with other quantum chemistry packages will continue to be added in the future.
-But for now, these are enough to demonstrate that the design of QSym² is flexible and general enough to be used with a variety of programs.
+But for now, these are sufficient to demonstrate that the design of QSym² is flexible and general enough to be used with a variety of programs.
 
 ## Acknowledgement
 
