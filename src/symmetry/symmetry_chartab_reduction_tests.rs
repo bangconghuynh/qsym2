@@ -264,10 +264,10 @@ fn test_chartab_reduction_vf6_oh_double() {
     let t2u = MullikenIrrepSymbol::new("||T|_(2u)|").unwrap();
     let ep1g = MullikenIrrepSymbol::new("||E~|_(1g)|").unwrap();
     let ep2g = MullikenIrrepSymbol::new("||E~|_(2g)|").unwrap();
-    let gpg = MullikenIrrepSymbol::new("||G~|_(g)|").unwrap();
+    let gpg = MullikenIrrepSymbol::new("||F~|_(g)|").unwrap();
     let ep1u = MullikenIrrepSymbol::new("||E~|_(1u)|").unwrap();
     let ep2u = MullikenIrrepSymbol::new("||E~|_(2u)|").unwrap();
-    let gpu = MullikenIrrepSymbol::new("||G~|_(u)|").unwrap();
+    let gpu = MullikenIrrepSymbol::new("||F~|_(u)|").unwrap();
     let expected_direct_products = vec![
         ((&a1g, &ep1g), vec![(ep1g.clone(), 1)]),
         ((&a1g, &ep2g), vec![(ep2g.clone(), 1)]),

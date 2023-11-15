@@ -99,7 +99,8 @@
 //! functions. For more explanation, please consult this documentation.
 //!
 //! For usage of the compiled `qsym2` binary or Python library, please consult the `README.md` file
-//! and the Wiki on [GitLab](https://gitlab.com/bangconghuynh/qsym2).
+//! on [GitLab](https://gitlab.com/bangconghuynh/qsym2) and the documentations on
+//! [QSym²'s website](https://qsym2.dev).
 //!
 //! ## License
 //!

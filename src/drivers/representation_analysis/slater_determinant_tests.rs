@@ -203,7 +203,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
             .determinant_symmetry
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||F~|_(g)|")
             .unwrap()
     );
 
@@ -328,7 +328,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
             .determinant_symmetry
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||F~|_(g)|")
             .unwrap()
     );
 }
@@ -630,7 +630,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .determinant_symmetry
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||F~|_(g)|")
             .unwrap()
     );
 
@@ -975,7 +975,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .determinant_symmetry
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||F~|_(g)|")
             .unwrap()
     );
 

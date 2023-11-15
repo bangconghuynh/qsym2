@@ -27,7 +27,7 @@ check:
     - cargo check --release --verbose --features full --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
-    # - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 unit_tests:
   stage: Unit Tests
@@ -40,7 +40,7 @@ unit_tests:
     - cargo test -r --features full -- --include-ignored
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
-    # - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 tarpaulin:
   stage: Unit Tests
@@ -56,7 +56,7 @@ tarpaulin:
     - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features full --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
-    # - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 cibuildwheel-linux:
   stage: Deploy
@@ -124,8 +124,7 @@ mkdocs:
     paths:
       - public
   rules:
-    # - if: $CI_COMMIT_TAG
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
 
 pages:
   stage: Deploy
@@ -139,9 +138,6 @@ pages:
   script:
     - cargo doc --no-deps --features full,python
     - mv target/doc public/api
-    # - mkdir public/api/images
-    # - cp images/qsym2_logo_no_text_no_background.svg public/api/images
-    # - cp images/qsym2_icon.png public/api/images
     - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/api/index.html
   needs:
     - job: mkdocs
@@ -150,5 +146,4 @@ pages:
     paths:
       - public
   rules:
-    # - if: $CI_COMMIT_TAG
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
