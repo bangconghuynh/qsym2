@@ -1,36 +1,42 @@
-//! Python bindings for QSym² molecule symmetrisation.
+//! Python bindings for QSym² molecule symmetrisation by bootstrapping.
+//!
+//! See [`crate::drivers::molecule_symmetrisation_bootstrap`] for more information.
 
 use std::path::PathBuf;
 
 use anyhow::format_err;
-use pyo3::exceptions::{PyIOError, PyRuntimeError};
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 use crate::auxiliary::atom::AtomKind;
+use crate::auxiliary::molecule::Molecule;
 use crate::bindings::python::symmetry_group_detection::PyMolecule;
-use crate::drivers::molecule_symmetrisation::{
-    MoleculeSymmetrisationDriver, MoleculeSymmetrisationParams,
+use crate::drivers::molecule_symmetrisation_bootstrap::{
+    MoleculeSymmetrisationBootstrapDriver, MoleculeSymmetrisationBootstrapParams,
 };
-use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::QSym2FileType;
 
-/// Python-exposed function to perform molecule symmetrisation and log the result via the
-/// `qsym2-output` logger at the `INFO` level.
+/// Python-exposed function to perform molecule symmetrisation by bootstrapping and log the result
+/// via the `qsym2-output` logger at the `INFO` level.
+///
+/// See [`crate::drivers::molecule_symmetrisation_bootstrap`] for more information.
 ///
 /// # Arguments
 ///
-/// * `inp_loose_sym` - A path to the [`QSym2FileType::Sym`] file containing the target
-/// symmetry-group detection results of a molecule at loose thresholds. The symmetrisation process
-/// will attempt to symmetrise this molecule to obtain the target symmetry group at tighter
-/// thresholds. Python type: `str`.
-/// * `out_tight_sym` - An optional path for a [`QSym2FileType::Sym`] file to be saved that
-/// contains the symmetry-group detection results of the symmetrised molecule at the target tight
+/// * `inp_xyz` - An optional string providing the path to an XYZ file containing the molecule to
+/// be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified. Python type: `Optional[str]`.
+/// * `inp_mol` - An optional `PyMolecule` structure containing the molecule to be symmetrised. Only
+/// one of `inp_xyz` or `inp_mol` can be specified. Python type: `PyMolecule`.
+/// * `out_target_sym` - An optional path for a [`QSym2FileType::Sym`] file to be saved that
+/// contains the symmetry-group detection results of the symmetrised molecule at the target
 /// thresholds. Python type: `Optional[str]`.
+/// * `loose_moi_threshold` - The loose MoI threshold. Python type: `float`.
+/// * `loose_distance_threshold` - The loose distance threshold. Python type: `float`.
 /// * `target_moi_threshold` - The target (tight) MoI threshold. Python type: `float`.
 /// * `target_distance_threshold` - The target (tight) distance threshold. Python type: `float`.
-/// * `use_magnetic_group` - A boolean indicating if the magnetic group, if present, is to be used
-/// for the symmetrisation. Python type: `bool`.
+/// * `use_magnetic_group` - A boolean indicating if the magnetic group (*i.e.* the group including
+/// time-reversed operations) is to be used for the symmetrisation. Python type: `bool`.
 /// * `reorientate_molecule` - A boolean indicating if the molecule is also reoriented to align its
 /// principal axes with the Cartesian axes. Python type: `bool`.
 /// * `max_iterations` - The maximum number of iterations for the symmetrisation process. Python
@@ -51,20 +57,26 @@ use crate::io::{read_qsym2_binary, QSym2FileType};
 /// Errors if any intermediate step in the symmetrisation procedure fails.
 #[pyfunction]
 #[pyo3(signature = (
-    inp_loose_sym,
-    out_tight_sym,
+    inp_xyz,
+    inp_mol,
+    out_target_sym,
+    loose_moi_threshold,
+    loose_distance_threshold,
     target_moi_threshold,
     target_distance_threshold,
     use_magnetic_group,
     reorientate_molecule=true,
-    max_iterations=10,
+    max_iterations=50,
     verbose=0,
     infinite_order_to_finite=None
 ))]
 pub fn symmetrise_molecule(
     py: Python<'_>,
-    inp_loose_sym: PathBuf,
-    out_tight_sym: Option<PathBuf>,
+    inp_xyz: Option<PathBuf>,
+    inp_mol: Option<PyMolecule>,
+    out_target_sym: Option<PathBuf>,
+    loose_moi_threshold: f64,
+    loose_distance_threshold: f64,
     target_moi_threshold: f64,
     target_distance_threshold: f64,
     use_magnetic_group: bool,
@@ -74,32 +86,40 @@ pub fn symmetrise_molecule(
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<PyMolecule> {
     py.allow_threads(|| {
-        let loose_pd_res: SymmetryGroupDetectionResult =
-            read_qsym2_binary(inp_loose_sym, QSym2FileType::Sym)
-                .map_err(|err| PyIOError::new_err(err.to_string()))?;
+        let mol = match (inp_xyz, inp_mol) {
+            (Some(xyz_path), None) => Molecule::from_xyz(xyz_path, 1e-7),
+            (None, Some(pymol)) => Molecule::from(pymol),
+            _ => {
+                return Err(PyRuntimeError::new_err(
+                    "One and only one of `inp_xyz` or `inp_mol` must be specified.",
+                ))
+            }
+        };
 
-        let ms_params = MoleculeSymmetrisationParams::builder()
+        let msb_params = MoleculeSymmetrisationBootstrapParams::builder()
+            .reorientate_molecule(reorientate_molecule)
             .use_magnetic_group(use_magnetic_group)
+            .loose_moi_threshold(loose_moi_threshold)
+            .loose_distance_threshold(loose_distance_threshold)
             .target_moi_threshold(target_moi_threshold)
             .target_distance_threshold(target_distance_threshold)
-            .reorientate_molecule(reorientate_molecule)
+            .infinite_order_to_finite(infinite_order_to_finite)
             .max_iterations(max_iterations)
             .verbose(verbose)
-            .infinite_order_to_finite(infinite_order_to_finite)
-            .symmetrised_result_save_name(out_tight_sym)
+            .symmetrised_result_save_name(out_target_sym)
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-        let mut ms_driver = MoleculeSymmetrisationDriver::builder()
-            .parameters(&ms_params)
-            .target_symmetry_result(&loose_pd_res)
+        let mut msb_driver = MoleculeSymmetrisationBootstrapDriver::builder()
+            .parameters(&msb_params)
+            .molecule(&mol)
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-        ms_driver
+        msb_driver
             .run()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-        let symmol = &ms_driver
+        let symmol = &msb_driver
             .result()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             .symmetrised_molecule;

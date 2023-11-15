@@ -1,4 +1,6 @@
 //! Python bindings for QSym² symmetry analysis via representation and corepresentation theories.
+//!
+//! See [`crate::drivers::representation_analysis`] for more information.
 
 use num_complex::Complex;
 use numpy::{PyArray2, PyArray4};

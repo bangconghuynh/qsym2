@@ -1,4 +1,6 @@
 //! Python bindings for QSym² symmetry-group detection.
+//!
+//! See [`crate::drivers::symmetry_group_detection`] for more information.
 
 use std::collections::HashMap;
 use std::fmt;
@@ -353,6 +355,8 @@ impl TryFrom<&Symmetry> for PySymmetry {
 
 /// Python-exposed function to perform symmetry-group detection and log the result via the
 /// `qsym2-output` logger at the `INFO` level.
+///
+/// See [`crate::drivers::symmetry_group_detection`] for more information.
 ///
 /// # Arguments
 ///
