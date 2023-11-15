@@ -116,6 +116,7 @@ mkdocs:
   image: python:latest
   script:
     - pip install "mkdocs-material[imaging]"
+    - pip install mkdocs-git-revision-date-localized-plugin
     - cd docs
     - mkdocs build --site-dir public
     - cd ..
