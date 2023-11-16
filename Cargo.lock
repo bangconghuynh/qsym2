@@ -2362,7 +2362,7 @@ dependencies = [
 
 [[package]]
 name = "qsym2"
-version = "0.7.0-rc"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
