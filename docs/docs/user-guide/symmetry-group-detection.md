@@ -5,6 +5,18 @@ description: Configurable parameters for symmetry group detection
 
 # Symmetry group detection
 
+## Overview
+
+QSym² uses an enhanced version of the [Beruski&ndash;Vidal algorithm](http://doi.wiley.com/10.1002/jcc.23493) for locating symmetry elements in molecules, possible in the presence of external fields.
+In the working of the algorithm, several types of numerical comparisons need to be made:
+
+- comparisons between principal moments of inertia to classify the rotational symmetry of the system,
+- comparisons of atomic coordinates to determine if a point transformation leaves the system invariant,
+- comparisons of normalised vector components to determine if a symmetry element has already been found.
+
+Since all of the quantities being compared are quantities over the field of real numbers, 
+
+
 ## Parameters
 
 === "Binary"
