@@ -50,7 +50,7 @@ When an input parameter has a default value, the default value will be specified
     13. :fontawesome-solid-users: This boolean indicates if any available magnetic group should be used for symmetrisation instead of the unitary group, *i.e.* if time-reversed operations, if any, should also be considered.</br></br> :material-cog-sync-outline: Default: `false`.
     14. :fontawesome-solid-users: This integer sppecifies the output verbosity level.</br></br> :material-cog-sync-outline: Default: `0`.
     15. :fontawesome-solid-users: This specifies an optional name (without the `.xyz` extension) for writing the symmetrised molecule to an XYZ file. If `null`, no XYZ files will be written.</br></br> :material-cog-sync-outline: Default: `null`.
-    16. :fontawesome-solid-users: This specifies an optional name (without the `.qsym2.sym` extension) for saving the symmetry-group detection **verification** result of the symmetrised system as a binary file of type [`QSym2FileType::Sym`]. If `null`, the result will not be saved. Note that this is different from the `result_save_name` key of the [`symmetry_group_detection`](/user-guide/symmetry-group-detection) section. </br></br> :material-cog-sync-outline: Default: `null`.
+    16. :fontawesome-solid-users: This specifies an optional name (without the `.qsym2.sym` extension) for saving the symmetry-group detection **verification** result of the symmetrised system as a binary file of type [`QSym2FileType::Sym`]. If `null`, the result will not be saved. Note that this is different from the `result_save_name` key of the [`symmetry_group_detection`](/user-guide/symmetry-group-detection) section.</br></br> :material-cog-sync-outline: Default: `null`.
 
 === "Python"
     ```py
@@ -82,6 +82,7 @@ When an input parameter has a default value, the default value will be specified
         use_magnetic_group=False, #(14)!
         reorientate_molecule=True, #(15)!
         max_iterations=50, #(16)!
+        consistent_target_symmetry_iterations=10, #(17)!
         verbose=2,
     )
     ```
@@ -94,11 +95,12 @@ When an input parameter has a default value, the default value will be specified
     6. :fontawesome-solid-users: The [`symmetrise_molecule`](https://qsym2.dev/api/qsym2/bindings/python/molecule_symmetrisation/fn.symmetrise_molecule.html) function performs molecule symmetrisation by bootstrapping and logs the result via the `qsym2-output` logger at the `INFO` level. The [API documentation](https://qsym2.dev/api/qsym2/bindings/python/molecule_symmetrisation/fn.symmetrise_molecule.html) for this function can be consulted for further information.
     7. :fontawesome-solid-users: This specifies a path to an XYZ file containing the geometry of the molecule for symmetrisation. One and only one of `inp_xyz` or `inp_mol` must be specified, and the other must be `None`.
     8. :fontawesome-solid-users: This specifies a [`PyMolecule`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) object containing the molecular system for symmetrisation. One and only one of `inp_xyz` or `inp_mol` must be specified, and the other must be `None`.
-    9. :fontawesome-solid-users: This specifies an optional name for the `.qsym2.sym` file to be saved that contains the serialised results of the verification symmetry-group detection of the symmetrised molecule at the target thresholds. This name does not need to contain the `.qsym2.sym` extension.
-    10. :fontawesome-solid-users: This float specifies the `loose` moment-of-inertia threshold for the symmetrisation. The symmetry elements found at this threshold level will be used to bootstrap the symmetry of the molecule.
-    11. :fontawesome-solid-users: This float specifies the `loose` distance threshold for the symmetrisation. The symmetry elements found at this threshold level will be used to bootstrap the symmetry of the molecule.
-    12. :fontawesome-solid-users: This float specifies the `target` moment-of-inertia threshold for the symmetrisation.
-    13. :fontawesome-solid-users: This float specifies the `target` distance threshold for the symmetrisation.
-    14. :fontawesome-solid-users: This boolean indicates if any available magnetic group should be used for symmetrisation instead of the unitary group, *i.e.* if time-reversed operations, if any, should also be considered.
+    9. :fontawesome-solid-users: This specifies an optional name for the `.qsym2.sym` file to be saved that contains the serialised results of the verification symmetry-group detection of the symmetrised molecule at the target thresholds. This name does not need to contain the `.qsym2.sym` extension.</br></br> :material-cog-sync-outline: Default: `None`.
+    10. :fontawesome-solid-users: This float specifies the `loose` moment-of-inertia threshold for the symmetrisation. The symmetry elements found at this threshold level will be used to bootstrap the symmetry of the molecule.</br></br> :material-cog-sync-outline: Default: `1e-2`.
+    11. :fontawesome-solid-users: This float specifies the `loose` distance threshold for the symmetrisation. The symmetry elements found at this threshold level will be used to bootstrap the symmetry of the molecule.</br></br> :material-cog-sync-outline: Default: `1e-2`.
+    12. :fontawesome-solid-users: This float specifies the `target` moment-of-inertia threshold for the symmetrisation.</br></br> :material-cog-sync-outline: Default: `1e-7`.
+    13. :fontawesome-solid-users: This float specifies the `target` distance threshold for the symmetrisation.</br></br> :material-cog-sync-outline: Default: `1e-7`.
+    14. :fontawesome-solid-users: This boolean indicates if any available magnetic group should be used for symmetrisation instead of the unitary group, *i.e.* if time-reversed operations, if any, should also be considered.</br></br> :material-cog-sync-outline: Default: `False`.
     15. :fontawesome-solid-users: This boolean indicates if the molecule is reoriented to align its principal axes with the space-fixed Cartesian axes at every iteration in the symmetrisation.</br></br> :material-cog-sync-outline: Default: `True`.
     16. :fontawesome-solid-users: This integer specifies the maximum number of symmetrisation iterations.</br></br> :material-cog-sync-outline: Default: `50`.
+    17. :fontawesome-solid-users: This integer specifies the number of consecutive iterations during which the symmetry group at the `target` level of threshold must be consistently found for convergence to be reached, *if this group cannot become identical to the symmetry group at the `loose` level of threshold*.</br></br> :material-cog-sync-outline: Default: `10`.
