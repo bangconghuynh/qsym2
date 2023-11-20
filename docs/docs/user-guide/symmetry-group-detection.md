@@ -13,7 +13,7 @@ QSym² uses an enhanced version of the [Beruski&ndash;Vidal algorithm](http://do
 In the working of the algorithm, several types of numerical comparisons need to be made:
 
 - comparisons between principal moments of inertia to classify the rotational symmetry of the system,
-- comparisons of atomic coordinates to determine if a point transformation leaves the system invariant,
+- comparisons of atomic coordinates to determine if a point transformation leaves the system invariant, and
 - comparisons of normalised vector components to determine if a symmetry element has already been found.
 
 Since all of the quantities being compared are over the field of real numbers represented computationally as 64-bit floating-point numbers, thresholds are required to account for numerical inaccuracies or uncertainties so that these numerical comparisons can be made stable and meaningful.
@@ -31,7 +31,7 @@ With the inclusion of magnetic fields and hence the prospect of antiunitary symm
 
 - If time reversal is omitted, the symmetry group obtained is the unitary group $\mathcal{G}$ comprising only unitary point symmetry operations of the system.
 - If time reversal is instead included, the symmetry group obtained is the magnetic group $\mathcal{M}$ that takes $\mathcal{G}$ as its unitary halving subgroup: $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ where $\hat{a}$ is an antiunitary symmetry operation of the system.
-    - $\mathcal{M}$ is called a *magnetic grey group* if it contains the time reversal operation.
+    - $\mathcal{M}$ is called a *magnetic grey group* if it contains the time reversal operation $\hat{\theta}$. In this case, it is conventional and convenient to choose $\hat{a} = \hat{\theta}$. 
     - $\mathcal{M}$ is called a *magnetic black-and-white group* if it does **not** contain the time reversal operation.
 
 ### Result serialisation
@@ -127,7 +127,7 @@ When an input parameter has a default value, the default value will be specified
     12. :fontawesome-solid-users: This boolean indicates if time reversal is to be taken into account.
     13. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external magnetic field. This field is not present in the system but is added here only for symmetry analysis.</br></br> :material-cog-sync-outline: Default: `None`.
     14. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external electric field. This field is not present in the system but is added here only for symmetry analysis.</br></br> :material-cog-sync-outline: Default: `None`.
-    15. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file. </br></br> :material-cog-sync-outline: Default: `true`.
+    15. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file. </br></br> :material-cog-sync-outline: Default: `True`.
     16. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function returns a tuple of two objects:
         - `unisym`: a [`PySymmetry`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PySymmetry.html) object containing the unitary symmetry elements, and
         - `magsym`: an optional [`PySymmetry`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PySymmetry.html) object containing the magnetic symmetry elements, if requested by the `time_reversal` parameter.
