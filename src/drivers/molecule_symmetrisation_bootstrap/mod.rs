@@ -102,6 +102,9 @@ pub struct MoleculeSymmetrisationBootstrapParams {
     #[serde(default = "default_max_iterations")]
     pub max_iterations: usize,
 
+    /// The number of consecutive iterations during which the symmetry group at the `target` level
+    /// of threshold must be consistently found for convergence to be reached, *if this group
+    /// cannot become identical to the symmetry group at the `loose` level of threshold*.
     #[builder(default = "10")]
     #[serde(default = "default_consistent_iterations")]
     pub consistent_target_symmetry_iterations: usize,
@@ -129,8 +132,9 @@ pub struct MoleculeSymmetrisationBootstrapParams {
     #[serde(default)]
     pub symmetrised_result_xyz: Option<PathBuf>,
 
-    /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
-    /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
+    /// Optional name for saving the symmetry-group detection verification result of the symmetrised
+    /// system as a binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be
+    /// saved.
     #[builder(default = "None")]
     #[serde(default)]
     pub symmetrised_result_save_name: Option<PathBuf>,
