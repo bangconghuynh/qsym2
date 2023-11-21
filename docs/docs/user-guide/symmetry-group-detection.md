@@ -17,7 +17,11 @@ In the working of the algorithm, several types of numerical comparisons need to 
 - comparisons of normalised vector components to determine if a symmetry element has already been found.
 
 Since all of the quantities being compared are over the field of real numbers represented computationally as 64-bit floating-point numbers, thresholds are required to account for numerical inaccuracies or uncertainties so that these numerical comparisons can be made stable and meaningful.
-QSym² thus defines two types of thresholds for these comparisons: one for the comparisons between moments of inertia, and one for the comparisons of atomic coordinates and normalised vector components.
+QSym² thus defines **two** types of thresholds for these comparisons:
+
+- one for the comparisons between moments of inertia, and
+- one for the comparisons of atomic coordinates and normalised vector components.
+
 QSym² also allows for multiple thresholds to be specified for each type, so that the symmetry group detection routine can be repeated at various threshold combinations, and the highest symmetry group at the tighest threshold combination will eventually be selected for further analysis.
 
 ### External fields

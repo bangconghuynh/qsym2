@@ -7,6 +7,45 @@ description: Configurable parameters for molecule symmetrisation
 
 ## Overview
 
+### Symmetrisation by 'bootstrapping'
+
+QSym² offers a 'bootstrapping' algorithm to symmetrise molecular systems.
+This algorithm symmetrises a molecule iteratively by defining two threshold levels: a `loose` level and a `target` level.
+In every iteration, the following steps are performed:
+
+1. The molecule is symmetry-analysed at the `target` level; any symmetry elements found are stashed and the symmetry group name, if any, is registered.
+2. The molecule is symmetry-analysed at the `loose` level; any symmetry elements found are added to the stash and the symmetry group name, if any, is registered.
+3. The convergence criteria (see below) are checked.
+    - If convergence is reached, the symmetrisation procedure has completed.
+    - If convergence has not been reached, the following steps are carried out.
+4. All symmetry elements found in the stash are used to generate all possible symmetry operations which are then used to symmetrise the molecule: each symmetry operation is applied on the original molecule to produce a symmetry-equivalent copy, then all symmetry-equivalent copies are averaged to give the symmetrised molecule.
+5. Repeat steps 1 to 4 above until convergence is reached.
+
+### Convergence criteria
+
+There are two convergence criteria for the symmetrisation procedure:
+
+- **either** when the loose-threshold symmetry agrees with the target-threshold symmetry,
+- **or** when the target-threshold symmetry contains more elements than the loose-threshold symmetry and has been consistently identified for a pre-specified number of consecutive iterations.
+
+At least one criterion must be satisfied in order for convergence to be reached.
+
+### Thresholds
+
+As described in [Symmetry-group detection/#Thresholds](/user-guide/symmetry-group-detection/#thresholds), for each threshold level, two values are required: one for the comparisons between moments of inertia, and one for the comparisons of atomic coordinates and normalised vector components.
+The choice of these thresholds affects the way the molecular system is symmetrised: the `loose` thresholds more or less determine the symmetry to which the system is symmetrised, and the `target` thresholds determine how well, or how tightly, the system is symmetrised.
+
+### External fields
+
+If external fields are present, they are also symmetrised together with the molecule, as the fictitious special atoms representing these fields are included in the symmetrisation protocol described above.
+However, the magnitudes of these fields are **not** preserved during the symmetrisation for two reasons:
+
+- when fictitious special atoms are constructed, their positions do not quite reflect field magnitudes but are rather chosen to ensure numerical stability in symmetry-group detection, and
+- during the symmetrisation, all interatomic quantities such as bond lengths and bond angles are bound to vary so that the system can attain higher symmetry.
+
+If the original field magnitudes are desired, it is trivial to use the positions of the fictitious special atoms after symmetrisation to reconstruct the external fields with the appropriate magnitudes.
+
+
 ## Parameters
 
 The input parameters and their descriptions for each mode of running molecule symmetrisation in QSym² are given below.
