@@ -67,7 +67,6 @@ This period occupied a good part of the first half of 2023.
 The outcome from this period is a plethora of new features introduced to QSym² that, to the best of the author's knowledge, have not been seen before in any other quantum-chemical calculation programs.
 These features include the abilities to handle magnetic symmetry via corepresentations, incorporate spin symmetry explicitly via projective (co)representations, and apply symmetry analysis to a wide range of linear-space quantities that go beyond Slater determinants such as electron densities and vibrational coordinates.
 It was at this stage that the author and his advisors felt that QSym² had attained a suitable standard for being released.
-It was also during this period that the author had the pleasure to congratulate his advisors on their Holy Matrimony.
 
 Since then, the focus has been to test and improve QSym² rigorously to get it ready for a public release.
 A major aspect of this preparation is the development of drivers, bindings, and interfaces to expose the low-level features of QSym² to high-level users in a number of ways.
