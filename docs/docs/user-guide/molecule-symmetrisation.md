@@ -32,7 +32,7 @@ At least one criterion must be satisfied in order for convergence to be reached.
 
 ### Thresholds
 
-As described in [Symmetry-group detection/#Thresholds](/user-guide/symmetry-group-detection/#thresholds), for each threshold level, two values are required: one for the comparisons between moments of inertia, and one for the comparisons of atomic coordinates and normalised vector components.
+As described in [Symmetry-group detection/#Thresholds](symmetry-group-detection.md/#thresholds), for each threshold level, two values are required: one for the comparisons between moments of inertia, and one for the comparisons of atomic coordinates and normalised vector components.
 The choice of these thresholds affects the way the molecular system is symmetrised: the `loose` thresholds more or less determine the symmetry to which the system is symmetrised, and the `target` thresholds determine how well, or how tightly, the system is symmetrised.
 
 ### External fields
@@ -74,10 +74,10 @@ When an input parameter has a default value, the default value will be specified
         symmetrised_result_save_name: null #(16)!
     ```
 
-    1. :fontawesome-solid-users: This specifies the parameters for [symmetry-group detection](/user-guide/symmetry-group-detection). These are required and will be used to perform a symmetry-group detection calculation on the symmetrised system. See the documentation for [symmetry-group detection](/user-guide/symmetry-group-detection) for more details.
+    1. :fontawesome-solid-users: This specifies the parameters for [symmetry-group detection](symmetry-group-detection.md). These are required and will be used to perform a symmetry-group detection calculation on the symmetrised system. See the documentation for [symmetry-group detection](symmetry-group-detection.md) for more details.
     2. :fontawesome-solid-laptop-code: Under the hood, the specification of molecule symmetrisation in a YAML configuration file is handled by the `MolecularSymmetry` variant of the [`AnalysisTarget`](https://qsym2.dev/api/qsym2/interfaces/input/analysis/enum.AnalysisTarget.html) enum. This is so that a symmetry-group detection calculation can be performed on the symmetrised system.
     3. :fontawesome-solid-users: This specifies a path to an XYZ file containing the input molecular structure for symmetrisation.
-    4. :fontawesome-solid-users: This key is optional: if it is omitted, no symmetrisation will be performed on the input molecular structure and only symmetry-group detection will be run (see [symmetry-group detection](/user-guide/symmetry-group-detection) for an illustration of this).</br></br>:fontawesome-solid-laptop-code: Under the hood, this wraps around the [`MoleculeSymmetrisationBootstrapParams`](https://qsym2.dev/api/qsym2/drivers/molecule_symmetrisation_bootstrap/struct.MoleculeSymmetrisationBootstrapParams.html) struct.
+    4. :fontawesome-solid-users: This key is optional: if it is omitted, no symmetrisation will be performed on the input molecular structure and only symmetry-group detection will be run (see [symmetry-group detection](symmetry-group-detection.md) for an illustration of this).</br></br>:fontawesome-solid-laptop-code: Under the hood, this wraps around the [`MoleculeSymmetrisationBootstrapParams`](https://qsym2.dev/api/qsym2/drivers/molecule_symmetrisation_bootstrap/struct.MoleculeSymmetrisationBootstrapParams.html) struct.
     5. :fontawesome-solid-users: This boolean indicates if the molecule is reoriented to align its principal axes with the space-fixed Cartesian axes at every iteration in the symmetrisation.</br></br> :material-cog-sync-outline: Default: `true`.
     6. :fontawesome-solid-users: This float specifies the `loose` moment-of-inertia threshold for the symmetrisation. The symmetry elements found at this threshold level will be used to bootstrap the symmetry of the molecule.</br></br> :material-cog-sync-outline: Default: `1e-2`.
     7. :fontawesome-solid-users: This float specifies the `loose` distance threshold for the symmetrisation. The symmetry elements found at this threshold level will be used to bootstrap the symmetry of the molecule.</br></br> :material-cog-sync-outline: Default: `1e-2`.
@@ -89,7 +89,7 @@ When an input parameter has a default value, the default value will be specified
     13. :fontawesome-solid-users: This boolean indicates if any available magnetic group should be used for symmetrisation instead of the unitary group, *i.e.* if time-reversed operations, if any, should also be considered.</br></br> :material-cog-sync-outline: Default: `false`.
     14. :fontawesome-solid-users: This integer sppecifies the output verbosity level.</br></br> :material-cog-sync-outline: Default: `0`.
     15. :fontawesome-solid-users: This specifies an optional name (without the `.xyz` extension) for writing the symmetrised molecule to an XYZ file. If `null`, no XYZ files will be written.</br></br> :material-cog-sync-outline: Default: `null`.
-    16. :fontawesome-solid-users: This specifies an optional name (without the `.qsym2.sym` extension) for saving the symmetry-group detection **verification** result of the symmetrised system as a binary file of type [`QSym2FileType::Sym`]. If `null`, the result will not be saved. Note that this is different from the `result_save_name` key of the [`symmetry_group_detection`](/user-guide/symmetry-group-detection) section.</br></br> :material-cog-sync-outline: Default: `null`.
+    16. :fontawesome-solid-users: This specifies an optional name (without the `.qsym2.sym` extension) for saving the symmetry-group detection **verification** result of the symmetrised system as a binary file of type [`QSym2FileType::Sym`]. If `null`, the result will not be saved. Note that this is different from the `result_save_name` key of the [`symmetry_group_detection`](symmetry-group-detection.md) section.</br></br> :material-cog-sync-outline: Default: `null`.
 
 === "Python"
     ```py
