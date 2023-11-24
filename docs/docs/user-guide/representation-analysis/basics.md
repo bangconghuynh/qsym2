@@ -32,7 +32,7 @@ $$
 
 which is then used to determine the representation matrices of the elements of $\mathcal{G}$ on $W$, as described in the [QSym² paper](../../about/authorship.md#publications).
 
-Depending on the nature of the basis functions in $\mathcal{B}_V$, the overlap matrix $\mathbfit{S}_V$ might have already been computed by other quantum-chemistry calculatgion programs, in which case it can simply be read in by QSym².
+Depending on the nature of the basis functions in $\mathcal{B}_V$, the overlap matrix $\mathbfit{S}_V$ might have already been computed by other quantum-chemistry calculation programs, in which case it can simply be read in by QSym².
 But if $\mathbfit{S}_V$ is not readily available, then information about $\mathcal{B}_V$ must be made available to QSym² so that QSym² can compute $\mathbfit{S}_V$.
 The exact requirements for the various types of representation analysis that QSym² supports will be explained in the relevant sections in this guide.
 

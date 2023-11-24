@@ -16,7 +16,7 @@ In every iteration, the following steps are performed:
 1. The molecule is symmetry-analysed at the `target` level; any symmetry elements found are stashed and the symmetry group name, if any, is registered.
 2. The molecule is symmetry-analysed at the `loose` level; any symmetry elements found are added to the stash and the symmetry group name, if any, is registered.
 3. The convergence criteria (see below) are checked.
-    - If convergence is reached, the symmetrisation procedure has completed.
+    - If convergence has been reached, the symmetrisation procedure is terminated.
     - If convergence has not been reached, the following steps are carried out.
 4. All symmetry elements found in the stash are used to generate all possible symmetry operations which are then used to symmetrise the molecule: each symmetry operation is applied on the original molecule to produce a symmetry-equivalent copy, then all symmetry-equivalent copies are averaged to give the symmetrised molecule.
 5. Repeat steps 1 to 4 above until convergence is reached.
