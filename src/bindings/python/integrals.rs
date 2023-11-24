@@ -69,11 +69,11 @@ pub enum PyShellOrder {
 ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
 ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
 ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-///       decreasing-$`m`$ order.
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$, `false` for
+///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
 ///
 ///   Python type:
-///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
+///   `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
 #[pyclass]
 pub struct PyBasisAngularOrder {
     /// A vector of basis atoms. Each item in the vector is a tuple consisting of an atomic symbol
@@ -84,9 +84,10 @@ pub struct PyBasisAngularOrder {
     ///   - either `None` if the Cartesian functions are in lexicographic order,
     ///   - or `Some(vec![[lx, ly, lz], ...])` to specify a custom Cartesian order.
     /// - if the shell is pure, then this is a boolean `increasingm` to indicate if the pure
-    /// functions in the shell are arranged in increasing-$`m`$ order.
+    /// functions in the shell are arranged in increasing-$`m`$ order, or a list of $`m`$ values
+    /// specifying a custom $`m`$ order.
     ///
-    /// Python type: `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
+    /// Python type: `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
     basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>,
 }
 

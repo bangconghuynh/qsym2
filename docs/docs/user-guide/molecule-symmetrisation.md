@@ -122,8 +122,8 @@ When an input parameter has a default value, the default value will be specified
         reorientate_molecule=True, #(15)!
         max_iterations=50, #(16)!
         consistent_target_symmetry_iterations=10, #(17)!
-        verbose=2,
-    )
+        verbose=2, #(18)!
+    ) #(19)!
     ```
 
     1. :fontawesome-solid-laptop-code: :fontawesome-solid-users: This specifies the molecular system for symmetrisation. The [`PyMolecule`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) class, constructible in Python, contains geometry information that can be interpreted by QSym² on the Rust side. The [API documentation](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) for this class can be consulted for further information.
@@ -143,3 +143,5 @@ When an input parameter has a default value, the default value will be specified
     15. :fontawesome-solid-users: This boolean indicates if the molecule is reoriented to align its principal axes with the space-fixed Cartesian axes at every iteration in the symmetrisation.</br></br> :material-cog-sync-outline: Default: `True`.
     16. :fontawesome-solid-users: This integer specifies the maximum number of symmetrisation iterations.</br></br> :material-cog-sync-outline: Default: `50`.
     17. :fontawesome-solid-users: This integer specifies the number of consecutive iterations during which the symmetry group at the `target` level of threshold must be consistently found for convergence to be reached, *if this group cannot become identical to the symmetry group at the `loose` level of threshold*.</br></br> :material-cog-sync-outline: Default: `10`.
+    18. :fontawesome-solid-users: This integer sppecifies the output verbosity level.</br></br> :material-cog-sync-outline: Default: `0`.
+    19. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`symmetrise_molecule`](https://qsym2.dev/api/qsym2/bindings/python/molecule_symmetrisation/fn.symmetrise_molecule.html) function returns a [`PyMolecule`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) obect containing the symmetrised molecular system.
