@@ -68,8 +68,8 @@ pub enum PyShellOrder {
 ///     * `order` specifies how the functions in the shell are ordered:
 ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
 ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$, `false` for
+///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
 ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
 ///
 ///   Python type:
@@ -108,9 +108,9 @@ impl PyBasisAngularOrder {
     ///     * `order` specifies how the functions in the shell are ordered:
     ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
     ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-    ///       decreasing-$`m`$ order.
+    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+    ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
     ///
     ///   Python type:
     ///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.

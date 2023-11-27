@@ -33,7 +33,7 @@ $$
 which is then used to determine the representation matrices of the elements of $\mathcal{G}$ on $W$, as described in the [QSym² paper](../../about/authorship.md#publications).
 
 Depending on the nature of the basis functions in $\mathcal{B}_V$, the overlap matrix $\mathbfit{S}_V$ might have already been computed by other quantum-chemistry calculation programs, in which case it can simply be read in by QSym².
-But if $\mathbfit{S}_V$ is not readily available, then information about $\mathcal{B}_V$ must be made available to QSym² so that QSym² can compute $\mathbfit{S}_V$.
+But if $\mathbfit{S}_V$ is not readily available, then information about $\mathcal{B}_V$ must be made available to QSym² so that QSym² can compute $\mathbfit{S}_V$ on-the-fly.
 The exact requirements for the various types of representation analysis that QSym² supports will be explained in the relevant sections in this guide.
 
 ## Atomic-orbital basis angular order
@@ -46,9 +46,8 @@ This is equivalent to knowing the following for any shell of atomic orbitals:
 - whether the angular parts of the atomic orbitals in the shell (which are real solid harmonic functions) are expressed in Cartesian coordinates or in spherical polar coordinates, and
 - the ordering of the functions in the shell.
 
-These pieces of information are collectively referred to as the *basis angular order* information in QSym², which must be specified for any representation analysis performed on quantities expressed in terms of atomic orbitals.
-Whenever possible, QSym² will attempt to construct this from available information.
-But if this is not possible, then there are several ways to specify this manually, as shown below.
+These pieces of information are collectively referred to in QSym² as the *basis angular order* information which must be specified for any representation analysis performed on quantities expressed in terms of atomic orbitals.
+Whenever possible, QSym² will attempt to construct this from available data, but if this cannot be done, then there are several ways to specify this manually, as shown below.
 
 === "Binary"
     ```yaml
@@ -81,11 +80,11 @@ But if this is not possible, then there are several ways to specify this manuall
             - l: 2
               shell_order: !CartCustom #(8)!
               - [2, 0, 0]
+              - [0, 2, 0]
+              - [0, 0, 2]
               - [1, 1, 0]
               - [1, 0, 1]
-              - [0, 2, 0]
               - [0, 1, 1]
-              - [0, 0, 2]
           - atom: [2, "H"]
             basis_shells:
             - l: 1
@@ -95,11 +94,11 @@ But if this is not possible, then there are several ways to specify this manuall
             - l: 2
               shell_order: !CartCustom
               - [2, 0, 0]
+              - [0, 2, 0]
+              - [0, 0, 2]
               - [1, 1, 0]
               - [1, 0, 1]
-              - [0, 2, 0]
               - [0, 1, 1]
-              - [0, 0, 2]
     ```
 
     1. :fontawesome-solid-users: This is an example data source ([Slater determinant specified via binary coefficient files](slater-determinant.md)) where a manual specification of basis angular order is required. If other data sources for other analysis targets also require a manual specification of basis angular order, the format will be the same.
@@ -108,8 +107,8 @@ But if this is not possible, then there are several ways to specify this manuall
     4. :fontawesome-solid-users: This key, `basis_shells`, gives the ordered shells associated with this atom. Each item in this list specifies the angular momentum information of one shell centred on the prevailing atom.</br></br>:fontawesome-solid-laptop-code: Under the hood, this key is a vector of [`InputBasisShell`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisShell.html) structs.
     5. :fontawesome-solid-users: This key, `l`, specifies the angular momentum degree of this shell.
     6. :fontawesome-solid-users: This key, `shell_order`, specifies the type and ordering of the basis functions in this shell. The following variants are supported:
-        - `!PureIncreasingm`: the basis functions are pure real solid harmonics, arranged in increasing $m_l$ order,
-        - `!PureDecreasingm`: the basis functions are pure real solid harmonics, arranged in decreasing $m_l$ order,
+        - `!PureIncreasingm`: the basis functions are pure real solid harmonics, arranged in increasing-$m_l$ order,
+        - `!PureDecreasingm`: the basis functions are pure real solid harmonics, arranged in decreasing-$m_l$ order,
         - `!PureCustom`: the basis functions are pure real solid harmonics, arranged in a custom order to be specified by the $m_l$ values,
         - `!CartLexicographic`: the basis functions are Cartesian real solid harmonics, arranged in lexicographic order,
         - `!CartQChem`: the basis functions are Cartesian real solid harmonics, arranged in Q-Chem order,
@@ -137,37 +136,63 @@ But if this is not possible, then there are several ways to specify this manuall
         ]
 
     pybao = PyBasisAngularOrder([ #(2)!
-        ("O", [
-            (0, False, True),
-            (1, False, False),
-            (3, False, [0, 1, -1, 2, -2, 3, -3]),
-        ]),
-        ("H", [
-            (1, True, None),
-            (3, True, get_qchem_cartesian_order(3)),
-            (2, True, [
-                (2, 0, 0),
-                (1, 1, 0),
-                (1, 0, 1),
-                (0, 2, 0),
-                (0, 1, 1),
-                (0, 0, 2)
-            ]),
-        ]),
-        ("H", [
-            (1, True, None),
-            (3, True, get_qchem_cartesian_order(3)),
-            (2, True, [
-                (2, 0, 0),
-                (1, 1, 0),
-                (1, 0, 1),
-                (0, 2, 0),
-                (0, 1, 1),
-                (0, 0, 2)
-            ]),
-        ]),
+        (
+            "O", #(3)!
+            [ #(4)!
+                ("S", False, True), #(5)!
+                ("P", False, False), #(6)!
+                ("F", False, [0, 1, -1, 2, -2, 3, -3]), #(7)!
+            ]
+        ),
+        (
+            "H",
+            [
+                ("P", True, None), #(8)!
+                ("F", True, get_qchem_cartesian_order(3)), #(9)!
+                ("D", True, [ #(10)!
+                    (2, 0, 0),
+                    (0, 2, 0),
+                    (0, 0, 2)
+                    (1, 1, 0),
+                    (1, 0, 1),
+                    (0, 1, 1),
+                ]),
+            ]
+        ),
+        (
+            "H",
+            [
+                ("P", True, None),
+                ("F", True, get_qchem_cartesian_order(3)),
+                ("D", True, [
+                    (2, 0, 0),
+                    (0, 2, 0),
+                    (0, 0, 2)
+                    (1, 1, 0),
+                    (1, 0, 1),
+                    (0, 1, 1),
+                ]),
+            ]
+        ),
     ])
     ```
 
     1. :fontawesome-solid-laptop-code: :fontawesome-solid-users: This function provides a convenient Pythonic way to generate the Q-Chem order of Cartesian functions in a shell.
-    2. :fontawesome-solid-laptop-code: The [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) class is a Python-exposed Rust structure for marshalling basis angular order information between Python and Rust. This is subsequently converted to the pure Rust structure [`BasisAngularOrder`](https://qsym2.dev/api/qsym2/basis/ao/struct.BasisAngularOrder.html).
+    2. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: The [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) class is a Python-exposed Rust structure for marshalling basis angular order information between Python and Rust. This is subsequently converted to the pure Rust structure [`BasisAngularOrder`](https://qsym2.dev/api/qsym2/basis/ao/struct.BasisAngularOrder.html). Under the hood, the initialiser of this class takes in a list of tuples, each of which provides information for one basis atom. The API documentation for [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) can be consulted for further information.
+    3. :fontawesome-solid-users: The first element of this tuple specifies the name of an atom in the order that it appears in the basis set.
+    4. :fontawesome-solid-users: The second element of this tuple gives the ordered shells associated with this atom. Each item in this list is a tuple specifying the angular momentum information of one shell centred on the prevailing atom and has the form `(angmom, cart, order)` where:
+        - `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+        - `cart` is a boolean indicating if the functions in the shell are Cartesian (`True`)
+        or pure / solid harmonics (`False`), and
+        - `order` specifies how the functions in the shell are ordered:
+            - if `cart` is `True`, `order` can be `None` for lexicographic order, or a list of
+            tuples `(n_x, n_y, n_z)` specifying a custom order for the Cartesian functions where
+            `n_x`, `n_y`, and `n_z` are the $x$-, $y$-, and $z$-exponents for a Cartesian component $x^{n_x} y^{n_y} z^{n_z}$;
+            - if `cart` is `False`, `order` can be `True` for increasing-$m_l$ order, `False` for
+            decreasing-$m_l$ order, or a list of $m_l$ values for custom order.
+    5. :fontawesome-solid-users: This example specifies a spherical $S$-shell in which functions are arranged in increasing-$m_l$ order.
+    6. :fontawesome-solid-users: This example specifies a spherical $P$-shell in which functions are arranged in decreasing-$m_l$ order.
+    7. :fontawesome-solid-users: This example specifies a spherical $F$-shell in which functions are arranged in a custom $m_l$ order: $0, +1, -1, +2, -2, +3, -3$.
+    8. :fontawesome-solid-users: This example specifies a Cartesian $P$-shell in which functions are arranged in lexicographic order.
+    9. :fontawesome-solid-users: This example specifies a Cartesian $F$-shell in which functions are arranged in Q-Chem order.
+    10. :fontawesome-solid-users: This example specifies a Cartesian $D$-shell in which functions are arranged in a custom order: $x^2, y^2, z^2, xy, xz, yz$.
