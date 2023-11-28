@@ -105,7 +105,7 @@ nav:
     - user-guide/symmetry-group-detection.md
     - user-guide/molecule-symmetrisation.md
     - Representation analysis:
-      - user-guide/representation-analysis/basic-requirements.md
+      - user-guide/representation-analysis/basics.md
       - user-guide/representation-analysis/slater-determinant.md
       - user-guide/representation-analysis/vibrational-coordinates.md
       - user-guide/representation-analysis/electron-densities.md

@@ -27,7 +27,7 @@ QSym² also allows for multiple thresholds to be specified for each type, so tha
 ### External fields
 
 QSym² is capable of determining symmetry groups in the presence of external electric and/or magnetic fields using a method of fictitious atoms.
-A detailed description of how this is achieved can be found in the [QSym² paper](../about/authorship.md#publications).
+A detailed description of how this is achieved can be found in [Section 2.1.2 of the QSym² paper](../about/authorship.md#publications).
 An added benefit of this method is that QSym² is able to handle the symmetry of non-uniform fields mappable to collections of magnetic and electric dipoles that can be modelled by fictitious atoms.
 QSym² thus allows the specification of arbitrary lists of fictitious magnetic and electric atoms that can be added to the molecular system being analysed.
 
