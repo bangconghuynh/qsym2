@@ -13,7 +13,7 @@ $$
 $$
 
 The mathematical details of this method are described in [Section 2.4 of the QSym² paper](../../about/authorship.md#publications).
-Here, it suffices to summarise the key ingredients that are required for this method to work.
+Here, it suffices to summarise the key ingredients and considerations that are required for this method to work.
 
 
 ## Requirements
@@ -201,7 +201,9 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
     10. :fontawesome-solid-users: This example specifies a Cartesian $D$-shell in which functions are arranged in a custom order: $x^2, y^2, z^2, xy, xz, yz$.
 
 
-## Linear independence threshold
+## Thresholds
+
+### Linear independence threshold
 
 As explained in [Section 3.2.1 of the QSym² paper](../../about/authorship.md#publications), for every quantity $\mathbfit{w}$ that is to be symmetry-analysed via the orbit $\mathcal{G} \cdot \mathbfit{w}$, the overlap matrix $\mathbfit{S}$ between the elements in $\mathcal{G} \cdot \mathbfit{w}$ needs to be computed, and a threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ needs to be chosen to determine which of the eigenvalues of $\mathbfit{S}$ are non-zero.
 This is so that linearly dependent elements in $\mathcal{G} \cdot \mathbfit{w}$ can be projected out and the space $W$ can be correctly identified.
@@ -211,9 +213,31 @@ How does one pick a sensible value for this threshold?
 The answer to this question depends on the eigenspectrum of $\mathbfit{S}$, and unfortunately, there is no *a priori* way to determine the best possible value of $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ without examining this eigenspectrum first.
 Fortunately, in all cases, QSym² can help with this by printing out the eigenvalue of $\mathbfit{S}$ immediately above the chosen threshold, $\lambda^{>}_{\mathbfit{S}}$, and also the eigenvalue of $\mathbfit{S}$ immediately below the chosen threshold, $\lambda^{<}_{\mathbfit{S}}$.
 
-The author recommends that a good threshold choice is one for which $\log_{10}\lambda^{>}_{\mathbfit{S}} - \log_{10}\lambda^{<}_{\mathbfit{S}} \ge 3$, *i.e.* the threshold cuts through a gap of at least three orders of magnitude in the eigenspectrum of $\mathbfit{S}$.
-If such a gap does not exist, then $\mathcal{G} \cdot \mathbfit{w}$ contains all linearly independent elements.
-In this case:
+The author recommends that a good threshold choice is one for which
 
-- if $\mathbfit{w}$ has been tightly converged and is of a high numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then it can be concluded that $\mathbfit{w}$ transforms as the regular representation of $\mathcal{G}$;
-- however, if $\mathbfit{w}$ has been rather poorly converged and is of a low numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then any observed symmetry breaking could be artificial.
+$$
+    \log_{10}\lambda^{>}_{\mathbfit{S}} - \log_{10}\lambda^{<}_{\mathbfit{S}} \ge 3,
+$$
+
+*i.e.* the threshold cuts through a gap of at least three orders of magnitude in the eigenspectrum of $\mathbfit{S}$.
+If such a gap does not exist, then $\mathcal{G} \cdot \mathbfit{w}$ contains all linearly independent elements, in which case:
+
+- if $\mathbfit{w}$ has been tightly converged and is of a high numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then it can be confidently concluded that $\mathbfit{w}$ transforms as the regular representation of $\mathcal{G}$;
+- however, if $\mathbfit{w}$ has been rather poorly converged and is of a low numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then any observed symmetry breaking could be artificial, and it is therefore advisable that $\mathbfit{w}$ be recomputed to a better numerical quality to ascertain the nature of any symmetry breaking.
+
+### Integrality threshold
+
+The crux of the symmetry analysis of $\mathbfit{w}$ with respect to a group $\mathcal{G}$ is the decomposition of the space $W \subseteq V$ spanned by the orbit $\mathcal{G} \cdot \mathbfit{w}$ into known irreducible representation spaces of $\mathcal{G}$ on $V$:
+
+$$
+    W = \bigoplus_{i} \Gamma_i^{\otimes k_i},
+$$
+
+where $\Gamma_i$ is an irreducible representation space of $\mathcal{G}$, $k_i$ its multiplicity in the decomposition of $W$, and the direct sum runs over all irreducible representation spaces of $\mathcal{G}$.
+The decomposition of $W$ is then equivalent to finding the values of $k_i$ which must all be non-negative integers.
+Numerically, however, the $k_i$ are represented and determined in QSym² as floating point numbers whose integrality must be verified.
+This thus requires another threshold, $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$, to be chosen.
+
+In most cases, if $\mathbfit{w}$ is of a decent numerical quality and if the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ described above has been chosen appropriately such that the space $W$ is well-behaved, then the default value of $\lambda^{\mathrm{thresh}}_{\mathrm{int}} = 10^{-7}$ should be more than good enough.
+However, if QSym² complains about significant non-integrality in the obtained values of $k_i$, then, this is most likely symptomatic of a poorly chosen linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ which leads to an ill-formed $W$ space that admits an ill-defined decomposition into irreducible representation spaces of $\mathcal{G}$.
+In this situation, rather than trying to unreasonably relax the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$, it is recommended that either the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ should be revised or the quality of $\mathbfit{w}$ should be improved.
