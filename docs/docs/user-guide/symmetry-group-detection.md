@@ -34,7 +34,7 @@ QSym² thus allows the specification of arbitrary lists of fictitious magnetic a
 With the inclusion of magnetic fields and hence the prospect of antiunitary symmetry operations, QSym² allows users to specify whether they wish to consider time reversal in symmetry analysis.
 
 - If time reversal is omitted, the symmetry group obtained is the unitary group $\mathcal{G}$ comprising only unitary point symmetry operations of the system.
-- If time reversal is instead included, the symmetry group obtained is the magnetic group $\mathcal{M}$ that takes $\mathcal{G}$ as its unitary halving subgroup: $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ where $\hat{a}$ is an antiunitary symmetry operation of the system.
+- If time reversal is instead included, the symmetry group obtained is the magnetic group $\mathcal{M}$ that takes $\mathcal{G}$ as its unitary halving subgroup: $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ where $\hat{a}$ is an antiunitary symmetry operation of the system, if available.
     - $\mathcal{M}$ is called a *magnetic grey group* if it contains the time reversal operation $\hat{\theta}$. In this case, it is conventional and convenient to choose $\hat{a} = \hat{\theta}$. 
     - $\mathcal{M}$ is called a *magnetic black-and-white group* if it does **not** contain the time reversal operation.
 

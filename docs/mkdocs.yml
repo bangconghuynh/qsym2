@@ -101,6 +101,8 @@ nav:
     - methodologies/character-table-generation.md
     - methodologies/external-fields.md
     - methodologies/orbit-based-representation-analysis.md
+    - methodologies/magnetic-corepresentations.md
+    - methodologies/projective-reps-coreps.md
   - User guide:
     - user-guide/symmetry-group-detection.md
     - user-guide/molecule-symmetrisation.md

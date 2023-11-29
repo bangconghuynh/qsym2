@@ -241,3 +241,67 @@ This thus requires another threshold, $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$
 In most cases, if $\mathbfit{w}$ is of a decent numerical quality and if the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ described above has been chosen appropriately such that the space $W$ is well-behaved, then the default value of $\lambda^{\mathrm{thresh}}_{\mathrm{int}} = 10^{-7}$ should be more than good enough.
 However, if QSym² complains about significant non-integrality in the obtained values of $k_i$, then, this is most likely symptomatic of a poorly chosen linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ which leads to an ill-formed $W$ space that admits an ill-defined decomposition into irreducible representation spaces of $\mathcal{G}$.
 In this situation, rather than trying to unreasonably relax the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$, it is recommended that either the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ should be revised or the quality of $\mathbfit{w}$ should be improved.
+
+
+## Analysis options
+
+QSym² offers multiple options for symmetry analysis in terms of group and transformation types that are available for all analysis targets (whether they are all physically meaningful for a particular target is a separate consideration).
+
+### Magnetic group
+
+As explained in [Symmetry-group detection/#External fields](../symmetry-group-detection.md/#external-fields), when time reversal is included in symmetry-group detection, QSym² has access to both the unitary group $\mathcal{G}$ and the magnetic group $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ of the system, if the latter is available.
+There are three choices for symmetry analysis:
+
+1. use the irreducible representations of the unitary group $\mathcal{G}$
+2. use the irreducible representations of the magnetic group $\mathcal{M}$
+3. use the irreducible corepresentations of the magnetic group $\mathcal{M}$
+
+Choice 1 needs no further explanation.
+Choice 3 makes use of [Wigner's corepresentation theory](../../methodologies/magnetic-corepresentations.md) and essentially considers how the joint orbit $\mathcal{M} \cdot \mathbfit{w} = \mathcal{G} \cdot \mathbfit{w} + \hat{a}\mathcal{G} \cdot \mathbfit{w}$ transforms as the irreducible representations of the unitary halving subgroup $\mathcal{G}$ (to put very loosely).
+Choice 3 is technically the proper way to handle antiunitary symmetry, but the information it gives can be rather limited since this choice honours the fact that characters of antiunitary operations do not remain invariant under a change of basis, and thus avoids explicitly characterising the symmetry of $\symbfit{w}$ under the antiunitary operations in $\mathcal{M}$.
+
+However, there are times when it is desirable to characterise the symmetry of $\symbfit{w}$ under the antiunitary operations in $\mathcal{M}$, despite the above caveat of non-invariant antiunitary characters.
+Choice 2 thus offers the possibility of treating the antiunitary elements in $\mathcal{M}$ *as though they were unitary* so that conventional representation theory can be used.
+This is equivalent to considering a *unitary* group $\mathcal{M}'$ isomorphic to $\mathcal{M}$ and characterising the space $W$ spanned by the orbit $\mathcal{M} \cdot \mathbfit{w}$ using the irreducible representations of $\mathcal{M}'$.
+How meaningful this is depends on the nature of $\mathbfit{w}$:
+
+- if $\mathbfit{w}$ is real-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ are identical (*i.e.* the antiunitary elements in $\mathcal{M}$ act on $\mathbfit{w}$ linearly), and the irreducible representations of $\mathcal{M}'$ are perfectly suitable for the symmetry characterisation of $\mathbfit{w}$;
+- but if $\mathbfit{w}$ is complex-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ differ, and although $W$ might still be decomposable in terms of the irreducible representations of $\mathcal{M}'$, it is in general unclear how the decomposition should be interpreted.
+
+The above choices can be specified as follows.
+
+=== "Binary"
+    ```yaml
+    analysis_targets:
+      - !SlaterDeterminant #(1)!
+        source: ...
+        control:
+          ...
+          use_magnetic_group: null #(2)!
+    ```
+
+    1. :fontawesome-solid-users: This is just an example analysis target. The choices for magnetic group analysis can be specified in any analysis target.
+    2. :fontawesome-solid-users: The possible options are:
+        - `null`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
+        - `!Representation`: this specifies choice 2 &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
+        - `!Corepresentation`: this specifies choice 3 &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
+
+=== "Python"
+    ```python
+    from qsym2 import (
+        rep_analyse_slater_determinant,
+        MagneticSymmetryAnalysisKind #(1)!
+    )
+
+    rep_analyse_slater_determinant( #(2)!
+        ...,
+        use_magnetic_group=None, #(3)!
+    )
+    ```
+
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum of the same name, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis.
+    2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for magnetic group analysis can be specified in any analysis driver function.
+    3. :fontawesome-solid-users: The possible options are:
+        - `None`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
+        - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
+        - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.

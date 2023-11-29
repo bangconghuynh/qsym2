@@ -75,7 +75,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#'" class="card">
+                    <div onclick="location.href='methodologies/magnetic-corepresentations'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" transform="rotate(30)"><path d="M19 4h1V1h-4v3s2 4 2 8-2 7-6 7-6-3-6-7 2-8 2-8V1H4v3h1S2 8 2 14c0 5 5 9 10 9s10-4 10-9c0-6-3-10-3-10M4 13c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m2 6c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m6 3c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m6-3c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m2-6c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1Z"/></svg></span> Magnetic corepresentations</div>
                             <hr>
@@ -86,7 +86,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#'" class="card">
+                    <div onclick="location.href='methodologies/projective-reps-coreps'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.807 18.285 13.553.756a1.324 1.324 0 0 0-1.129-.754 1.31 1.31 0 0 0-1.206.626l-8.952 14.5a1.356 1.356 0 0 0 .016 1.455l4.376 6.778a1.408 1.408 0 0 0 1.58.581l12.703-3.757c.389-.115.707-.39.873-.755s.164-.783-.007-1.145zm-1.848.752L9.18 22.224a.452.452 0 0 1-.575-.52l3.85-18.438c.072-.345.549-.4.699-.08l7.129 15.138a.515.515 0 0 1-.325.713z"/></svg></span> Projective (co)representations</div>
                             <hr>
