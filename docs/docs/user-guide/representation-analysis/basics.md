@@ -5,6 +5,10 @@ description: Basic information for representation analysis
 
 # Basics
 
+!!! note
+
+    Unless stated otherwise, $\mathcal{G}$ denotes a generic symmetry group.
+
 Let $V$ be a linear space and $\mathbfit{w} \in V$ be an element whose symmetry with respect to a group $\mathcal{G}$ is to be determined by QSym².
 This amounts to identifying and characterising the linear subspace $W \subseteq V$ spanned by the orbit
 
@@ -247,7 +251,11 @@ In this situation, rather than trying to unreasonably relax the integrality thre
 
 QSym² offers multiple options for symmetry analysis in terms of group and transformation types that are available for all analysis targets (whether they are all physically meaningful for a particular target is a separate consideration).
 
-### Magnetic group
+### Magnetic groups
+
+!!! warning "Special group notations in this section"
+
+    In this section **only**, $\mathcal{G}$ denotes a unitary symmetry group and $\mathcal{M}$ denotes a magnetic group that admits $\mathcal{G}$ as its unitary halving subgroup.
 
 As explained in [Symmetry-group detection/#External fields](../symmetry-group-detection.md/#external-fields), when time reversal is included in symmetry-group detection, QSym² has access to both the unitary group $\mathcal{G}$ and the magnetic group $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ of the system, if the latter is indeed present.
 There are then three choices for symmetry analysis:
@@ -305,3 +313,46 @@ The above choices can be specified as follows.
         - `None`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
         - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
         - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
+
+
+### Double groups
+
+!!! note
+
+    From this section onwards, $\mathcal{G}$ reverts back to denoting a generic symmetry group.
+
+QSym² is able to perform symmetry analysis based on projective representations and corepresentations.
+As explained in [Methodologies/Projective (co)representations](../../methodologies/projective-reps-coreps.md), the projective irreducible representations or corepresentations of a group $\mathcal{G}$ can be obtain as conventional irreducible representations or corepresentations of its double cover $\mathcal{G}^*$.
+Whether projective representations or corepresentations are required can be specified as follows.
+
+=== "Binary"
+    ```yaml
+    analysis_targets:
+      - !SlaterDeterminant #(1)!
+        source: ...
+        control:
+          ...
+          use_double_group: false #(2)!
+    ```
+
+    1. :fontawesome-solid-users: This is just an example analysis target. The choices for projective (co)representation analysis can be specified in any analysis target.
+    2. :fontawesome-solid-users: This is a boolean. The possible options are:
+        - `false`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
+        - `true`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
+
+=== "Python"
+    ```python
+    from qsym2 import (
+        rep_analyse_slater_determinant,
+    )
+
+    rep_analyse_slater_determinant( #(1)!
+        ...,
+        use_double_group=False, #(2)!
+    )
+    ```
+
+    1. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for projective (co)representation analysis can be specified in any analysis driver function.
+    2. :fontawesome-solid-users: This is a boolean. The possible options are:
+        - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
+        - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
