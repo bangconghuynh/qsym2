@@ -33,7 +33,7 @@ $$
     S_{ij} = \braket{\hat{g}_i \mathbfit{w} | \hat{g}_j \mathbfit{w}},
 $$
 
-which is then used to determine the representation matrices of the elements of $\mathcal{G}$ on $W$, as described in the [QSym² paper](../../about/authorship.md#publications).
+which is then used to determine the representation matrices of the elements of $\mathcal{G}$ on $W$, as described in [Section 2.4 of the QSym² paper](../../about/authorship.md#publications).
 
 Depending on the nature of the basis functions in $\mathcal{B}_V$, the overlap matrix $\mathbfit{S}_V$ might have already been computed by other quantum-chemistry calculation programs, in which case it can simply be read in by QSym².
 But if $\mathbfit{S}_V$ is not readily available, then information about $\mathcal{B}_V$ must be made available to QSym² so that QSym² can compute $\mathbfit{S}_V$ on-the-fly.
@@ -249,24 +249,24 @@ QSym² offers multiple options for symmetry analysis in terms of group and trans
 
 ### Magnetic group
 
-As explained in [Symmetry-group detection/#External fields](../symmetry-group-detection.md/#external-fields), when time reversal is included in symmetry-group detection, QSym² has access to both the unitary group $\mathcal{G}$ and the magnetic group $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ of the system, if the latter is available.
-There are three choices for symmetry analysis:
+As explained in [Symmetry-group detection/#External fields](../symmetry-group-detection.md/#external-fields), when time reversal is included in symmetry-group detection, QSym² has access to both the unitary group $\mathcal{G}$ and the magnetic group $\mathcal{M} = \mathcal{G} + \hat{a}\mathcal{G}$ of the system, if the latter is indeed present.
+There are then three choices for symmetry analysis:
 
 1. use the irreducible representations of the unitary group $\mathcal{G}$
 2. use the irreducible representations of the magnetic group $\mathcal{M}$
 3. use the irreducible corepresentations of the magnetic group $\mathcal{M}$
 
 Choice 1 needs no further explanation.
-Choice 3 makes use of [Wigner's corepresentation theory](../../methodologies/magnetic-corepresentations.md) and essentially considers how the joint orbit $\mathcal{M} \cdot \mathbfit{w} = \mathcal{G} \cdot \mathbfit{w} + \hat{a}\mathcal{G} \cdot \mathbfit{w}$ transforms as the irreducible representations of the unitary halving subgroup $\mathcal{G}$ (to put very loosely).
+Choice 3 makes use of [Wigner's corepresentation theory](../../methodologies/magnetic-corepresentations.md) and essentially considers how the joint orbit $\mathcal{M} \cdot \mathbfit{w} = \mathcal{G} \cdot \mathbfit{w} + \hat{a}\mathcal{G} \cdot \mathbfit{w}$ transforms as the irreducible corepresentations of $\mathcal{M}$ induced by the irreducible representations of the unitary halving subgroup $\mathcal{G}$.
 Choice 3 is technically the proper way to handle antiunitary symmetry, but the information it gives can be rather limited since this choice honours the fact that characters of antiunitary operations do not remain invariant under a change of basis, and thus avoids explicitly characterising the symmetry of $\symbfit{w}$ under the antiunitary operations in $\mathcal{M}$.
 
 However, there are times when it is desirable to characterise the symmetry of $\symbfit{w}$ under the antiunitary operations in $\mathcal{M}$, despite the above caveat of non-invariant antiunitary characters.
 Choice 2 thus offers the possibility of treating the antiunitary elements in $\mathcal{M}$ *as though they were unitary* so that conventional representation theory can be used.
-This is equivalent to considering a *unitary* group $\mathcal{M}'$ isomorphic to $\mathcal{M}$ and characterising the space $W$ spanned by the orbit $\mathcal{M} \cdot \mathbfit{w}$ using the irreducible representations of $\mathcal{M}'$.
+This is equivalent to considering a *unitary* group $\mathcal{M}'$ isomorphic to $\mathcal{M}$ that also contains $\mathcal{G}$ as its halving subgroup and characterising the space $W$ spanned by the orbit $\mathcal{M} \cdot \mathbfit{w}$ using the irreducible representations of $\mathcal{M}'$.
 How meaningful this is depends on the nature of $\mathbfit{w}$:
 
-- if $\mathbfit{w}$ is real-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ are identical (*i.e.* the antiunitary elements in $\mathcal{M}$ act on $\mathbfit{w}$ linearly), and the irreducible representations of $\mathcal{M}'$ are perfectly suitable for the symmetry characterisation of $\mathbfit{w}$;
-- but if $\mathbfit{w}$ is complex-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ differ, and although $W$ might still be decomposable in terms of the irreducible representations of $\mathcal{M}'$, it is in general unclear how the decomposition should be interpreted.
+- if $\mathbfit{w}$ is real-valued or can be made real-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ are identical (*i.e.* the antiunitary elements in $\mathcal{M}$ act on $\mathbfit{w}$ linearly), and the irreducible representations of $\mathcal{M}'$ are perfectly suitable for the symmetry characterisation of $\mathbfit{w}$;
+- but if $\mathbfit{w}$ is complex-valued and cannot be made real, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ differ, and although $W$ might still be decomposable in terms of the irreducible representations of $\mathcal{M}'$, it is in general unclear how the decomposition should be interpreted.
 
 The above choices can be specified as follows.
 
@@ -299,7 +299,7 @@ The above choices can be specified as follows.
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum of the same name, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for magnetic group analysis can be specified in any analysis driver function.
     3. :fontawesome-solid-users: The possible options are:
         - `None`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
