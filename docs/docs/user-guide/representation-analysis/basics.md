@@ -314,7 +314,6 @@ The above choices can be specified as follows.
         - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
         - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
 
-
 ### Double groups
 
 !!! note
@@ -356,3 +355,9 @@ Whether projective representations or corepresentations are required can be spec
     2. :fontawesome-solid-users: This is a boolean. The possible options are:
         - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
+
+### Transformation kinds
+
+In QSym², every symmetry analysis target must have the following traits implemented:
+
+- [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html): this trait determines how the target behaves under spatial unitary transformations.
