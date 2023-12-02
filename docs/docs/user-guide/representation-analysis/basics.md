@@ -291,8 +291,8 @@ The above choices can be specified as follows.
     1. :fontawesome-solid-users: This is just an example analysis target. The choices for magnetic group analysis can be specified in any analysis target.
     2. :fontawesome-solid-users: The possible options are:
         - `null`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
-        - `!Representation`: this specifies choice 2 &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
-        - `!Corepresentation`: this specifies choice 3 &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
+        - `Representation`: this specifies choice 2 &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
+        - `Corepresentation`: this specifies choice 3 &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
 
 === "Python"
     ```python
@@ -386,11 +386,47 @@ These traits are described below.
 5. [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html)
 
     This trait offers multiple ways in which a target can be acted on by a [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html).
-    This trait thus requires the [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html) and [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) traits to be implemented.
-    The possible types of transformations are:
+    This trait requires the [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html) and [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) traits to have been implemented.
+    The possible types of transformations defined by this trait are:
 
     - spatial only,
     - spin only,
     - both spin and spatial.
 
-Given a group $\mathcal{G}$ of [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html)s, how its elements act on a target $\mathbfit{w}$ to generate the orbit $\mathcal{G} \cdot \mathbfit{w}$ for symmetry analysis
+Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html) elements act on a target $\mathbfit{w}$ based on the [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html) trait to generate the orbit $\mathcal{G} \cdot \mathbfit{w}$ for symmetry analysis can be specified as follows.
+
+=== "Binary"
+    ```yaml
+    analysis_targets:
+      - !SlaterDeterminant #(1)!
+        source: ...
+        control:
+          ...
+          symmetry_transformation_kind: Spatial #(2)!
+    ```
+
+    1. :fontawesome-solid-users: This is just an example analysis target. The choices for symmetry transformation kinds can be specified in any analysis target.
+    2. :fontawesome-solid-users: The possible options are:
+        - `Spatial`: spatial transformation only,
+        - `Spin`: spin transformation only,
+        - `SpinSpatial`: coupled spin and spatial transformations
+
+=== "Python"
+    ```python
+    from qsym2 import (
+        rep_analyse_slater_determinant,
+        SymmetryTransformationKind #(1)!
+    )
+
+    rep_analyse_slater_determinant( #(2)!
+        ...,
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(3)!
+    )
+    ```
+
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/enum.SymmetryTransformationKind.html), for indicating the kind of symmetry transformation to be applied on the target.
+    2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for symmetry transformation kinds can be specified in any analysis driver function.
+    3. :fontawesome-solid-users: The possible options are:
+        - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.Spin`: spin transformation only,
+        - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations
