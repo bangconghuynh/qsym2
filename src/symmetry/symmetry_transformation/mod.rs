@@ -1,4 +1,4 @@
-//! Transformations under symmetry operations//! Transformations under symmetry operations..
+//! Transformations under symmetry operations.
 
 use std::error::Error;
 use std::fmt;
@@ -178,7 +178,8 @@ pub trait ComplexConjugationTransformable: Clone {
 /// Trait for time-reversal transformations.
 ///
 /// This trait has a blanket implementation for any implementor of the [`SpinUnitaryTransformable`]
-/// trait and the [`ComplexConjugationTransformable`] trait.
+/// trait and the [`ComplexConjugationTransformable`] trait together with the
+/// [`DefaultTimeReversalTransformable`] marker trait.
 pub trait TimeReversalTransformable:
     SpinUnitaryTransformable + ComplexConjugationTransformable
 {
@@ -187,8 +188,8 @@ pub trait TimeReversalTransformable:
     // ----------------
     /// Performs a time-reversal transformation in-place.
     ///
-    /// The time-reversal transformation is a spin rotation by $`\pi`$ about the space-fixed
-    /// $`y`$-axis followed by a complex conjugation.
+    /// The default implementation of the time-reversal transformation is a spin rotation by $`\pi`$
+    /// about the space-fixed $`y`$-axis followed by a complex conjugation.
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
         let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
         self.transform_spin_mut(&dmat_y)?.transform_cc_mut();
@@ -197,8 +198,8 @@ pub trait TimeReversalTransformable:
 
     /// Performs a time-reversal transformation and returns the time-reversed result.
     ///
-    /// The time-reversal transformation is a spin rotation by $`\pi`$ about the space-fixed
-    /// $`y`$-axis followed by a complex conjugation.
+    /// The default implementation of the time-reversal transformation is a spin rotation by $`\pi`$
+    /// about the space-fixed $`y`$-axis followed by a complex conjugation.
     ///
     /// # Returns
     ///

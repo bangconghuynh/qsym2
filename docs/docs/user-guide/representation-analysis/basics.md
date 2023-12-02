@@ -358,6 +358,39 @@ Whether projective representations or corepresentations are required can be spec
 
 ### Transformation kinds
 
-In QSym², every symmetry analysis target must have the following traits implemented:
+In QSym², every symmetry analysis target must implement five `Transformable` traits that define their transformation behaviours.
+These traits are described below.
 
-- [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html): this trait determines how the target behaves under spatial unitary transformations.
+1. [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html)
+
+    This trait determines how the target behaves under spatial unitary transformations.
+    If a target $\mathbfit{w}$ has a dependence on a spatial configuration-space vector $\mathbfit{r} \in \mathbb{R}^3$ such that one can write $\mathbfit{w} \equiv \mathbfit{w}(\mathbfit{r})$, and if a unitary operation $\hat{g}$ maps $\mathbfit{r}$ to $\hat{g}\mathbfit{r}$ on $\mathbb{R}^3$, then this trait allows one to obtain $\hat{g}\mathbfit{w}(\mathbfit{r}) = \mathbfit{w}(\hat{g}^{-1} \mathbfit{r})$.
+
+2. [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html)
+
+    This trait determines how the target behaves under spin unitary transformations.
+    If a target $\mathbfit{w}$ has a dependence on a spin configuration-space coordinate $s \in S$ such that one can write $\mathbfit{w} \equiv \mathbfit{w}(s)$, and if a unitary operation $\hat{g}$ maps $s$ to $\hat{g}s$ on $S$, then this trait allows one to obtain $\hat{g}\mathbfit{w}(s) = \mathbfit{w}(\hat{g}^{-1} s)$.
+
+    Note that the exact structure of $S$ is often left unspecified because it is common for only the spin-transformation behaviours of $\mathbfit{w}(s)$ to be specified, but not its explicit form in terms of the spin coordinate $s$.
+
+3. [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html)
+
+    This trait determines how the target behaves under complex conjugation.
+    If a target $\mathbfit{w}$ is a function of a particular configuration-space coordinate $\mathbfit{x}$ such that one can write $\mathbfit{w}: \mathbfit{x} \mapsto \mathbfit{w}(\mathbfit{x}) \in \mathbb{C}$, then this trait allows one to obtain the complex conjugate $\mathbfit{w}^*(\mathbfit{x})$.
+
+4. [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html)
+
+    This trait determines how the target behaves under the antiunitary action of time reversal.
+    If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation.
+
+5. [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html)
+
+    This trait offers multiple ways in which a target can be acted on by a [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html).
+    This trait thus requires the [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html) and [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) traits to be implemented.
+    The possible types of transformations are:
+
+    - spatial only,
+    - spin only,
+    - both spin and spatial.
+
+Given a group $\mathcal{G}$ of [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html)s, how its elements act on a target $\mathbfit{w}$ to generate the orbit $\mathcal{G} \cdot \mathbfit{w}$ for symmetry analysis
