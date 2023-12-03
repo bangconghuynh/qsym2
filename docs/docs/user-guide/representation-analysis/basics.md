@@ -229,6 +229,15 @@ If such a gap does not exist, then $\mathcal{G} \cdot \mathbfit{w}$ contains all
 - if $\mathbfit{w}$ has been tightly converged and is of a high numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then it can be confidently concluded that $\mathbfit{w}$ transforms as the regular representation of $\mathcal{G}$;
 - however, if $\mathbfit{w}$ has been rather poorly converged and is of a low numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then any observed symmetry breaking could be artificial, and it is therefore advisable that $\mathbfit{w}$ be recomputed to a better numerical quality to ascertain the nature of any symmetry breaking.
 
+#### Comparison mode
+
+QSym² offers two modes of comparing the eigenvalues of $\mathbfit{S}$ with the threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$:
+
+- `Real`: the real parts of the eigenvalues are compared against the threshold,
+- `Modulus`: the absolute values of the eigenvalues are compared against the threshold.
+
+If the 
+
 ### Integrality threshold
 
 The crux of the symmetry analysis of $\mathbfit{w}$ with respect to a group $\mathcal{G}$ is the decomposition of the space $W \subseteq V$ spanned by the orbit $\mathcal{G} \cdot \mathbfit{w}$ into known irreducible representation spaces of $\mathcal{G}$ on $V$:
