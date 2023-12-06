@@ -233,10 +233,11 @@ If such a gap does not exist, then $\mathcal{G} \cdot \mathbfit{w}$ contains all
 
 QSym² offers two modes of comparing the eigenvalues of $\mathbfit{S}$ with the threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$:
 
-- `Real`: the real parts of the eigenvalues are compared against the threshold,
-- `Modulus`: the absolute values of the eigenvalues are compared against the threshold.
+- *real* mode: the real parts of the eigenvalues are compared against the threshold,
+- *modulus* mode: the absolute values of the eigenvalues are compared against the threshold.
 
-If the 
+If the overlap matrix $\mathbfit{S}$ has negative or complex eigenvalues, the two comparison modes may give rise to different $W$ spaces and hence different symmetry assignments.
+Care must therefore be taken in choosing the appropriate comparison mode for the system being studied.
 
 ### Integrality threshold
 
@@ -255,6 +256,51 @@ In most cases, if $\mathbfit{w}$ is of a decent numerical quality and if the lin
 However, if QSym² complains about significant non-integrality in the obtained values of $k_i$, then, this is most likely symptomatic of a poorly chosen linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ which leads to an ill-formed $W$ space that admits an ill-defined decomposition into irreducible representation spaces of $\mathcal{G}$.
 In this situation, rather than trying to unreasonably relax the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$, it is recommended that either the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ should be revised or the quality of $\mathbfit{w}$ should be improved.
 
+### Threshold specification
+
+The above thresholds can be specified as follows.
+
+=== "Binary"
+    ```yaml
+    analysis_targets:
+      - !SlaterDeterminant #(1)!
+        source: ...
+        control:
+          ...: ...
+          linear_independence_threshold: 1e-7 #(2)!
+          integrality_threshold: 1e-7 #(3)!
+          eigenvalue_comparison_mode: Modulus #(4)!
+    ```
+
+    1. :fontawesome-solid-users: This is just an example analysis target. The specification of thresholds can be specified in any analysis target.
+    2. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
+    3. :fontawesome-solid-users: This specifies a floating-point value for the interality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
+    4. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+        - `Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
+        - `Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
+
+=== "Python"
+    ```python
+    from qsym2 import (
+        rep_analyse_slater_determinant,
+        EigenvalueComparisonMode, #(1)!
+    )
+
+    rep_analyse_slater_determinant( #(2)!
+        ...,
+        linear_independence_threshold=1e-7, #(3)!
+        integrality_threshold=1e-7, #(4)!
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(5)!
+    )
+    ```
+
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison.
+    2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The specification of thresholds can be specified in any analysis driver function.
+    3. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
+    4. :fontawesome-solid-users: This specifies a floating-point value for the interality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
+    5. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+        - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
+        - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
 
 ## Analysis options
 
@@ -293,7 +339,7 @@ The above choices can be specified as follows.
       - !SlaterDeterminant #(1)!
         source: ...
         control:
-          ...
+          ...: ...
           use_magnetic_group: null #(2)!
     ```
 
@@ -307,7 +353,7 @@ The above choices can be specified as follows.
     ```python
     from qsym2 import (
         rep_analyse_slater_determinant,
-        MagneticSymmetryAnalysisKind #(1)!
+        MagneticSymmetryAnalysisKind, #(1)!
     )
 
     rep_analyse_slater_determinant( #(2)!
@@ -339,7 +385,7 @@ Whether projective representations or corepresentations are required can be spec
       - !SlaterDeterminant #(1)!
         source: ...
         control:
-          ...
+          ...: ...
           use_double_group: false #(2)!
     ```
 
@@ -410,7 +456,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
       - !SlaterDeterminant #(1)!
         source: ...
         control:
-          ...
+          ...: ...
           symmetry_transformation_kind: Spatial #(2)!
     ```
 
@@ -424,7 +470,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     ```python
     from qsym2 import (
         rep_analyse_slater_determinant,
-        SymmetryTransformationKind #(1)!
+        SymmetryTransformationKind, #(1)!
     )
 
     rep_analyse_slater_determinant( #(2)!
