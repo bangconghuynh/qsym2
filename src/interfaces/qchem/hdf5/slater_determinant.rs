@@ -11,7 +11,7 @@ use hdf5::{self, H5Type};
 use lazy_static::lazy_static;
 use log;
 use nalgebra::Point3;
-use ndarray::{Array1, Array2, Axis, Ix3};
+use ndarray::{s, Array1, Array2, Array4, Axis, Ix3};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use num_traits::{One, Zero};
@@ -36,6 +36,8 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
+#[cfg(feature = "integrals")]
+use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::io::format::{
     log_macsec_begin, log_macsec_end, log_micsec_begin, log_micsec_end, qsym2_error, qsym2_output,
 };
@@ -509,7 +511,8 @@ where
         Ok(BasisAngularOrder::new(&batms))
     }
 
-    fn extract_basisset(&self) -> Result<BasisSet<f64, f64>, anyhow::Error> {
+    /// Extracts the full basis set information from the single-point H5 group.
+    fn extract_basis_set(&self, mol: &'a Molecule) -> Result<BasisSet<f64, f64>, anyhow::Error> {
         let shell_types = self
             .sp_group
             .dataset("aobasis/shell_types")?
@@ -550,51 +553,166 @@ where
             .dataset("aobasis/shell_coordinates")?
             .read_2d::<f64>()?;
 
-        let bscs: Vec<BasisShellContraction<f64, f64>> = shell_types
+        let bscs: Vec<BasisShellContraction<f64, f64>> = primitives_per_shell
             .iter()
-            .zip(primitives_per_shell.iter())
-            .zip(shell_coordinates.rows())
-            .scan(0, |end, ((shell_type, n_prims), centre)| {
+            .scan(0, |end, n_prims| {
                 let start = *end;
                 *end += n_prims;
-                Some((start, *end, shell_type, centre))
+                Some((start, *end))
             })
-            .flat_map(|(start, end, shell_type, centre)| {
+            .zip(shell_types.iter())
+            .zip(shell_coordinates.rows())
+            .flat_map(|(((start, end), shell_type), centre)| {
                 if *shell_type == 0 {
                     // S shell
-                    let bs = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
-
-                    vec![BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)))]
+                    let basis_shell = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
                 } else if *shell_type == 1 {
                     // P shell
-                    vec![BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)))]
+                    let basis_shell = BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
                 } else if *shell_type == -1 {
                     // SP shell
+                    let basis_shell_s = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+                    let primitives_s = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction_s = GaussianContraction {
+                        primitives: primitives_s,
+                    };
+
+                    let basis_shell_p = BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)));
+                    let primitives_p = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            sp_contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction_p = GaussianContraction {
+                        primitives: primitives_p,
+                    };
+
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
                     vec![
-                        BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0))),
-                        BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1))),
+                        BasisShellContraction {
+                            basis_shell: basis_shell_s,
+                            contraction: contraction_s,
+                            cart_origin: cart_origin.clone(),
+                            k: None,
+                        },
+                        BasisShellContraction {
+                            basis_shell: basis_shell_p,
+                            contraction: contraction_p,
+                            cart_origin,
+                            k: None,
+                        },
                     ]
                 } else if *shell_type < 0 {
                     // Cartesian D shell or higher
                     let l = shell_type.unsigned_abs();
-                    vec![BasisShell::new(l, ShellOrder::Cart(CartOrder::qchem(l)))]
+                    let basis_shell = BasisShell::new(l, ShellOrder::Cart(CartOrder::qchem(l)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
                 } else {
                     // Pure D shell or higher
                     let l = shell_type.unsigned_abs();
-                    vec![BasisShell::new(
-                        l,
-                        ShellOrder::Pure(PureOrder::increasingm(l)),
-                    )]
+                    let basis_shell =
+                        BasisShell::new(l, ShellOrder::Pure(PureOrder::increasingm(l)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
                 }
             })
-            .collect::<Vec<BasisShell>>();
+            .collect::<Vec<BasisShellContraction<f64, f64>>>();
 
-        let batms = mol
+        let basis_atoms = mol
             .atoms
             .iter()
             .enumerate()
-            .map(|(atom_i, atom)| {
-                let shells = bss
+            .map(|(atom_i, _)| {
+                let shells = bscs
                     .iter()
                     .zip(shell_to_atom_map.iter())
                     .filter_map(|(bs, atom_index)| {
@@ -605,10 +723,11 @@ where
                         }
                     })
                     .collect::<Vec<_>>();
-                BasisAtom::new(atom, &shells)
+                shells
             })
-            .collect::<Vec<BasisAtom>>();
-        Ok(BasisAngularOrder::new(&batms))
+            .collect::<Vec<Vec<BasisShellContraction<f64, f64>>>>();
+
+        Ok(BasisSet::<f64, f64>::new(basis_atoms))
     }
 }
 
@@ -823,7 +942,32 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
             let bao = self.extract_bao(recentred_mol)
                 .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
+            let basis_set_opt = if self.rep_analysis_parameters.analyse_density_symmetries {
+                self.extract_basis_set(recentred_mol).ok()
+            } else {
+                None
+            };
             log::debug!("Extracting AO basis information for representation analysis... Done.");
+
+            #[cfg(feature = "integrals")]
+            let sao_4c: Option<Array4<f64>> = basis_set_opt.map(|basis_set| {
+                log::debug!("Computing four-centre overlap integrals for density symmetry analysis...");
+                let stc = build_shell_tuple_collection![
+                    <s1, s2, s3, s4>;
+                    false, false, false, false;
+                    &basis_set, &basis_set, &basis_set, &basis_set;
+                    f64
+                ];
+                let sao_4c = stc.overlap([0, 0, 0, 0])
+                    .pop()
+                    .expect("Unable to retrieve the four-centre overlap tensor.");
+                log::debug!("Computing four-centre overlap integrals for density symmetry analysis... Done.");
+                sao_4c
+            });
+
+            #[cfg(not(feature = "integrals"))]
+            let sao_4c: Option<Array4<f64>> = None;
+
             log::debug!(
                 "Extracting canonical determinant information for representation analysis..."
             );
@@ -847,6 +991,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&det)
                     .sao_spatial(&sao)
+                    .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .with_context(|| "Unable to construct a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
@@ -878,6 +1023,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&loc_det)
                     .sao_spatial(&sao)
+                    .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()?;
                     log_micsec_begin("Localised orbital representation analysis");
