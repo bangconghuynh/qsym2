@@ -259,7 +259,6 @@ where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
-        + Send
         + Mul<<T as ComplexFloat>::Real, Output = T>,
     <T as ComplexFloat>::Real: fmt::Debug
         + Zero
