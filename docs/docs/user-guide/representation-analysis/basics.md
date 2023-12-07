@@ -274,7 +274,7 @@ The above thresholds can be specified as follows.
 
     1. :fontawesome-solid-users: This is just an example analysis target. The specification of thresholds can be specified in any analysis target.
     2. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
-    3. :fontawesome-solid-users: This specifies a floating-point value for the interality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
+    3. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
     4. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
@@ -297,7 +297,7 @@ The above thresholds can be specified as follows.
     1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The specification of thresholds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
-    4. :fontawesome-solid-users: This specifies a floating-point value for the interality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
+    4. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
     5. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
@@ -464,7 +464,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     2. :fontawesome-solid-users: The possible options are:
         - `Spatial`: spatial transformation only,
         - `Spin`: spin transformation only,
-        - `SpinSpatial`: coupled spin and spatial transformations
+        - `SpinSpatial`: coupled spin and spatial transformations.
 
 === "Python"
     ```python
@@ -484,7 +484,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     3. :fontawesome-solid-users: The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
-        - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations
+        - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
 
 ### Infinite-order symmetry elements
 
@@ -523,7 +523,7 @@ The value $n$ can be specified as follows.
     1. :fontawesome-solid-users: This is just an example analysis target. The finite order $n$ can be specified in any analysis target.
     2. :fontawesome-solid-users: This specifies the finite order $n$. The possible options are:
         - `null`: do not restrict infinite-order symmetry elements to finite order,
-        - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the group has no infinite-order symmetry elements).
+        - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
 
 === "Python"
     ```python
@@ -540,4 +540,4 @@ The value $n$ can be specified as follows.
     1. :fontawesome-solid-users: This is just an example analysis driver function in Python. The finite order $n$ can be specified in any analysis driver function.
     2. :fontawesome-solid-users: This specifies the finite order $n$. The possible options are:
         - `None`: do not restrict infinite-order symmetry elements to finite order,
-        - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the group has no infinite-order symmetry elements).
+        - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
