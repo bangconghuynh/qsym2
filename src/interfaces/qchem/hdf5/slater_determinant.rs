@@ -22,8 +22,8 @@ use regex::Regex;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
-use crate::basis::ao::BasisAngularOrder;
 use crate::basis::ao::*;
+use crate::basis::ao_integrals::*;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
@@ -462,6 +462,108 @@ where
             .flat_map(|shell_type| {
                 if *shell_type == 0 {
                     // S shell
+                    vec![BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)))]
+                } else if *shell_type == 1 {
+                    // P shell
+                    vec![BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)))]
+                } else if *shell_type == -1 {
+                    // SP shell
+                    vec![
+                        BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0))),
+                        BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1))),
+                    ]
+                } else if *shell_type < 0 {
+                    // Cartesian D shell or higher
+                    let l = shell_type.unsigned_abs();
+                    vec![BasisShell::new(l, ShellOrder::Cart(CartOrder::qchem(l)))]
+                } else {
+                    // Pure D shell or higher
+                    let l = shell_type.unsigned_abs();
+                    vec![BasisShell::new(
+                        l,
+                        ShellOrder::Pure(PureOrder::increasingm(l)),
+                    )]
+                }
+            })
+            .collect::<Vec<BasisShell>>();
+
+        let batms = mol
+            .atoms
+            .iter()
+            .enumerate()
+            .map(|(atom_i, atom)| {
+                let shells = bss
+                    .iter()
+                    .zip(shell_to_atom_map.iter())
+                    .filter_map(|(bs, atom_index)| {
+                        if *atom_index == atom_i {
+                            Some(bs.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                BasisAtom::new(atom, &shells)
+            })
+            .collect::<Vec<BasisAtom>>();
+        Ok(BasisAngularOrder::new(&batms))
+    }
+
+    fn extract_basisset(&self) -> Result<BasisSet<f64, f64>, anyhow::Error> {
+        let shell_types = self
+            .sp_group
+            .dataset("aobasis/shell_types")?
+            .read_1d::<i32>()?;
+        let shell_to_atom_map = self
+            .sp_group
+            .dataset("aobasis/shell_to_atom_map")?
+            .read_1d::<usize>()?
+            .iter()
+            .zip(shell_types.iter())
+            .flat_map(|(&idx, shell_type)| {
+                if *shell_type == -1 {
+                    vec![idx, idx]
+                } else {
+                    vec![idx]
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let primitives_per_shell = self
+            .sp_group
+            .dataset("aobasis/primitives_per_shell")?
+            .read_1d::<usize>()?;
+        let contraction_coefficients = self
+            .sp_group
+            .dataset("aobasis/contraction_coefficients")?
+            .read_1d::<f64>()?;
+        let sp_contraction_coefficients = self
+            .sp_group
+            .dataset("aobasis/sp_contraction_coefficients")?
+            .read_1d::<f64>()?;
+        let primitive_exponents = self
+            .sp_group
+            .dataset("aobasis/primitive_exponents")?
+            .read_1d::<f64>()?;
+        let shell_coordinates = self
+            .sp_group
+            .dataset("aobasis/shell_coordinates")?
+            .read_2d::<f64>()?;
+
+        let bscs: Vec<BasisShellContraction<f64, f64>> = shell_types
+            .iter()
+            .zip(primitives_per_shell.iter())
+            .zip(shell_coordinates.rows())
+            .scan(0, |end, ((shell_type, n_prims), centre)| {
+                let start = *end;
+                *end += n_prims;
+                Some((start, *end, shell_type, centre))
+            })
+            .flat_map(|(start, end, shell_type, centre)| {
+                if *shell_type == 0 {
+                    // S shell
+                    let bs = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+
                     vec![BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)))]
                 } else if *shell_type == 1 {
                     // P shell
