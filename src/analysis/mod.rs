@@ -176,7 +176,7 @@ impl fmt::Display for EigenvalueComparisonMode {
 /// linear space.
 pub trait RepAnalysis<G, I, T, D>: Orbit<G, I>
 where
-    T: ComplexFloat + Lapack + fmt::Debug,
+    T: ComplexFloat + Lapack + fmt::Debug + Send,
     <T as ComplexFloat>::Real: ToPrimitive,
     G: GroupProperties + ClassProperties + CharacterProperties,
     G::GroupElement: fmt::Display,

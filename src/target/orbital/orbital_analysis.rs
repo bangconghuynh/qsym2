@@ -96,7 +96,7 @@ where
 pub struct MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
-    T: ComplexFloat + fmt::Debug + Lapack,
+    T: ComplexFloat + fmt::Debug + Lapack + Send,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
     /// The generating symmetry group.
@@ -144,7 +144,7 @@ where
 impl<'a, G, T> MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
-    T: ComplexFloat + fmt::Debug + Lapack,
+    T: ComplexFloat + fmt::Debug + Lapack + Send,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
     /// Returns a builder to construct a new [`MolecularOrbitalSymmetryOrbit`] structure.
@@ -219,7 +219,7 @@ where
 impl<'a, G, T> MolecularOrbitalSymmetryOrbit<'a, G, Complex<T>>
 where
     G: SymmetryGroupProperties,
-    T: Float + Scalar<Complex = Complex<T>>,
+    T: Float + Scalar<Complex = Complex<T>> + Send,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
     MolecularOrbital<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
@@ -250,7 +250,7 @@ where
 impl<'a, G, T> Orbit<G, MolecularOrbital<'a, T>> for MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
-    T: ComplexFloat + fmt::Debug + Lapack,
+    T: ComplexFloat + fmt::Debug + Lapack + Send,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
     type OrbitIter = OrbitIterator<'a, G, MolecularOrbital<'a, T>>;
@@ -300,6 +300,7 @@ where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
+        + Send
         + Mul<<T as ComplexFloat>::Real, Output = T>,
     <T as ComplexFloat>::Real: fmt::Debug
         + Zero
@@ -439,6 +440,7 @@ where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
+        + Send
         + Mul<<T as ComplexFloat>::Real, Output = T>,
     <T as ComplexFloat>::Real: fmt::Debug
         + Zero
