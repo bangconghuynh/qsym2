@@ -49,7 +49,7 @@ This enables the results of symmetry group detection from one QSym² calculation
 The input parameters and their descriptions for each mode of running symmetry-group detection in QSym² are given below.
 When an input parameter has a default value, the default value will be specified.
 
-=== "Binary"
+=== "Command-line interface"
     === "Parameter specification"
         ```yaml
         symmetry_group_detection: !Parameters #(1)!

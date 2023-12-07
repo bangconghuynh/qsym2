@@ -16,6 +16,7 @@ $$
 where $\hat{\mathscr{A}}$ is the antisymmetriser in the symmetric group $\operatorname{Sym}(N_{\mathrm{e}})$ acting on the electron labels.
 The Slater determinant $\Psi_{\mathrm{SD}}$ exists in some subspace of the $N_{\mathrm{e}}$-electron Hilbert space $\mathcal{H}_{N_{\mathrm{e}}}$ whilst the spin-orbitals $\chi_i(\mathbfit{x})$ each belong to some subspace of the one-electron Hilbert space $\mathcal{H}_{1}$.
 QSym² is able to provide symmetry assignments for both the Slater determinant $\Psi_{\mathrm{SD}}$ and its constituting spin-orbitals $\chi_i(\mathbfit{x})$.
+The mathematical details of this can be found in [Section 2.4.2 of the QSym² paper](../../about/authorship.md#publications).
 
 
 ## Requirements
@@ -35,3 +36,54 @@ Whenever possible, QSym² will attempt to construct the basis angular order info
 
 
 ## Parameters
+
+=== "Command-line interface"
+    === "Source: Q-Chem HDF5 archive"
+        ```yaml
+        analysis_targets:
+          - !SlaterDeterminant #(1)!
+            source: !QchemArchive
+              path: path/to/qchem/qarchive.h5
+            control:
+              # Thresholds
+              integrality_threshold: 1e-7
+              linear_independence_threshold: 1e-7
+              eigenvalue_comparison_mode: Modulus
+              # Analysis options
+              use_magnetic_group: null
+              use_double_group: false
+              symmetry_transformation_kind: Spatial
+              infinite_order_to_finite: null
+              # Other options
+              write_character_table: Symbolic
+              write_overlap_eigenvalues: true
+              analyse_mo_symmetries: true
+              analyse_mo_mirror_parities: false
+              analyse_density_symmetries: false
+        ```
+
+        1. :fontawesome-solid-users: This is just an example analysis target. The choices for symmetry transformation kinds can be specified in any analysis target.
+        2. :fontawesome-solid-users: The possible options are:
+            - `Spatial`: spatial transformation only,
+            - `Spin`: spin transformation only,
+            - `SpinSpatial`: coupled spin and spatial transformations
+
+=== "Python"
+    ```python
+    from qsym2 import (
+        rep_analyse_slater_determinant,
+        SymmetryTransformationKind, #(1)!
+    )
+
+    rep_analyse_slater_determinant( #(2)!
+        ...,
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(3)!
+    )
+    ```
+
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/enum.SymmetryTransformationKind.html), for indicating the kind of symmetry transformation to be applied on the target.
+    2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for symmetry transformation kinds can be specified in any analysis driver function.
+    3. :fontawesome-solid-users: The possible options are:
+        - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.Spin`: spin transformation only,
+        - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations

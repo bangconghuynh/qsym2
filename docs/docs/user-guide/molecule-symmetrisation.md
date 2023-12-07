@@ -51,7 +51,7 @@ If the original field magnitudes are desired, it is trivial to use the positions
 The input parameters and their descriptions for each mode of running molecule symmetrisation in QSym² are given below.
 When an input parameter has a default value, the default value will be specified.
 
-=== "Binary"
+=== "Command-line interface"
     ```yaml
     symmetry_group_detection: !Parameters #(1)!
       ...
