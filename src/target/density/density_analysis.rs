@@ -27,7 +27,6 @@ use crate::analysis::{
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
-use crate::group::GroupProperties;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -279,16 +278,11 @@ impl<'a, G, T> RepAnalysis<G, Density<'a, T>, T, Ix4> for DensitySymmetryOrbit<'
 where
     G: SymmetryGroupProperties,
     G::CharTab: SubspaceDecomposable<T>,
-    <<G as GroupProperties>::ElementCollection as IntoIterator>::IntoIter: Send,
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
-        + Send
-        + Sync
         + Mul<<T as ComplexFloat>::Real, Output = T>,
     <T as ComplexFloat>::Real: fmt::Debug
-        + Send
-        + Sync
         + Zero
         + From<u16>
         + ToPrimitive
