@@ -13,6 +13,7 @@ use num_complex::ComplexFloat;
 use num_traits::ToPrimitive;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
@@ -176,14 +177,14 @@ impl fmt::Display for EigenvalueComparisonMode {
 /// linear space.
 pub trait RepAnalysis<G, I, T, D>: Orbit<G, I>
 where
-    T: ComplexFloat + Lapack + fmt::Debug,
+    T: ComplexFloat + Lapack + fmt::Debug + Send + Sync,
     <T as ComplexFloat>::Real: ToPrimitive,
     G: GroupProperties + ClassProperties + CharacterProperties,
     G::GroupElement: fmt::Display,
     G::CharTab: SubspaceDecomposable<T>,
     D: Dimension,
-    I: Overlap<T, D> + Clone,
-    Self::OrbitIter: Iterator<Item = Result<I, anyhow::Error>>,
+    I: Overlap<T, D> + Clone + Send + Sync,
+    Self::OrbitIter: Iterator<Item = Result<I, anyhow::Error>> + Send,
 {
     // ----------------
     // Required methods
@@ -263,6 +264,7 @@ where
             log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
             let ovs = self
                 .iter()
+                .par_bridge()
                 .map(|item_res| {
                     let item = item_res?;
                     item.overlap(item_0, metric)

@@ -17,6 +17,7 @@ use crate::basis::ao::{
 };
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::group::GroupProperties;
 use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
@@ -83,6 +84,7 @@ pub(crate) fn find_angular_function_representation<G>(
 where
     G: SymmetryGroupProperties + Clone + Send + Sync,
     G::CharTab: SubspaceDecomposable<f64>,
+    <<G as GroupProperties>::ElementCollection as IntoIterator>::IntoIter: Send,
     <<G as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition: Send + Sync,
 {
     let emap = ElementMap::new();
