@@ -597,7 +597,7 @@ macro_rules! impl_shell_tuple_overlap {
                                     .unwrap_or_else(|| panic!("Unable to obtain `{}!!`.", 2 * n - 1))
                             }
                             .to_f64()
-                            .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64.", 2 * n - 1));
+                            .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64`.", 2 * n - 1));
                             1.0 / doufac.sqrt()
                         }).product::<f64>()
                         * self.zd.map(|zd| zd.sqrt().sqrt());
