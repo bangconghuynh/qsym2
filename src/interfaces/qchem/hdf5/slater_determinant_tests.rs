@@ -121,7 +121,7 @@ fn test_interfaces_qchem_hdf5_sp_basis_set_extraction_benzene() {
 
 #[test]
 fn test_interfaces_qchem_hdf5_sp_basis_set_extraction_c60() {
-    let name = format!("{ROOT}/tests/qchem/c60_631gdp.qarchive.h5");
+    let name = format!("{ROOT}/tests/qchem/c60_321g.qarchive.h5");
     let f = hdf5::File::open(&name).unwrap();
     let pd_params = SymmetryGroupDetectionParams::default();
     let pd_params_inp = SymmetryGroupDetectionInputKind::Parameters(pd_params);
