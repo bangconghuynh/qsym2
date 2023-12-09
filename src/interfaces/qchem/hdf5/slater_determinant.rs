@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use anyhow::{self, bail, format_err, Context};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
+use factorial::DoubleFactorial;
 use hdf5::{self, H5Type};
 use lazy_static::lazy_static;
 use log;
@@ -14,7 +15,7 @@ use nalgebra::Point3;
 use ndarray::{s, Array1, Array2, Array4, Axis, Ix3};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 use numeric_sort;
 use periodic_table::periodic_table;
 use regex::Regex;
@@ -35,9 +36,9 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
 };
 use crate::drivers::QSym2Driver;
-use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
+use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::io::format::{
     log_macsec_begin, log_macsec_end, log_micsec_begin, log_micsec_end, qsym2_error, qsym2_output,
 };
@@ -430,14 +431,6 @@ where
         Ok(mol)
     }
 
-    /// Extracts the spatial atomic-orbital overlap matrix from the single-point H5 group.
-    fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
-        self.sp_group
-            .dataset("aobasis/overlap_matrix")?
-            .read_2d::<T>()
-            .map_err(|err| err.into())
-    }
-
     /// Extracts the basis angular order information from the single-point H5 group.
     fn extract_bao(&self, mol: &'a Molecule) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
         let shell_types = self
@@ -511,6 +504,19 @@ where
         Ok(BasisAngularOrder::new(&batms))
     }
 
+    /// Extracts the spatial atomic-orbital overlap matrix from the single-point H5 group.
+    ///
+    /// Note that the overlap matrix in the HDF5 file uses lexicographic order for Cartesian
+    /// functions. This is inconsistent with the conventional Q-Chem ordering used for molecular
+    /// orbital coefficients. See [`Self::recompute_sao`] for a way to get the atomic-orbital
+    /// overlap matrix with the consistent Cartesian ordering.
+    fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
+        self.sp_group
+            .dataset("aobasis/overlap_matrix")?
+            .read_2d::<T>()
+            .map_err(|err| err.into())
+    }
+
     /// Extracts the full basis set information from the single-point H5 group.
     fn extract_basis_set(&self, mol: &'a Molecule) -> Result<BasisSet<f64, f64>, anyhow::Error> {
         let shell_types = self
@@ -548,6 +554,7 @@ where
             .sp_group
             .dataset("aobasis/primitive_exponents")?
             .read_1d::<f64>()?;
+        // `shell_coordinates` in Bohr radius.
         let shell_coordinates = self
             .sp_group
             .dataset("aobasis/shell_coordinates")?
@@ -727,7 +734,59 @@ where
             })
             .collect::<Vec<Vec<BasisShellContraction<f64, f64>>>>();
 
-        Ok(BasisSet::<f64, f64>::new(basis_atoms))
+        let mut basis_set = BasisSet::<f64, f64>::new(basis_atoms);
+
+        // Q-Chem renormalises each Gaussian primitive, but this is not the convention used in
+        // QSym². We therefore un-normalise the Gaussian primitives to restore the original
+        // contraction coefficients.
+        let prefactor = (2.0 / std::f64::consts::PI).powf(0.75);
+        basis_set.all_shells_mut().for_each(|bsc| {
+            let l = bsc.basis_shell().l;
+            let l_i32 = l
+                .to_i32()
+                .unwrap_or_else(|| panic!("Unable to convert `{l}` to `i32`."));
+            let l_f64 = l
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{l}` to `f64`."));
+            let doufac_sqrt = if l == 0 {
+                1
+            } else {
+                ((2 * l) - 1)
+                    .checked_double_factorial()
+                    .unwrap_or_else(|| panic!("Unable to obtain `{}!!`.", 2 * l - 1))
+            }
+            .to_f64()
+            .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64`.", 2 * l - 1))
+            .sqrt();
+            bsc.contraction.primitives.iter_mut().for_each(|(a, c)| {
+                let n = prefactor * 2.0.powi(l_i32) * a.powf(l_f64 / 2.0 + 0.75) / doufac_sqrt;
+                *c /= n;
+            });
+        });
+        Ok(basis_set)
+    }
+
+    /// Recomputes the spatial atomic-orbital overlap matrix.
+    ///
+    /// The overlap matrix stored in the H5 group unfortunately uses lexicographic order for
+    /// Cartesian functions, which is inconsistent with that used in the coefficients. We thus
+    /// recompute the overlap matrix from the basis set information using the conventional Q-Chem
+    /// order for Cartesian functions.
+    fn recompute_sao(&self) -> Result<Array2<f64>, anyhow::Error> {
+        log::debug!("Recomputing atomic-orbital overlap matrix...");
+        let mol = self.extract_molecule()?;
+        let basis_set = self.extract_basis_set(&mol)?;
+        let stc = build_shell_tuple_collection![
+            <s1, s2>;
+            false, false;
+            &basis_set, &basis_set;
+            f64
+        ];
+        let sao_res = stc.overlap([0, 0])
+            .pop()
+            .ok_or(format_err!("Unable to compute the AO overlap matrix."));
+        log::debug!("Recomputing atomic-orbital overlap matrix... Done.");
+        sao_res
     }
 }
 
@@ -936,7 +995,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
 
         let rep = || {
             log::debug!("Extracting AO basis information for representation analysis...");
-            let sao = self.extract_sao()
+            let sao = self.recompute_sao()
                 .with_context(|| "Unable to extract the SAO matrix from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
             let bao = self.extract_bao(recentred_mol)

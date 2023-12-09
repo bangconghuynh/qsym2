@@ -1,20 +1,168 @@
 // use env_logger;
 use hdf5;
 use nalgebra::{Point3, Vector3};
+use ndarray_linalg::assert_close_l2;
 
 use super::{QChemSlaterDeterminantH5Driver, QChemSlaterDeterminantH5SinglePointDriver};
 
+use crate::basis::ao::{BasisShell, CartOrder, ShellOrder};
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
 use crate::drivers::QSym2Driver;
+#[cfg(feature = "integrals")]
+use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
+
+#[test]
+fn test_interfaces_qchem_hdf5_sp_basis_set_extraction_benzene() {
+    let name = format!("{ROOT}/tests/qchem/benzene_631gstar.qarchive.h5");
+    let f = hdf5::File::open(&name).unwrap();
+    let pd_params = SymmetryGroupDetectionParams::default();
+    let pd_params_inp = SymmetryGroupDetectionInputKind::Parameters(pd_params);
+    let afa_params = AngularFunctionRepAnalysisParams::default();
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::default();
+    let sp = f.group("job/1/sp").unwrap();
+    let qchem_sp =
+        QChemSlaterDeterminantH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder(
+        )
+        .sp_group(&sp)
+        .energy_function_index("1")
+        .symmetry_group_detection_input(&pd_params_inp)
+        .angular_function_analysis_parameters(&afa_params)
+        .rep_analysis_parameters(&sda_params)
+        .build()
+        .unwrap();
+
+    let mol = qchem_sp.extract_molecule().unwrap();
+    let basis_set = qchem_sp.extract_basis_set(&mol).unwrap();
+
+    assert_eq!(
+        basis_set.shell_boundaries(),
+        &vec![
+            (0, 1),
+            (1, 2),
+            (2, 5),
+            (5, 6),
+            (6, 9),
+            (9, 15),
+            (15, 16),
+            (16, 17),
+            (17, 20),
+            (20, 21),
+            (21, 24),
+            (24, 30),
+            (30, 31),
+            (31, 32),
+            (32, 35),
+            (35, 36),
+            (36, 39),
+            (39, 45),
+            (45, 46),
+            (46, 47),
+            (47, 50),
+            (50, 51),
+            (51, 54),
+            (54, 60),
+            (60, 61),
+            (61, 62),
+            (62, 65),
+            (65, 66),
+            (66, 69),
+            (69, 75),
+            (75, 76),
+            (76, 77),
+            (77, 80),
+            (80, 81),
+            (81, 84),
+            (84, 90),
+            (90, 91),
+            (91, 92),
+            (92, 93),
+            (93, 94),
+            (94, 95),
+            (95, 96),
+            (96, 97),
+            (97, 98),
+            (98, 99),
+            (99, 100),
+            (100, 101),
+            (101, 102),
+        ]
+    );
+
+    // The AO overlap matrix in the HDF5 file uses lexicographic order for Cartesian functions.
+    let mut basis_set_lex = basis_set.clone();
+    basis_set_lex.all_shells_mut().for_each(|bsc| {
+        if let ShellOrder::Cart(cartorder) = &bsc.basis_shell.shell_order {
+            bsc.basis_shell = BasisShell::new(
+                cartorder.lcart,
+                ShellOrder::Cart(CartOrder::lex(cartorder.lcart)),
+            );
+        };
+    });
+
+    let sao_hdf5 = qchem_sp.extract_sao().unwrap();
+    let stc = build_shell_tuple_collection![
+        <s1, s2>;
+        false, false;
+        &basis_set_lex, &basis_set_lex;
+        f64
+    ];
+    let sao_qsym2 = stc.overlap([0, 0]).pop().unwrap();
+    assert_close_l2!(&sao_qsym2, &sao_hdf5, 1e-7);
+}
+
+#[test]
+fn test_interfaces_qchem_hdf5_sp_basis_set_extraction_c60() {
+    let name = format!("{ROOT}/tests/qchem/c60_631gdp.qarchive.h5");
+    let f = hdf5::File::open(&name).unwrap();
+    let pd_params = SymmetryGroupDetectionParams::default();
+    let pd_params_inp = SymmetryGroupDetectionInputKind::Parameters(pd_params);
+    let afa_params = AngularFunctionRepAnalysisParams::default();
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::default();
+    let sp = f.group("job/1/sp").unwrap();
+    let qchem_sp =
+        QChemSlaterDeterminantH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder(
+        )
+        .sp_group(&sp)
+        .energy_function_index("1")
+        .symmetry_group_detection_input(&pd_params_inp)
+        .angular_function_analysis_parameters(&afa_params)
+        .rep_analysis_parameters(&sda_params)
+        .build()
+        .unwrap();
+
+    let mol = qchem_sp.extract_molecule().unwrap();
+    let basis_set = qchem_sp.extract_basis_set(&mol).unwrap();
+
+    // The AO overlap matrix in the HDF5 file uses lexicographic order for Cartesian functions.
+    let mut basis_set_lex = basis_set.clone();
+    basis_set_lex.all_shells_mut().for_each(|bsc| {
+        if let ShellOrder::Cart(cartorder) = &bsc.basis_shell.shell_order {
+            bsc.basis_shell = BasisShell::new(
+                cartorder.lcart,
+                ShellOrder::Cart(CartOrder::lex(cartorder.lcart)),
+            );
+        };
+    });
+
+    let sao_hdf5 = qchem_sp.extract_sao().unwrap();
+    let stc = build_shell_tuple_collection![
+        <s1, s2>;
+        false, false;
+        &basis_set_lex, &basis_set_lex;
+        f64
+    ];
+    let sao_qsym2 = stc.overlap([0, 0]).pop().unwrap();
+    assert_close_l2!(&sao_qsym2, &sao_hdf5, 1e-7);
+}
 
 #[test]
 fn test_interfaces_qchem_hdf5_sp_vf63m_ms1() {
