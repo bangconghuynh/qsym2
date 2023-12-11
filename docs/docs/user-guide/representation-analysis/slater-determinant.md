@@ -131,21 +131,22 @@ More methods might become possible in the future. The parameter specifications f
           - !SlaterDeterminant #(1)!
             source: !Binaries #(2)!
               xyz: path/to/xyz #(3)!
-              sao: path/to/sao #(4)!
-              coefficients: #(5)!
+              sao: path/to/2c/sao #(4)!
+              sao_4c: null #(5)!
+              coefficients: #(6)!
               - path/to/ca
               - path/to/cb
-              occupations: #(6)!
+              occupations: #(7)!
               - path/to/occa
               - path/to/occb
-              spin_constraint: !Unrestricted #(7)!
+              spin_constraint: !Unrestricted #(8)!
               - 2
               - false
-              matrix_order: RowMajor #(8)!
-              byte_order: LittleEndian #(9)!
-              bao: #(10)!
+              matrix_order: RowMajor #(9)!
+              byte_order: LittleEndian #(10)!
+              bao: #(11)!
                 ...: ...
-            control: #(11)!
+            control: #(12)!
               ...: ...
         ```
 
@@ -154,30 +155,31 @@ More methods might become possible in the future. The parameter specifications f
         These files can be generated from various sources, but must be modified to conform to a suitable format for reading in by QSym².
         </br></br>:fontawesome-solid-laptop-code: Under the hood, the following parameters are handled by the Rust struct [`BinariesSlaterDeterminantSource`](https://qsym2.dev/api/qsym2/interfaces/binaries/struct.BinariesSlaterDeterminantSource.html).
         3. :fontawesome-solid-users: This specifies the path to an XYZ file containing the geometry of the molecular system.
-        4. :fontawesome-solid-users: This specifies the path to a binary file containing the atomic-orbital *spatial* overlap matrix.
-        5. :fontawesome-solid-users: This list specifies the paths to binary files containing molecular-orbital coefficient matrices. Each item in the list specifies the coefficient matrix for one spin space. The number of spin spaces must match that specified in the `spin_constraint` key.
-        6. :fontawesome-solid-users: This list specifies the paths to binary files containing occupation numbers. Each item in the list specifies the occupation numbers of the molecular orbitals in one spin space. The number of spin spaces must match that specified in the `spin_constraint` key.
-        7. :fontawesome-solid-laptop-code: Under the hood, this is handled by the Rust enum [`SpinConstraint`](https://qsym2.dev/api/qsym2/angmom/spinor_rotation_3d/enum.SpinConstraint.html).
+        4. :fontawesome-solid-users: This specifies the path to a binary file containing the two-centre atomic-orbital *spatial* overlap matrix.
+        5. :fontawesome-solid-users: This specifies an optional path to a binary file containing the four-centre atomic-orbital *spatial* overlap matrix. This is only required for density symmetry analysis.
+        6. :fontawesome-solid-users: This list specifies the paths to binary files containing molecular-orbital coefficient matrices. Each item in the list specifies the coefficient matrix for one spin space. The number of spin spaces must match that specified in the `spin_constraint` key.
+        7. :fontawesome-solid-users: This list specifies the paths to binary files containing occupation numbers. Each item in the list specifies the occupation numbers of the molecular orbitals in one spin space. The number of spin spaces must match that specified in the `spin_constraint` key.
+        8. :fontawesome-solid-laptop-code: Under the hood, this is handled by the Rust enum [`SpinConstraint`](https://qsym2.dev/api/qsym2/angmom/spinor_rotation_3d/enum.SpinConstraint.html).
         </br></br>:fontawesome-solid-users: This specifies the spin constraint applicable to the Slater determinant being analysed. The list of items that follows contains the associated values and is different for each spin constraint. The possible options are:
             - `!Restricted`: this specifies the *restricted* spin constraint where spatial molecular orbitals are identical across all spin spaces. This variant takes only one associated value:
                 - `nspins`: this unsigned integer specifies the total number of spin spaces
             - `!Unrestricted`: this specifies the *unrestricted* spin constraint where spatial molecular orbitals can be different across different spin spaces. This variant takes two associated values:
                 - `nspins`: this unsigned integer specifies the total number of spin spaces
-                - `increasingm`: this boolean indicates whether the spin spaces are arranged in increasing-$m_s$ order
+                - `increasingm`: this boolean indicates whether the spin spaces are arranged in increasing-$m_s$ order (note: the typical $(\alpha, \beta)$ spin spaces are arranged in decreasing-$m_s$ order, and so this boolean should be set to `false`)
             - `!Generalised`: this specifies the *generalised* spin constraint where each spin-orbital is now expressed in a spin-spatial direct product basis. This variant takes two associated values:
                 - `nspins`: this unsigned integer specifies the total number of spin spaces
-                - `increasingm`: this boolean indicates whether the spin spaces are arranged in increasing-$m_s$ order
-        8. :fontawesome-solid-users: This specifies the order in which matrix elements are packed in the supplied binary files. The possible options are:
-            - `RowMajor`: C-like order where the first index is slow and the second index is fast,
-            - `ColMajor`: Fortran-like order where the first index is fast and the second index is slow.
+                - `increasingm`: this boolean indicates whether the spin spaces are arranged in increasing-$m_s$ order (note: the typical $(\alpha, \beta)$ spin spaces are arranged in decreasing-$m_s$ order, and so this boolean should be set to `false`)
+        9. :fontawesome-solid-users: This specifies the order in which matrix elements are packed in the supplied binary files. The possible options are:
+            - `RowMajor`: C-like order where the first index is the slowest and the last index is the fastest,
+            - `ColMajor`: Fortran-like order where the first index is the fastest and the last index is the slowest.
         </li></br>:material-cog-sync-outline: Default: `RowMajor`.
-        9. :fontawesome-solid-users: This specifies the endianness of the byte values in the supplied binary files. The possible options are:
+        10. :fontawesome-solid-users: This specifies the endianness of the byte values in the supplied binary files. The possible options are:
             - `LittleEndian`: the least-significant byte is stored at the smallest memory address,
             - `BigEndian`: the least-significant byte is stored at the largest memory address.
         </li> Most systems are little-endian, but this should be verified to ensure that the values in the binary files are read in correctly.
         </br></br>:material-cog-sync-outline: Default: `LittleEndian`.
-        10. :fontawesome-solid-users: This YAML dictionary specifies the basis angular order information for the underlying calculation. For more information, see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
-        11. :fontawesome-solid-users: This YAML dictionary contains all control parameters for the symmetry analysis of Slater determinants and is identical to that specified for Slater determinant Q-Chem HDF5 archive source.
+        11. :fontawesome-solid-users: This YAML dictionary specifies the basis angular order information for the underlying calculation. For more information, see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
+        12. :fontawesome-solid-users: This YAML dictionary contains all control parameters for the symmetry analysis of Slater determinants and is identical to that specified for Slater determinant Q-Chem HDF5 archive source.
 
 
 === "Python"
@@ -187,49 +189,121 @@ More methods might become possible in the future. The parameter specifications f
         EigenvalueComparisonMode, #(1)!
         MagneticSymmetryAnalysisKind, #(2)!
         SymmetryTransformationKind, #(3)!
+        PySpinConstraint, #(4)!
         PySlaterDeterminantReal,
-        PySpinConstraint,
+        PySlaterDeterminantComplex,
     )
 
-    pydet_r = PySlaterDeterminantReal(
-        PySpinConstraint.Unrestricted,
+    ca = np.array([ #(5)!
+        [+1.000, +0.000],
+        [+0.000, +0.707],
+        [+0.000, +0.707],
+        ...
+    ])
+    cb = np.array([
+        [+0.000, +0.707],
+        [+1.000, +0.000],
+        [+0.000, -0.707],
+        ...
+    ])
+    
+    occa = np.array([1.0, 1.0]) #(6)!
+    occb = np.array([1.0, 0.0])
+
+    ea = np.array([-0.51, -0.38]) #(7)!
+    eb = np.array([-0.50, +0.02])
+
+    pydet = PySlaterDeterminantReal( #(8)!
+        spin_constraint=PySpinConstraint.Unrestricted,
         complex_symmetric=False,
-        coefficients=cs,
-        occupations=os,
-        threshold=1e-13,
-        mo_energies=es,
-        energy=scf_energies
+        coefficients=[ca, cb],
+        occupations=[occa, occb],
+        threshold=1e-7, #(9)!
+        mo_energies=[ea, eb], #(10)!
+        energy=-1.30, #(11)!
     )
 
-    rep_analyse_slater_determinant( #(4)!
+    rep_analyse_slater_determinant( #(12)!
         # Data
-        inp_sym=f"mol", #(5)!
-        pydet=pydet_r,
-        pybao=pybao,
-        sao_spatial=sao_spatial,
-        sao_spatial_4c=None,
+        inp_sym=f"mol", #(13)!
+        pydet=pydet, #(14)!
+        pybao=pybao, #(15)!
+        sao_spatial=sao_spatial, #(16)!
+        sao_spatial_4c=None, #(17)!
         # Thresholds
-        integrality_threshold=integrality_threshold,
-        linear_independence_threshold=linear_independence_threshold,
-        eigenvalue_comparison_mode=EigenvalueComparisonMode.Real,
+        linear_independence_threshold=1e-7, #(18)!
+        integrality_threshold=1e-7, #(19)!
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(20)!
         # Analysis options
-        use_magnetic_group=None,
-        use_double_group=False,
-        symmetry_transformation_kind=SymmetryTransformationKind.Spatial,
-        infinite_order_to_finite=None,
+        use_magnetic_group=None, #(21)!
+        use_double_group=False, #(22)!
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(23)!
+        infinite_order_to_finite=None, #(24)!
         # Other options
-        write_character_table=True,
-        write_overlap_eigenvalues=True,
-        analyse_mo_symmetries=True,
-        analyse_mo_mirror_parities=False,
-        analyse_density_symmetries=False,
+        write_character_table=True, #(25)!
+        write_overlap_eigenvalues=True, #(29)!
+        analyse_mo_symmetries=True, #(30)!
+        analyse_mo_mirror_parities=False, #(31)!
+        analyse_density_symmetries=False, #(32)!
     )
     ```
 
     1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison. See [Basics/Thresholds/Linear independence threshold/#Comparison mode](basics.md/#comparison-mode) for further information.
     2. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis. See [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) for further information.
     3. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/enum.SymmetryTransformationKind.html), for indicating the kind of symmetry transformation to be applied on the target. See [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds) for further information.
-    4. :fontawesome-solid-users: This is the Python driver function for representation analysis of Slater determinants.
-    </br></br>:fontawesome-solid-laptop-code: This is a Python-exposed Rust function, [`rep_analyse_slater_determinant`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/fn.rep_analyse_slater_determinant.html).
-    5. :fontawesome-solid-users: This specifies the path to the `.qsym2.sym` file that contains the serialised results of the symmetry-group detection (see the documentation for the `out_sym` parameter of the Python [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) method in [Symmetry-group detection/#Parameters](../symmetry-group-detection.md/#parameters)). This name does not need to contain the `.qsym2.sym` extension.
-    </br>The symmetry results in this file will be used to construct the symmetry group $\mathcal{G}$ to be used in the subsequent representation analysis.
+    4. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`PySpinConstraint`](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PySpinConstraint.html), for indicating the spin constraint applicable to the Slater determinant. In the Python API, only two spin spaces arranged in decreasing-$m_s$ order are permitted because Python enums do not support associated values.
+    5. :fontawesome-solid-users: This specifies a coefficient matrix for one spin space, which is a $N_{\mathrm{bas}} \times N_{\mathrm{MO}}$ `numpy` array. The number of basis functions, $N_{\mathrm{bas}}$, depends on the underlying spin constraint: for *generalised* spin constraint, this is twice the number of spatial basis functions, whereas for *restricted* and *unrestricted* spin constraints, this is the same as the number of spatial basis functions. Each column in the array specifies a molecular orbital which can be occupied or virtual as specified by the occupation numbers.
+    6. :fontawesome-solid-users: This specifies an occupation number vector for one spin space, which is a one-dimensional `numpy` array of size $N_{\mathrm{MO}}$. Each value in this array gives the occupation number for the corresponding molecular orbital. Fractional values are allowed, but only when occupation numbers are either $0$ or $1$ can the Slater determinant symmetry be well-defined (otherwise the collection of fractionally occupied molecular orbitals does not actually form a single-determinantal wavefunction).
+    7. :fontawesome-solid-users: This specifies an optional orbital energy vector for one spin space, which is a one-dimensional `numpy` array of size $N_{\mathrm{MO}}$. Each value in this array gives the orbital energy for the corresponding molecular orbital.
+    8. :fontawesome-solid-users: [`PySlaterDeterminantReal`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantReal.html) constructs a *real-valued* Slater determinant object. If a *complex-valued* Slater determinant is required instead, use [`PySlaterDeterminantComplex`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantComplex.html).
+    9. :fontawesome-solid-users: This specifies a threshold for comparing Slater determinants. This is of no consequence for symmetry analysis.
+    10. :fontawesome-solid-users: This is optional.
+    11. :fontawesome-solid-users: This is optional.
+    12. :fontawesome-solid-users: This is the Python driver function for representation analysis of Slater determinants.
+    </br></br>:fontawesome-solid-laptop-code: This is a Python-exposed Rust function, [`rep_analyse_slater_determinant`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/fn.rep_analyse_slater_determinant.html). See the API documentation for this function for more details.
+    13. :fontawesome-solid-users: This specifies the path to the `.qsym2.sym` file that contains the serialised results of the symmetry-group detection (see the documentation for the `out_sym` parameter of the Python [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function in [Symmetry-group detection/#Parameters](../symmetry-group-detection.md/#parameters)). This file should have been generated by the [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function on the underlying molecular system prior to representation analysis.
+    </br></br>This name does not need to contain the `.qsym2.sym` extension. 
+    </br></br>The symmetry results in this file will be used to construct the symmetry group $\mathcal{G}$ to be used in the subsequent representation analysis.
+    14. :fontawesome-solid-users: This specifies the Slater determinant to be symmetry-analysed.
+    15. :fontawesome-solid-users: This specifies the basis angular order information for the underlying basis. See [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details of how to specify this.
+    16. :fontawesome-solid-users: This specifies the two-centre atomic-orbital spatial overlap matrix as a two-dimensional `numpy` array.
+    17. :fontawesome-solid-users: This specifies the four-centre atomic-orbital spatial overlap matrix as a four-dimensional `numpy` array.
+    </br></br>:material-cog-sync-outline: Default: `None`.
+    18. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
+    For more information, see [Basics/#Thresholds](basics.md/#thresholds).
+    19. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
+    For more information, see [Basics/#Thresholds](basics.md/#thresholds).
+    20. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+        - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
+        - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
+    </li>For more information, see [Basics/#Thresholds](basics.md/#thresholds).
+    21. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
+        - `None`: this specifies choice 1 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
+        - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
+        - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
+    </li>For more information, see [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups).
+    22. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
+        - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
+        - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
+    </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
+    23. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+    The possible options are:
+        - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.Spin`: spin transformation only,
+        - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
+    </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
+    24. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+        - `None`: do not restrict infinite-order symmetry elements to finite order,
+        - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
+    </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
+    </br></br>:material-cog-sync-outline: Default: `None`.
+    25. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
+    </li></br>:material-cog-sync-outline: Default: `True`.
+    29. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
+    </br></br>:material-cog-sync-outline: Default: `True`.
+    30. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
+    </br></br>:material-cog-sync-outline: Default: `True`.
+    31. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
+    </br></br>:material-cog-sync-outline: Default: `False`.
+    32. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
+    </br></br>:material-cog-sync-outline: Default: `False`.
