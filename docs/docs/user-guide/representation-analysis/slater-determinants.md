@@ -1,9 +1,9 @@
 ---
-title: Slater determinant
+title: Slater determinants
 description: Configurable parameters for Slater determinant representation analysis
 ---
 
-# Slater determinant
+# Slater determinants
 
 Let $\Psi_{\mathrm{SD}}$ be an $N_{\mathrm{e}}$-electron Slater determinant constructed from $N_{\mathrm{e}}$ occupied spin-orbitals $\chi_i(\mathbfit{x})$ written in terms of the composite spin-spatial coordinates $\mathbfit{x}$:
 
@@ -43,7 +43,7 @@ At the moment, QSym² offers three main ways to perform symmetry analysis for Sl
 - via the command-line interface reading in data from binary files,
 - via the Python library API reading in data from Python data structures.
 
-More methods might become possible in the future. The parameter specifications for the existing three methods are shown below.
+More methods might become possible in the future. The parameter specifications for the three existing methods are shown below.
 
 === "Command-line interface"
     === "Source: Q-Chem HDF5 archive"
