@@ -197,6 +197,7 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
             `n_x`, `n_y`, and `n_z` are the $x$-, $y$-, and $z$-exponents for a Cartesian component $x^{n_x} y^{n_y} z^{n_z}$;
             - if `cart` is `False`, `order` can be `True` for increasing-$m_l$ order, `False` for
             decreasing-$m_l$ order, or a list of $m_l$ values for custom order.
+        </li>:fontawesome-solid-laptop-code: Under the hood, this is handled by [`PyShellOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PyShellOrder.html) which is a Python-exposed enumerated type to manage shell order information.
     5. :fontawesome-solid-users: This example specifies a spherical $S$-shell in which functions are arranged in increasing-$m_l$ order.
     6. :fontawesome-solid-users: This example specifies a spherical $P$-shell in which functions are arranged in decreasing-$m_l$ order.
     7. :fontawesome-solid-users: This example specifies a spherical $F$-shell in which functions are arranged in a custom $m_l$ order: $0, +1, -1, +2, -2, +3, -3$.

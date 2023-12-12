@@ -106,6 +106,7 @@ nav:
   - User guide:
     - user-guide/symmetry-group-detection.md
     - user-guide/molecule-symmetrisation.md
+    - user-guide/integral-evaluations.md
     - Representation analysis:
       - user-guide/representation-analysis/basics.md
       - user-guide/representation-analysis/slater-determinants.md

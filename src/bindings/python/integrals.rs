@@ -210,16 +210,17 @@ impl From<PySpinConstraint> for SpinConstraint {
 ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
 ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
 ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-///       decreasing-$`m`$ order.
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
 ///
 ///     Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
 /// * `primitives` - A list of tuples, each of which contains the exponent and the contraction
 /// coefficient of a Gaussian primitive in this shell. Python type: `list[tuple[float, float]]`.
 /// * `cart_origin` - A fixed-size list of length 3 containing the Cartesian coordinates of the
-/// origin of this shell. Python type: `list[float]`.
+/// origin $`\mathbf{R}`$ of this shell in Bohr radii. Python type: `list[float]`.
 /// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
-/// $`\mathbf{k}`$ vector of this shell. Python type: `Optional[list[float]]`.
+/// $`\mathbf{k}`$ vector of this shell that appears in the complex phase factor
+/// $`\exp[i\mathbf{k} \cdot (\mathbf{r} - \mathbf{R})]`$. Python type: `Optional[list[float]]`.
 pub struct PyBasisShellContraction {
     /// A triplet of the form `(angmom, cart, order)` where:
     ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
@@ -229,8 +230,8 @@ pub struct PyBasisShellContraction {
     ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
     ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
     ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-    ///       decreasing-$`m`$ order.
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+    ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
     ///
     /// Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
     pub basis_shell: (String, bool, PyShellOrder),
@@ -241,14 +242,15 @@ pub struct PyBasisShellContraction {
     /// Python type: `list[tuple[float, float]]`.
     pub primitives: Vec<(f64, f64)>,
 
-    /// A fixed-size list of length 3 containing the Cartesian coordinates of the origin of this
-    /// shell.
+    /// A fixed-size list of length 3 containing the Cartesian coordinates of the origin
+    /// $`\mathbf{R}`$ of this shell in Bohr radii.
     ///
     /// Python type: `list[float]`.
     pub cart_origin: [f64; 3],
 
     /// An optional fixed-size list of length 3 containing the Cartesian components of the
-    /// $`\mathbf{k}`$ vector of this shell.
+    /// $`\mathbf{k}`$ vector of this shell that appears in the complex phase factor
+    /// $`\exp[i\mathbf{k} \cdot (\mathbf{r} - \mathbf{R})]`$.
     ///
     /// Python type: `Optional[list[float]]`.
     pub k: Option<[f64; 3]>,
