@@ -51,6 +51,10 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         m
     )?)?;
     #[cfg(feature = "integrals")]
+    m.add_function(wrap_pyfunction!(integrals::calc_overlap_2c_real, m)?)?;
+    #[cfg(feature = "integrals")]
+    m.add_function(wrap_pyfunction!(integrals::calc_overlap_2c_complex, m)?)?;
+    #[cfg(feature = "integrals")]
     m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_real, m)?)?;
     #[cfg(feature = "integrals")]
     m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_complex, m)?)?;
