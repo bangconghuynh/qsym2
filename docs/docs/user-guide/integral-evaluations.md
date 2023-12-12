@@ -170,3 +170,33 @@ The basis set specification in the Python API is shown below by way of an exampl
     11. :fontawesome-solid-users: This example specifies a spherical $P$-shell in which functions are arranged in a custom $m_l$ order: $0, +1, -1$.
 
 ## Integral calculations
+
+At the moment, only two- and four-centre overlap integral calculations have been exposed to the Python API.
+Other integral patterns can be exposed in the future should the need arise.
+Obtaining these integrals via the Python API is very straightforward.
+
+
+=== "Python"
+    ```py
+    from qsym2 import (
+        calc_overlap_2c_real, #(1)!
+        calc_overlap_2c_complex,
+        calc_overlap_4c_real,
+        calc_overlap_4c_complex,
+    )
+
+    basis_set = ... #(2)!
+
+    sao_2c_r = calc_overlap_2c_real(basis_set) #(3)!
+    sao_2c_c = calc_overlap_2c_complex(basis_set) #(4)!
+
+    sao_4c_r = calc_overlap_4c_real(basis_set) #(5)!
+    sao_4c_c = calc_overlap_4c_complex(basis_set) #(6)!
+    ```
+
+    1. :fontawesome-solid-laptop-code: These are Python-exposed functions to evaluate overlap integrals. The API documentation for these functions can be found [here](https://qsym2.dev/api/qsym2/bindings/python/integrals/index.html).
+    2. :fontawesome-solid-users: The basis set information must be constructed as described [above](#basis-set-information).
+    3. :fontawesome-solid-users: This evaluates the real-valued two-centre overlap matrix for the specified basis set and returns the results as a two-dimensional array. This is only applicable if the basis set comprises only Gaussian atomic orbitals (*i.e.* no $\mathbfit{k}$ vectors anywhere) with real contraction coefficients.
+    4. :fontawesome-solid-users: This evaluates the complex-valued two-centre overlap matrix for the specified basis set and returns the results as a two-dimensional array.
+    5. :fontawesome-solid-users: This evaluates the real-valued four-centre overlap tensor for the specified basis set and returns the results as a four-dimensional array. This is only applicable if the basis set comprises only Gaussian atomic orbitals (*i.e.* no $\mathbfit{k}$ vectors anywhere) with real contraction coefficients.
+    6. :fontawesome-solid-users: This evaluates the complex-valued four-centre overlap matrix for the specified basis set and returns the results as a four-dimensional array.
