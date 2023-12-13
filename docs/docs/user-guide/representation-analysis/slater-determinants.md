@@ -29,6 +29,9 @@ These basis functions are typically Gaussian atomic orbitals, and most, if not a
 It is therefore more convenient to retrieve the atomic-orbital overlap matrix $\mathbfit{S}_{\mathcal{H}_{1}}$ (also written $\mathbfit{S}_{\mathrm{AO}}$) from quantum-chemistry packages whenever possible.
 The ways in which $\mathbfit{S}_{\mathrm{AO}}$ can be read in by QSym² will be described below.
 
+Note that Q-Chem HDF5 archive files do store $\mathbfit{S}_{\mathrm{AO}}$, but the ordering of the atomic-orbital basis functions used to define this matrix (lexicographic order for Cartesian functions) is inconsistent with that used to define the molecular orbital coefficients (Q-Chem order for Cartesian functions).
+Hence, QSym² recomputes this matrix from the basis set information also stored in HDF5 archive files to ensure that the basis function ordering is consistent.
+
 ### Atomic-orbital basis angular order
 
 As bases for $\mathcal{H}_{1}$ almost invariably consist of Gaussian atomic orbitals, QSym² requires information about their angular momenta and ordering conventions as described in [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
@@ -36,6 +39,13 @@ Whenever possible, QSym² will attempt to construct the basis angular order info
 
 
 ## Parameters
+
+!!! info "Feature requirements"
+
+    - Reading in Q-Chem HDF5 archive files requires the [`qchem` feature](../../getting-started/prerequisites.md/#rust-features).
+    - Using the Python API requires the [`python` feature](../../getting-started/prerequisites.md/#rust-features).
+    - Performing representation analysis for Slater determinants, molecular orbitals, and electron densities requires the [`integrals` feature](../../getting-started/prerequisites.md/#rust-features).
+
 
 At the moment, QSym² offers three main ways to perform symmetry analysis for Slater determinants. They are:
 

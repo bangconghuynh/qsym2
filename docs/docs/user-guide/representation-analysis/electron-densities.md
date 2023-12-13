@@ -49,6 +49,11 @@ Whenever possible, QSym² will attempt to construct the basis angular order info
 
 ## Parameters
 
+!!! info "Feature requirements"
+
+    - Using the Python API requires the [`python` feature](../../getting-started/prerequisites.md/#rust-features).
+    - Performing representation analysis for electron densities requires the [`integrals` feature](../../getting-started/prerequisites.md/#rust-features).
+
 QSym² is able to perform symmetry analysis for electron densities that can arise from various sources.
 In particular, electron densities constructed in Hartree&ndash;Fock theory or Kohn&ndash;Sham density-functional theory can already be symmetry-analysed alongside Slater determinants and molecular orbitals (see [Slater determinants](slater-determinants.md)).
 On the other hand, electron densities that can be obtained in other theories (*e.g.* coupled-cluster or orbital-free density-functional theory) can be symmetry-analysed in QSym² via the Python library API reading in data from Python data structures.

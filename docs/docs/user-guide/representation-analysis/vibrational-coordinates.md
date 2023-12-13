@@ -37,6 +37,11 @@ As the basis in which the vibrational modes $\mathbfit{Q}_i$ are defined does no
 
 ## Parameters
 
+!!! info "Feature requirements"
+
+    - Reading in Q-Chem HDF5 archive files requires the [`qchem` feature](../../getting-started/prerequisites.md/#rust-features).
+    - Using the Python API requires the [`python` feature](../../getting-started/prerequisites.md/#rust-features).
+
 At the moment, QSym² offers two main ways to perform symmetry analysis for vibrational modes. They are:
 
 - via the command-line interface reading in data from a Q-Chem HDF5 archive file,

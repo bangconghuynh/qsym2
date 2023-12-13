@@ -46,6 +46,10 @@ This enables the results of symmetry group detection from one QSym² calculation
 
 ## Parameters
 
+!!! info "Feature requirements"
+
+    - Using the Python API requires the [`python` feature](../getting-started/prerequisites.md/#rust-features).
+
 The input parameters and their descriptions for each mode of running symmetry-group detection in QSym² are given below.
 When an input parameter has a default value, the default value will be specified.
 

@@ -48,6 +48,10 @@ If the original field magnitudes are desired, it is trivial to use the positions
 
 ## Parameters
 
+!!! info "Feature requirements"
+
+    - Using the Python API requires the [`python` feature](../getting-started/prerequisites.md/#rust-features).
+
 The input parameters and their descriptions for each mode of running molecule symmetrisation in QSym² are given below.
 When an input parameter has a default value, the default value will be specified.
 
