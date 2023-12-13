@@ -1,9 +1,9 @@
 ---
-title: Integral evaluations
-description: Configurable parameters for integral evaluations
+title: Integral evaluation
+description: Configurable parameters for integral evaluation
 ---
 
-# Integral evaluations
+# Integral evaluation
 
 ## Overview
 
