@@ -40,4 +40,16 @@ $$
 $$
 
 Few programs are known to have these integrals computed as part of their routine calculations.
-QSym² therefore has implementations to calculate these integrals, 
+QSym² therefore has implementations to calculate these integrals, provided that the full basis set information is provided (see [Integral evaluation](../integral-evaluation.md)).
+
+### Atomic-orbital basis angular order
+
+As electron densities are expanded in atomic-orbital bases in QSym², information about their angular momenta and ordering conventions as described in [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) is required.
+Whenever possible, QSym² will attempt to construct the basis angular order information from available data, but if this cannot be done, then the required information must be provided manually (see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details).
+
+## Parameters
+
+QSym² is able to perform symmetry analysis for electron densities that can arise from various sources.
+In particular, electron densities constructed in Hartree&ndash;Fock theory or Kohn&ndash;Sham density-functional theory can already be symmetry-analysed alongside Slater determinants and molecular orbitals (see [Slater determinants](slater-determinants.md)).
+On the other hand, electron densities that can be obtained in other theories (*e.g.* coupled-cluster or orbital-free density-functional theory) can be symmetry-analysed in QSym² via the Python library API reading in data from Python data structures.
+The way to do this is shown below.

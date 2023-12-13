@@ -169,11 +169,11 @@ The basis set specification in the Python API is shown below by way of an exampl
     10. :fontawesome-solid-users: This example specifies a spherical $P$-shell in which functions are arranged in increasing-$m_l$ order.
     11. :fontawesome-solid-users: This example specifies a spherical $P$-shell in which functions are arranged in a custom $m_l$ order: $0, +1, -1$.
 
-## Integral calculations
+## Integral calculation
 
 At the moment, only two- and four-centre overlap integral calculations have been exposed to the Python API.
 Other integral patterns can be exposed in the future should the need arise.
-Obtaining these integrals via the Python API is very straightforward.
+Obtaining these integrals via the Python API is very straightforward, as shown below.
 
 
 === "Python"
