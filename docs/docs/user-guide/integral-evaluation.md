@@ -5,6 +5,11 @@ description: Configurable parameters for integral evaluation
 
 # Integral evaluation
 
+!!! info "Feature requirements"
+
+    - Using the Python API requires the [`python` feature](../getting-started/prerequisites.md/#rust-features).
+    - Evaluating integrals requires the [`integrals` feature](../getting-started/prerequisites.md/#rust-features).
+
 ## Overview
 
 QSym² implements a generic [recursive algorithm by Honda *et al.*](https://doi.org/10.1063/1.459751) that is capable of calculating any $n$-centre overlap integrals and their derivatives over both Gaussian and London atomic-orbital basis functions.
