@@ -1,15 +1,12 @@
 ---
-title: Representation analysis of benzene
-description: An illustration of QSym²'s representation analysis functionalities via benzene
+title: Molecular orbital symmetry in benzene
+description: An illustration of QSym²'s representation analysis functionalities via molecular orbitals in benzene
 ---
 
-# Representation analysis of benzene
+# Molecular orbital symmetry in benzene
 
 This tutorial demonstrates how QSym² can be used to obtain symmetry analysis information for self-consistent-field (SCF) molecular orbitals and the Slater determinants constructed from them.
-
-## Self-consistent-field molecular orbitals in Q-Chem
-
-In this part of the tutorial, we demonstrate how QSym² can be used with Q-Chem HDF5 archive files to obtain molecular orbital symmetry information for neutral and cationic benzene.
+In particular, we show how QSym² can be used with Q-Chem HDF5 archive files to obtain molecular orbital symmetry information for neutral and cationic benzene.
 
 !!! info "Q-Chem versions"
 
@@ -18,9 +15,9 @@ In this part of the tutorial, we demonstrate how QSym² can be used with Q-Chem 
     A newer version, 6.1.0, seems to have fixed this.
 
 
-### Neutral benzene
+## Neutral benzene
 
-#### Q-Chem calculation
+### Q-Chem calculation
 
 1. Prepare a Q-Chem input file as follows:
 
