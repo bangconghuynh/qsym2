@@ -74,6 +74,8 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
 
 ### QSym² symmetry analysis
 
+#### Running QSym²
+
 1. Prepare a QSym² input file as follows:
 
     ```yaml title="benzene_symmetry.yml"
@@ -120,3 +122,52 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
     ```bash
     qsym2 run -c benzene_symmetry.yml -o benzene_symmetry.out
     ```
+
+    The above command instructs QSym² to run a symmetry analysis calculation based on the configuration defined in `benzene_symmetry.yml`, and then write the results of the calculation to a new plain-text file called `benzene_symmetry.out`, which can be opened by any text editor.
+
+
+#### Understanding QSym² results
+
+1. Under the `Symmetry-Group Detection` section, inspect the `Threshold-scanning symmetry-group detection` subsection and identify the following:
+
+    - the various threshold combinations,
+    - the unitary group obtained for each threshold combination, and
+    - the highest unitary group $mathcal{G}$ found and the associated thresholds.
+
+    Verify that $\mathcal{G}$ is indeed $\mathcal{D}_{6h}$.
+
+2. Under the `Slater Determinant Symmetry Analysis` section, inspect the `Character table of irreducible representations` section and verify that the character table for $\mathcal{G}$ has been generated correctly.
+
+    Then, inspect the `Conjugacy class transversal` subsection and verify that the representative elements of the conjugacy classes are indeed in accordance with the non-standard orientation of the benzene molecule specified [earlier](#q-chem-calculation).
+
+3. Inspect next the `Space-fixed spatial angular function symmetries in D6h` subsection and identify how the standard spherical harmonics and Cartesian functions transform under $\mathcal{D}_{6h}$.
+
+    Then, compare these results to what is normally tabulated with standard character tables.
+    In particular, note how the Cartesian axis that transforms as $A_{2u}$ is now the $x$-axis instead of the $z$-axis, and the degenerate pair that transform as $E_{1u}$ are now $(y, z)$ instead of $(x, y)$. This is the consequence of the non-standard orientation of the benzene molecule in which the principal axis is the $x$-axis instead of the $z$-axis as per the standard convention.
+
+4. Inspect next the `Basis angular order` subsection and verify that the orders of the functions in the atomic-orbital shells are consistent with those reported in the Q-Chem output file `benzene.out`.
+For more information, see [User guide/Representation analysis/Basics/#Atomic-orbital basis angular order](../user-guide/representation-analysis/basics.md/#atomic-orbital-basis-angular-order).
+
+5. Inspect next the `Determinant orbit overlap eigenvalues` subsection.
+This prints out the full eigenspectrum of the orbit overlap matrix of the Slater determinant being analysed (see [Section 2.4 of the QSym² paper](../about/authorship.md#publications)), and the position of the [linear-independence threshold](../user-guide/representation-analysis/basics.md/#linear-independence-threshold) relative to these eigenvalues.
+Check if the linear-independence threshold has indeed been chosen sensibly with respect to the obtained eigenspectrum: is the gap between the eigenvalues immediately above and below the threshold larger than four orders of magnitude?
+
+6. Finally, inspect the `Orbit-based symmetry analysis results` subsection and do the following:
+
+    - identify the overall symmetry of the Slater determinant and check that it is consistent with the dimensionality indicated by the eigenspectrum and the linear-independence threshold; and
+    - identify the symmetries of several molecular orbitals of interest and, if possible, visualise them using Q-Chem/IQMol and check that the symmetry assignments make sense.
+
+
+## Cationic benzene
+
+1. Repeat the above calculation and analysis for cationic benzene:
+
+    - the charge value in the Q-Chem input should be set to `1` and the multiplicity value to `2`; and
+    - the QSym² analysis calculation can be run in exactly the same way as before.
+
+2. Inspect the QSym² output file and determine the following:
+
+    - the overall symmetry of the Slater determinant, and
+    - the symmetries of the molecular orbitals that could be correlated to those examined in step 6 of the neutral benzene case.
+
+    Are these results in agreement with what you might have expected?
