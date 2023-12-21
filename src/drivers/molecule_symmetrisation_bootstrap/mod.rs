@@ -1,15 +1,23 @@
 //! Driver for molecule symmetrisation by bootstrapping in QSym².
 //!
 //! This algorithm symmetrises a molecule iteratively by defining two threshold levels: a `loose`
-//! level and a `target` level. In every iteration, The molecule is symmetry-analysed at the
-//! `loose` level to identify as many approximate symmetry elements as possible (they do not
-//! necessarily correspond to any known symmetry groups) which are then used to symmetrise the
-//! molecule. The symmetrised molecule is then symmetry-analysed at the `target` level and the
-//! symmetry elements found are stashed for the next iteration, if any. The hope is that, after
-//! every iteration, the molecule's approximate symmetry at the `loose` level gradually symmetrises
-//! the molecule. Convergence is achieved either when matching symmetry groups are identified at
-//! both threshold levels, or when a consistent symmetry group has been found at the `target` level
-//! for a specified number of consecutive iterations.
+//! level and a `target` level.
+//!
+//! In every iteration, the following steps are performed:
+//!
+//! 1. The molecule is symmetry-analysed at the `target` level; any symmetry elements found are stashed and the symmetry group name, if any, is registered.
+//! 2. The molecule is symmetry-analysed at the `loose` level; any symmetry elements found are added to the stash and the symmetry group name, if any, is registered.
+//! 3. The convergence criteria (see below) are checked.
+//!     - If convergence has been reached, the symmetrisation procedure is terminated.
+//!     - If convergence has not been reached, the following steps are carried out.
+//! 4. All symmetry elements found in the stash are used to generate all possible symmetry operations which are then used to symmetrise the molecule: each symmetry operation is applied on the original molecule to produce a symmetry-equivalent copy, then all symmetry-equivalent copies are averaged to give the symmetrised molecule.
+//! 5. Repeat steps 1 to 4 above until convergence is reached.
+//!
+//! There are two convergence criteria for the symmetrisation procedure:
+//! - **either** when the loose-threshold symmetry agrees with the target-threshold symmetry,
+//! - **or** when the target-threshold symmetry contains more elements than the loose-threshold symmetry and has been consistently identified for a pre-specified number of consecutive iterations.
+//!
+//! At least one criterion must be satisfied in order for convergence to be reached.
 
 use std::fmt;
 use std::path::PathBuf;
@@ -102,6 +110,9 @@ pub struct MoleculeSymmetrisationBootstrapParams {
     #[serde(default = "default_max_iterations")]
     pub max_iterations: usize,
 
+    /// The number of consecutive iterations during which the symmetry group at the `target` level
+    /// of threshold must be consistently found for convergence to be reached, *if this group
+    /// cannot become identical to the symmetry group at the `loose` level of threshold*.
     #[builder(default = "10")]
     #[serde(default = "default_consistent_iterations")]
     pub consistent_target_symmetry_iterations: usize,
@@ -129,8 +140,9 @@ pub struct MoleculeSymmetrisationBootstrapParams {
     #[serde(default)]
     pub symmetrised_result_xyz: Option<PathBuf>,
 
-    /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
-    /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
+    /// Optional name for saving the symmetry-group detection verification result of the symmetrised
+    /// system as a binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be
+    /// saved.
     #[builder(default = "None")]
     #[serde(default)]
     pub symmetrised_result_save_name: Option<PathBuf>,
@@ -241,18 +253,7 @@ impl<'a> MoleculeSymmetrisationBootstrapResult<'a> {
 // Driver
 // ------
 
-/// Driver for iterative molecule symmetrisation by bootstrapping.
-///
-/// This algorithm symmetrises a molecule iteratively by defining two threshold levels: a `loose`
-/// level and a `target` level. In every iteration, The molecule is symmetry-analysed at the
-/// `loose` level to identify as many approximate symmetry elements as possible (they do not
-/// necessarily correspond to any known symmetry groups) which are then used to symmetrise the
-/// molecule. The symmetrised molecule is then symmetry-analysed at the `target` level and the
-/// symmetry elements found are stashed for the next iteration, if any. The hope is that, after
-/// every iteration, the molecule's approximate symmetry at the `loose` level gradually symmetrises
-/// the molecule. Convergence is achieved either when matching symmetry groups are identified at
-/// both threshold levels, or when a consistent symmetry group has been found at the `target` level
-/// for a specified number of consecutive iterations.
+/// Driver for molecule symmetrisation by bootstrapping in QSym².
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct MoleculeSymmetrisationBootstrapDriver<'a> {

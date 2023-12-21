@@ -90,7 +90,7 @@ extra_css:
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js
 nav:
   - index.md
   - Getting started:
@@ -101,15 +101,20 @@ nav:
     - methodologies/character-table-generation.md
     - methodologies/external-fields.md
     - methodologies/orbit-based-representation-analysis.md
+    - methodologies/magnetic-corepresentations.md
+    - methodologies/projective-reps-coreps.md
+  - Tutorials:
+    - tutorials/benzene.md
   - User guide:
     - user-guide/symmetry-group-detection.md
     - user-guide/molecule-symmetrisation.md
+    - user-guide/integral-evaluation.md
     - Representation analysis:
-      - user-guide/representation-analysis/slater-determinant.md
+      - user-guide/representation-analysis/basics.md
+      - user-guide/representation-analysis/slater-determinants.md
       - user-guide/representation-analysis/vibrational-coordinates.md
       - user-guide/representation-analysis/electron-densities.md
-  - Developer guide:
-    - API documentation: https://qsym2.dev/api
+  - API documentation: https://qsym2.dev/api
   - About:
     - about/authorship.md
     - about/development.md

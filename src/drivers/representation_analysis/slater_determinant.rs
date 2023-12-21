@@ -1202,6 +1202,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     )
                                     .build()
                                     .ok()?;
+                                log::debug!("Computing overlap matrix for an MO density orbit...");
                                 mo_den_orbit
                                     .calc_smat(self.sao_spatial_4c)
                                     .ok()?
@@ -1209,6 +1210,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .ok()?
                                     .calc_xmat(false)
                                     .ok()?;
+                                log::debug!("Computing overlap matrix for an MO density orbit... Done.");
                                 mo_den_orbit.analyse_rep().ok()
                             })
                             .collect::<Vec<_>>()

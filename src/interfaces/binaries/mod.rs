@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::{format_err, Context};
 use byteorder::{BigEndian, LittleEndian};
 use derive_builder::Builder;
-use ndarray::{Array1, Array2, ShapeBuilder};
+use ndarray::{Array1, Array2, Array4, ShapeBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
@@ -41,8 +41,13 @@ pub struct BinariesSlaterDeterminantSource {
     /// Path to an XYZ file containing the molecular geometry.
     pub xyz: PathBuf,
 
-    /// Path to a binary file containing the atomic-orbital spatial overlap matrix.
+    /// Path to a binary file containing the two-centre atomic-orbital spatial overlap matrix.
     pub sao: PathBuf,
+
+    /// Optional path to a binary file containing the four-centre atomic-orbital spatial overlap
+    /// matrix. This is only required for density symmetry analysis.
+    #[builder(default = "None")]
+    pub sao_4c: Option<PathBuf>,
 
     /// Paths to binary files containing molecular-orbital coefficient matrices for different spin
     /// spaces.
@@ -76,7 +81,8 @@ impl Default for BinariesSlaterDeterminantSource {
     fn default() -> Self {
         BinariesSlaterDeterminantSource {
             xyz: PathBuf::from("path/to/xyz"),
-            sao: PathBuf::from("path/to/ao/overlap/matrix"),
+            sao: PathBuf::from("path/to/2c/ao/overlap/matrix"),
+            sao_4c: None,
             coefficients: vec![
                 PathBuf::from("path/to/alpha/coeffs"),
                 PathBuf::from("path/to/beta/coeffs"),
@@ -135,13 +141,13 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
             ByteOrder::LittleEndian => {
                 NumericReader::<_, LittleEndian, f64>::from_file(&self.sao)
                     .with_context(|| {
-                        "Unable to read the specified SAO file when handling custom Slater determinant source"
+                        "Unable to read the specified two-centre SAO file when handling custom Slater determinant source"
                     })?.collect::<Vec<_>>()
             }
             ByteOrder::BigEndian => {
                 NumericReader::<_, BigEndian, f64>::from_file(&self.sao)
                     .with_context(|| {
-                        "Unable to read the specified SAO file when handling custom Slater determinant source"
+                        "Unable to read the specified two-centre SAO file when handling custom Slater determinant source"
                     })?.collect::<Vec<_>>()
             }
         };
@@ -154,6 +160,36 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 .with_context(|| {
                     "Unable to construct an AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source"
                 })?,
+        };
+
+        let sao_4c = if let Some(sao_4c_path) = self.sao_4c.as_ref() {
+            let sao_4c_v = match self.byte_order {
+                ByteOrder::LittleEndian => {
+                    NumericReader::<_, LittleEndian, f64>::from_file(sao_4c_path)
+                        .with_context(|| {
+                            "Unable to read the specified four-centre SAO file when handling custom Slater determinant source"
+                        })?.collect::<Vec<_>>()
+                }
+                ByteOrder::BigEndian => {
+                    NumericReader::<_, BigEndian, f64>::from_file(sao_4c_path)
+                        .with_context(|| {
+                            "Unable to read the specified four-centre SAO file when handling custom Slater determinant source"
+                        })?.collect::<Vec<_>>()
+                }
+            };
+            let sao_4c = match self.matrix_order {
+                MatrixOrder::RowMajor => Array4::from_shape_vec((n_spatial, n_spatial, n_spatial, n_spatial), sao_4c_v)
+                    .with_context(|| {
+                        "Unable to construct a four-centre AO overlap matrix from the read-in row-major binary file when handling custom Slater determinant source"
+                    })?,
+                MatrixOrder::ColMajor => Array4::from_shape_vec((n_spatial, n_spatial, n_spatial, n_spatial).f(), sao_4c_v)
+                    .with_context(|| {
+                        "Unable to construct a four-centre AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source"
+                    })?,
+            };
+            Some(sao_4c)
+        } else {
+            None
         };
 
         let cs_v = match self.byte_order {
@@ -254,6 +290,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 .angular_function_parameters(afa_params)
                 .determinant(&det)
                 .sao_spatial(&sao)
+                .sao_spatial_4c(sao_4c.as_ref())
                 .symmetry_group(&pd_res)
                 .build()
                 .with_context(|| {
@@ -292,6 +329,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 .angular_function_parameters(afa_params)
                 .determinant(&det)
                 .sao_spatial(&sao)
+                .sao_spatial_4c(sao_4c.as_ref())
                 .symmetry_group(&pd_res)
                 .build()
                 .with_context(|| {

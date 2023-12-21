@@ -7,14 +7,15 @@ use std::path::PathBuf;
 use anyhow::{self, bail, format_err, Context};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
+use factorial::DoubleFactorial;
 use hdf5::{self, H5Type};
 use lazy_static::lazy_static;
 use log;
 use nalgebra::Point3;
-use ndarray::{Array1, Array2, Axis, Ix3};
+use ndarray::{s, Array1, Array2, Array4, Axis, Ix3};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 use numeric_sort;
 use periodic_table::periodic_table;
 use regex::Regex;
@@ -22,8 +23,8 @@ use regex::Regex;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
-use crate::basis::ao::BasisAngularOrder;
 use crate::basis::ao::*;
+use crate::basis::ao_integrals::*;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
@@ -35,6 +36,8 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
 };
 use crate::drivers::QSym2Driver;
+#[cfg(feature = "integrals")]
+use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::io::format::{
     log_macsec_begin, log_macsec_end, log_micsec_begin, log_micsec_end, qsym2_error, qsym2_output,
@@ -428,14 +431,6 @@ where
         Ok(mol)
     }
 
-    /// Extracts the spatial atomic-orbital overlap matrix from the single-point H5 group.
-    fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
-        self.sp_group
-            .dataset("aobasis/overlap_matrix")?
-            .read_2d::<T>()
-            .map_err(|err| err.into())
-    }
-
     /// Extracts the basis angular order information from the single-point H5 group.
     fn extract_bao(&self, mol: &'a Molecule) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
         let shell_types = self
@@ -507,6 +502,291 @@ where
             })
             .collect::<Vec<BasisAtom>>();
         Ok(BasisAngularOrder::new(&batms))
+    }
+
+    /// Extracts the spatial atomic-orbital overlap matrix from the single-point H5 group.
+    ///
+    /// Note that the overlap matrix in the HDF5 file uses lexicographic order for Cartesian
+    /// functions. This is inconsistent with the conventional Q-Chem ordering used for molecular
+    /// orbital coefficients. See [`Self::recompute_sao`] for a way to get the atomic-orbital
+    /// overlap matrix with the consistent Cartesian ordering.
+    fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
+        self.sp_group
+            .dataset("aobasis/overlap_matrix")?
+            .read_2d::<T>()
+            .map_err(|err| err.into())
+    }
+
+    /// Extracts the full basis set information from the single-point H5 group.
+    fn extract_basis_set(&self, mol: &'a Molecule) -> Result<BasisSet<f64, f64>, anyhow::Error> {
+        let shell_types = self
+            .sp_group
+            .dataset("aobasis/shell_types")?
+            .read_1d::<i32>()?;
+        let shell_to_atom_map = self
+            .sp_group
+            .dataset("aobasis/shell_to_atom_map")?
+            .read_1d::<usize>()?
+            .iter()
+            .zip(shell_types.iter())
+            .flat_map(|(&idx, shell_type)| {
+                if *shell_type == -1 {
+                    vec![idx, idx]
+                } else {
+                    vec![idx]
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let primitives_per_shell = self
+            .sp_group
+            .dataset("aobasis/primitives_per_shell")?
+            .read_1d::<usize>()?;
+        let contraction_coefficients = self
+            .sp_group
+            .dataset("aobasis/contraction_coefficients")?
+            .read_1d::<f64>()?;
+        let sp_contraction_coefficients = self
+            .sp_group
+            .dataset("aobasis/sp_contraction_coefficients")?
+            .read_1d::<f64>()?;
+        let primitive_exponents = self
+            .sp_group
+            .dataset("aobasis/primitive_exponents")?
+            .read_1d::<f64>()?;
+        // `shell_coordinates` in Bohr radius.
+        let shell_coordinates = self
+            .sp_group
+            .dataset("aobasis/shell_coordinates")?
+            .read_2d::<f64>()?;
+
+        let bscs: Vec<BasisShellContraction<f64, f64>> = primitives_per_shell
+            .iter()
+            .scan(0, |end, n_prims| {
+                let start = *end;
+                *end += n_prims;
+                Some((start, *end))
+            })
+            .zip(shell_types.iter())
+            .zip(shell_coordinates.rows())
+            .flat_map(|(((start, end), shell_type), centre)| {
+                if *shell_type == 0 {
+                    // S shell
+                    let basis_shell = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
+                } else if *shell_type == 1 {
+                    // P shell
+                    let basis_shell = BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
+                } else if *shell_type == -1 {
+                    // SP shell
+                    let basis_shell_s = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+                    let primitives_s = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction_s = GaussianContraction {
+                        primitives: primitives_s,
+                    };
+
+                    let basis_shell_p = BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)));
+                    let primitives_p = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            sp_contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction_p = GaussianContraction {
+                        primitives: primitives_p,
+                    };
+
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![
+                        BasisShellContraction {
+                            basis_shell: basis_shell_s,
+                            contraction: contraction_s,
+                            cart_origin: cart_origin.clone(),
+                            k: None,
+                        },
+                        BasisShellContraction {
+                            basis_shell: basis_shell_p,
+                            contraction: contraction_p,
+                            cart_origin,
+                            k: None,
+                        },
+                    ]
+                } else if *shell_type < 0 {
+                    // Cartesian D shell or higher
+                    let l = shell_type.unsigned_abs();
+                    let basis_shell = BasisShell::new(l, ShellOrder::Cart(CartOrder::qchem(l)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
+                } else {
+                    // Pure D shell or higher
+                    let l = shell_type.unsigned_abs();
+                    let basis_shell =
+                        BasisShell::new(l, ShellOrder::Pure(PureOrder::increasingm(l)));
+                    let primitives = primitive_exponents
+                        .slice(s![start..end])
+                        .iter()
+                        .cloned()
+                        .zip(
+                            contraction_coefficients
+                                .slice(s![start..end])
+                                .iter()
+                                .cloned(),
+                        )
+                        .collect::<Vec<_>>();
+                    let contraction = GaussianContraction { primitives };
+                    let cart_origin = Point3::new(centre[0], centre[1], centre[2]);
+                    vec![BasisShellContraction {
+                        basis_shell,
+                        contraction,
+                        cart_origin,
+                        k: None,
+                    }]
+                }
+            })
+            .collect::<Vec<BasisShellContraction<f64, f64>>>();
+
+        let basis_atoms = mol
+            .atoms
+            .iter()
+            .enumerate()
+            .map(|(atom_i, _)| {
+                let shells = bscs
+                    .iter()
+                    .zip(shell_to_atom_map.iter())
+                    .filter_map(|(bs, atom_index)| {
+                        if *atom_index == atom_i {
+                            Some(bs.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                shells
+            })
+            .collect::<Vec<Vec<BasisShellContraction<f64, f64>>>>();
+
+        let mut basis_set = BasisSet::<f64, f64>::new(basis_atoms);
+
+        // Q-Chem renormalises each Gaussian primitive, but this is not the convention used in
+        // QSym². We therefore un-normalise the Gaussian primitives to restore the original
+        // contraction coefficients.
+        let prefactor = (2.0 / std::f64::consts::PI).powf(0.75);
+        basis_set.all_shells_mut().for_each(|bsc| {
+            let l = bsc.basis_shell().l;
+            let l_i32 = l
+                .to_i32()
+                .unwrap_or_else(|| panic!("Unable to convert `{l}` to `i32`."));
+            let l_f64 = l
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{l}` to `f64`."));
+            let doufac_sqrt = if l == 0 {
+                1
+            } else {
+                ((2 * l) - 1)
+                    .checked_double_factorial()
+                    .unwrap_or_else(|| panic!("Unable to obtain `{}!!`.", 2 * l - 1))
+            }
+            .to_f64()
+            .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64`.", 2 * l - 1))
+            .sqrt();
+            bsc.contraction.primitives.iter_mut().for_each(|(a, c)| {
+                let n = prefactor * 2.0.powi(l_i32) * a.powf(l_f64 / 2.0 + 0.75) / doufac_sqrt;
+                *c /= n;
+            });
+        });
+        Ok(basis_set)
+    }
+
+    /// Recomputes the spatial atomic-orbital overlap matrix.
+    ///
+    /// The overlap matrix stored in the H5 group unfortunately uses lexicographic order for
+    /// Cartesian functions, which is inconsistent with that used in the coefficients. We thus
+    /// recompute the overlap matrix from the basis set information using the conventional Q-Chem
+    /// order for Cartesian functions.
+    fn recompute_sao(&self) -> Result<Array2<f64>, anyhow::Error> {
+        log::debug!("Recomputing atomic-orbital overlap matrix...");
+        let mol = self.extract_molecule()?;
+        let basis_set = self.extract_basis_set(&mol)?;
+        let stc = build_shell_tuple_collection![
+            <s1, s2>;
+            false, false;
+            &basis_set, &basis_set;
+            f64
+        ];
+        let sao_res = stc.overlap([0, 0])
+            .pop()
+            .ok_or(format_err!("Unable to compute the AO overlap matrix."));
+        log::debug!("Recomputing atomic-orbital overlap matrix... Done.");
+        sao_res
     }
 }
 
@@ -715,13 +995,38 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
 
         let rep = || {
             log::debug!("Extracting AO basis information for representation analysis...");
-            let sao = self.extract_sao()
+            let sao = self.recompute_sao()
                 .with_context(|| "Unable to extract the SAO matrix from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
             let bao = self.extract_bao(recentred_mol)
                 .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
+            let basis_set_opt = if self.rep_analysis_parameters.analyse_density_symmetries {
+                self.extract_basis_set(recentred_mol).ok()
+            } else {
+                None
+            };
             log::debug!("Extracting AO basis information for representation analysis... Done.");
+
+            #[cfg(feature = "integrals")]
+            let sao_4c: Option<Array4<f64>> = basis_set_opt.map(|basis_set| {
+                log::debug!("Computing four-centre overlap integrals for density symmetry analysis...");
+                let stc = build_shell_tuple_collection![
+                    <s1, s2, s3, s4>;
+                    false, false, false, false;
+                    &basis_set, &basis_set, &basis_set, &basis_set;
+                    f64
+                ];
+                let sao_4c = stc.overlap([0, 0, 0, 0])
+                    .pop()
+                    .expect("Unable to retrieve the four-centre overlap tensor.");
+                log::debug!("Computing four-centre overlap integrals for density symmetry analysis... Done.");
+                sao_4c
+            });
+
+            #[cfg(not(feature = "integrals"))]
+            let sao_4c: Option<Array4<f64>> = None;
+
             log::debug!(
                 "Extracting canonical determinant information for representation analysis..."
             );
@@ -745,6 +1050,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&det)
                     .sao_spatial(&sao)
+                    .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .with_context(|| "Unable to construct a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
@@ -776,6 +1082,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&loc_det)
                     .sao_spatial(&sao)
+                    .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()?;
                     log_micsec_begin("Localised orbital representation analysis");

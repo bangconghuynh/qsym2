@@ -6,7 +6,7 @@ use nalgebra::{Point3, Vector3};
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
 #[cfg(feature = "integrals")]
-use numpy::{IntoPyArray, PyArray4};
+use numpy::{IntoPyArray, PyArray2, PyArray4};
 #[cfg(feature = "integrals")]
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -68,12 +68,12 @@ pub enum PyShellOrder {
 ///     * `order` specifies how the functions in the shell are ordered:
 ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
 ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-///       decreasing-$`m`$ order.
+///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
 ///
 ///   Python type:
-///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
+///   `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
 #[pyclass]
 pub struct PyBasisAngularOrder {
     /// A vector of basis atoms. Each item in the vector is a tuple consisting of an atomic symbol
@@ -84,9 +84,10 @@ pub struct PyBasisAngularOrder {
     ///   - either `None` if the Cartesian functions are in lexicographic order,
     ///   - or `Some(vec![[lx, ly, lz], ...])` to specify a custom Cartesian order.
     /// - if the shell is pure, then this is a boolean `increasingm` to indicate if the pure
-    /// functions in the shell are arranged in increasing-$`m`$ order.
+    /// functions in the shell are arranged in increasing-$`m`$ order, or a list of $`m`$ values
+    /// specifying a custom $`m`$ order.
     ///
-    /// Python type: `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
+    /// Python type: `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
     basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>,
 }
 
@@ -107,9 +108,9 @@ impl PyBasisAngularOrder {
     ///     * `order` specifies how the functions in the shell are ordered:
     ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
     ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-    ///       decreasing-$`m`$ order.
+    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+    ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
     ///
     ///   Python type:
     ///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
@@ -209,16 +210,17 @@ impl From<PySpinConstraint> for SpinConstraint {
 ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
 ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
 ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-///       decreasing-$`m`$ order.
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
 ///
 ///     Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
 /// * `primitives` - A list of tuples, each of which contains the exponent and the contraction
 /// coefficient of a Gaussian primitive in this shell. Python type: `list[tuple[float, float]]`.
 /// * `cart_origin` - A fixed-size list of length 3 containing the Cartesian coordinates of the
-/// origin of this shell. Python type: `list[float]`.
+/// origin $`\mathbf{R}`$ of this shell in Bohr radii. Python type: `list[float]`.
 /// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
-/// $`\mathbf{k}`$ vector of this shell. Python type: `Optional[list[float]]`.
+/// $`\mathbf{k}`$ vector of this shell that appears in the complex phase factor
+/// $`\exp[i\mathbf{k} \cdot (\mathbf{r} - \mathbf{R})]`$. Python type: `Optional[list[float]]`.
 pub struct PyBasisShellContraction {
     /// A triplet of the form `(angmom, cart, order)` where:
     ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
@@ -228,8 +230,8 @@ pub struct PyBasisShellContraction {
     ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
     ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
     ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-    ///       decreasing-$`m`$ order.
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
+    ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
     ///
     /// Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
     pub basis_shell: (String, bool, PyShellOrder),
@@ -240,14 +242,15 @@ pub struct PyBasisShellContraction {
     /// Python type: `list[tuple[float, float]]`.
     pub primitives: Vec<(f64, f64)>,
 
-    /// A fixed-size list of length 3 containing the Cartesian coordinates of the origin of this
-    /// shell.
+    /// A fixed-size list of length 3 containing the Cartesian coordinates of the origin
+    /// $`\mathbf{R}`$ of this shell in Bohr radii.
     ///
     /// Python type: `list[float]`.
     pub cart_origin: [f64; 3],
 
     /// An optional fixed-size list of length 3 containing the Cartesian components of the
-    /// $`\mathbf{k}`$ vector of this shell.
+    /// $`\mathbf{k}`$ vector of this shell that appears in the complex phase factor
+    /// $`\exp[i\mathbf{k} \cdot (\mathbf{r} - \mathbf{R})]`$.
     ///
     /// Python type: `Optional[list[float]]`.
     pub k: Option<[f64; 3]>,
@@ -315,91 +318,9 @@ impl TryFrom<PyBasisShellContraction> for BasisShellContraction<f64, f64> {
     }
 }
 
-#[cfg(feature = "integrals")]
-#[pyfunction]
-/// Calculates the real-valued four-centre overlap tensor for a basis set.
-///
-/// # Arguments
-///
-/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
-/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
-///
-/// # Panics
-///
-/// Panics if any shell contains a finite $`\mathbf{k}`$ vector.
-pub fn calc_overlap_4c_real<'py>(
-    py: Python<'py>,
-    basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray4<f64>> {
-    let bscs = BasisSet::new(
-        basis_set
-            .into_iter()
-            .map(|basis_atom| {
-                basis_atom
-                    .into_iter()
-                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| PyValueError::new_err(err.to_string()))?,
-    );
-    let sao_4c = py.allow_threads(|| {
-        let stc = build_shell_tuple_collection![
-            <s1, s2, s3, s4>;
-            false, false, false, false;
-            &bscs, &bscs, &bscs, &bscs;
-            f64
-        ];
-        stc.overlap([0, 0, 0, 0])
-            .pop()
-            .expect("Unable to retrieve the four-centre overlap tensor.")
-    });
-    let pysao_4c = sao_4c.into_pyarray(py);
-    Ok(pysao_4c)
-}
-
-#[cfg(feature = "integrals")]
-#[pyfunction]
-/// Calculates the complex-valued four-centre overlap tensor for a basis set.
-///
-/// # Arguments
-///
-/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
-/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
-pub fn calc_overlap_4c_complex<'py>(
-    py: Python<'py>,
-    basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray4<Complex<f64>>> {
-    let bscs = BasisSet::new(
-        basis_set
-            .into_iter()
-            .map(|basis_atom| {
-                basis_atom
-                    .into_iter()
-                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| PyValueError::new_err(err.to_string()))?,
-    );
-    let sao_4c = py.allow_threads(|| {
-        let stc = build_shell_tuple_collection![
-            <s1, s2, s3, s4>;
-            true, true, false, false;
-            &bscs, &bscs, &bscs, &bscs;
-            Complex<f64>
-        ];
-        stc.overlap([0, 0, 0, 0])
-            .pop()
-            .expect("Unable to retrieve the four-centre overlap tensor.")
-    });
-    let pysao_4c = sao_4c.into_pyarray(py);
-    Ok(pysao_4c)
-}
-
-// =========
-// Functions
-// =========
+// ================
+// Helper functions
+// ================
 
 /// Creates a [`BasisShell`] structure from the `(angmom, cart, shell_order)` triplet.
 ///
@@ -472,4 +393,187 @@ fn create_basis_shell(
         }
     };
     Ok::<_, anyhow::Error>(BasisShell::new(*l, shl_ord))
+}
+
+// =================
+// Exposed functions
+// =================
+
+#[cfg(feature = "integrals")]
+#[pyfunction]
+/// Calculates the real-valued two-centre overlap matrix for a basis set.
+///
+/// # Arguments
+///
+/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
+/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+///
+/// # Returns
+///
+/// A two-dimensional array containing the real two-centre overlap values.
+///
+/// # Panics
+///
+/// Panics if any shell contains a finite $`\mathbf{k}`$ vector.
+pub fn calc_overlap_2c_real<'py>(
+    py: Python<'py>,
+    basis_set: Vec<Vec<PyBasisShellContraction>>,
+) -> PyResult<&'py PyArray2<f64>> {
+    let bscs = BasisSet::new(
+        basis_set
+            .into_iter()
+            .map(|basis_atom| {
+                basis_atom
+                    .into_iter()
+                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?,
+    );
+    let sao_2c = py.allow_threads(|| {
+        let stc = build_shell_tuple_collection![
+            <s1, s2>;
+            false, false;
+            &bscs, &bscs;
+            f64
+        ];
+        stc.overlap([0, 0])
+            .pop()
+            .expect("Unable to retrieve the two-centre overlap matrix.")
+    });
+    let pysao_2c = sao_2c.into_pyarray(py);
+    Ok(pysao_2c)
+}
+
+#[cfg(feature = "integrals")]
+#[pyfunction]
+/// Calculates the complex-valued two-centre overlap matrix for a basis set.
+///
+/// # Arguments
+///
+/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
+/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+///
+/// # Returns
+///
+/// A two-dimensional array containing the complex two-centre overlap values.
+pub fn calc_overlap_2c_complex<'py>(
+    py: Python<'py>,
+    basis_set: Vec<Vec<PyBasisShellContraction>>,
+) -> PyResult<&'py PyArray2<Complex<f64>>> {
+    let bscs = BasisSet::new(
+        basis_set
+            .into_iter()
+            .map(|basis_atom| {
+                basis_atom
+                    .into_iter()
+                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?,
+    );
+    let sao_2c = py.allow_threads(|| {
+        let stc = build_shell_tuple_collection![
+            <s1, s2>;
+            true, false;
+            &bscs, &bscs;
+            Complex<f64>
+        ];
+        stc.overlap([0, 0])
+            .pop()
+            .expect("Unable to retrieve the two-centre overlap matrix.")
+    });
+    let pysao_2c = sao_2c.into_pyarray(py);
+    Ok(pysao_2c)
+}
+#[cfg(feature = "integrals")]
+#[pyfunction]
+/// Calculates the real-valued four-centre overlap tensor for a basis set.
+///
+/// # Arguments
+///
+/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
+/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+///
+/// # Returns
+///
+/// A four-dimensional array containing the real four-centre overlap values.
+///
+/// # Panics
+///
+/// Panics if any shell contains a finite $`\mathbf{k}`$ vector.
+pub fn calc_overlap_4c_real<'py>(
+    py: Python<'py>,
+    basis_set: Vec<Vec<PyBasisShellContraction>>,
+) -> PyResult<&'py PyArray4<f64>> {
+    let bscs = BasisSet::new(
+        basis_set
+            .into_iter()
+            .map(|basis_atom| {
+                basis_atom
+                    .into_iter()
+                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?,
+    );
+    let sao_4c = py.allow_threads(|| {
+        let stc = build_shell_tuple_collection![
+            <s1, s2, s3, s4>;
+            false, false, false, false;
+            &bscs, &bscs, &bscs, &bscs;
+            f64
+        ];
+        stc.overlap([0, 0, 0, 0])
+            .pop()
+            .expect("Unable to retrieve the four-centre overlap tensor.")
+    });
+    let pysao_4c = sao_4c.into_pyarray(py);
+    Ok(pysao_4c)
+}
+
+#[cfg(feature = "integrals")]
+#[pyfunction]
+/// Calculates the complex-valued four-centre overlap tensor for a basis set.
+///
+/// # Arguments
+///
+/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
+/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+///
+/// # Returns
+///
+/// A four-dimensional array containing the complex four-centre overlap values.
+pub fn calc_overlap_4c_complex<'py>(
+    py: Python<'py>,
+    basis_set: Vec<Vec<PyBasisShellContraction>>,
+) -> PyResult<&'py PyArray4<Complex<f64>>> {
+    let bscs = BasisSet::new(
+        basis_set
+            .into_iter()
+            .map(|basis_atom| {
+                basis_atom
+                    .into_iter()
+                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?,
+    );
+    let sao_4c = py.allow_threads(|| {
+        let stc = build_shell_tuple_collection![
+            <s1, s2, s3, s4>;
+            true, true, false, false;
+            &bscs, &bscs, &bscs, &bscs;
+            Complex<f64>
+        ];
+        stc.overlap([0, 0, 0, 0])
+            .pop()
+            .expect("Unable to retrieve the four-centre overlap tensor.")
+    });
+    let pysao_4c = sao_4c.into_pyarray(py);
+    Ok(pysao_4c)
 }

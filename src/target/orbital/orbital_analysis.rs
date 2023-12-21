@@ -372,6 +372,7 @@ where
                 }
         };
         if valid_symmetry {
+            log::debug!("Analysing representation symmetry for an MO...");
             let chis = self
                 .calc_characters()
                 .map_err(|err| DecompositionError(err.to_string()))?;
@@ -379,6 +380,7 @@ where
                 &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                 self.integrality_threshold(),
             );
+            log::debug!("Analysing representation symmetry for an MO... Done.");
             res
         } else {
             Err(DecompositionError(err_str))

@@ -97,11 +97,37 @@ impl InputHandle for Input {
                         .molecule(&mol)
                         .build()
                         .with_context(|| "Unable to construct a molecule symmetrisation by bootstrapping driver while handling molecular symmetry analysis target")?;
-                    let msb_res = msb_driver
+                    msb_driver
                         .run()
-                        .with_context(|| "Unable to execute the molecule symmetrisation by bootstrapping driver successfully while handling molecular symmetry analysis target");
+                        .with_context(|| "Unable to execute the molecule symmetrisation by bootstrapping driver successfully while handling molecular symmetry analysis target")?;
                     log::debug!("Performing molecule symmetrisation by bootstrapping... Done.");
-                    msb_res
+
+                    qsym2_output!("Performing symmetry-group detection on the symmetrised system...");
+                    qsym2_output!("");
+                    let pd_params = match pd_params_inp {
+                        SymmetryGroupDetectionInputKind::Parameters(pd_params) => pd_params,
+                        SymmetryGroupDetectionInputKind::FromFile(_) => {
+                            bail!(
+                                "It is pointless to provide a pre-calculated symmetry-group \
+                                detection result when only symmetry-group detection is required."
+                            )
+                        }
+                    };
+                    log::debug!(
+                        "Molecular symmetry group will be identified based on specified parameters."
+                    );
+                    let symmol = &msb_driver.result()?.symmetrised_molecule;
+                    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+                        .parameters(pd_params)
+                        .molecule(Some(symmol))
+                        .build()
+                        .with_context(|| "Unable to construct a symmetry-group detection driver while handling molecular symmetry analysis target")?;
+                    let pd_res = pd_driver
+                        .run()
+                        .with_context(|| "Unable to execute the symmetry-group detection driver successfully while handling molecular symmetry analysis target");
+                    qsym2_output!("Performing symmetry-group detection on the symmetrised system... Done.");
+                    qsym2_output!("");
+                    pd_res
                 } else {
                     log::debug!("Performing symmetry-group detection without symmetrisation...");
                     let pd_params = match pd_params_inp {
