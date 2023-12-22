@@ -132,7 +132,7 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
 
     - the various threshold combinations,
     - the unitary group obtained for each threshold combination, and
-    - the highest unitary group $mathcal{G}$ found and the associated thresholds.
+    - the highest unitary group $\mathcal{G}$ found and the associated thresholds.
 
     Verify that $\mathcal{G}$ is indeed $\mathcal{D}_{6h}$.
 
