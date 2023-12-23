@@ -13,9 +13,9 @@ The logo for QSym², which is a stylised stellated octahedron, was designed with
 
 ## Publications
 
-The core functionalities of QSym² are described and illustrated in the following manuscript:
+The core functionalities of QSym² are described and illustrated in the following article:
 
-- Huynh, B. C., Wibowo-Teale, M. & Wibowo-Teale, A. M. QSym²: A Quantum Symbolic Symmetry Analysis Program for Electronic Structure. Preprint at [arXiv:2310.06749](http://arxiv.org/abs/2310.06749) (2023).
+- Huynh, B. C., Wibowo-Teale, M. & Wibowo-Teale, A. M. QSym²: A Quantum Symbolic Symmetry Analysis Program for Electronic Structure. Open-access article at [10.1021/acs.jctc.3c01118](https://doi.org/10.1021/acs.jctc.3c01118) (2023).
 
 Research work utilising QSym² for symmetry analysis can be found in the following select publications:
 
