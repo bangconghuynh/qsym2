@@ -105,6 +105,7 @@ nav:
     - methodologies/projective-reps-coreps.md
   - Tutorials:
     - tutorials/benzene.md
+    - tutorials/adamantane.md
   - User guide:
     - user-guide/symmetry-group-detection.md
     - user-guide/molecule-symmetrisation.md

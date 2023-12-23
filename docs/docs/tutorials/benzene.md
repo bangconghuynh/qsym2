@@ -1,12 +1,12 @@
 ---
-title: Molecular orbital symmetry in benzene
+title: "Molecular orbital symmetry in benzene (Q-Chem)"
 description: An illustration of QSym²'s representation analysis functionalities via molecular orbitals in benzene
 ---
 
-# Molecular orbital symmetry in benzene
+# Molecular orbital symmetry in benzene (Q-Chem)
 
 This tutorial demonstrates how QSym² can be used to obtain symmetry analysis information for self-consistent-field (SCF) molecular orbitals and the Slater determinants constructed from them.
-In particular, we show how QSym² can be used with Q-Chem HDF5 archive files to obtain molecular orbital symmetry information for neutral and cationic benzene.
+In particular, we show how QSym² can be used with [Q-Chem](https://www.q-chem.com/) HDF5 archive files to obtain molecular orbital symmetry information for neutral and cationic benzene.
 
 !!! info "Q-Chem versions"
 
@@ -136,7 +136,7 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
 
     Verify that $\mathcal{G}$ is indeed $\mathcal{D}_{6h}$.
 
-2. Under the `Slater Determinant Symmetry Analysis` section, inspect the `Character table of irreducible representations` section and verify that the character table for $\mathcal{G}$ has been generated correctly.
+2. Under the `Slater Determinant Symmetry Analysis` section, inspect the `Character table of irreducible representations` section and verify that the character table for $\mathcal{G} = \mathcal{D}_{6h}$ has been generated correctly.
 
     Then, inspect the `Conjugacy class transversal` subsection and verify that the representative elements of the conjugacy classes are indeed in accordance with the non-standard orientation of the benzene molecule specified [earlier](#q-chem-calculation).
 
@@ -146,7 +146,8 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
     In particular, note how the Cartesian axis that transforms as $A_{2u}$ is now the $x$-axis instead of the $z$-axis, and the degenerate pair that transform as $E_{1u}$ are now $(y, z)$ instead of $(x, y)$. This is the consequence of the non-standard orientation of the benzene molecule in which the principal axis is the $x$-axis instead of the $z$-axis as per the standard convention.
 
 4. Inspect next the `Basis angular order` subsection and verify that the orders of the functions in the atomic-orbital shells are consistent with those reported in the Q-Chem output file `benzene.out`.
-For more information, see [User guide/Representation analysis/Basics/#Atomic-orbital basis angular order](../user-guide/representation-analysis/basics.md/#atomic-orbital-basis-angular-order).
+
+    For more information, see [User guide/Representation analysis/Basics/#Atomic-orbital basis angular order](../user-guide/representation-analysis/basics.md/#atomic-orbital-basis-angular-order).
 
 5. Inspect next the `Determinant orbit overlap eigenvalues` subsection.
 This prints out the full eigenspectrum of the orbit overlap matrix of the Slater determinant being analysed (see [Section 2.4 of the QSym² paper](../about/authorship.md#publications)), and the position of the [linear-independence threshold](../user-guide/representation-analysis/basics.md/#linear-independence-threshold) relative to these eigenvalues.
