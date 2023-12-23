@@ -151,7 +151,7 @@ We thus need to configure Python to log the output from QSym² to a file called 
     handler = logging.FileHandler(
         output_filename,
         mode="w",
-        encoding="utf-8"
+        encoding="utf-8",
     )
     handler.addFilter(QSym2Filter(logging.INFO))
     root.addHandler(handler)
