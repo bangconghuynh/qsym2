@@ -6,7 +6,7 @@ description: An illustration of QSym²'s representation analysis functionalities
 # Molecular orbital symmetry in adamantane (Python)
 
 This tutorial demonstrates how QSym² can be used to obtain symmetry analysis information for self-consistent-field (SCF) molecular orbitals and the Slater determinants constructed from them.
-In particular, we show how the Python interface of QSym² can be used with [PySCF](https://pyscf.org/) as the computation backend to obtain molecular orbital symmetry information for adamantane.
+In particular, we show how the Python interface of QSym² can be used with [PySCF](https://pyscf.org/) as the computation backend to obtain molecular orbital symmetry information for neutral and cationic adamantane.
 
 In summary, we need to perform a symmetry-group detection calculation on the adamantane structure to obtain the symmetry group $\mathcal{G}$ which is then used to carry out representation symmetry analysis for the molecular orbitals obtained from a PySCF calculation.
 
@@ -19,7 +19,9 @@ touch adamantane.py
 
 In addition, ensure that PySCF and the Python binding for QSym² are installed (see [Getting started/Installation/#Python-library compilation](../getting-started/installation.md/#python-library-compilation) for instructions).
 
-## Symmetry-group detection
+## Neutral adamantane
+
+### Symmetry-group detection
 
 1. Construct an adamantane molecule in PySCF format by adding the following to `adamantane.py`, making sure to choose either Cartesian ordering or spherical ordering for the atomic-orbital basis functions:
 
@@ -59,6 +61,8 @@ In addition, ensure that PySCF and the Python binding for QSym² are installed (
             """,
             unit="Angstrom",
             basis="6-31G*",
+            charge=0,
+            spin=0,
             cart=True, #(1)!
         )
         ```
@@ -102,6 +106,8 @@ In addition, ensure that PySCF and the Python binding for QSym² are installed (
             """,
             unit="Angstrom",
             basis="6-31G*",
+            charge=0,
+            spin=0,
             cart=False, #(1)!
         )
         ```
@@ -187,7 +193,7 @@ We thus need to configure Python to log the output from QSym² to a file called 
     Verify also that a binary file named `mol.qsym2.sym` has been generated in the same location.
 
 
-## Representation analysis for molecular orbitals
+### Representation analysis for molecular orbitals
 
 1. Instruct PySCF to run a UHF calculation by adding the following to `adamantane.py`:
 
@@ -375,7 +381,7 @@ The entire sequence of symmetry-group detection and Slater determinant represent
     python3 adamantane.py
     ```
 
-## Understanding QSym² results
+### Understanding QSym² results
 
 1. Under the `Symmetry-Group Detection` section, inspect the `Threshold-scanning symmetry-group detection` subsection and identify the following:
 
@@ -406,3 +412,18 @@ Check if the linear-independence threshold has indeed been chosen sensibly with 
 
     - identify the overall symmetry of the Slater determinant and check that it is consistent with the dimensionality indicated by the eigenspectrum and the linear-independence threshold; and
     - identify the symmetries of several molecular orbitals of interest and check if their degeneracies are consistent with their energies.
+
+
+## Cationic adamantane
+
+1. Repeat the above calculation and analysis for cationic adamantane:
+
+    - the charge value in the construction of the `mol` object should be set to `1` and the spin value also to `1`; and
+    - the QSym² analysis calculation can be run in exactly the same way as before.
+
+2. Inspect the QSym² output file and determine the following:
+
+    - the overall symmetry of the Slater determinant, and
+    - the symmetries of the molecular orbitals that could be correlated to those examined in step 6 of the neutral adamantane case.
+
+    Are these results in agreement with what you might have expected?
