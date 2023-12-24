@@ -311,7 +311,7 @@ The required basis angular order information can be extracted by adding the foll
 
         1. :material-information-variant-circle: For spherical functions, PySCF uses increasing-$m_l$ ordering, except for $P$ shells where the order is $p_x, p_y, p_z$, or $m_l = +1, -1, 0$ (see [here](https://pyscf.org/user/gto.html#ordering-of-basis-functions)).
 
-4. Extract the [atomic-orbital overlap matrix](../user-guide/representation-analysis/basics.md/#basis-overlap-matrix) by adding the following to `adamantane.py`:
+4. Extract the [two-centre atomic-orbital overlap matrix](../user-guide/representation-analysis/slater-determinants.md/#basis-overlap-matrix) by adding the following to `adamantane.py`:
 
     ```py title="adamantane.py"
     sao_spatial = mol.intor("int1e_ovlp")
