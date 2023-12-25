@@ -513,12 +513,15 @@ Check if the linear-independence threshold has indeed been chosen sensibly with 
         Inspect the eigenspectrum again and identify any large negative eigenvalues.
         Then, deduce whether changing the mode of eigenvalue comparison to *modulus* would affect the symmetry of the Slater determinant, and whether this new symmetry makes sense.
 
-6. Finally, inspect the `Orbit-based symmetry analysis results` subsection and do the following:
+6. Inspect next the `Orbit-based symmetry analysis results` subsection and do the following:
 
     - identify the overall symmetry of the Slater determinant and check that it is consistent with the dimensionality indicated by the eigenspectrum and the linear-independence threshold;
     - identify the symmetries of the densities associated with the Slater determinant;
     - identify the symmetries of several molecular orbitals of interest, and then identify their corresponding density symmetries; and
     - confirm that densities associated with degenerate or symmetry-broken wavefunctions are also symmetry-broken.
+
+7. Finally, move to the `Electron Density Symmetry Analysis` section and inspect the `Electron Density Symmetry Analysis` subsection to identify the symmetries of the CCSD densities.
+    Then, compare these CCSD density symmetries with the corresponding UHF density symmetries.
 
 
 ## Cationic BF₃
@@ -528,9 +531,5 @@ Check if the linear-independence threshold has indeed been chosen sensibly with 
     - the charge value in the construction of the `mol` object should be set to `1` and the spin value also to `1`; and
     - the QSym² analysis calculation can be run in exactly the same way as before.
 
-2. Inspect the QSym² output file and determine the following:
-
-    - the overall symmetries of the Slater determinant and the associated densities, and
-    - the wavefunction and density symmetries of the molecular orbitals that could be correlated to those examined in step 6 of the neutral BF₃ case.
-
+2. Inspect the QSym² output file and compare the UHF and CCSD density symmetries with those in the neutral case.
     Are these results in agreement with what you might have expected?
