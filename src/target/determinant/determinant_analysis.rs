@@ -20,14 +20,15 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap,
-    RepAnalysis,
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+    Overlap, RepAnalysis,
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
+use crate::io::format::qsym2_output;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -228,7 +229,7 @@ where
         /// # Arguments
         ///
         /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. 
+        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
         /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
         /// full rank.
         pub calc_xmat

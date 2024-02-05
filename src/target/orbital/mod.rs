@@ -37,6 +37,8 @@ where
     /// The spin constraint associated with the coefficients describing this molecular orbital.
     spin_constraint: SpinConstraint,
 
+    /// If the spin constraint allows for multiple spin spaces, this gives the spin-space index of
+    /// this molecular orbital.
     spin_index: usize,
 
     /// The angular order of the basis functions with respect to which the coefficients are
