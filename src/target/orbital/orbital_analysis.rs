@@ -71,7 +71,8 @@ where
         let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
         let ov = if self.spin_index != other.spin_index {
             T::zero()
-        } else if self.complex_symmetric() {
+        } else
+            if self.complex_symmetric() {
             self.coefficients.t().dot(sao).dot(&other.coefficients)
         } else {
             self.coefficients

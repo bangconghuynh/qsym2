@@ -530,6 +530,45 @@ where
         chis
     }
 
+    fn characters_to_string(
+        &self,
+        chis: &[(<G as ClassProperties>::ClassSymbol, T)],
+        integrality_threshold: <T as ComplexFloat>::Real,
+    ) -> String {
+        let ndigits = (-integrality_threshold.log10()).to_usize().unwrap_or(6) + 1;
+        let (ccs, characters): (Vec<_>, Vec<_>) = chis
+            .iter()
+            .map(|(cc, chi)| (cc.to_string(), format!("{chi:+.ndigits$}")))
+            .unzip();
+        let cc_width = ccs
+            .iter()
+            .map(|cc| cc.chars().count())
+            .max()
+            .unwrap_or(5)
+            .max(5);
+        let characters_width = characters
+            .iter()
+            .map(|chi| chi.chars().count())
+            .max()
+            .unwrap_or(9)
+            .max(9);
+
+        let divider = "┈".repeat(cc_width + characters_width + 4);
+        let header = format!(" {:<cc_width$}  {:<}", "Class", "Character");
+        let body = Itertools::intersperse(
+            chis.iter()
+                .map(|(cc, chi)| format!(" {:<cc_width$}  {:<+.ndigits$}", cc.to_string(), chi)),
+            "\n".to_string(),
+        )
+        .collect::<String>();
+
+        Itertools::intersperse(
+            [divider.clone(), header, divider.clone(), body, divider].into_iter(),
+            "\n".to_string(),
+        )
+        .collect::<String>()
+    }
+
     /// Reduces the representation or corepresentation spanned by the items in the orbit to a
     /// direct sum of the irreducible representations or corepresentations of the generating group.
     ///

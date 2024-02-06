@@ -19,20 +19,23 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
-use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, RepAnalysis,
-};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
-use crate::io::format::qsym2_output;
+use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
+use crate::{
+    analysis::{
+        fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+        Overlap, RepAnalysis,
+    },
+    io::format::QSym2Output,
+};
 
 // =======
 // Overlap
@@ -394,6 +397,13 @@ where
                     .calc_characters()
                     .map_err(|err| DecompositionError(err.to_string()))?;
                 log::debug!("Characters calculated.");
+
+                log_subtitle("Determinant orbit characters");
+                qsym2_output!("");
+                self.characters_to_string(&chis, self.integrality_threshold)
+                    .log_output_display();
+                qsym2_output!("");
+
                 let res = self.group().character_table().reduce_characters(
                     &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                     self.integrality_threshold(),

@@ -298,9 +298,9 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
     }
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~
-// For complex determinants
-// ~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~
+// For complex orbitals
+// ~~~~~~~~~~~~~~~~~~~~
 
 impl<'a, T> SpinUnitaryTransformable for MolecularOrbital<'a, Complex<T>>
 where
