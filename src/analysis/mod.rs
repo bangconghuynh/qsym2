@@ -43,7 +43,12 @@ where
 
     /// Returns the overlap between `self` and `other`, with respect to a metric `metric` of the
     /// underlying basis in which `self` and `other` are expressed.
-    fn overlap(&self, other: &Self, metric: Option<&Array<T, D>>) -> Result<T, anyhow::Error>;
+    fn overlap(
+        &self,
+        other: &Self,
+        metric: Option<&Array<T, D>>,
+        metric_h: Option<&Array<T, D>>,
+    ) -> Result<T, anyhow::Error>;
 }
 
 // =====
@@ -255,7 +260,13 @@ where
     /// # Arguments
     ///
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
-    fn calc_smat(&mut self, metric: Option<&Array<T, D>>) -> Result<&mut Self, anyhow::Error> {
+    /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
+    /// expressed. This is required if antiunitary operations are involved.
+    fn calc_smat(
+        &mut self,
+        metric: Option<&Array<T, D>>,
+        metric_h: Option<&Array<T, D>>,
+    ) -> Result<&mut Self, anyhow::Error> {
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
         let item_0 = self.origin();
@@ -265,7 +276,7 @@ where
                 .iter()
                 .map(|item_res| {
                     let item = item_res?;
-                    item.overlap(item_0, metric)
+                    item.overlap(item_0, metric, metric_h)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             for (i, j) in (0..order).cartesian_product(0..order) {
@@ -297,7 +308,7 @@ where
                     .as_ref()
                     .map_err(|err| format_err!(err.clone()))
                     .with_context(|| "One of the items in the orbit is not available")?;
-                smat[(*w, *x)] = item_w.overlap(item_x, metric).map_err(|err| {
+                smat[(*w, *x)] = item_w.overlap(item_x, metric, metric_h).map_err(|err| {
                     log::error!("{err}");
                     log::error!(
                         "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
@@ -305,7 +316,7 @@ where
                     err
                 })?;
                 if *w != *x {
-                    smat[(*x, *w)] = item_x.overlap(item_w, metric).map_err(|err| {
+                    smat[(*x, *w)] = item_x.overlap(item_w, metric, metric_h).map_err(|err| {
                             log::error!("{err}");
                             log::error!(
                                 "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."

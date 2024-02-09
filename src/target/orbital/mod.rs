@@ -41,6 +41,9 @@ where
     /// this molecular orbital.
     spin_index: usize,
 
+    #[builder(default = "false")]
+    complex_conjugated: bool,
+
     /// The angular order of the basis functions with respect to which the coefficients are
     /// expressed.
     bao: &'a BasisAngularOrder<'a>,

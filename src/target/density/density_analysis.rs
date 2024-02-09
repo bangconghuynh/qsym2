@@ -55,7 +55,7 @@ where
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints.
-    fn overlap(&self, other: &Self, metric: Option<&Array4<T>>) -> Result<T, anyhow::Error> {
+    fn overlap(&self, other: &Self, metric: Option<&Array4<T>>, metric_h: Option<&Array4<T>>) -> Result<T, anyhow::Error> {
         ensure!(
             self.density_matrix.shape() == other.density_matrix.shape(),
             "Inconsistent shapes of density matrices between `self` and `other`."
@@ -76,33 +76,111 @@ where
 
         let sao_4c = metric
             .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found for density overlap calculation."))?;
+        let sao_4c_h = metric_h.unwrap_or(sao_4c);
 
         if self.complex_symmetric() {
-            einsum(
-                "ijkl,ji,lk->",
-                &[
-                    &sao_4c.view(),
-                    &self.density_matrix().view(),
-                    &other.density_matrix().view(),
-                ],
-            )
-            .map_err(|err| format_err!(err))?
-            .into_iter()
-            .next()
-            .ok_or(format_err!("Unable to extract the density overlap scalar."))
+            match (self.complex_conjugated, other.complex_conjugated) {
+                (false, false) => einsum(
+                        "ijkl,ji,lk->",
+                        &[
+                            &sao_4c_h.view(),
+                            &self.density_matrix().view(),
+                            &other.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+                (true, false) => einsum(
+                        "ijkl,ji,lk->",
+                        &[
+                            &sao_4c.view(),
+                            &self.density_matrix().view(),
+                            &other.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+                (false, true) => einsum(
+                        "ijkl,ji,lk->",
+                        &[
+                            &sao_4c.view(),
+                            &other.density_matrix().view(),
+                            &self.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+                (true, true) => einsum(
+                        "klij,ji,lk->",
+                        &[
+                            &sao_4c_h.view(),
+                            &self.density_matrix().view(),
+                            &other.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+            }
         } else {
-            einsum(
-                "ijkl,ji,lk->",
-                &[
-                    &sao_4c.view(),
-                    &self.density_matrix().mapv(|x| x.conj()).view(),
-                    &other.density_matrix().view(),
-                ],
-            )
-            .map_err(|err| format_err!(err))?
-            .into_iter()
-            .next()
-            .ok_or(format_err!("Unable to extract the density overlap scalar."))
+            match (self.complex_conjugated, other.complex_conjugated) {
+                (false, false) => einsum(
+                        "ijkl,ji,lk->",
+                        &[
+                            &sao_4c.view(),
+                            &self.density_matrix().mapv(|x| x.conj()).view(),
+                            &other.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+                (true, false) => einsum(
+                        "ijkl,ji,lk->",
+                        &[
+                            &sao_4c_h.view(),
+                            &self.density_matrix().mapv(|x| x.conj()).view(),
+                            &other.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+                (false, true) => einsum(
+                        "ijkl,ji,lk->",
+                        &[
+                            &sao_4c_h.view(),
+                            &other.density_matrix().mapv(|x| x.conj()).view(),
+                            &self.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar."))
+                    .map(|x| x.conj()),
+                (true, true) => einsum(
+                        "klij,ji,lk->",
+                        &[
+                            &sao_4c.view(),
+                            &self.density_matrix().mapv(|x| x.conj()).view(),
+                            &other.density_matrix().view(),
+                        ],
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_iter()
+                    .next()
+                    .ok_or(format_err!("Unable to extract the density overlap scalar.")),
+            }
         }
     }
 }

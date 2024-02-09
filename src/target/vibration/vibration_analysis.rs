@@ -54,7 +54,12 @@ where
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched coefficient array lengths.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+    fn overlap(
+        &self,
+        other: &Self,
+        metric: Option<&Array2<T>>,
+        _: Option<&Array2<T>>,
+    ) -> Result<T, anyhow::Error> {
         ensure!(
             self.coefficients.len() == other.coefficients.len(),
             "Inconsistent numbers of coefficient matrices between `self` and `other`."

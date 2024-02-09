@@ -47,6 +47,9 @@ where
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     complex_symmetric: bool,
 
+    #[builder(default = "false")]
+    complex_conjugated: bool,
+
     /// The associated molecule.
     mol: &'a Molecule,
 
@@ -167,6 +170,11 @@ where
     /// Returns the complex-symmetric flag of the determinant.
     pub fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
+    }
+
+    /// Returns the complex-conjugated flag of the determinant.
+    pub(crate) fn complex_conjugated(&self) -> bool {
+        self.complex_conjugated
     }
 
     /// Returns the spin constraint imposed on the coefficients.

@@ -49,7 +49,12 @@ where
     }
 
     /// Computes the overlap between two axial vectors.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+    fn overlap(
+        &self,
+        other: &Self,
+        metric: Option<&Array2<T>>,
+        _: Option<&Array2<T>>,
+    ) -> Result<T, anyhow::Error> {
         let s_components = Array1::from_iter(self.components.iter().cloned());
         let o_components = Array1::from_iter(other.components.iter().cloned());
         let ov = if let Some(s) = metric {

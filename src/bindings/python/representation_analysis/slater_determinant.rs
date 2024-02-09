@@ -369,9 +369,15 @@ pub enum PySlaterDeterminant {
 /// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
 /// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
+/// * `sao_spatial_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
+/// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
+/// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `sao_spatial_4c` - The optional atomic-orbital four-centre overlap matrix whose elements are
 /// of type `float64` or `complex128`.
 /// Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
+/// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
+/// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
+/// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -422,7 +428,9 @@ pub enum PySlaterDeterminant {
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
     sao_spatial,
+    sao_spatial_h=None,
     sao_spatial_4c=None,
+    sao_spatial_4c_h=None,
     analyse_mo_symmetries=true,
     analyse_mo_mirror_parities=false,
     analyse_density_symmetries=false,
@@ -445,7 +453,9 @@ pub fn rep_analyse_slater_determinant(
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     sao_spatial: PyArray2RC,
+    sao_spatial_h: Option<PyArray2RC>,
     sao_spatial_4c: Option<PyArray4RC>,
+    sao_spatial_4c_h: Option<PyArray4RC>,
     analyse_mo_symmetries: bool,
     analyse_mo_mirror_parities: bool,
     analyse_density_symmetries: bool,
@@ -529,7 +539,9 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_r)
                     .sao_spatial(&sao_spatial)
+                    .sao_spatial_h(None) // Real SAO.
                     .sao_spatial_4c(sao_spatial_4c.as_ref())
+                    .sao_spatial_4c_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -548,7 +560,9 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_r)
                     .sao_spatial(&sao_spatial)
+                    .sao_spatial_h(None) // Real SAO.
                     .sao_spatial_4c(sao_spatial_4c.as_ref())
+                    .sao_spatial_4c_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -573,10 +587,20 @@ pub fn rep_analyse_slater_determinant(
             };
             let det_c: SlaterDeterminant<C128> = det_r.into();
             let sao_spatial_c = pysao_c.to_owned_array();
+            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
+                // sao_spatial_h must have the same reality as sao_spatial.
+                PyArray2RC::Real(_) => None,
+                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+            });
             let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
                 // sao_spatial_4c must have the same reality as sao_spatial.
                 PyArray4RC::Real(_) => None,
                 PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+            });
+            let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
+                // sao_spatial_4c_h must have the same reality as sao_spatial.
+                PyArray4RC::Real(_) => None,
+                PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
             });
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
@@ -588,7 +612,9 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
                     .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -607,7 +633,9 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
                     .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -634,10 +662,20 @@ pub fn rep_analyse_slater_determinant(
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
+            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
+                // sao_spatial_h must have the same reality as sao_spatial.
+                PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
+                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+            });
             let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
                 // sao_spatial_4c must have the same reality as sao_spatial.
                 PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
                 PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+            });
+            let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
+                // sao_spatial_4c_h must have the same reality as sao_spatial.
+                PyArray4RC::Real(pysao4c_h_r) => Some(pysao4c_h_r.to_owned_array().mapv(Complex::from)),
+                PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
             });
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
@@ -649,7 +687,9 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
                     .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
+                    .sao_spatial_4c(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -668,7 +708,9 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
                     .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
+                    .sao_spatial_4c(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;

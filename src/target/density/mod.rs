@@ -213,6 +213,9 @@ where
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     complex_symmetric: bool,
 
+    #[builder(default = "false")]
+    complex_conjugated: bool,
+
     /// The associated molecule.
     mol: &'a Molecule,
 

@@ -63,7 +63,12 @@ where
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or numbers of coefficient
     /// matrices, or if fractional occupation numbers are detected.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+    fn overlap(
+        &self,
+        other: &Self,
+        metric: Option<&Array2<T>>,
+        metric_h: Option<&Array2<T>>,
+    ) -> Result<T, anyhow::Error> {
         ensure!(
             self.spin_constraint == other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
@@ -92,6 +97,7 @@ where
         );
 
         let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
+        let sao_h = metric_h.unwrap_or(sao);
 
         let ov = izip!(
             &self.coefficients,
@@ -106,9 +112,24 @@ where
             let cx_o = cx.select(Axis(1), &nonzero_occ_x);
 
             let mo_ov_mat = if self.complex_symmetric() {
-                cw_o.t().dot(sao).dot(&cx_o)
+                match (self.complex_conjugated, other.complex_conjugated) {
+                    (false, false) => cw_o.t().dot(sao_h).dot(&cx_o),
+                    (true, false) => cw_o.t().dot(sao).dot(&cx_o),
+                    (false, true) => cx_o.t().dot(sao).dot(&cw_o),
+                    (true, true) => cw_o.t().dot(&sao_h.t()).dot(&cx_o),
+                }
             } else {
-                cw_o.t().mapv(|x| x.conj()).dot(sao).dot(&cx_o)
+                match (self.complex_conjugated, other.complex_conjugated) {
+                    (false, false) => cw_o.t().mapv(|x| x.conj()).dot(sao).dot(&cx_o),
+                    (true, false) => cw_o.t().mapv(|x| x.conj()).dot(sao_h).dot(&cx_o),
+                    (false, true) => cx_o
+                        .t()
+                        .mapv(|x| x.conj())
+                        .dot(sao_h)
+                        .dot(&cw_o)
+                        .mapv(|x| x.conj()),
+                    (true, true) => cw_o.t().mapv(|x| x.conj()).dot(&sao.t()).dot(&cx_o),
+                }
             };
             mo_ov_mat
                 .det()

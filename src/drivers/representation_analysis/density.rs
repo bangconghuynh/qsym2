@@ -396,6 +396,13 @@ where
     /// describe the densities.
     sao_spatial_4c: &'a Array4<T>,
 
+    /// The complex-symmetric atomic-orbital four-centre spatial overlap matrix of the underlying
+    /// basis set used to describe the densities. This is required if antiunitary symmetry
+    /// operations are involved. If none is provided, this will be assumed to be the same as
+    /// [`sao_spatial_4c`].
+    #[builder(default = "None")]
+    sao_spatial_4c_h: Option<&'a Array4<T>>,
+
     /// The control parameters for symmetry analysis of angular functions.
     angular_function_parameters: &'a AngularFunctionRepAnalysisParams,
 
@@ -554,6 +561,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao_spatial_4c = self.sao_spatial_4c;
+        let sao_spatial_4c_h = self.sao_spatial_4c_h;
         let group = construct_group_;
         log_cc_transversal(&group);
         let _ = find_angular_function_representation(&group, self.angular_function_parameters);
@@ -580,7 +588,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
                     .map_err(|err| format_err!(err))
                     .and_then(|mut den_orbit| {
                         den_orbit
-                            .calc_smat(Some(sao_spatial_4c))?
+                            .calc_smat(Some(sao_spatial_4c), sao_spatial_4c_h)?
                             .normalise_smat()?
                             .calc_xmat(false)?;
                         let density_symmetry_thresholds = den_orbit
@@ -716,9 +724,9 @@ impl<'a> QSym2Driver for DensityRepAnalysisDriver<'a, gtype_, dtype_> {
     type Outcome = DensityRepAnalysisResult<'a, gtype_, dtype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No electron density representation analysis results found."))
+        self.result.as_ref().ok_or_else(|| {
+            format_err!("No electron density representation analysis results found.")
+        })
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
