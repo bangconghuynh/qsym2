@@ -55,6 +55,9 @@ where
 
     /// Computes the overlap between two molecular orbitals.
     ///
+    /// When one or both of the orbitals have been acted on by an antiunitary operation, the correct
+    /// Hermitian or complex-symmetric metric will be chosen in the evalulation of the overlap.
+    ///
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or coefficient array lengths.

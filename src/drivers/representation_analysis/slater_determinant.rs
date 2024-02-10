@@ -731,7 +731,7 @@ where
 
     /// The complex-symmetric atomic-orbital spatial overlap matrix of the underlying basis set used
     /// to describe the determinant. This is required if antiunitary symmetry operations are
-    /// involved. If none is provided, this will be assumed to be the same as [`sao_spatial`].
+    /// involved. If none is provided, this will be assumed to be the same as [`Self::sao_spatial`].
     #[builder(default = "None")]
     sao_spatial_h: Option<&'a Array2<T>>,
 
@@ -743,7 +743,7 @@ where
     /// The complex-symmetric atomic-orbital four-centre spatial overlap matrix of the underlying
     /// basis set used to describe the determinant. This is only required for density symmetry
     /// analysis. This is required if antiunitary symmetry operations are involved. If none is
-    /// provided, this will be assumed to be the same as [`sao_spatial`].
+    /// provided, this will be assumed to be the same as [`Self::sao_spatial_4c`], if any.
     #[builder(default = "None")]
     sao_spatial_4c_h: Option<&'a Array4<T>>,
 
@@ -774,6 +774,32 @@ where
         let sao_spatial = self
             .sao_spatial
             .ok_or("No spatial SAO matrix found.".to_string())?;
+
+        if let Some(sao_spatial_h) = self.sao_spatial_h.flatten() {
+            if sao_spatial_h.shape() != sao_spatial.shape() {
+                return Err(
+                    "Mismatched shapes between `sao_spatial` and `sao_spatial_h`.".to_string(),
+                );
+            }
+        }
+
+        match (
+            self.sao_spatial_4c.flatten(),
+            self.sao_spatial_4c_h.flatten(),
+        ) {
+            (Some(sao_spatial_4c), Some(sao_spatial_4c_h)) => {
+                if sao_spatial_4c_h.shape() != sao_spatial_4c.shape() {
+                    return Err(
+                        "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`."
+                            .to_string(),
+                    );
+                }
+            }
+            (None, Some(_)) => {
+                return Err("`sao_spatial_4c_h` is provided without `sao_spatial_4c`.".to_string());
+            }
+            _ => {}
+        }
 
         let det = self
             .determinant
@@ -847,26 +873,27 @@ where
             }
         };
 
-        let sao_h = self.sao_spatial_h.map(|sao_spatial_h| {
-            match self.determinant.spin_constraint() {
-                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                    sao_spatial_h.clone()
-                }
-                SpinConstraint::Generalised(nspins, _) => {
-                    let nspins_usize = usize::from(*nspins);
-                    let nspatial = sao_spatial_h.nrows();
-                    let mut sao_g = Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
-                    (0..nspins_usize).for_each(|ispin| {
-                        let start = ispin * nspatial;
-                        let end = (ispin + 1) * nspatial;
+        let sao_h =
+            self.sao_spatial_h
+                .map(|sao_spatial_h| match self.determinant.spin_constraint() {
+                    SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                        sao_spatial_h.clone()
+                    }
+                    SpinConstraint::Generalised(nspins, _) => {
+                        let nspins_usize = usize::from(*nspins);
+                        let nspatial = sao_spatial_h.nrows();
+                        let mut sao_g =
+                            Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
+                        (0..nspins_usize).for_each(|ispin| {
+                            let start = ispin * nspatial;
+                            let end = (ispin + 1) * nspatial;
+                            sao_g
+                                .slice_mut(s![start..end, start..end])
+                                .assign(sao_spatial_h);
+                        });
                         sao_g
-                            .slice_mut(s![start..end, start..end])
-                            .assign(sao_spatial_h);
-                    });
-                    sao_g
-                }
-            }
-        });
+                    }
+                });
 
         Ok((sao, sao_h))
     }
@@ -1246,7 +1273,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .ok()?
                                     .calc_xmat(false)
                                     .ok()?;
-                                log::debug!("Computing overlap matrix for an MO density orbit... Done.");
+                                log::debug!(
+                                    "Computing overlap matrix for an MO density orbit... Done."
+                                );
                                 mo_den_orbit.analyse_rep().ok()
                             })
                             .collect::<Vec<_>>()
@@ -1334,17 +1363,15 @@ where
         ]
     }
 )]
-impl<'a> QSym2Driver
-    for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_>
-{
+impl<'a> QSym2Driver for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
     type Params = SlaterDeterminantRepAnalysisParams<f64>;
 
     type Outcome = SlaterDeterminantRepAnalysisResult<'a, gtype_, dtype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No Slater determinant representation analysis results found."))
+        self.result.as_ref().ok_or_else(|| {
+            format_err!("No Slater determinant representation analysis results found.")
+        })
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {

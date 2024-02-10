@@ -59,6 +59,16 @@ where
     ///
     /// Determinants with fractional electrons are currently not supported.
     ///
+    /// When one or both of the Slater determinants have been acted on by an antiunitary operation,
+    /// the correct Hermitian or complex-symmetric metric will be chosen in the evalulation of the
+    /// overlap.
+    ///
+    /// # Arguments
+    ///
+    /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
+    /// inner product.
+    /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
+    ///
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or numbers of coefficient

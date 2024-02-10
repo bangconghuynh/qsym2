@@ -399,7 +399,7 @@ where
     /// The complex-symmetric atomic-orbital four-centre spatial overlap matrix of the underlying
     /// basis set used to describe the densities. This is required if antiunitary symmetry
     /// operations are involved. If none is provided, this will be assumed to be the same as
-    /// [`sao_spatial_4c`].
+    /// [`Self::sao_spatial_4c`].
     #[builder(default = "None")]
     sao_spatial_4c_h: Option<&'a Array4<T>>,
 
@@ -430,6 +430,15 @@ where
         let sao_spatial_4c = self
             .sao_spatial_4c
             .ok_or("No four-centre spatial SAO matrix found.".to_string())?;
+
+        if let Some(sao_spatial_4c_h) = self.sao_spatial_4c_h.flatten() {
+            if sao_spatial_4c_h.shape() != sao_spatial_4c.shape() {
+                return Err(
+                    "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`."
+                        .to_string(),
+                );
+            }
+        }
 
         let dens = self
             .densities

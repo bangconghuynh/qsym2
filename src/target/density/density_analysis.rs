@@ -52,6 +52,10 @@ where
 
     /// Computes the overlap between two densities.
     ///
+    /// When one or both of the densities have been acted on by an antiunitary operation, the
+    /// correct Hermitian or complex-symmetric metric will be chosen in the evalulation of the
+    /// overlap.
+    ///
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints.

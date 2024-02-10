@@ -47,6 +47,8 @@ where
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     complex_symmetric: bool,
 
+    /// A boolean indicating if the determinant has been acted on by an antiunitary operation. This
+    /// is so that the correct metric can be used during overlap evaluation.
     #[builder(default = "false")]
     complex_conjugated: bool,
 
