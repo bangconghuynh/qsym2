@@ -41,8 +41,9 @@ where
     /// the inner product is sesquilinear and $`\hat{\iota} = \mathrm{id}`$.
     fn complex_symmetric(&self) -> bool;
 
-    /// Returns the overlap between `self` and `other`, with respect to a metric `metric` of the
-    /// underlying basis in which `self` and `other` are expressed.
+    /// Returns the overlap between `self` and `other`, with respect to a metric `metric` (and
+    /// possibly its complex-symmetric version `metric_h`) of the underlying basis in which `self`
+    /// and `other` are expressed.
     fn overlap(
         &self,
         other: &Self,

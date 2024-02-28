@@ -454,7 +454,8 @@ pub fn calc_overlap_2c_real<'py>(
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
 /// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
-/// * `complex_symmetric` - A boolean indicating if the complex-symmetric tensor is required.
+/// * `complex_symmetric` - A boolean indicating if the complex-symmetric overlap is to be
+/// calculated.
 ///
 /// # Returns
 ///
@@ -546,7 +547,8 @@ pub fn calc_overlap_4c_real<'py>(
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
 /// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
-/// * `complex_symmetric` - A boolean indicating if the complex-symmetric tensor is required.
+/// * `complex_symmetric` - A boolean indicating if the complex-symmetric overlap tensor is to be
+/// calculated.
 ///
 /// # Returns
 ///
