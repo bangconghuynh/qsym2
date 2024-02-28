@@ -82,21 +82,9 @@ where
             T::zero()
         } else if self.complex_symmetric() {
             match (self.complex_conjugated, other.complex_conjugated) {
-                (false, false) => self
-                    .coefficients
-                    .t()
-                    .dot(sao_h)
-                    .dot(&other.coefficients),
-                (true, false) => self
-                    .coefficients
-                    .t()
-                    .dot(sao)
-                    .dot(&other.coefficients),
-                (false, true) => other
-                    .coefficients
-                    .t()
-                    .dot(sao)
-                    .dot(&self.coefficients),
+                (false, false) => self.coefficients.t().dot(sao_h).dot(&other.coefficients),
+                (true, false) => self.coefficients.t().dot(sao).dot(&other.coefficients),
+                (false, true) => other.coefficients.t().dot(sao).dot(&self.coefficients),
                 (true, true) => self
                     .coefficients
                     .t()
@@ -376,7 +364,12 @@ where
     }
 
     fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self.group.get_index(i).unwrap().is_antiunitary() {
+        if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .is_antiunitary()
+        {
             ComplexFloat::conj
         } else {
             |x| x

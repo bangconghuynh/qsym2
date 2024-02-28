@@ -266,7 +266,12 @@ where
     }
 
     fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self.group.get_index(i).unwrap().is_antiunitary() {
+        if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .is_antiunitary()
+        {
             ComplexFloat::conj
         } else {
             |x| x

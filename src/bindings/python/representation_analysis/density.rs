@@ -396,6 +396,7 @@ pub fn rep_analyse_densities(
                             .angular_function_parameters(&afa_params)
                             .densities(dens_ref)
                             .sao_spatial_4c(&sao_spatial_4c)
+                            .sao_spatial_4c_h(None)
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -436,9 +437,7 @@ pub fn rep_analyse_densities(
                             PyArray4RC::Real(pysao4c_h_r) => {
                                 pysao4c_h_r.to_owned_array().mapv(Complex::from)
                             }
-                            PyArray4RC::Complex(pysao4c_h_c) => {
-                                pysao4c_h_c.to_owned_array()
-                            }
+                            PyArray4RC::Complex(pysao4c_h_c) => pysao4c_h_c.to_owned_array(),
                         }),
                     ),
                 };
