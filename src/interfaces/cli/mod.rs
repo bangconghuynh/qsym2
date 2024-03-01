@@ -125,10 +125,10 @@ pub fn qsym2_output_heading() {
     qsym2_output!("╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯");
     qsym2_output!("       developed with support from the ERC's topDFT project at the University of Nottingham, UK");
     qsym2_output!("");
-    qsym2_output!("  If you find QSym² helpful in your research, please support us by citing our paper as");
-    qsym2_output!("    Huynh, B. C., Wibowo-Teale, M. & Wibowo-Teale, A. M.");
-    qsym2_output!("      *J. Chem. Theory Comput.* **20**, 114–133.");
-    qsym2_output!("      doi:10.1021/acs.jctc.3c01118 (2024)");
+    qsym2_output!("          If you find QSym² helpful in your research, please support us by citing our paper:");
+    qsym2_output!("                         Huynh, B. C., Wibowo-Teale, M. & Wibowo-Teale, A. M.");
+    qsym2_output!("                              *J. Chem. Theory Comput.* **20**, 114–133.");
+    qsym2_output!("                                 doi:10.1021/acs.jctc.3c01118 (2024)");
     qsym2_output!("");
 }
 
