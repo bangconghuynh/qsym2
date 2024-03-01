@@ -982,7 +982,6 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 params.symmetry_transformation_kind.clone(),
                 params.eigenvalue_comparison_mode.clone(),
             )?;
-            println!("Det Orbit S:\n{}", det_orbit.smat().unwrap());
             det_orbit.calc_xmat(false)?;
             if params.write_overlap_eigenvalues {
                 if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {

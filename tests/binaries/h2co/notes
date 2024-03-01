@@ -1,0 +1,9 @@
+Coefficients and integrals from R2SCAN0/cc-pVTZ(primitive) calculation for the following:
+  charge = 0
+  spin projection = 0
+  units = bohr
+  C      -0.000000000001      -0.000000000000      -1.140915355062
+  O       0.000000000000       0.000000000000       1.140947184580
+  H       0.000000000003      -1.778924407962      -2.257540014669
+  H       0.000000000003       1.778924407961      -2.257540014668
+in the presence of a magnetic field B = (0.0, 1.0, 0.0).
