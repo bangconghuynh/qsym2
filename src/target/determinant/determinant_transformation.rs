@@ -492,6 +492,7 @@ where
         self.coefficients
             .iter_mut()
             .for_each(|coeff| coeff.mapv_inplace(|x| x.conj()));
+        self.complex_conjugated = !self.complex_conjugated;
         self
     }
 }

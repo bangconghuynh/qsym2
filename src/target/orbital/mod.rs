@@ -37,7 +37,14 @@ where
     /// The spin constraint associated with the coefficients describing this molecular orbital.
     spin_constraint: SpinConstraint,
 
+    /// If the spin constraint allows for multiple spin spaces, this gives the spin-space index of
+    /// this molecular orbital.
     spin_index: usize,
+
+    /// A boolean indicating if the orbital has been acted on by an antiunitary operation. This is
+    /// so that the correct metric can be used during overlap evaluation.
+    #[builder(default = "false")]
+    complex_conjugated: bool,
 
     /// The angular order of the basis functions with respect to which the coefficients are
     /// expressed.

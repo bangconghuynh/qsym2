@@ -239,6 +239,9 @@ pub enum PyDensity {
 /// Python type: `list[tuple[str, PyDensityReal | PyDensityComplex]]`.
 /// * `sao_spatial_4c` - The atomic-orbital four-centre overlap matrix whose elements are of type
 /// `float64` or `complex128`. Python type: `numpy.4darray[float] | numpy.4darray[complex]`.
+/// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
+/// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
+/// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -280,6 +283,7 @@ pub enum PyDensity {
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
     sao_spatial_4c,
+    sao_spatial_4c_h=None,
     write_character_table=true,
     infinite_order_to_finite=None,
     angular_function_integrality_threshold=1e-7,
@@ -298,6 +302,7 @@ pub fn rep_analyse_densities(
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     sao_spatial_4c: PyArray4RC,
+    sao_spatial_4c_h: Option<PyArray4RC>,
     write_character_table: bool,
     infinite_order_to_finite: Option<u32>,
     angular_function_integrality_threshold: f64,
@@ -348,6 +353,7 @@ pub fn rep_analyse_densities(
 
     match (any_complex, &sao_spatial_4c) {
         (false, PyArray4RC::Real(pysao4c_r)) => {
+            // Both coefficients and sao_4c are real.
             let dens = pydens
                 .iter()
                 .map(|(_, pyden)| match pyden {
@@ -373,6 +379,7 @@ pub fn rep_analyse_densities(
                         .angular_function_parameters(&afa_params)
                         .densities(dens_ref)
                         .sao_spatial_4c(&sao_spatial_4c)
+                        .sao_spatial_4c_h(None)
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -389,6 +396,7 @@ pub fn rep_analyse_densities(
                             .angular_function_parameters(&afa_params)
                             .densities(dens_ref)
                             .sao_spatial_4c(&sao_spatial_4c)
+                            .sao_spatial_4c_h(None)
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -401,6 +409,7 @@ pub fn rep_analyse_densities(
             };
         }
         (_, _) => {
+            // At least one of coefficients or sao_4c are not real.
             let dens: Vec<Density<C128>> = pydens
                 .iter()
                 .map(|(_, pyden)| match pyden {
@@ -417,10 +426,21 @@ pub fn rep_analyse_densities(
                 .map(|(den, (desc, _))| (desc.clone(), den))
                 .collect::<Vec<_>>();
 
-            let sao_spatial_4c_c: Array4<C128> = match sao_spatial_4c {
-                PyArray4RC::Real(pysao4c_r) => pysao4c_r.to_owned_array().mapv(Complex::from),
-                PyArray4RC::Complex(pysao4c_c) => pysao4c_c.to_owned_array(),
-            };
+            let (sao_spatial_4c_c, sao_spatial_4c_h_c): (Array4<C128>, Option<Array4<C128>>) =
+                match sao_spatial_4c {
+                    PyArray4RC::Real(pysao4c_r) => {
+                        (pysao4c_r.to_owned_array().mapv(Complex::from), None)
+                    }
+                    PyArray4RC::Complex(pysao4c_c) => (
+                        pysao4c_c.to_owned_array(),
+                        sao_spatial_4c_h.map(|v| match v {
+                            PyArray4RC::Real(pysao4c_h_r) => {
+                                pysao4c_h_r.to_owned_array().mapv(Complex::from)
+                            }
+                            PyArray4RC::Complex(pysao4c_h_c) => pysao4c_h_c.to_owned_array(),
+                        }),
+                    ),
+                };
 
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
@@ -432,6 +452,7 @@ pub fn rep_analyse_densities(
                     .angular_function_parameters(&afa_params)
                     .densities(dens_ref)
                     .sao_spatial_4c(&sao_spatial_4c_c)
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -449,6 +470,7 @@ pub fn rep_analyse_densities(
                         .angular_function_parameters(&afa_params)
                         .densities(dens_ref)
                         .sao_spatial_4c(&sao_spatial_4c_c)
+                        .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;

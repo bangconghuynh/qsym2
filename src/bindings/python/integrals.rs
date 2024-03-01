@@ -454,6 +454,8 @@ pub fn calc_overlap_2c_real<'py>(
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
 /// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+/// * `complex_symmetric` - A boolean indicating if the complex-symmetric overlap is to be
+/// calculated.
 ///
 /// # Returns
 ///
@@ -461,6 +463,7 @@ pub fn calc_overlap_2c_real<'py>(
 pub fn calc_overlap_2c_complex<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
+    complex_symmetric: bool,
 ) -> PyResult<&'py PyArray2<Complex<f64>>> {
     let bscs = BasisSet::new(
         basis_set
@@ -477,7 +480,7 @@ pub fn calc_overlap_2c_complex<'py>(
     let sao_2c = py.allow_threads(|| {
         let stc = build_shell_tuple_collection![
             <s1, s2>;
-            true, false;
+            !complex_symmetric, false;
             &bscs, &bscs;
             Complex<f64>
         ];
@@ -488,6 +491,7 @@ pub fn calc_overlap_2c_complex<'py>(
     let pysao_2c = sao_2c.into_pyarray(py);
     Ok(pysao_2c)
 }
+
 #[cfg(feature = "integrals")]
 #[pyfunction]
 /// Calculates the real-valued four-centre overlap tensor for a basis set.
@@ -543,6 +547,8 @@ pub fn calc_overlap_4c_real<'py>(
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
 /// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+/// * `complex_symmetric` - A boolean indicating if the complex-symmetric overlap tensor is to be
+/// calculated.
 ///
 /// # Returns
 ///
@@ -550,6 +556,7 @@ pub fn calc_overlap_4c_real<'py>(
 pub fn calc_overlap_4c_complex<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
+    complex_symmetric: bool,
 ) -> PyResult<&'py PyArray4<Complex<f64>>> {
     let bscs = BasisSet::new(
         basis_set
@@ -566,7 +573,7 @@ pub fn calc_overlap_4c_complex<'py>(
     let sao_4c = py.allow_threads(|| {
         let stc = build_shell_tuple_collection![
             <s1, s2, s3, s4>;
-            true, true, false, false;
+            !complex_symmetric, !complex_symmetric, false, false;
             &bscs, &bscs, &bscs, &bscs;
             Complex<f64>
         ];

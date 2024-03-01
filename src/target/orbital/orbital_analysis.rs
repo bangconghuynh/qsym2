@@ -20,8 +20,8 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap,
-    RepAnalysis,
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+    Overlap, RepAnalysis,
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::{complex_modified_gram_schmidt, ProductRepeat};
@@ -55,10 +55,18 @@ where
 
     /// Computes the overlap between two molecular orbitals.
     ///
+    /// When one or both of the orbitals have been acted on by an antiunitary operation, the correct
+    /// Hermitian or complex-symmetric metric will be chosen in the evalulation of the overlap.
+    ///
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or coefficient array lengths.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+    fn overlap(
+        &self,
+        other: &Self,
+        metric: Option<&Array2<T>>,
+        metric_h: Option<&Array2<T>>,
+    ) -> Result<T, anyhow::Error> {
         ensure!(
             self.spin_constraint == other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
@@ -69,14 +77,48 @@ where
         );
 
         let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
-        let ov = if self.complex_symmetric() {
-            self.coefficients.t().dot(sao).dot(&other.coefficients)
+        let sao_h = metric_h.unwrap_or(sao);
+        let ov = if self.spin_index != other.spin_index {
+            T::zero()
+        } else if self.complex_symmetric() {
+            match (self.complex_conjugated, other.complex_conjugated) {
+                (false, false) => self.coefficients.t().dot(sao_h).dot(&other.coefficients),
+                (true, false) => self.coefficients.t().dot(sao).dot(&other.coefficients),
+                (false, true) => other.coefficients.t().dot(sao).dot(&self.coefficients),
+                (true, true) => self
+                    .coefficients
+                    .t()
+                    .dot(&sao_h.t())
+                    .dot(&other.coefficients),
+            }
         } else {
-            self.coefficients
-                .t()
-                .mapv(|x| x.conj())
-                .dot(sao)
-                .dot(&other.coefficients)
+            match (self.complex_conjugated, other.complex_conjugated) {
+                (false, false) => self
+                    .coefficients
+                    .t()
+                    .mapv(|x| x.conj()) // This conjugation is still needed as it comes from the sesquilinear form.
+                    .dot(sao)
+                    .dot(&other.coefficients),
+                (true, false) => self
+                    .coefficients
+                    .t()
+                    .mapv(|x| x.conj()) // This conjugation is still needed as it comes from the sesquilinear form.
+                    .dot(sao_h)
+                    .dot(&other.coefficients),
+                (false, true) => other
+                    .coefficients
+                    .t()
+                    .mapv(|x| x.conj()) // This conjugation is still needed as it comes from the sesquilinear form.
+                    .dot(sao_h)
+                    .dot(&self.coefficients)
+                    .conj(),
+                (true, true) => self
+                    .coefficients
+                    .t()
+                    .mapv(|x| x.conj()) // This conjugation is still needed as it comes from the sesquilinear form.
+                    .dot(&sao.t())
+                    .dot(&other.coefficients),
+            }
         };
         Ok(ov)
     }
@@ -322,7 +364,12 @@ where
     }
 
     fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self.group.get_index(i).unwrap().is_antiunitary() {
+        if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .is_antiunitary()
+        {
             ComplexFloat::conj
         } else {
             |x| x
@@ -422,6 +469,7 @@ pub fn generate_det_mo_orbits<'a, G, T>(
     mos: &'a [Vec<MolecularOrbital<'a, T>>],
     group: &'a G,
     metric: &Array2<T>,
+    metric_h: Option<&Array2<T>>,
     integrality_threshold: <T as ComplexFloat>::Real,
     linear_independence_threshold: <T as ComplexFloat>::Real,
     symmetry_transformation_kind: SymmetryTransformationKind,
@@ -482,6 +530,9 @@ where
 
     let thresh = det.threshold();
 
+    let sao = metric;
+    let sao_h = metric_h.unwrap_or(sao);
+
     if let Some(ctb) = group.cayley_table() {
         log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
         let mut det_smatw0 = Array1::<T>::zeros(order);
@@ -508,10 +559,30 @@ where
                 let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
                 let nonzero_occ_0 = occ0.iter().positions(|&occ| occ > thresh).collect_vec();
 
+                // let all_mo_w0_ov_mat = if det.complex_symmetric() {
+                //     cw.t().dot(metric).dot(c0)
+                // } else {
+                //     cw.t().mapv(|x| x.conj()).dot(metric).dot(c0)
+                // };
                 let all_mo_w0_ov_mat = if det.complex_symmetric() {
-                    cw.t().dot(metric).dot(c0)
+                    match (det_w.complex_conjugated(), det_0.complex_conjugated()) {
+                        (false, false) => cw.t().dot(sao_h).dot(c0),
+                        (true, false) => cw.t().dot(sao).dot(c0),
+                        (false, true) => c0.t().dot(sao).dot(cw),
+                        (true, true) => cw.t().dot(&sao_h.t()).dot(c0),
+                    }
                 } else {
-                    cw.t().mapv(|x| x.conj()).dot(metric).dot(c0)
+                    match (det_w.complex_conjugated(), det_0.complex_conjugated()) {
+                        (false, false) => cw.t().mapv(|x| x.conj()).dot(sao).dot(c0),
+                        (true, false) => cw.t().mapv(|x| x.conj()).dot(sao_h).dot(c0),
+                        (false, true) => c0
+                            .t()
+                            .mapv(|x| x.conj())
+                            .dot(sao_h)
+                            .dot(cw)
+                            .mapv(|x| x.conj()),
+                        (true, true) => cw.t().mapv(|x| x.conj()).dot(&sao.t()).dot(c0),
+                    }
                 };
 
                 all_mo_w0_ov_mat
@@ -595,10 +666,30 @@ where
                 let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
                 let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
 
+                // let all_mo_wx_ov_mat = if det.complex_symmetric() {
+                //     cw.t().dot(metric).dot(cx)
+                // } else {
+                //     cw.t().mapv(|x| x.conj()).dot(metric).dot(cx)
+                // };
                 let all_mo_wx_ov_mat = if det.complex_symmetric() {
-                    cw.t().dot(metric).dot(cx)
+                    match (det_w.complex_conjugated(), det_x.complex_conjugated()) {
+                        (false, false) => cw.t().dot(sao_h).dot(cx),
+                        (true, false) => cw.t().dot(sao).dot(cx),
+                        (false, true) => cx.t().dot(sao).dot(cw),
+                        (true, true) => cw.t().dot(&sao_h.t()).dot(cx),
+                    }
                 } else {
-                    cw.t().mapv(|x| x.conj()).dot(metric).dot(cx)
+                    match (det_w.complex_conjugated(), det_x.complex_conjugated()) {
+                        (false, false) => cw.t().mapv(|x| x.conj()).dot(sao).dot(cx),
+                        (true, false) => cw.t().mapv(|x| x.conj()).dot(sao_h).dot(cx),
+                        (false, true) => cx
+                            .t()
+                            .mapv(|x| x.conj())
+                            .dot(sao_h)
+                            .dot(cw)
+                            .mapv(|x| x.conj()),
+                        (true, true) => cw.t().mapv(|x| x.conj()).dot(&sao.t()).dot(cx),
+                    }
                 };
 
                 all_mo_wx_ov_mat

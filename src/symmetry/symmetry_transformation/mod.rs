@@ -253,7 +253,8 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     /// Performs a spatial transformation according to a specified symmetry operation in-place.
     ///
     /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
-    /// transformation.
+    /// transformation. Also note that, if the transformation is antiunitary, it will be
+    /// accompanied by a complex conjugation.
     ///
     /// # Arguments
     ///
@@ -266,6 +267,9 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         let perm = self.sym_permute_sites_spatial(symop)?;
         self.transform_spatial_mut(&rmat, Some(&perm))
             .map_err(|err| TransformationError(err.to_string()))?;
+        if symop.is_antiunitary() {
+            self.transform_cc_mut();
+        }
         Ok(self)
     }
 
@@ -273,7 +277,8 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     /// the transformed result.
     ///
     /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
-    /// transformation.
+    /// transformation. Also note that, if the transformation is antiunitary, it will be
+    /// accompanied by a complex conjugation.
     ///
     /// # Arguments
     ///
@@ -293,7 +298,8 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
 
     /// Performs a spin transformation according to a specified symmetry operation in-place.
     ///
-    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations. Also note
+    /// that, if the transformation is antiunitary, it will be accompanied by a time reversal.
     ///
     /// # Arguments
     ///
@@ -321,7 +327,8 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     /// Performs a spin transformation according to a specified symmetry operation and returns the
     /// transformed result.
     ///
-    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations. Also note
+    /// that, if the transformation is antiunitary, it will be accompanied by a time reversal.
     ///
     /// # Arguments
     ///
@@ -348,8 +355,34 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        self.sym_transform_spatial_mut(symop)?
-            .sym_transform_spin_mut(symop)
+        // We cannot do the following, because each of the two methods carries out its own
+        // antiunitary action, so we'd be double-acting the antiunitary action.
+        // self.sym_transform_spatial_mut(symop)?
+        //     .sym_transform_spin_mut(symop)
+
+        // Spatial
+        let rmat = symop.get_3d_spatial_matrix();
+        let perm = self.sym_permute_sites_spatial(symop)?;
+        self.transform_spatial_mut(&rmat, Some(&perm))
+            .map_err(|err| TransformationError(err.to_string()))?;
+
+        // Spin -- only SU(2) rotations can effect spin transformations.
+        if symop.is_su2() {
+            let angle = symop.calc_pole_angle();
+            let axis = symop.calc_pole().coords;
+            let dmat = if symop.is_su2_class_1() {
+                -dmat_angleaxis(angle, axis, false)
+            } else {
+                dmat_angleaxis(angle, axis, false)
+            };
+            self.transform_spin_mut(&dmat)?;
+        }
+
+        // Time reversal, if any.
+        if symop.is_antiunitary() {
+            self.transform_timerev_mut()?;
+        }
+        Ok(self)
     }
 
     /// Performs a coupled spin-spatial transformation according to a specified symmetry operation

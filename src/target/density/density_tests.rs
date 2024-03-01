@@ -724,7 +724,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -747,7 +747,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -770,7 +770,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -793,7 +793,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -985,7 +985,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1006,7 +1006,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1029,7 +1029,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1052,7 +1052,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_d4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1079,7 +1079,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1102,7 +1102,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1125,7 +1125,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1148,7 +1148,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1175,7 +1175,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1196,7 +1196,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1219,7 +1219,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1242,7 +1242,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_ru))
+        .calc_smat(Some(sao_ru), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1269,7 +1269,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_c4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1292,7 +1292,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_c4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1315,7 +1315,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_c4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1338,7 +1338,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_c4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1365,7 +1365,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1386,7 +1386,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1409,7 +1409,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1432,7 +1432,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1459,7 +1459,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_a
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1482,7 +1482,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_b
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1505,7 +1505,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_total
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1528,7 +1528,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .build()
         .unwrap();
     let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_spin
-        .calc_smat(Some(sao_cu_bz))
+        .calc_smat(Some(sao_cu_bz), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
