@@ -145,6 +145,7 @@ where
                             &mos,
                             group,
                             &sao,
+                            None, // Is this right for complex spherical harmonics?
                             params.integrality_threshold,
                             params.linear_independence_threshold,
                             SymmetryTransformationKind::Spatial,
@@ -221,7 +222,7 @@ where
                 .eigenvalue_comparison_mode(EigenvalueComparisonMode::Real)
                 .build()
                 .map_err(|err| format_err!(err))?;
-            let _ = orbit_rv.calc_smat(None).unwrap().calc_xmat(false);
+            let _ = orbit_rv.calc_smat(None, None).unwrap().calc_xmat(false);
             orbit_rv
                 .analyse_rep()
                 .map(|sym| sym.to_string())

@@ -594,7 +594,7 @@ impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
                     .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                     .build()?;
                 vib_orbit
-                    .calc_smat(None)
+                    .calc_smat(None, None)
                     .and_then(|orbit| orbit.calc_xmat(false))?;
                 Ok::<_, anyhow::Error>(vib_orbit)
             });

@@ -52,7 +52,7 @@ fn test_axialvector_orbit_rep_analysis_vf6_oh() {
         .build()
         .unwrap();
     let _ = orbit_u_oh_spatial_rx
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -79,7 +79,7 @@ fn test_axialvector_orbit_rep_analysis_vf6_oh() {
         .build()
         .unwrap();
     let _ = orbit_u_oh_spatial_ry
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -106,7 +106,7 @@ fn test_axialvector_orbit_rep_analysis_vf6_oh() {
         .build()
         .unwrap();
     let _ = orbit_u_oh_spatial_rz
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -153,7 +153,7 @@ fn test_axialvector_orbit_rep_analysis_benzene_d6h_x() {
         .build()
         .unwrap();
     let _ = orbit_u_d6h_x_spatial_rx
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -181,7 +181,7 @@ fn test_axialvector_orbit_rep_analysis_benzene_d6h_x() {
         .build()
         .unwrap();
     let _ = orbit_u_d6h_x_spatial_ry
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -209,7 +209,7 @@ fn test_axialvector_orbit_rep_analysis_benzene_d6h_x() {
         .build()
         .unwrap();
     let _ = orbit_u_d6h_x_spatial_rz
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -252,7 +252,7 @@ fn test_axialvector_orbit_rep_analysis_nh3_c3v() {
         .build()
         .unwrap();
     let _ = orbit_u_c3v_spatial_rx
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -280,7 +280,7 @@ fn test_axialvector_orbit_rep_analysis_nh3_c3v() {
         .build()
         .unwrap();
     let _ = orbit_u_c3v_spatial_ry
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -308,7 +308,7 @@ fn test_axialvector_orbit_rep_analysis_nh3_c3v() {
         .build()
         .unwrap();
     let _ = orbit_u_c3v_spatial_rz
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -351,7 +351,7 @@ fn test_axialvector_orbit_rep_analysis_water_c2v_y() {
         .build()
         .unwrap();
     let _ = orbit_u_c2v_y_spatial_rx
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -379,7 +379,7 @@ fn test_axialvector_orbit_rep_analysis_water_c2v_y() {
         .build()
         .unwrap();
     let _ = orbit_u_c2v_y_spatial_ry
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -407,7 +407,7 @@ fn test_axialvector_orbit_rep_analysis_water_c2v_y() {
         .build()
         .unwrap();
     let _ = orbit_u_c2v_y_spatial_rz
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -451,7 +451,7 @@ fn test_axialvector_orbit_rep_analysis_bf3_magnetic_field_c3h() {
         .build()
         .unwrap();
     let _ = orbit_u_c2v_y_spatial_rx
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -479,7 +479,7 @@ fn test_axialvector_orbit_rep_analysis_bf3_magnetic_field_c3h() {
         .build()
         .unwrap();
     let _ = orbit_u_c2v_y_spatial_ry
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -507,7 +507,7 @@ fn test_axialvector_orbit_rep_analysis_bf3_magnetic_field_c3h() {
         .build()
         .unwrap();
     let _ = orbit_u_c2v_y_spatial_rz
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(

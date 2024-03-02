@@ -298,9 +298,9 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
     }
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~
-// For complex determinants
-// ~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~
+// For complex orbitals
+// ~~~~~~~~~~~~~~~~~~~~
 
 impl<'a, T> SpinUnitaryTransformable for MolecularOrbital<'a, Complex<T>>
 where
@@ -481,6 +481,7 @@ where
 {
     fn transform_cc_mut(&mut self) -> &mut Self {
         self.coefficients.mapv_inplace(|x| x.conj());
+        self.complex_conjugated = !self.complex_conjugated;
         self
     }
 }
