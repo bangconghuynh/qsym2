@@ -43,6 +43,15 @@ Depending on the nature of the basis functions in $\mathcal{B}_V$, the overlap m
 But if $\mathbfit{S}_V$ is not readily available, then information about $\mathcal{B}_V$ must be made available to QSym² so that QSym² can compute $\mathbfit{S}_V$ on-the-fly.
 The exact requirements for the various types of representation analysis that QSym² supports will be explained in the relevant sections in this guide.
 
+If some $\mathbfit{v}_{\mu} \in \mathcal{B}_V$ are complex-valued, and if some $\hat{g}_i \in \mathcal{G}$ are antiunitary, then it is essential that the complex-symmetric version of $\mathbfit{S}_V$ is also available:
+
+$$
+    \bar{S}_{V, \mu \nu} = \braket{\hat{\kappa} \mathbfit{v}_{\mu} | \mathbfit{v}_{\nu}},
+$$
+
+where $\hat{\kappa}$ is the complex conjugation operator.
+This is so that the overlap matrix $\mathbfit{S}$ can be computed correctly when antiunitary operations are involved.
+
 ### Atomic-orbital basis angular order
 
 If $\mathcal{B}_V$ is a basis consisting of atomic orbitals, then, to carry out the transformations $\hat{g}_i \mathbfit{w}$ that are required to construct the orbit $\mathcal{G} \cdot \mathbfit{w}$ for representation analysis, QSym² needs to know how the basis atomic orbitals are transformed under spatial rotations.
@@ -437,7 +446,10 @@ These traits are described below.
 4. [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html)
 
     This trait determines how the target behaves under the antiunitary action of time reversal.
-    If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation.
+    If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is either
+
+    - a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation if spin transformation is taken into account, or
+    - a complex conjugation if only spatial transformation is taken into account.
 
 5. [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html)
 
@@ -448,6 +460,8 @@ These traits are described below.
     - spatial only,
     - spin only,
     - both spin and spatial.
+
+    Note that when transformations act only spatially, any time reversal will manifest as complex conjugation.
 
 Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html) elements act on a target $\mathbfit{w}$ based on the [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html) trait to generate the orbit $\mathcal{G} \cdot \mathbfit{w}$ for symmetry analysis can be specified as follows.
 
