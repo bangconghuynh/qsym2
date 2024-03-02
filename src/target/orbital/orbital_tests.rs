@@ -4,12 +4,12 @@ use num_complex::Complex;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
+use crate::basis::ao::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -155,7 +155,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_oh_spatial_d3
-        .calc_smat(Some(&sao_cg))
+        .calc_smat(Some(&sao_cg), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -185,7 +185,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     orbit_cg_u_oh_spatial_d3_orbs
         .zip(orbs_d3_cg_ref.iter())
         .for_each(|(mut orb_orbit, sym_ref)| {
-            let _ = orb_orbit.calc_smat(Some(&sao_cg)).unwrap().calc_xmat(false);
+            let _ = orb_orbit.calc_smat(Some(&sao_cg), None).unwrap().calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
         });
 
@@ -203,7 +203,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_oh_double_spin_spatial_d3
-        .calc_smat(Some(&sao_cg))
+        .calc_smat(Some(&sao_cg), None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -234,7 +234,10 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     orbit_cg_u_oh_double_spin_spatial_d3_orbs
         .zip(orbs_d3_cg_spin_spatial_ref.iter())
         .for_each(|(mut orb_orbit, sym_ref)| {
-            let _ = orb_orbit.calc_smat(Some(&sao_cg)).unwrap().calc_xmat(false);
+            let _ = orb_orbit
+                .calc_smat(Some(&sao_cg), None)
+                .unwrap()
+                .calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
         });
 }

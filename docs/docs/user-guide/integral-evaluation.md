@@ -193,15 +193,19 @@ Obtaining these integrals via the Python API is very straightforward, as shown b
     basis_set = ... #(2)!
 
     sao_2c_r = calc_overlap_2c_real(basis_set) #(3)!
-    sao_2c_c = calc_overlap_2c_complex(basis_set) #(4)!
+    sao_2c_c = calc_overlap_2c_complex(basis_set, False) #(4)!
+    sao_2c_c_h = calc_overlap_2c_complex(basis_set, True) #(5)!
 
-    sao_4c_r = calc_overlap_4c_real(basis_set) #(5)!
-    sao_4c_c = calc_overlap_4c_complex(basis_set) #(6)!
+    sao_4c_r = calc_overlap_4c_real(basis_set) #(6)!
+    sao_4c_c = calc_overlap_4c_complex(basis_set, False) #(7)!
+    sao_4c_c_h = calc_overlap_4c_complex(basis_set, True) #(8)!
     ```
 
     1. :fontawesome-solid-laptop-code: These are Python-exposed functions to evaluate overlap integrals. The API documentation for these functions can be found [here](https://qsym2.dev/api/qsym2/bindings/python/integrals/index.html).
     2. :fontawesome-solid-users: The basis set information must be constructed as described [above](#basis-set-information).
     3. :fontawesome-solid-users: This evaluates the real-valued two-centre overlap matrix for the specified basis set and returns the results as a two-dimensional array. This is only applicable if the basis set comprises only Gaussian atomic orbitals (*i.e.* no $\mathbfit{k}$ vectors anywhere) with real contraction coefficients.
-    4. :fontawesome-solid-users: This evaluates the complex-valued two-centre overlap matrix for the specified basis set and returns the results as a two-dimensional array.
-    5. :fontawesome-solid-users: This evaluates the real-valued four-centre overlap tensor for the specified basis set and returns the results as a four-dimensional array. This is only applicable if the basis set comprises only Gaussian atomic orbitals (*i.e.* no $\mathbfit{k}$ vectors anywhere) with real contraction coefficients.
-    6. :fontawesome-solid-users: This evaluates the complex-valued four-centre overlap matrix for the specified basis set and returns the results as a four-dimensional array.
+    4. :fontawesome-solid-users: This evaluates the Hermitian complex-valued two-centre overlap matrix for the specified basis set and returns the results as a two-dimensional array.
+    5. :fontawesome-solid-users: This evaluates the complex-symmetric complex-valued two-centre overlap matrix for the specified basis set and returns the results as a two-dimensional array.
+    6. :fontawesome-solid-users: This evaluates the real-valued four-centre overlap tensor for the specified basis set and returns the results as a four-dimensional array. This is only applicable if the basis set comprises only Gaussian atomic orbitals (*i.e.* no $\mathbfit{k}$ vectors anywhere) with real contraction coefficients.
+    7. :fontawesome-solid-users: This evaluates the Hermitian complex-valued four-centre overlap matrix for the specified basis set and returns the results as a four-dimensional array.
+    8. :fontawesome-solid-users: This evaluates the complex-symmetric complex-valued four-centre overlap matrix for the specified basis set and returns the results as a four-dimensional array.

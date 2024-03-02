@@ -35,7 +35,7 @@ pub(crate) enum LinAlgReducedInt<T, R: Reducer<T>> {
     One,
 }
 
-pub(crate) type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
+pub(crate) type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T>>;
 
 // ------------------
 // Associated methods
@@ -388,13 +388,16 @@ where
     T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
-    type Output = LinAlgReducedInt<T, R>;
+    type Output = Option<LinAlgReducedInt<T, R>>;
 
     fn inv(self) -> Self::Output {
         match self {
-            LinAlgReducedInt::Zero => panic!("Inverse of zero encountered."),
-            LinAlgReducedInt::One => LinAlgReducedInt::One,
-            LinAlgReducedInt::KnownChar(rint) => LinAlgReducedInt::KnownChar(rint.inv()),
+            LinAlgReducedInt::Zero => None,
+            LinAlgReducedInt::One => Some(LinAlgReducedInt::One),
+            LinAlgReducedInt::KnownChar(rint) => rint
+                .clone()
+                .inv()
+                .map(|inv| LinAlgReducedInt::KnownChar(inv)),
         }
     }
 }
@@ -404,7 +407,7 @@ where
     T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
-    type Output = LinAlgReducedInt<T, R>;
+    type Output = Option<LinAlgReducedInt<T, R>>;
 
     fn inv(self) -> Self::Output {
         (&self).inv()
@@ -462,7 +465,9 @@ where
                 }
             }
             LinAlgReducedInt::One => LinAlgReducedInt::One,
-            LinAlgReducedInt::KnownChar(rint) => LinAlgReducedInt::KnownChar(rint.pow(rhs)),
+            LinAlgReducedInt::KnownChar(rint) => {
+                LinAlgReducedInt::KnownChar(rint.clone().pow(&rhs))
+            }
         }
     }
 }

@@ -19,19 +19,23 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
-use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap,
-    RepAnalysis,
-};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
+use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
+use crate::{
+    analysis::{
+        fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+        Overlap, RepAnalysis,
+    },
+    io::format::QSym2Output,
+};
 
 // =======
 // Overlap
@@ -55,11 +59,26 @@ where
     ///
     /// Determinants with fractional electrons are currently not supported.
     ///
+    /// When one or both of the Slater determinants have been acted on by an antiunitary operation,
+    /// the correct Hermitian or complex-symmetric metric will be chosen in the evalulation of the
+    /// overlap.
+    ///
+    /// # Arguments
+    ///
+    /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
+    /// inner product.
+    /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
+    ///
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or numbers of coefficient
     /// matrices, or if fractional occupation numbers are detected.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+    fn overlap(
+        &self,
+        other: &Self,
+        metric: Option<&Array2<T>>,
+        metric_h: Option<&Array2<T>>,
+    ) -> Result<T, anyhow::Error> {
         ensure!(
             self.spin_constraint == other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
@@ -88,6 +107,7 @@ where
         );
 
         let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
+        let sao_h = metric_h.unwrap_or(sao);
 
         let ov = izip!(
             &self.coefficients,
@@ -102,9 +122,24 @@ where
             let cx_o = cx.select(Axis(1), &nonzero_occ_x);
 
             let mo_ov_mat = if self.complex_symmetric() {
-                cw_o.t().dot(sao).dot(&cx_o)
+                match (self.complex_conjugated, other.complex_conjugated) {
+                    (false, false) => cw_o.t().dot(sao_h).dot(&cx_o),
+                    (true, false) => cw_o.t().dot(sao).dot(&cx_o),
+                    (false, true) => cx_o.t().dot(sao).dot(&cw_o),
+                    (true, true) => cw_o.t().dot(&sao_h.t()).dot(&cx_o),
+                }
             } else {
-                cw_o.t().mapv(|x| x.conj()).dot(sao).dot(&cx_o)
+                match (self.complex_conjugated, other.complex_conjugated) {
+                    (false, false) => cw_o.t().mapv(|x| x.conj()).dot(sao).dot(&cx_o),
+                    (true, false) => cw_o.t().mapv(|x| x.conj()).dot(sao_h).dot(&cx_o),
+                    (false, true) => cx_o
+                        .t()
+                        .mapv(|x| x.conj())
+                        .dot(sao_h)
+                        .dot(&cw_o)
+                        .mapv(|x| x.conj()),
+                    (true, true) => cw_o.t().mapv(|x| x.conj()).dot(&sao.t()).dot(&cx_o),
+                }
             };
             mo_ov_mat
                 .det()
@@ -228,7 +263,7 @@ where
         /// # Arguments
         ///
         /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. 
+        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
         /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
         /// full rank.
         pub calc_xmat
@@ -320,7 +355,12 @@ where
     }
 
     fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self.group.get_index(i).unwrap().is_antiunitary() {
+        if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .is_antiunitary()
+        {
             ComplexFloat::conj
         } else {
             |x| x
@@ -393,6 +433,13 @@ where
                     .calc_characters()
                     .map_err(|err| DecompositionError(err.to_string()))?;
                 log::debug!("Characters calculated.");
+
+                log_subtitle("Determinant orbit characters");
+                qsym2_output!("");
+                self.characters_to_string(&chis, self.integrality_threshold)
+                    .log_output_display();
+                qsym2_output!("");
+
                 let res = self.group().character_table().reduce_characters(
                     &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                     self.integrality_threshold(),

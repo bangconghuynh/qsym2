@@ -65,7 +65,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let _ = orbit_u_nh3_spatial_vib1
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -101,7 +101,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let _ = orbit_u_nh3_spatial_vib2
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -137,7 +137,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let _ = orbit_u_nh3_spatial_vib3
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -173,7 +173,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let _ = orbit_u_nh3_spatial_vib4
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -209,7 +209,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let _ = orbit_u_nh3_spatial_vib5
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -245,7 +245,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let _ = orbit_u_nh3_spatial_vib6
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -299,7 +299,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib1
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -336,7 +336,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib2
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -373,7 +373,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib3
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -410,7 +410,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib4
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -447,7 +447,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib5
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -484,7 +484,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib6
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -521,7 +521,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib7
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -558,7 +558,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib8
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -595,7 +595,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let _ = orbit_u_ch4_spatial_vib9
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -656,7 +656,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib1
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -674,7 +674,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib1
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -711,7 +711,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib2
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -729,7 +729,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib2
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -766,7 +766,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib3
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -784,7 +784,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib3
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -821,7 +821,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib4
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -839,7 +839,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib4
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -876,7 +876,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib5
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -894,7 +894,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib5
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -931,7 +931,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib6
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -949,7 +949,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib6
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -986,7 +986,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib7
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1004,7 +1004,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib7
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1041,7 +1041,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib8
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1059,7 +1059,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib8
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1096,7 +1096,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_d4h_ch4_spatial_vib9
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1114,7 +1114,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let _ = orbit_u_c4h_ch4_spatial_vib9
-        .calc_smat(None)
+        .calc_smat(None, None)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(

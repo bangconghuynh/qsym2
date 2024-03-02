@@ -2,7 +2,7 @@ site_name: QSym²
 site_url: https://qsym2.dev
 repo_name: bangconghuynh/qsym2
 repo_url: https://gitlab.com/bangconghuynh/qsym2
-copyright: Copyright &copy; 2023 Bang C. Huynh
+copyright: Copyright &copy; 2024 Bang C. Huynh
 theme:
   name: material
   logo: assets/logos/qsym2_logo_no_text_no_background.svg
@@ -105,6 +105,8 @@ nav:
     - methodologies/projective-reps-coreps.md
   - Tutorials:
     - tutorials/benzene.md
+    - tutorials/adamantane.md
+    - tutorials/bf3.md
   - User guide:
     - user-guide/symmetry-group-detection.md
     - user-guide/molecule-symmetrisation.md

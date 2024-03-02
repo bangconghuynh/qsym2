@@ -112,6 +112,7 @@ where
 {
     fn transform_cc_mut(&mut self) -> &mut Self {
         self.density_matrix.mapv_inplace(|x| x.conj());
+        self.complex_conjugated = !self.complex_conjugated;
         self
     }
 }

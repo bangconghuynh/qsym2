@@ -419,7 +419,7 @@ where
                 let dim_i = (1..=p.div_euclid(2))
                     .map(|d| vec_i_inprod.convert(d))
                     .find(|d_modp| {
-                        vec_i_inprod == d_modp.square().inv()
+                        Some(vec_i_inprod) == d_modp.square().inv()
                     })
                     .unwrap_or_else(|| {
                         log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
@@ -481,6 +481,7 @@ where
                                                 }),
                                         )
                                         .inv()
+                                        .expect("Unable to find the modular inverse of z^(slm//k).")
                                 }) / k;
                                 (
                                     xi.pow(i32::try_from(s).unwrap_or_else(|_| {
@@ -538,7 +539,7 @@ where
                 let dim_i = (1..=p.div_euclid(2))
                     .map(|d| vec_i_inprod.convert(d))
                     .find(|d_modp| {
-                        vec_i_inprod == d_modp.square().inv()
+                        Some(vec_i_inprod) == d_modp.square().inv()
                     })
                     .unwrap_or_else(|| {
                         log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
