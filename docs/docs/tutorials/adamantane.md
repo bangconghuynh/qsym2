@@ -352,7 +352,9 @@ The required basis angular order information can be extracted by adding the foll
         pydet=pydet,
         pybao=pybao,
         sao_spatial=sao_spatial,
+        sao_spatial_h=None,
         sao_spatial_4c=None,
+        sao_spatial_4c_h=None,
         # Thresholds
         linear_independence_threshold=1e-7,
         integrality_threshold=1e-7,

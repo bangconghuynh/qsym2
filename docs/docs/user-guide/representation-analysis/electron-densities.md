@@ -40,7 +40,7 @@ $$
 $$
 
 Few programs are known to have these integrals computed as part of their routine calculations.
-QSym² therefore has implementations to calculate these integrals, provided that the full basis set information is provided (see [Integral evaluation](../integral-evaluation.md)).
+QSym² therefore has implementations to calculate these integrals (and their complex-symmetric versions), provided that the full basis set information is provided (see [Integral evaluation](../integral-evaluation.md)).
 
 ### Atomic-orbital basis angular order
 
@@ -126,17 +126,18 @@ The way to do this is shown below.
         pydens=pydens, #(13)!
         pybao=pybao, #(14)!
         sao_spatial_4c=sao_spatial_4c, #(15)!
+        sao_spatial_4c_h=None, #(16)!
         # Thresholds
-        linear_independence_threshold=1e-7, #(16)!
-        integrality_threshold=1e-7, #(17)!
-        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(18)!
+        linear_independence_threshold=1e-7, #(17)!
+        integrality_threshold=1e-7, #(18)!
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(19)!
         # Analysis options
-        use_magnetic_group=None, #(19)!
-        use_double_group=False, #(20)!
-        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(21)!
-        infinite_order_to_finite=None, #(22)!
+        use_magnetic_group=None, #(20)!
+        use_double_group=False, #(21)!
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(22)!
+        infinite_order_to_finite=None, #(23)!
         # Other options
-        write_character_table=True, #(23)!
+        write_character_table=True, #(24)!
     )
     ```
 
@@ -158,33 +159,35 @@ The way to do this is shown below.
     13. :fontawesome-solid-users: This specifies the electron densities to be symmetry-analysed.
     14. :fontawesome-solid-users: This specifies the basis angular order information for the underlying basis. See [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details of how to specify this.
     15. :fontawesome-solid-users: This specifies the four-centre atomic-orbital spatial overlap tensor as a four-dimensional `numpy` array.
-    16. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
+    16. :fontawesome-solid-users: This specifies the optional complex-symmetric four-centre atomic-orbital spatial overlap tensor as a four-dimensional `numpy` array. This is only required for density symmetry analysis in the presence of antiunitary operations.
+    </br></br>:material-cog-sync-outline: Default: `None`.
+    17. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    17. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
+    18. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    18. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+    19. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
     </li>For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    19. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
+    20. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
         - `None`: this specifies choice 1 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
         - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
         - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
     </li>For more information, see [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups).
-    20. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
+    21. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
         - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
     </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
-    21. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+    22. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
-    22. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+    23. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
         - `None`: do not restrict infinite-order symmetry elements to finite order,
         - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
-    23. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
+    24. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
     </li></br>:material-cog-sync-outline: Default: `True`.

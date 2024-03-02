@@ -165,8 +165,8 @@ More methods might become possible in the future. The parameter specifications f
         These files can be generated from various sources, but must be modified to conform to a suitable format for reading in by QSym².
         </br></br>:fontawesome-solid-laptop-code: Under the hood, the following parameters are handled by the Rust struct [`BinariesSlaterDeterminantSource`](https://qsym2.dev/api/qsym2/interfaces/binaries/struct.BinariesSlaterDeterminantSource.html).
         3. :fontawesome-solid-users: This specifies the path to an XYZ file containing the geometry of the molecular system.
-        4. :fontawesome-solid-users: This specifies the path to a binary file containing the two-centre atomic-orbital *spatial* overlap matrix.
-        5. :fontawesome-solid-users: This specifies an optional path to a binary file containing the four-centre atomic-orbital *spatial* overlap matrix. This is only required for density symmetry analysis.
+        4. :fontawesome-solid-users: This specifies the path to a binary file containing the real-valued two-centre atomic-orbital *spatial* overlap matrix.
+        5. :fontawesome-solid-users: This specifies an optional path to a binary file containing the real-valued four-centre atomic-orbital *spatial* overlap matrix. This is only required for density symmetry analysis.
         6. :fontawesome-solid-users: This list specifies the paths to binary files containing molecular-orbital coefficient matrices. Each item in the list specifies the coefficient matrix for one spin space. The number of spin spaces must match that specified in the `spin_constraint` key.
         7. :fontawesome-solid-users: This list specifies the paths to binary files containing occupation numbers. Each item in the list specifies the occupation numbers of the molecular orbitals in one spin space. The number of spin spaces must match that specified in the `spin_constraint` key.
         8. :fontawesome-solid-laptop-code: Under the hood, this is handled by the Rust enum [`SpinConstraint`](https://qsym2.dev/api/qsym2/angmom/spinor_rotation_3d/enum.SpinConstraint.html).
@@ -290,7 +290,7 @@ More methods might become possible in the future. The parameter specifications f
     </br></br>:material-cog-sync-outline: Default: `None`.
     22. :fontawesome-solid-users: This specifies the optional four-centre atomic-orbital spatial overlap tensor as a four-dimensional `numpy` array. This is only required for density symmetry analysis.
     </br></br>:material-cog-sync-outline: Default: `None`.
-    23. :fontawesome-solid-users: This specifies the optional complex-symmetric four-centre atomic-orbital spatial overlap tensor as a four-dimensional `numpy` array. This is only required for density symmetry analysis.
+    23. :fontawesome-solid-users: This specifies the optional complex-symmetric four-centre atomic-orbital spatial overlap tensor as a four-dimensional `numpy` array. This is only required for density symmetry analysis in the presence of antiunitary operations.
     </br></br>:material-cog-sync-outline: Default: `None`.
     24. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).

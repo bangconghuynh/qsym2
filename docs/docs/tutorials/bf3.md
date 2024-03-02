@@ -367,7 +367,9 @@ The required basis set information can therefore be extracted by adding the foll
         pydet=pydet,
         pybao=pybao,
         sao_spatial=sao_spatial,
+        sao_spatial_h=None,
         sao_spatial_4c=sao_spatial_4c, #(3)!
+        sao_spatial_4c_h=None,
         # Thresholds
         linear_independence_threshold=1e-7,
         integrality_threshold=1e-7,
@@ -458,6 +460,7 @@ However, we would also like to run a CCSD calculation based on the obtained UHF 
         pydens=pydens,
         pybao=pybao,
         sao_spatial_4c=sao_spatial_4c,
+        sao_spatial_4c_h=None,
         # Thresholds
         linear_independence_threshold=1e-7,
         integrality_threshold=1e-7,
