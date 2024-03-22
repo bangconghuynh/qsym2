@@ -1256,13 +1256,13 @@ fn test_drivers_slater_determinant_analysis_h2co_by_mag_uni() {
 
     // See Figure 5 in arXiv:2402.15595 and the discussion therein for an explanation.
     let _ = orb_a6_orbit
-        .calc_smat(Some(&sao_spatial), Some(&sao_spatial_h))
+        .calc_smat(Some(&sao_spatial), Some(&sao_spatial_h), true)
         .unwrap()
         .calc_xmat(false);
     assert!(orb_a6_orbit.analyse_rep().is_err());
 
     let _ = orb_a7_orbit
-        .calc_smat(Some(&sao_spatial), Some(&sao_spatial_h))
+        .calc_smat(Some(&sao_spatial), Some(&sao_spatial_h), true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(

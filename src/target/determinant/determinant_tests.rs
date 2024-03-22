@@ -8,12 +8,12 @@ use num_traits::Pow;
 
 use crate::analysis::{EigenvalueComparisonMode, Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
+use crate::basis::ao::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -1212,7 +1212,10 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .unwrap();
 
     let sao = Array2::<f64>::eye(4);
-    let _ = orbit.calc_smat(Some(&sao), None).unwrap().calc_xmat(false);
+    let _ = orbit
+        .calc_smat(Some(&sao), None, true)
+        .unwrap()
+        .calc_xmat(false);
     let smat = orbit.smat().unwrap().clone();
     let xmat = orbit.xmat();
 
@@ -1231,7 +1234,10 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_c.calc_smat(Some(&sao_c), None).unwrap().calc_xmat(false);
+    let _ = orbit_c
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
     let smat_c = orbit_c.smat().unwrap().clone();
     let xmat_c = orbit_c.xmat();
 
@@ -1372,7 +1378,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1391,7 +1397,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1412,7 +1418,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1430,7 +1436,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1448,7 +1454,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1467,7 +1473,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1492,7 +1498,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1513,7 +1519,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1534,7 +1540,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     // Character analysis would give ^(+)|A|_(1g) ⊕ ^(-)|A|_(1g), but |α⟩ and |β⟩ cannot be linearly
@@ -1551,7 +1557,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1569,7 +1575,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert!(orbit_cg_u_grey_d4h_spin_spatial_1e.analyse_rep().is_err());
@@ -1584,7 +1590,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1610,7 +1616,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1629,7 +1635,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1650,7 +1656,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1668,7 +1674,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1686,7 +1692,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1705,7 +1711,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1730,7 +1736,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1749,7 +1755,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1770,7 +1776,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     // Character analysis would give |A|_(1g) ⊕ |A|_(2g), but |α⟩ and |β⟩ cannot be linearly
@@ -1787,7 +1793,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1805,7 +1811,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert!(orbit_cg_u_bw_d4h_c4h_spin_spatial_1e.analyse_rep().is_err());
@@ -1820,7 +1826,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     // Half of the irreps are missing here, but that is because this orbit starts from a
@@ -1848,7 +1854,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1869,7 +1875,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1890,7 +1896,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1908,7 +1914,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1926,7 +1932,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1947,7 +1953,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     // Half of the ircoreps are missing here, but that is because this orbit starts from a
@@ -1975,7 +1981,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_double_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -1993,7 +1999,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_double_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2011,7 +2017,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_double_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2029,7 +2035,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_double_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2047,7 +2053,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_double_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2068,7 +2074,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_d4h_double_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     // Half of the irreps are missing here, but that is because this orbit starts from a
@@ -2096,7 +2102,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_double_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2114,7 +2120,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_double_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2132,7 +2138,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_double_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert!(orbit_cg_u_grey_d4h_double_spin_1e.analyse_rep().is_err(),);
@@ -2147,7 +2153,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_double_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2165,7 +2171,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_double_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert!(orbit_cg_u_grey_d4h_double_spin_spatial_1e
@@ -2182,7 +2188,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_grey_d4h_double_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2210,7 +2216,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_double_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2228,7 +2234,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_double_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2246,7 +2252,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_double_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2264,7 +2270,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_double_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2282,7 +2288,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_double_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2305,7 +2311,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_grey_d4h_double_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     // Compared to u D4h*, all ircoreps are present here because there is time reversal in this
@@ -2335,7 +2341,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_double_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2355,7 +2361,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_double_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2375,7 +2381,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_double_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert!(orbit_cg_u_bw_d4h_c4h_double_spin_1e.analyse_rep().is_err());
@@ -2390,7 +2396,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_double_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2409,7 +2415,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .build()
             .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_double_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert!(orbit_cg_u_bw_d4h_c4h_double_spin_spatial_1e
@@ -2427,7 +2433,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .build()
             .unwrap();
     let _ = orbit_cg_u_bw_d4h_c4h_double_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2454,7 +2460,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_double_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2477,7 +2483,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_double_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2500,7 +2506,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_double_spin_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2518,7 +2524,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_double_spin_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2537,7 +2543,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .build()
             .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_double_spin_spatial_1e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2560,7 +2566,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let _ = orbit_cg_m_bw_d4h_c4h_spin_spatial_2e
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2711,7 +2717,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_oh_spatial_dyy
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2729,7 +2735,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_oh_spatial_dxz
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
@@ -2751,11 +2757,32 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_oh_double_spin_spatial_dyy
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_dyy.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||F~|_(g)|").unwrap()
+    );
+
+    let mut orbit_cg_u_oh_double_spin_spatial_dyy_nocayley =
+        SlaterDeterminantSymmetryOrbit::builder()
+            .group(&group_u_oh_double)
+            .origin(&det_dyy_cg)
+            .integrality_threshold(1e-14)
+            .linear_independence_threshold(1e-14)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+    let _ = orbit_cg_u_oh_double_spin_spatial_dyy_nocayley
+        .calc_smat(Some(&sao_cg), None, false)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_cg_u_oh_double_spin_spatial_dyy_nocayley
+            .analyse_rep()
+            .unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||F~|_(g)|").unwrap()
     );
 
@@ -2769,11 +2796,32 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .build()
         .unwrap();
     let _ = orbit_cg_u_oh_double_spin_spatial_dxz
-        .calc_smat(Some(&sao_cg), None)
+        .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_dxz.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||F~|_(g)|").unwrap()
+    );
+
+    let mut orbit_cg_u_oh_double_spin_spatial_dxz_nocayley =
+        SlaterDeterminantSymmetryOrbit::builder()
+            .group(&group_u_oh_double)
+            .origin(&det_dxz_cg)
+            .integrality_threshold(1e-14)
+            .linear_independence_threshold(1e-14)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+    let _ = orbit_cg_u_oh_double_spin_spatial_dxz_nocayley
+        .calc_smat(Some(&sao_cg), None, false)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_cg_u_oh_double_spin_spatial_dxz_nocayley
+            .analyse_rep()
+            .unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||F~|_(g)|").unwrap()
     );
 }

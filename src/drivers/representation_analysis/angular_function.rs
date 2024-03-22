@@ -150,6 +150,7 @@ where
                             params.linear_independence_threshold,
                             SymmetryTransformationKind::Spatial,
                             EigenvalueComparisonMode::Real,
+                            true,
                         )
                         .map(|(_, mut mo_orbitss)| {
                             mo_orbitss[0]
