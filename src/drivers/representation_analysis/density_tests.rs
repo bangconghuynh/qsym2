@@ -161,6 +161,7 @@ fn test_drivers_density_analysis_s4_sqpl_pxpy() {
         .linear_independence_threshold(1e-10)
         .use_magnetic_group(None)
         .use_double_group(false)
+        .use_cayley_table(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_character_table(Some(CharacterTableDisplay::Symbolic))
         .build()

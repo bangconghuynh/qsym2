@@ -246,12 +246,13 @@ pub enum PyDensity {
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
 /// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
-/// * `use_magnetic_group` - A boolean indicating if any magnetic group present should be used for
-/// representation analysis. Otherwise, the unitary group will be used. Python type: `bool`.
+/// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
+/// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
+/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
 /// group is to be used for representation analysis instead. Python type: `bool`.
-/// * `use_corepresentation` - A boolean indicating if corepresentations of magnetic groups are to
-/// be used for representation analysis instead of unitary representations. Python type: `bool`.
+/// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
+/// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
 /// transformations to be performed on the origin electron density to generate the orbit. Python
 /// type: `SymmetryTransformationKind`.
@@ -280,6 +281,7 @@ pub enum PyDensity {
     linear_independence_threshold,
     use_magnetic_group,
     use_double_group,
+    use_cayley_table,
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
     sao_spatial_4c,
@@ -299,6 +301,7 @@ pub fn rep_analyse_densities(
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
+    use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     sao_spatial_4c: PyArray4RC,
@@ -336,6 +339,7 @@ pub fn rep_analyse_densities(
         .linear_independence_threshold(linear_independence_threshold)
         .use_magnetic_group(use_magnetic_group.clone())
         .use_double_group(use_double_group)
+        .use_cayley_table(use_cayley_table)
         .symmetry_transformation_kind(symmetry_transformation_kind)
         .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
         .write_character_table(if write_character_table {
