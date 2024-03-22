@@ -213,6 +213,11 @@ where
             "Use double group for analysis: {}",
             nice_bool(self.use_double_group)
         )?;
+        writeln!(
+            f,
+            "Use Cayley table for orbit overlap matrices: {}",
+            nice_bool(self.use_cayley_table)
+        )?;
         if let Some(finite_order) = self.infinite_order_to_finite {
             writeln!(f, "Infinite order to finite: {finite_order}")?;
         }

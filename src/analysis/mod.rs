@@ -313,16 +313,16 @@ where
                     .map_err(|err| format_err!(err.clone()))
                     .with_context(|| "One of the items in the orbit is not available")?;
                 smat[(*w, *x)] = item_w.overlap(item_x, metric, metric_h).map_err(|err| {
-                    log::error!("{err}");
-                    log::error!(
+                    log::warn!("{err}");
+                    log::warn!(
                         "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
                     );
                     err
                 })?;
                 if *w != *x {
                     smat[(*x, *w)] = item_x.overlap(item_w, metric, metric_h).map_err(|err| {
-                            log::error!("{err}");
-                            log::error!(
+                            log::warn!("{err}");
+                            log::warn!(
                                 "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
                             );
                             err
