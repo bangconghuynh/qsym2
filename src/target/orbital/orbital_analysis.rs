@@ -456,7 +456,10 @@ where
 /// each orbit.
 /// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
 /// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
-/// origin determinant.
+/// * `eigenvalue_comparison_mode` - The mode of comparing the overlap eigenvalues to the specified
+/// `linear_independence_threshold`.
+/// * `use_cayley_table` - A boolean indicating if the Cayley table of the group, if available,
+/// should be used to speed up the computation of the orbit overlap matrix.
 ///
 /// # Returns
 ///
@@ -474,6 +477,7 @@ pub fn generate_det_mo_orbits<'a, G, T>(
     linear_independence_threshold: <T as ComplexFloat>::Real,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    use_cayley_table: bool,
 ) -> Result<
     (
         SlaterDeterminantSymmetryOrbit<'a, G, T>,
@@ -533,7 +537,7 @@ where
     let sao = metric;
     let sao_h = metric_h.unwrap_or(sao);
 
-    if let Some(ctb) = group.cayley_table() {
+    if let (Some(ctb), true) = (group.cayley_table(), use_cayley_table) {
         log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
         let mut det_smatw0 = Array1::<T>::zeros(order);
         let mut mo_smatw0ss = mo_orbitss
@@ -559,11 +563,6 @@ where
                 let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
                 let nonzero_occ_0 = occ0.iter().positions(|&occ| occ > thresh).collect_vec();
 
-                // let all_mo_w0_ov_mat = if det.complex_symmetric() {
-                //     cw.t().dot(metric).dot(c0)
-                // } else {
-                //     cw.t().mapv(|x| x.conj()).dot(metric).dot(c0)
-                // };
                 let all_mo_w0_ov_mat = if det.complex_symmetric() {
                     match (det_w.complex_conjugated(), det_0.complex_conjugated()) {
                         (false, false) => cw.t().dot(sao_h).dot(c0),
@@ -637,7 +636,7 @@ where
             det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)(det_smatw0[jinv_i]);
         }
     } else {
-        log::debug!("Cayley table not available. Overlap matrix will be constructed without group-closure speed-up.");
+        log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");
         let indexed_dets = det_orbit
             .iter()
             .map(|det_res| det_res.map_err(|err| err.to_string()))

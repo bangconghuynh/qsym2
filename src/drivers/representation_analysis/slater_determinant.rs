@@ -105,6 +105,12 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[serde(default)]
     pub use_double_group: bool,
 
+    /// Boolean indicating if the Cayley table of the group, if available, should be used to speed
+    /// up the computation of orbit overlap matrices.
+    #[builder(default = "true")]
+    #[serde(default = "default_true")]
+    pub use_cayley_table: bool,
+
     /// The kind of symmetry transformation to be applied on the reference determinant to generate
     /// the orbit for symmetry analysis.
     #[builder(default = "SymmetryTransformationKind::Spatial")]
@@ -981,6 +987,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 params.linear_independence_threshold,
                 params.symmetry_transformation_kind.clone(),
                 params.eigenvalue_comparison_mode.clone(),
+                params.use_cayley_table,
             )?;
             det_orbit.calc_xmat(false)?;
             if params.write_overlap_eigenvalues {
@@ -1109,7 +1116,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                 .build()?;
             let det_symmetry = det_orbit
-                .calc_smat(Some(&sao), sao_h.as_ref())
+                .calc_smat(Some(&sao), sao_h.as_ref(), params.use_cayley_table)
                 .and_then(|det_orb| det_orb.normalise_smat())
                 .map_err(|err| err.to_string())
                 .and_then(|det_orb| {
@@ -1151,7 +1158,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 )
                                 .build()?;
                             den_orbit
-                                .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)?
+                                .calc_smat(
+                                    self.sao_spatial_4c,
+                                    self.sao_spatial_4c_h,
+                                    params.use_cayley_table,
+                                )?
                                 .normalise_smat()?
                                 .calc_xmat(false)?;
                             den_orbit.analyse_rep().map_err(|err| format_err!(err))
@@ -1192,7 +1203,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 )
                                 .build()?;
                             total_den_orbit
-                                .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)?
+                                .calc_smat(
+                                    self.sao_spatial_4c,
+                                    self.sao_spatial_4c_h,
+                                    params.use_cayley_table,
+                                )?
                                 .calc_xmat(false)?;
                             total_den_orbit
                                 .analyse_rep()
@@ -1223,7 +1238,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                         )
                                         .build()?;
                                     den_ij_orbit
-                                        .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)?
+                                        .calc_smat(
+                                            self.sao_spatial_4c,
+                                            self.sao_spatial_4c_h,
+                                            params.use_cayley_table,
+                                        )?
                                         .calc_xmat(false)?;
                                     den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
                                 };
@@ -1266,7 +1285,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .ok()?;
                                 log::debug!("Computing overlap matrix for an MO density orbit...");
                                 mo_den_orbit
-                                    .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)
+                                    .calc_smat(
+                                        self.sao_spatial_4c,
+                                        self.sao_spatial_4c_h,
+                                        params.use_cayley_table,
+                                    )
                                     .ok()?
                                     .normalise_smat()
                                     .ok()?

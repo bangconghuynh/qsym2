@@ -48,6 +48,9 @@ mod density_tests;
 // Parameters
 // ----------
 
+const fn default_true() -> bool {
+    true
+}
 const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
@@ -71,6 +74,12 @@ pub struct DensityRepAnalysisParams<T: From<f64>> {
     #[builder(default = "false")]
     #[serde(default)]
     pub use_double_group: bool,
+
+    /// Boolean indicating if the Cayley table of the group, if available, should be used to speed
+    /// up the computation of orbit overlap matrices.
+    #[builder(default = "true")]
+    #[serde(default = "default_true")]
+    pub use_cayley_table: bool,
 
     /// The kind of symmetry transformation to be applied on the reference density to generate
     /// the orbit for symmetry analysis.
@@ -597,7 +606,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
                     .map_err(|err| format_err!(err))
                     .and_then(|mut den_orbit| {
                         den_orbit
-                            .calc_smat(Some(sao_spatial_4c), sao_spatial_4c_h)?
+                            .calc_smat(Some(sao_spatial_4c), sao_spatial_4c_h, params.use_cayley_table)?
                             .normalise_smat()?
                             .calc_xmat(false)?;
                         let density_symmetry_thresholds = den_orbit

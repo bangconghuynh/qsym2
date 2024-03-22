@@ -367,6 +367,26 @@ pub enum PySlaterDeterminant {
 /// representation analysis. Python type: `str`.
 /// * `pydet` - A Python-exposed Slater determinant whose coefficients are of type `float64` or
 /// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
+/// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
+/// Python type: `PyBasisAngularOrder`.
+/// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
+/// integral. Python type: `float`.
+/// * `linear_independence_threshold` - The threshold for determining the linear independence
+/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
+/// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
+/// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
+/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
+/// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
+/// group is to be used for representation analysis instead. Python type: `bool`.
+/// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
+/// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
+/// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
+/// transformations to be performed on the origin determinant to generate the orbit. If this
+/// contains spin transformation, the determinant will be augmented to generalised spin constraint
+/// automatically. Python type: `SymmetryTransformationKind`.
+/// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
+/// overlap eigenvalues with the specified `linear_independence_threshold`.
+/// Python type: `EigenvalueComparisonMode`.
 /// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `sao_spatial_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
@@ -378,23 +398,6 @@ pub enum PySlaterDeterminant {
 /// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
 /// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
 /// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
-/// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
-/// integral. Python type: `float`.
-/// * `linear_independence_threshold` - The threshold for determining the linear independence
-/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
-/// * `use_magnetic_group` - A boolean indicating if any magnetic group present should be used for
-/// representation analysis. Otherwise, the unitary group will be used. Python type: `bool`.
-/// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead. Python type: `bool`.
-/// * `use_corepresentation` - A boolean indicating if corepresentations of magnetic groups are to
-/// be used for representation analysis instead of unitary representations. Python type: `bool`.
-/// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin determinant to generate the orbit. If this
-/// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically. Python type: `SymmetryTransformationKind`.
-/// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
-/// overlap eigenvalues with the specified `linear_independence_threshold`.
-/// Python type: `EigenvalueComparisonMode`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
 /// * `analyse_mo_mirror_parities` - A boolean indicating if the mirror parities of individual
@@ -425,6 +428,7 @@ pub enum PySlaterDeterminant {
     linear_independence_threshold,
     use_magnetic_group,
     use_double_group,
+    use_cayley_table,
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
     sao_spatial,
@@ -450,6 +454,7 @@ pub fn rep_analyse_slater_determinant(
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
+    use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     sao_spatial: PyArray2RC,
@@ -497,6 +502,7 @@ pub fn rep_analyse_slater_determinant(
         .linear_independence_threshold(linear_independence_threshold)
         .use_magnetic_group(use_magnetic_group.clone())
         .use_double_group(use_double_group)
+        .use_cayley_table(use_cayley_table)
         .symmetry_transformation_kind(symmetry_transformation_kind)
         .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
         .analyse_mo_symmetries(analyse_mo_symmetries)

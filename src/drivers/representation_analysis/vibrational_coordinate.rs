@@ -47,6 +47,9 @@ mod vibrational_coordinate_tests;
 // Parameters
 // ----------
 
+const fn default_true() -> bool {
+    true
+}
 const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
@@ -70,6 +73,12 @@ pub struct VibrationalCoordinateRepAnalysisParams<T: From<f64>> {
     #[builder(default = "false")]
     #[serde(default)]
     pub use_double_group: bool,
+
+    /// Boolean indicating if the Cayley table of the group, if available, should be used to speed
+    /// up the computation of orbit overlap matrices.
+    #[builder(default = "true")]
+    #[serde(default = "default_true")]
+    pub use_cayley_table: bool,
 
     /// The kind of symmetry transformation to be applied on the reference vibrational coordinate to
     /// generate the orbit for symmetry analysis.
@@ -594,7 +603,7 @@ impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
                     .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                     .build()?;
                 vib_orbit
-                    .calc_smat(None, None)
+                    .calc_smat(None, None, params.use_cayley_table)
                     .and_then(|orbit| orbit.calc_xmat(false))?;
                 Ok::<_, anyhow::Error>(vib_orbit)
             });

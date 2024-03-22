@@ -263,15 +263,18 @@ where
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
     /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
     /// expressed. This is required if antiunitary operations are involved.
+    /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
+    /// to speed up the computation of the overlap matrix.
     fn calc_smat(
         &mut self,
         metric: Option<&Array<T, D>>,
         metric_h: Option<&Array<T, D>>,
+        use_cayley_table: bool,
     ) -> Result<&mut Self, anyhow::Error> {
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
         let item_0 = self.origin();
-        if let Some(ctb) = self.group().cayley_table() {
+        if let (Some(ctb), true) = (self.group().cayley_table(), use_cayley_table) {
             log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
             let ovs = self
                 .iter()
@@ -292,7 +295,7 @@ where
                 smat[(i, j)] = self.norm_preserving_scalar_map(jinv)(ovs[jinv_i]);
             }
         } else {
-            log::debug!("Cayley table not available. Overlap matrix will be constructed without group-closure speed-up.");
+            log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");
             for pair in self
                 .iter()
                 .map(|item_res| item_res.map_err(|err| err.to_string()))
