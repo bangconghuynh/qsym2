@@ -342,6 +342,11 @@ where
                         format!("Unable to apply `{op}` spatially on the origin density")
                     })
                 },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time-reversal) on the origin density")
+                    })
+                },
                 SymmetryTransformationKind::Spin => |op, det| {
                     det.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin density")

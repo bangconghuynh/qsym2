@@ -80,8 +80,10 @@ where
     T: ComplexFloat + Lapack,
 {
     /// Provides a custom implementation of time reversal where the axial vector is kept invariant
-    /// or inverted based on its time-parity.
+    /// or inverted based on its time-parity. The components of the vector are also
+    /// complex-conjugated to respect the antiunitarity of time reversal.
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.transform_cc_mut();
         match self.time_parity {
             TimeParity::Even => {}
             TimeParity::Odd => self.components = -self.components,

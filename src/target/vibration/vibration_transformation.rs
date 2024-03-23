@@ -98,12 +98,19 @@ where
     }
 }
 
-// --------------------------------
-// DefaultTimeReversalTransformable
-// --------------------------------
-impl<'a, T> DefaultTimeReversalTransformable for VibrationalCoordinate<'a, T> where
-    T: ComplexFloat + Lapack
+// -------------------------
+// TimeReversalTransformable
+// -------------------------
+impl<'a, T> TimeReversalTransformable for VibrationalCoordinate<'a, T>
+where
+    T: ComplexFloat + Lapack,
 {
+    /// Provides a custom implementation of time reversal where the components of the vibrational
+    /// coordinates are complex-conjugated to respect the antiunitarity of time reversal.
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.transform_cc_mut();
+        Ok(self)
+    }
 }
 
 // ---------------------

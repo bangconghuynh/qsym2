@@ -327,7 +327,7 @@ pub trait SymmetryTransformable:
         self.transform_spatial_mut(&rmat, Some(&perm))
             .map_err(|err| TransformationError(err.to_string()))?;
         if symop.contains_time_reversal() {
-            self.transform_timerev_mut();
+            self.transform_timerev_mut()?;
         }
         Ok(self)
     }
@@ -359,7 +359,8 @@ pub trait SymmetryTransformable:
     /// Performs a spin transformation according to a specified symmetry operation in-place.
     ///
     /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations. Also note
-    /// that, if the transformation is antiunitary, it will be accompanied by a time reversal.
+    /// that, if the transformation contains a time reversal, the corresponding explicit time
+    /// reveral action will also be carried out.
     ///
     /// # Arguments
     ///
