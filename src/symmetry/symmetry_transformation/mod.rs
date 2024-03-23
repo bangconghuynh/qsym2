@@ -187,26 +187,17 @@ pub trait ComplexConjugationTransformable: Clone {
 /// This trait has a blanket implementation for any implementor of the [`SpinUnitaryTransformable`]
 /// trait and the [`ComplexConjugationTransformable`] trait together with the
 /// [`DefaultTimeReversalTransformable`] marker trait.
-pub trait TimeReversalTransformable:
-    SpinUnitaryTransformable + ComplexConjugationTransformable
-{
+pub trait TimeReversalTransformable: ComplexConjugationTransformable {
+    // ----------------
+    // Required methods
+    // ----------------
+    /// Performs a time-reversal transformation in-place.
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError>;
+
     // ----------------
     // Provided methods
     // ----------------
-    /// Performs a time-reversal transformation in-place.
-    ///
-    /// The default implementation of the time-reversal transformation is a spin rotation by $`\pi`$
-    /// about the space-fixed $`y`$-axis followed by a complex conjugation.
-    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
-        self.transform_spin_mut(&dmat_y)?.transform_cc_mut();
-        Ok(self)
-    }
-
     /// Performs a time-reversal transformation and returns the time-reversed result.
-    ///
-    /// The default implementation of the time-reversal transformation is a spin rotation by $`\pi`$
-    /// about the space-fixed $`y`$-axis followed by a complex conjugation.
     ///
     /// # Returns
     ///
@@ -226,15 +217,28 @@ pub trait TimeReversalTransformable:
 /// [`TimeReversalTransformable`].
 pub trait DefaultTimeReversalTransformable {}
 
-impl<T> TimeReversalTransformable for T where
+impl<T> TimeReversalTransformable for T
+where
     T: DefaultTimeReversalTransformable
         + SpinUnitaryTransformable
-        + ComplexConjugationTransformable
+        + ComplexConjugationTransformable,
 {
+    /// Performs a time-reversal transformation in-place.
+    ///
+    /// The default implementation of the time-reversal transformation for any type that implements
+    /// [`SpinUnitaryTransformable`] and [`ComplexConjugationTransformable`] is a spin rotation by
+    /// $`\pi`$ about the space-fixed $`y`$-axis followed by a complex conjugation.
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
+        self.transform_spin_mut(&dmat_y)?.transform_cc_mut();
+        Ok(self)
+    }
 }
 
 /// Trait for transformations using [`SymmetryOperation`].
-pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTransformable {
+pub trait SymmetryTransformable:
+    SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable
+{
     // ----------------
     // Required methods
     // ----------------
@@ -300,6 +304,55 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
         tself.sym_transform_spatial_mut(symop)?;
+        Ok(tself)
+    }
+
+    /// Performs a spatial transformation according to a specified symmetry operation in-place, but
+    /// with spin-including time reversal.
+    ///
+    /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
+    /// transformation. Also note that, if the transformation contains time reversal, it will be
+    /// accompanied by a rotation by $`\pi`$ about the space-fixed $`y`$-axis followed by a complex
+    /// conjugation.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    fn sym_transform_spatial_with_spintimerev_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        let rmat = symop.get_3d_spatial_matrix();
+        let perm = self.sym_permute_sites_spatial(symop)?;
+        self.transform_spatial_mut(&rmat, Some(&perm))
+            .map_err(|err| TransformationError(err.to_string()))?;
+        if symop.contains_time_reversal() {
+            self.transform_timerev_mut();
+        }
+        Ok(self)
+    }
+
+    /// Performs a spatial transformation according to a specified symmetry operation but with
+    /// spin-including time reversal and returns the transformed result.
+    ///
+    /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
+    /// transformation. Also note that, if the transformation contains time reversal, it will be
+    /// accompanied by a rotation by $`\pi`$ about the space-fixed $`y`$-axis followed by a complex
+    /// conjugation.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The transformed result.
+    fn sym_transform_spatial_with_spintimerev(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Self, TransformationError> {
+        let mut tself = self.clone();
+        tself.sym_transform_spatial_with_spintimerev_mut(symop)?;
         Ok(tself)
     }
 

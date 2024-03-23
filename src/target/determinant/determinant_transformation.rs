@@ -511,7 +511,8 @@ impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T> where
 impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T>
 where
     T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    SlaterDeterminant<'a, T>:
+        SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,
