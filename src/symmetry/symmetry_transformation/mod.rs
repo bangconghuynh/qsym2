@@ -34,6 +34,9 @@ pub enum SymmetryTransformationKind {
     /// Spatial-only transformation.
     Spatial,
 
+    /// Spatial-only transformation but with spin-including time reversal.
+    SpatialWithSpinTimeReversal,
+
     /// Spin-only transformation.
     Spin,
 
@@ -51,6 +54,10 @@ impl fmt::Display for SymmetryTransformationKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Spatial => write!(f, "Spatial-only transformation"),
+            Self::SpatialWithSpinTimeReversal => write!(
+                f,
+                "Spatial-only transformation but with spin-including time reversal"
+            ),
             Self::Spin => write!(f, "Spin-only transformation"),
             Self::SpinSpatial => write!(f, "Spin-spatial coupled transformation"),
         }
@@ -253,7 +260,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     /// Performs a spatial transformation according to a specified symmetry operation in-place.
     ///
     /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
-    /// transformation. Also note that, if the transformation is antiunitary, it will be
+    /// transformation. Also note that, if the transformation contains time reversal, it will be
     /// accompanied by a complex conjugation.
     ///
     /// # Arguments
@@ -267,7 +274,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         let perm = self.sym_permute_sites_spatial(symop)?;
         self.transform_spatial_mut(&rmat, Some(&perm))
             .map_err(|err| TransformationError(err.to_string()))?;
-        if symop.is_antiunitary() {
+        if symop.contains_time_reversal() {
             self.transform_cc_mut();
         }
         Ok(self)
@@ -277,7 +284,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     /// the transformed result.
     ///
     /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
-    /// transformation. Also note that, if the transformation is antiunitary, it will be
+    /// transformation. Also note that, if the transformation contains time reversal, it will be
     /// accompanied by a complex conjugation.
     ///
     /// # Arguments
@@ -318,7 +325,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
             };
             self.transform_spin_mut(&dmat)?;
         }
-        if symop.is_antiunitary() {
+        if symop.contains_time_reversal() {
             self.transform_timerev_mut()?;
         }
         Ok(self)
@@ -379,7 +386,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         }
 
         // Time reversal, if any.
-        if symop.is_antiunitary() {
+        if symop.contains_time_reversal() {
             self.transform_timerev_mut()?;
         }
         Ok(self)

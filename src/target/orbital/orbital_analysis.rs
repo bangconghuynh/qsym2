@@ -368,7 +368,7 @@ where
             .group
             .get_index(i)
             .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
+            .contains_time_reversal()
         {
             ComplexFloat::conj
         } else {

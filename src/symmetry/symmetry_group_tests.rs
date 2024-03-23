@@ -436,12 +436,12 @@ fn test_ur_magnetic_group_from_infinite(
         group
             .elements()
             .iter()
-            .filter(|op| op.is_antiunitary())
+            .filter(|op| op.contains_time_reversal())
             .count(),
         group
             .elements()
             .iter()
-            .filter(|op| !op.is_antiunitary())
+            .filter(|op| !op.contains_time_reversal())
             .count(),
     );
     assert_eq!(group.group_type(), mag_group_type);
@@ -472,12 +472,12 @@ fn test_mr_magnetic_group_from_infinite(
         group
             .elements()
             .iter()
-            .filter(|op| op.is_antiunitary())
+            .filter(|op| op.contains_time_reversal())
             .count(),
         group
             .elements()
             .iter()
-            .filter(|op| !op.is_antiunitary())
+            .filter(|op| !op.contains_time_reversal())
             .count(),
     );
     assert_eq!(group.group_type(), mag_group_type);
