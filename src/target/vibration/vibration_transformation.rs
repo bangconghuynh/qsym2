@@ -10,8 +10,8 @@ use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
     assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
-    SymmetryTransformable, TimeReversalTransformable, TransformationError,
+    SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
+    TimeReversalTransformable, TransformationError,
 };
 use crate::target::vibration::VibrationalCoordinate;
 
