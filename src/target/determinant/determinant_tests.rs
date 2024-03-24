@@ -1,4 +1,4 @@
-use env_logger;
+// use env_logger;
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
@@ -2580,7 +2580,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
 
 #[test]
 fn test_determinant_orbit_rep_analysis_bh3_spintimerev_odd() {
-    env_logger::init();
+    // env_logger::init();
     let emap = ElementMap::new();
     let atm_b0 = Atom::from_xyz("B   -0.0000000    0.0000000   -0.0000000", &emap, 1e-6).unwrap();
     let atm_h0 = Atom::from_xyz("H    0.5905582   -1.0228767    0.0000000", &emap, 1e-6).unwrap();
@@ -2748,7 +2748,7 @@ fn test_determinant_orbit_rep_analysis_bh3_spintimerev_odd() {
 
 #[test]
 fn test_determinant_orbit_rep_analysis_bh3_spintimerev_even() {
-    env_logger::init();
+    // env_logger::init();
     let emap = ElementMap::new();
     let atm_b0 = Atom::from_xyz("B   -0.0000000    0.0000000   -0.0000000", &emap, 1e-6).unwrap();
     let atm_h0 = Atom::from_xyz("H    0.5905582   -1.0228767    0.0000000", &emap, 1e-6).unwrap();
