@@ -487,10 +487,12 @@ pub fn rep_analyse_slater_determinant(
     let bao = pybao
         .to_qsym2(mol)
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let augment_to_generalised = matches!(
-        symmetry_transformation_kind,
-        SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial
-    );
+    let augment_to_generalised = match symmetry_transformation_kind {
+        SymmetryTransformationKind::SpatialWithSpinTimeReversal
+        | SymmetryTransformationKind::Spin
+        | SymmetryTransformationKind::SpinSpatial => true,
+        SymmetryTransformationKind::Spatial => false,
+    };
     let afa_params = AngularFunctionRepAnalysisParams::builder()
         .integrality_threshold(angular_function_integrality_threshold)
         .linear_independence_threshold(angular_function_linear_independence_threshold)
@@ -680,7 +682,9 @@ pub fn rep_analyse_slater_determinant(
             });
             let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
                 // sao_spatial_4c_h must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_h_r) => Some(pysao4c_h_r.to_owned_array().mapv(Complex::from)),
+                PyArray4RC::Real(pysao4c_h_r) => {
+                    Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
+                }
                 PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
             });
             match &use_magnetic_group {
@@ -695,7 +699,7 @@ pub fn rep_analyse_slater_determinant(
                     .sao_spatial(&sao_spatial_c)
                     .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_h_c.as_ref())
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -716,7 +720,7 @@ pub fn rep_analyse_slater_determinant(
                     .sao_spatial(&sao_spatial_c)
                     .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_h_c.as_ref())
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;

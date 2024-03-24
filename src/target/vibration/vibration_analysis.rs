@@ -226,22 +226,25 @@ where
             self.group,
             self.origin,
             match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(op).with_context(|| {
+                SymmetryTransformationKind::Spatial
+                | SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, vib| {
+                    // Vibrational coordinates are time-even, so both `sym_transform_spatial` and
+                    // `sym_transform_spatial_with_spintimerev` would give the same thing.
+                    vib.sym_transform_spatial(op).with_context(|| {
                         format_err!(
                             "Unable to apply `{op}` spatially on the origin vibrational coordinate"
                         )
                     })
                 },
-                SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(op).with_context(|| {
+                SymmetryTransformationKind::Spin => |op, vib| {
+                    vib.sym_transform_spin(op).with_context(|| {
                         format_err!(
                             "Unable to apply `{op}` spin-wise on the origin vibrational coordinate"
                         )
                     })
                 },
-                SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(op).with_context(|| {
+                SymmetryTransformationKind::SpinSpatial => |op, vib| {
+                    vib.sym_transform_spin_spatial(op).with_context(|| {
                         format_err!(
                             "Unable to apply `{op}` spin-spatially on the origin vibrational coordinate"
                         )
@@ -290,7 +293,7 @@ where
             .group
             .get_index(i)
             .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
+            .contains_time_reversal()
         {
             ComplexFloat::conj
         } else {

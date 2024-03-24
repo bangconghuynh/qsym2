@@ -500,7 +500,8 @@ impl<'a, T> DefaultTimeReversalTransformable for MolecularOrbital<'a, T> where
 impl<'a, T> SymmetryTransformable for MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Lapack,
-    MolecularOrbital<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    MolecularOrbital<'a, T>:
+        SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,

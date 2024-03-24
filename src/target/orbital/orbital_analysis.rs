@@ -315,6 +315,11 @@ where
                         format!("Unable to apply `{op}` spatially on the origin orbital")
                     })
                 },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, orb| {
+                    orb.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin orbital")
+                    })
+                },
                 SymmetryTransformationKind::Spin => |op, orb| {
                     orb.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin orbital")
@@ -368,7 +373,7 @@ where
             .group
             .get_index(i)
             .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
+            .contains_time_reversal()
         {
             ComplexFloat::conj
         } else {
@@ -408,12 +413,14 @@ where
         // A single electron; validity depends on group and orbit type
         let (valid_symmetry, err_str) = match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => (true, String::new()),
-                SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal
+                    | SymmetryTransformationKind::Spin
+                    | SymmetryTransformationKind::SpinSpatial => {
                     match self.group().group_type() {
                         GroupType::Ordinary(_) => (true, String::new()),
                         GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                             (!self.group().unitary_represented(),
-                            "Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital.".to_string())
+                            "Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital where spin is treated explicitly.".to_string())
                         }
                     }
                 }

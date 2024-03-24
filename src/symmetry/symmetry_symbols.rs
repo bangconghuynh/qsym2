@@ -582,16 +582,16 @@ impl<R: SpecialSymmetryTransformation + Clone + Serialize> SpecialSymmetryTransf
     // Time-reversal part
     // ==================
 
-    /// Checks if this class is antiunitary.
+    /// Checks if this class contains a time reversal operation.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this class is antiunitary.
-    fn is_antiunitary(&self) -> bool {
+    /// A flag indicating if this class contains a time reversal operation.
+    fn contains_time_reversal(&self) -> bool {
         self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
-            .is_antiunitary()
+            .contains_time_reversal()
     }
 
     // ==================
@@ -881,8 +881,8 @@ where
             .clone()
             .sorted_by(|cc1, _, cc2, _| {
                 PartialOrd::partial_cmp(
-                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper(), !cc1.is_su2_class_1()),
-                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper(), !cc2.is_su2_class_1()),
+                    &(cc1.order(), !cc1.contains_time_reversal(), cc1.is_proper(), !cc1.is_su2_class_1()),
+                    &(cc2.order(), !cc2.contains_time_reversal(), cc2.is_proper(), !cc2.is_su2_class_1()),
                 )
                 .expect("Unable to sort class symbols.")
             })
@@ -906,7 +906,7 @@ where
         class_symbols
             .keys()
             .filter(|cc| {
-                cc.is_antiunitary() == principal_rep.is_antiunitary()
+                cc.contains_time_reversal() == principal_rep.contains_time_reversal()
                 && cc.is_proper() == principal_rep.is_proper()
                 && cc.order() == principal_rep.order()
                 && cc.is_su2_class_1() == principal_rep.is_su2_class_1()

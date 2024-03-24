@@ -213,19 +213,24 @@ where
             self.group,
             self.origin,
             match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spatially on the origin orbital")
+                SymmetryTransformationKind::Spatial => |op, axvec| {
+                    axvec.sym_transform_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin axial vector")
                     })
                 },
-                SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-wise on the origin orbital")
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, axvec| {
+                    axvec.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with potentially direction-reversing time reversal) on the origin axial vector")
                     })
                 },
-                SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-spatially on the origin orbital",)
+                SymmetryTransformationKind::Spin => |op, axvec| {
+                    axvec.sym_transform_spin(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin axial vector")
+                    })
+                },
+                SymmetryTransformationKind::SpinSpatial => |op, axvec| {
+                    axvec.sym_transform_spin_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin axial vector")
                     })
                 },
             },
@@ -270,7 +275,7 @@ where
             .group
             .get_index(i)
             .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
+            .contains_time_reversal()
         {
             ComplexFloat::conj
         } else {

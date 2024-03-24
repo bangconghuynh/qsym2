@@ -304,6 +304,11 @@ where
                         format!("Unable to apply `{op}` spatially on the origin determinant")
                     })
                 },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin determinant")
+                    })
+                },
                 SymmetryTransformationKind::Spin => |op, det| {
                     det.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin determinant")
@@ -359,7 +364,7 @@ where
             .group
             .get_index(i)
             .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
+            .contains_time_reversal()
         {
             ComplexFloat::conj
         } else {
@@ -416,12 +421,14 @@ where
                 // Odd number of electrons; validity depends on group and orbit type
                 match self.symmetry_transformation_kind {
                     SymmetryTransformationKind::Spatial => (true, String::new()),
-                    SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
+                    SymmetryTransformationKind::SpatialWithSpinTimeReversal
+                        | SymmetryTransformationKind::Spin
+                        | SymmetryTransformationKind::SpinSpatial => {
                         match self.group().group_type() {
                             GroupType::Ordinary(_) => (true, String::new()),
                             GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                                 (!self.group().unitary_represented(),
-                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems.".to_string())
+                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems where spin is treated explicitly.".to_string())
                             }
                         }
                     }

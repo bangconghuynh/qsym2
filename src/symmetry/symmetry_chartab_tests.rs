@@ -166,7 +166,7 @@ fn test_ircorep_character_table_algebraic_validity(
         .elements()
         .iter()
         .enumerate()
-        .filter(|(op_idx, op)| op.is_antiunitary() && mag_ctb[(*op_idx, *op_idx)] == 0)
+        .filter(|(op_idx, op)| op.contains_time_reversal() && mag_ctb[(*op_idx, *op_idx)] == 0)
         .count();
     let uni_dim_sum = chartab
         .unitary_character_table
