@@ -184,6 +184,7 @@ The way to do this is shown below.
     23. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).

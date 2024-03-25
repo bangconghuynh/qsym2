@@ -114,6 +114,7 @@ More methods might become possible in the future. The parameter specifications f
         11. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
         The possible options are:
             - `Spatial`: spatial transformation only,
+            - `SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
             - `Spin`: spin transformation only,
             - `SpinSpatial`: coupled spin and spatial transformations.
         </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
@@ -318,6 +319,7 @@ More methods might become possible in the future. The parameter specifications f
     30. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
