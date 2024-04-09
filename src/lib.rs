@@ -146,5 +146,7 @@ pub mod interfaces;
 pub mod io;
 pub mod permutation;
 pub mod rotsym;
+#[cfg(feature = "sandbox")]
+pub mod sandbox;
 pub mod symmetry;
 pub mod target;
