@@ -25,6 +25,7 @@ where
     T: ComplexFloat + Lapack,
     G: SymmetryGroupProperties + Clone,
 {
+    /// Note that this is potentially slow since `rmat` instead of the actual group element is given.
     fn transform_spatial_mut(
         &mut self,
         rmat: &Array2<f64>,
