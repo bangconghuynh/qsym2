@@ -9,7 +9,6 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use ndarray::{Array1, Array2, Axis, Ix1};
-use ndarray_einsum_beta::*;
 use ndarray_linalg::{
     eig::Eig,
     eigh::Eigh,
@@ -63,12 +62,7 @@ where
 
         let weight = metric
             .ok_or_else(|| format_err!("No Gaussian weights found for PES overlap calculation."))?;
-        // let weight_h = metric_h.unwrap_or(weight);
 
-        println!(
-            "{}",
-            &self.values().mapv(|x| x.conj()).view() * &other.values().view() * &weight.view()
-        );
         Ok(
             (&self.values().mapv(|x| x.conj()).view() * &other.values().view() * &weight.view())
                 .sum(),
