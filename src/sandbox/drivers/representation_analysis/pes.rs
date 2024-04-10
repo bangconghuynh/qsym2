@@ -3,14 +3,13 @@
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, bail, ensure, format_err};
+use anyhow::{self, bail, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use ndarray::Array1;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{log_overlap_eigenvalues, EigenvalueComparisonMode, RepAnalysis};
@@ -36,9 +35,9 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
-// #[cfg(test)]
-// #[path = "vibrational_coordinate_tests.rs"]
-// mod vibrational_coordinate_tests;
+#[cfg(test)]
+#[path = "pes_tests.rs"]
+mod pes_tests;
 
 // ==================
 // Struct definitions
@@ -93,6 +92,11 @@ pub struct PESRepAnalysisParams<T: From<f64>> {
     #[serde(default = "default_symbolic")]
     pub write_character_table: Option<CharacterTableDisplay>,
 
+    /// Boolean indicating if the eigenvalues of the orbit overlap matrix are to be printed out.
+    #[builder(default = "true")]
+    #[serde(default = "default_true")]
+    pub write_overlap_eigenvalues: bool,
+
     /// The comparison mode for filtering out orbit overlap eigenvalues.
     #[builder(default = "EigenvalueComparisonMode::Modulus")]
     #[serde(default)]
@@ -144,6 +148,11 @@ where
             f,
             "Orbit eigenvalue comparison mode: {}",
             self.eigenvalue_comparison_mode
+        )?;
+        writeln!(
+            f,
+            "Write overlap eigenvalues: {}",
+            nice_bool(self.write_overlap_eigenvalues)
         )?;
         writeln!(f)?;
         writeln!(
@@ -310,8 +319,14 @@ where
     /// The control parameters for PES representation analysis.
     parameters: &'a PESRepAnalysisParams<<T as ComplexFloat>::Real>,
 
-    /// The PES to be analysed.
-    pes: &'a PES<'a, G, T>,
+    /// The PES to be analysed. This is always initialised to be [`None`]. A concrete value can
+    /// only be set after the full symmetry group has been constructed and used to specify the PES.
+    #[builder(setter(skip), default = "None")]
+    pes: Option<&'a PES<'a, G, T>>,
+
+    /// The result from symmetry-group detection that will then be used to construct the full group
+    /// for the definition and analysis of the PES.
+    symmetry_group: &'a SymmetryGroupDetectionResult,
 
     /// The weight used in the evaluation of the inner products between PESes.
     weight: &'a Array1<T>,
@@ -381,39 +396,45 @@ where
     pub fn builder() -> PESRepAnalysisDriverBuilder<'a, G, T> {
         PESRepAnalysisDriverBuilder::default()
     }
+
+    /// Sets the PES associated with this driver to a specific value.
+    pub fn set_pes(&mut self, pes: &'a PES<'a, G, T>) -> &mut Self {
+        self.pes = Some(pes);
+        self
+    }
 }
 
-// // Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
-// // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-//
-// impl<'a, T> PESRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
-// where
-//     T: ComplexFloat + Lapack + Sync + Send,
-//     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
-//     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
-// {
-//     fn_construct_unitary_group!(
-//         /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
-//         /// for PES representation analysis.
-//         construct_unitary_group
-//     );
-// }
-//
-// // Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
-// // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-//
-// impl<'a, T> PESRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
-// where
-//     T: ComplexFloat + Lapack + Sync + Send,
-//     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
-//     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
-// {
-//     fn_construct_magnetic_group!(
-//         /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
-//         /// PES corepresentation analysis.
-//         construct_magnetic_group
-//     );
-// }
+// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+impl<'a, T> PESRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
+where
+    T: ComplexFloat + Lapack + Sync + Send,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
+    for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
+{
+    fn_construct_unitary_group!(
+        /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
+        /// for PES representation analysis.
+        construct_unitary_group
+    );
+}
+
+// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+impl<'a, T> PESRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
+where
+    T: ComplexFloat + Lapack + Sync + Send,
+    <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
+    for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
+{
+    fn_construct_magnetic_group!(
+        /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
+        /// PES corepresentation analysis.
+        construct_magnetic_group
+    );
+}
 
 // Specific for unitary-represented and magnetic-represented symmetry groups and determinant numeric types f64 and C128
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -444,18 +465,15 @@ impl<'a> PESRepAnalysisDriver<'a, gtype_, dtype_> {
     #[doc = doc_sub_]
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
-        let group = self.pes.group();
-        log_cc_transversal(&group);
-        ensure!(
-            group.name() == self.pes.group().name(),
-            "Symmetry analysis group ({}) does not match the group specified in the PES ({}).",
-            group.name(),
-            self.pes.group().name()
-        );
-        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
+        let pes = self.pes.ok_or(format_err!(
+            "A PES has not been associated with this driver."
+        ))?;
+        let group: &gtype_ = pes.group();
+        log_cc_transversal(group);
+        let _ = find_angular_function_representation(group, self.angular_function_parameters);
 
         let mut pes_orbit = PESSymmetryOrbit::builder()
-            .origin(self.pes)
+            .origin(pes)
             .integrality_threshold(params.integrality_threshold)
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
@@ -483,8 +501,7 @@ impl<'a> PESRepAnalysisDriver<'a, gtype_, dtype_> {
 
         let result = PESRepAnalysisResult::builder()
             .parameters(params)
-            .pes(self.pes)
-            .group(group)
+            .pes(pes)
             .pes_symmetry(pes_symmetry)
             .build()?;
         self.result = Some(result);
