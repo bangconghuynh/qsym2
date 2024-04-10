@@ -4,7 +4,9 @@ use std::fmt;
 use std::iter::Sum;
 
 use derive_builder::Builder;
+use itertools::Itertools;
 use log;
+use nalgebra::Point3;
 use ndarray::Array2;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
@@ -25,7 +27,7 @@ mod pes_transformation;
 /// Structure to manage potential energy surfaces evaluated at symmetry-equivalent points.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PES<'a, T, G>
+pub struct PES<'a, G, T>
 where
     T: ComplexFloat + Lapack,
     G: GroupProperties + Clone,
@@ -33,10 +35,8 @@ where
     /// The group governing the symmetry-equivalent points at which this PES has been evaluated.
     group: &'a G,
 
-    /// The symmetry-unique grid points $`\mathbf{r}_j`$ at which the PES is evaluated. The
-    /// coordinates of these points are collected in a $`3 \times N_{\mathrm{points}}`$ matrix in
-    /// which column $`j`$ gives the coordinates of point $`\mathbf{r}_j`$.
-    grid_points: Array2<f64>,
+    /// The symmetry-unique grid points $`\mathbf{r}_j`$ at which the PES is evaluated.
+    grid_points: Vec<Point3<f64>>,
 
     /// The values of this PES evaluated at symmetry-equivalent points. The elements `$V_{ij}$` is
     /// given by $`V(\hat{g}_i \mathbf{r}_j)`$, where $`\mathbf{r}_j`$ is a symmetry-unique grid
@@ -44,7 +44,7 @@ where
     values: Array2<T>,
 }
 
-impl<'a, T, G> PESBuilder<'a, T, G>
+impl<'a, G, T> PESBuilder<'a, G, T>
 where
     T: ComplexFloat + Lapack,
     G: GroupProperties + Clone,
@@ -66,24 +66,16 @@ where
             );
         }
 
-        let grid_count = grid_points.shape()[1] == values.shape()[1];
+        let grid_count = grid_points.len() == values.shape()[1];
         if !grid_count {
             log::error!(
                 "The number of columns in the PES value matrix ({:?}) does not match the number of grid points ({}).",
                 values.shape()[1],
-                grid_points.shape()[1]
+                grid_points.len()
             );
         }
 
-        let grid_cartesian = grid_points.shape()[0] == 3;
-        if !grid_cartesian {
-            log::error!(
-                "The number of rows in the PES value matrix ({:?}) does not equal 3.",
-                values.shape()[0],
-            );
-        }
-
-        if pes_shape && grid_count && grid_cartesian {
+        if pes_shape && grid_count {
             Ok(())
         } else {
             Err("PES validation failed.".to_string())
@@ -91,19 +83,20 @@ where
     }
 }
 
-impl<'a, T, G> PES<'a, T, G>
+impl<'a, G, T> PES<'a, G, T>
 where
     T: ComplexFloat + Clone + Lapack,
     G: GroupProperties + Clone,
 {
     /// Returns a builder to construct a new [`PES`].
-    pub fn builder() -> PESBuilder<'a, T, G> {
+    pub fn builder() -> PESBuilder<'a, G, T> {
         PESBuilder::default()
     }
 
-    /// Returns a shared reference to the symmetry-unique grid points at which the PES is evaluated.
-    pub fn grid_points(&self) -> &Array2<f64> {
-        &self.grid_points
+    /// Returns a vector of shared references to the symmetry-unique grid points at which the PES
+    /// is evaluated.
+    pub fn grid_points(&self) -> Vec<&Point3<f64>> {
+        self.grid_points.iter().collect_vec()
     }
 
     /// Returns a shared reference to the value matrix of the PES.
@@ -125,14 +118,14 @@ where
 // ----
 // From
 // ----
-impl<'a, T, G> From<PES<'a, T, G>> for PES<'a, Complex<T>, G>
+impl<'a, G, T> From<PES<'a, G, T>> for PES<'a, G, Complex<T>>
 where
     T: Float + FloatConst + Lapack,
     Complex<T>: Lapack,
     G: GroupProperties + Clone,
 {
-    fn from(value: PES<'a, T, G>) -> Self {
-        PES::<'a, Complex<T>, G>::builder()
+    fn from(value: PES<'a, G, T>) -> Self {
+        PES::<'a, G, Complex<T>>::builder()
             .grid_points(value.grid_points.clone())
             .values(value.values.map(Complex::from))
             .group(value.group)
@@ -144,7 +137,7 @@ where
 // -------
 // Display
 // -------
-impl<'a, T, G> fmt::Display for PES<'a, T, G>
+impl<'a, G, T> fmt::Display for PES<'a, G, T>
 where
     T: fmt::Display + ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Display,

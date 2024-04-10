@@ -417,8 +417,6 @@ where
         &self.eigenvalue_comparison_mode
     }
 
-    /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
-
     /// Reduces the representation or corepresentation spanned by the densities in the orbit to
     /// a direct sum of the irreducible representations or corepresentations of the generating
     /// symmetry group.
