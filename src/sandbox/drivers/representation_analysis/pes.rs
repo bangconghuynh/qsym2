@@ -216,7 +216,10 @@ where
     parameters: &'a PESRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The PES being analysed.
-    pes: &'a PES<'a, G, T>,
+    pes: &'a PES<T>,
+
+    /// The group used for the representation analysis.
+    group: G,
 
     /// The deduced symmetry of the PES.
     pes_symmetry: Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
@@ -243,20 +246,29 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let group = self.pes.group();
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
         writeln!(f)?;
         writeln!(
             f,
             "> Group: {} ({})",
-            group
+            self.group
                 .finite_subgroup_name()
-                .map(|subgroup_name| format!("{} > {}", group.name(), subgroup_name))
-                .unwrap_or(group.name()),
-            group.group_type().to_string().to_lowercase()
+                .map(|subgroup_name| format!("{} > {}", self.group.name(), subgroup_name))
+                .unwrap_or(self.group.name()),
+            self.group.group_type().to_string().to_lowercase()
         )?;
         writeln!(f)?;
         writeln!(f, "> Overall PES result")?;
+        writeln!(
+            f,
+            "  Grid size: {} {}",
+            self.pes.grid_points().len(),
+            if self.pes.grid_points().len() == 1 {
+                "point"
+            } else {
+                "points"
+            }
+        )?;
         writeln!(
             f,
             "  Symmetry: {}",
@@ -321,8 +333,7 @@ where
 
     /// The PES to be analysed. This is always initialised to be [`None`]. A concrete value can
     /// only be set after the full symmetry group has been constructed and used to specify the PES.
-    #[builder(setter(skip), default = "None")]
-    pes: Option<&'a PES<'a, G, T>>,
+    pes: &'a PES<T>,
 
     /// The result from symmetry-group detection that will then be used to construct the full group
     /// for the definition and analysis of the PES.
@@ -347,6 +358,8 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn validate(&self) -> Result<(), String> {
+        let _ = self.pes.ok_or("No PES specified.".to_string())?;
+
         let params = self
             .parameters
             .ok_or("No PES representation analysis parameters found.".to_string())?;
@@ -396,12 +409,6 @@ where
     pub fn builder() -> PESRepAnalysisDriverBuilder<'a, G, T> {
         PESRepAnalysisDriverBuilder::default()
     }
-
-    /// Sets the PES associated with this driver to a specific value.
-    pub fn set_pes(&mut self, pes: &'a PES<'a, G, T>) -> &mut Self {
-        self.pes = Some(pes);
-        self
-    }
 }
 
 // Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
@@ -447,7 +454,7 @@ where
             dtype_ [ dtype_nested ]
             doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
             analyse_fn_ [ analyse_representation ]
-            // construct_group_ [ self.construct_unitary_group()? ]
+            construct_group_ [ self.construct_unitary_group()? ]
         ]
     }
     duplicate!{
@@ -457,7 +464,7 @@ where
             dtype_ [ dtype_nested ]
             doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
             analyse_fn_ [ analyse_corepresentation ]
-            // construct_group_ [ self.construct_magnetic_group()? ]
+            construct_group_ [ self.construct_magnetic_group()? ]
         ]
     }
 )]
@@ -465,15 +472,13 @@ impl<'a> PESRepAnalysisDriver<'a, gtype_, dtype_> {
     #[doc = doc_sub_]
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
-        let pes = self.pes.ok_or(format_err!(
-            "A PES has not been associated with this driver."
-        ))?;
-        let group: &gtype_ = pes.group();
-        log_cc_transversal(group);
-        let _ = find_angular_function_representation(group, self.angular_function_parameters);
+        let group = construct_group_;
+        log_cc_transversal(&group);
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
 
         let mut pes_orbit = PESSymmetryOrbit::builder()
-            .origin(pes)
+            .origin(self.pes)
+            .group(&group)
             .integrality_threshold(params.integrality_threshold)
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
@@ -501,7 +506,8 @@ impl<'a> PESRepAnalysisDriver<'a, gtype_, dtype_> {
 
         let result = PESRepAnalysisResult::builder()
             .parameters(params)
-            .pes(pes)
+            .pes(self.pes)
+            .group(group)
             .pes_symmetry(pes_symmetry)
             .build()?;
         self.result = Some(result);

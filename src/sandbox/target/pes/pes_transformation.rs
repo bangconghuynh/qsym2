@@ -4,7 +4,6 @@ use itertools::Itertools;
 use nalgebra::Point3;
 use ndarray::{Array2, Axis, ShapeBuilder};
 use ndarray_linalg::types::Lapack;
-use ndarray_linalg::Inverse;
 use num_complex::{Complex, ComplexFloat};
 
 use crate::permutation::Permutation;

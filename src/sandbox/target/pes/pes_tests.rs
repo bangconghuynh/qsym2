@@ -1,7 +1,7 @@
 use itertools::Itertools;
 // use env_logger;
 use nalgebra::Point3;
-use ndarray::{array, Array1};
+use ndarray::Array1;
 use num::ToPrimitive;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};

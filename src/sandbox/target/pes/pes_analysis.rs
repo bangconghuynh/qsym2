@@ -26,6 +26,7 @@ use crate::analysis::{
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
+use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 use crate::sandbox::target::pes::PES;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
@@ -82,12 +83,22 @@ where
         //     .zip(weight.iter())
         //     .map(|((s_pt, o_pt), &w)| self.function()(s_pt).conj() * other.function()(o_pt) * w)
         //     .sum();
-        let overlap = (0..weight.len()).into_par_iter().map(|i| {
-            let s_pt = self.grid_points[i];
-            let o_pt = other.grid_points[i];
-            let w = weight[i];
-            self.function()(&s_pt).conj() * other.function()(&o_pt) * w
-        }).sum();
+        let overlap = (0..weight.len())
+            .into_par_iter()
+            .map(|i| {
+                let s_pt = self.grid_points[i];
+                let o_pt = other.grid_points[i];
+                let w = weight[i];
+                match (self.complex_conjugated, other.complex_conjugated) {
+                    (false, false) => self.function()(&s_pt).conj() * other.function()(&o_pt) * w,
+                    (false, true) => {
+                        self.function()(&s_pt).conj() * other.function()(&o_pt).conj() * w
+                    }
+                    (true, false) => self.function()(&s_pt) * other.function()(&o_pt) * w,
+                    (true, true) => self.function()(&s_pt) * other.function()(&o_pt).conj() * w,
+                }
+            })
+            .sum();
         Ok(overlap)
     }
 }
@@ -339,6 +350,12 @@ where
             .calc_characters()
             .map_err(|err| DecompositionError(err.to_string()))?;
         log::debug!("Characters calculated.");
+        log_subtitle("PES orbit characters");
+        qsym2_output!("");
+        self.characters_to_string(&chis, self.integrality_threshold)
+            .log_output_display();
+        qsym2_output!("");
+
         let res = self.group().character_table().reduce_characters(
             &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
             self.integrality_threshold(),

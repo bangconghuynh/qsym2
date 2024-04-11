@@ -4,11 +4,9 @@ use std::fmt;
 
 use derive_builder::Builder;
 use itertools::Itertools;
-use log;
 use nalgebra::Point3;
 use ndarray_linalg::types::Lapack;
-use num_complex::{Complex, ComplexFloat};
-use num_traits::float::{Float, FloatConst};
+use num_complex::ComplexFloat;
 
 #[cfg(test)]
 mod pes_tests;
@@ -43,11 +41,11 @@ where
     T: ComplexFloat + Lapack,
 {
     fn validate(&self) -> Result<(), String> {
-        let grid_points = self
+        let _ = self
             .grid_points
             .as_ref()
             .ok_or("No grid points found.".to_string())?;
-        let function = self
+        let _ = self
             .function
             .as_ref()
             .ok_or("No PES function found.".to_string())?;
@@ -79,23 +77,6 @@ where
 // Trait implementations
 // =====================
 
-// // ----
-// // From
-// // ----
-// impl<T> From<PES<T>> for PES<Complex<T>>
-// where
-//     T: Float + FloatConst + Lapack,
-//     Complex<T>: Lapack,
-// {
-//     fn from(value: PES<T>) -> Self {
-//         PES::<Complex<T>>::builder()
-//             .grid_points(value.grid_points.clone())
-//             .function(|pt| Complex::from(value.function()(pt)))
-//             .build()
-//             .expect("Unable to complexify a `PES`.")
-//     }
-// }
-
 // -------
 // Display
 // -------
@@ -106,7 +87,8 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "PES[grid of {} {}]",
+            "PES{}[grid of {} {}]",
+            if self.complex_conjugated { "*" } else { "" },
             self.grid_points.len(),
             if self.grid_points.len() == 1 {
                 "point"
