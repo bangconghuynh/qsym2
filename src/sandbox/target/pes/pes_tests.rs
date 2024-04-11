@@ -1,6 +1,8 @@
+use itertools::Itertools;
 // use env_logger;
 use nalgebra::Point3;
 use ndarray::{array, Array1};
+use num::ToPrimitive;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::auxiliary::atom::{Atom, ElementMap};
@@ -47,13 +49,11 @@ fn test_pes_orbit_rep_analysis_d4h() {
     // =========
     // 2D domain
     // =========
-    let grid_points = vec![
-        Point3::new(0.0, 0.0, 0.0),
-        Point3::new(0.5, 0.5, 0.0),
-        Point3::new(1.5, 0.5, 0.0),
-        Point3::new(1.5, 1.5, 0.0),
-        Point3::new(0.5, 1.5, 0.0),
-    ];
+    let grid_points = (-50..=50).cartesian_product(-50..=50).map(|(i, j)| {
+        let x = 0.0 + i.to_f64().unwrap() * 0.02;
+        let y = 0.0 + j.to_f64().unwrap() * 0.02;
+        Point3::new(x, y, 0.0)
+    }).collect_vec();
 
     let weight: Array1<f64> = Array1::from_iter(
         grid_points
@@ -62,34 +62,15 @@ fn test_pes_orbit_rep_analysis_d4h() {
     );
 
     // A1g
-    let a1g_values = array![
-        [0.0, 1.0, 2.0, 2.0, 2.0], // E
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C4
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C4^3
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C2z
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C2y
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C2x
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C2xy
-        [0.0, 1.0, 2.0, 2.0, 2.0], // C2xy'
-        [0.0, 1.0, 2.0, 2.0, 2.0], // i
-        [0.0, 1.0, 2.0, 2.0, 2.0], // S4
-        [0.0, 1.0, 2.0, 2.0, 2.0], // S4^3
-        [0.0, 1.0, 2.0, 2.0, 2.0], // σh
-        [0.0, 1.0, 2.0, 2.0, 2.0], // σvxz
-        [0.0, 1.0, 2.0, 2.0, 2.0], // σvyz
-        [0.0, 1.0, 2.0, 2.0, 2.0], // σd
-        [0.0, 1.0, 2.0, 2.0, 2.0], // σd'
-    ];
-
     let a1g_pes = PES::builder()
-        .group(&group_u_d4h)
+        .function(|pt| (pt - Point3::<f64>::origin()).magnitude_squared())
         .grid_points(grid_points.clone())
-        .values(a1g_values)
         .build()
         .unwrap();
 
     let mut orbit_a1g_pes = PESSymmetryOrbit::builder()
         .origin(&a1g_pes)
+        .group(&group_u_d4h)
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-7)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -106,34 +87,15 @@ fn test_pes_orbit_rep_analysis_d4h() {
     );
 
     // B1g (x2 - y2)
-    let b1g_values = array![
-        [0.0, 0.0, 2.0, 0.0, -2.0], // E
-        [0.0, 0.0, -2.0, 0.0, 2.0], // C4
-        [0.0, 0.0, -2.0, 0.0, 2.0], // C4^3
-        [0.0, 0.0, 2.0, 0.0, -2.0], // C2z
-        [0.0, 0.0, 2.0, 0.0, -2.0], // C2y
-        [0.0, 0.0, 2.0, 0.0, -2.0], // C2x
-        [0.0, 0.0, -2.0, 0.0, 2.0], // C2xy
-        [0.0, 0.0, -2.0, 0.0, 2.0], // C2xy'
-        [0.0, 0.0, 2.0, 0.0, -2.0], // i
-        [0.0, 0.0, -2.0, 0.0, 2.0], // S4
-        [0.0, 0.0, -2.0, 0.0, 2.0], // S4^3
-        [0.0, 0.0, 2.0, 0.0, -2.0], // σh
-        [0.0, 0.0, 2.0, 0.0, -2.0], // σvxz
-        [0.0, 0.0, 2.0, 0.0, -2.0], // σvyz
-        [0.0, 0.0, -2.0, 0.0, 2.0], // σd
-        [0.0, 0.0, -2.0, 0.0, 2.0], // σd'
-    ];
-
     let b1g_pes = PES::builder()
-        .group(&group_u_d4h)
+        .function(|pt| pt.x.powi(2) - pt.y.powi(2))
         .grid_points(grid_points.clone())
-        .values(b1g_values)
         .build()
         .unwrap();
 
     let mut orbit_b1g_pes = PESSymmetryOrbit::builder()
         .origin(&b1g_pes)
+        .group(&group_u_d4h)
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-7)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -150,34 +112,15 @@ fn test_pes_orbit_rep_analysis_d4h() {
     );
 
     // B2g (xy)
-    let b2g_values = array![
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // E
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C4
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C4^3
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // C2z
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C2y
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C2x
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // C2xy
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // C2xy'
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // i
-        [0.0, -1.0, -2.0, -2.0, -2.0], // S4
-        [0.0, -1.0, -2.0, -2.0, -2.0], // S4^3
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // σh
-        [0.0, -1.0, -2.0, -2.0, -2.0], // σvxz
-        [0.0, -1.0, -2.0, -2.0, -2.0], // σvyz
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // σd
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // σd'
-    ];
-
     let b2g_pes = PES::builder()
-        .group(&group_u_d4h)
+        .function(|pt| pt.x * pt.y)
         .grid_points(grid_points.clone())
-        .values(b2g_values)
         .build()
         .unwrap();
 
     let mut orbit_b2g_pes = PESSymmetryOrbit::builder()
         .origin(&b2g_pes)
+        .group(&group_u_d4h)
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-7)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -194,34 +137,15 @@ fn test_pes_orbit_rep_analysis_d4h() {
     );
 
     // Eu (y)
-    let eu_values = array![
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // E
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // C4
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C4^3
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C2z
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // C2y
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C2x
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // C2xy
-        [0.0, -1.0, -2.0, -2.0, -2.0], // C2xy'
-        [0.0, -1.0, -2.0, -2.0, -2.0], // i
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // S4
-        [0.0, -1.0, -2.0, -2.0, -2.0], // S4^3
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // σh
-        [0.0, -1.0, -2.0, -2.0, -2.0], // σvxz
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // σvyz
-        [0.0, -1.0, -2.0, -2.0, -2.0], // σd
-        [0.0, 1.0, 2.0, 2.0, 2.0],     // σd'
-    ];
-
     let eu_pes = PES::builder()
-        .group(&group_u_d4h)
+        .function(|pt| 1.5 * pt.y)
         .grid_points(grid_points)
-        .values(eu_values)
         .build()
         .unwrap();
 
     let mut orbit_eu_pes = PESSymmetryOrbit::builder()
         .origin(&eu_pes)
+        .group(&group_u_d4h)
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-7)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -236,17 +160,16 @@ fn test_pes_orbit_rep_analysis_d4h() {
         orbit_eu_pes.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(u)|").unwrap()
     );
-
-    // =========
-    // 3D domain
-    // =========
-    let grid_points = vec![
-        Point3::new(0.0, 0.0, 1.0),
-        Point3::new(0.5, 0.5, 1.0),
-        Point3::new(1.5, 0.5, 1.0),
-        Point3::new(1.5, 1.5, 1.0),
-        Point3::new(0.5, 1.5, 1.0),
-    ];
+    //
+    // // =========
+    // // 3D domain
+    // // =========
+    let grid_points = (-50..=50).cartesian_product(-50..=50).cartesian_product(-50..=50).map(|((i, j), k)| {
+        let x = 0.0 + i.to_f64().unwrap() * 0.02;
+        let y = 0.0 + j.to_f64().unwrap() * 0.02;
+        let z = 0.0 + k.to_f64().unwrap() * 0.02;
+        Point3::new(x, y, z)
+    }).collect_vec();
 
     let weight: Array1<f64> = Array1::from_iter(
         grid_points
@@ -255,34 +178,15 @@ fn test_pes_orbit_rep_analysis_d4h() {
     );
 
     // B1u (xyz)
-    let b1u_values = array![
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // E
-        [0.0, -1.0, -2.0, -3.0, -2.0], // C4
-        [0.0, -1.0, -2.0, -3.0, -2.0], // C4^3
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // C2z
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // C2y
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // C2x
-        [0.0, -1.0, -2.0, -3.0, -2.0], // C2xy
-        [0.0, -1.0, -2.0, -3.0, -2.0], // C2xy'
-        [0.0, -1.0, -2.0, -3.0, -2.0], // i
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // S4
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // S4^3
-        [0.0, -1.0, -2.0, -3.0, -2.0], // σh
-        [0.0, -1.0, -2.0, -3.0, -2.0], // σvxz
-        [0.0, -1.0, -2.0, -3.0, -2.0], // σvyz
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // σd
-        [0.0, 1.0, 2.0, 3.0, 2.0],     // σd'
-    ];
-
     let b1u_pes = PES::builder()
-        .group(&group_u_d4h)
+        .function(|pt| pt.x * pt.y * pt.z)
         .grid_points(grid_points.clone())
-        .values(b1u_values)
         .build()
         .unwrap();
 
     let mut orbit_b1u_pes = PESSymmetryOrbit::builder()
         .origin(&b1u_pes)
+        .group(&group_u_d4h)
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-7)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -298,43 +202,15 @@ fn test_pes_orbit_rep_analysis_d4h() {
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(1u)|").unwrap()
     );
 
-    // Eg (xz)
-    let f1 = 0.5 * (15.0 / std::f64::consts::PI).sqrt() * (0.5 * 1.0)
-        / (0.5f64.powi(2) + 0.5f64.powi(2) + 1.0f64.powi(2));
-    let f2 = 0.5 * (15.0 / std::f64::consts::PI).sqrt() * (1.5 * 1.0)
-        / (1.5f64.powi(2) + 0.5f64.powi(2) + 1.0f64.powi(2));
-    let f3 = 0.5 * (15.0 / std::f64::consts::PI).sqrt() * (1.5 * 1.0)
-        / (1.5f64.powi(2) + 1.5f64.powi(2) + 1.0f64.powi(2));
-    let f4 = 0.5 * (15.0 / std::f64::consts::PI).sqrt() * (1.5 * 1.0)
-        / (1.5f64.powi(2) + 1.5f64.powi(2) + 1.0f64.powi(2));
-    let eg_values = array![
-        [0.0, f1, f2, f3, f4],     // E
-        [0.0, f1, f4, f3, f2],     // C4
-        [0.0, -f1, -f4, -f3, -f2], // C4^3
-        [0.0, -f1, -f2, -f3, -f4], // C2z
-        [0.0, f1, f2, f3, f4],     // C2y
-        [0.0, -f1, -f2, -f3, -f4], // C2x
-        [0.0, -f1, -f4, -f3, -f2], // C2xy
-        [0.0, f1, f4, f3, f2],     // C2xy'
-        [0.0, f1, f2, f3, f4],     // i
-        [0.0, -f1, -f4, -f3, -f2], // S4
-        [0.0, f1, f4, f3, f2],     // S4^3
-        [0.0, -f1, -f2, -f3, -f4], // σh
-        [0.0, f1, f2, f3, f4],     // σvxz
-        [0.0, -f1, -f2, -f3, -f4], // σvyz
-        [0.0, -f1, -f4, -f3, -f2], // σd
-        [0.0, f1, f4, f3, f2],     // σd'
-    ];
-
     let eg_pes = PES::builder()
-        .group(&group_u_d4h)
+        .function(|pt| pt.x * pt.z)
         .grid_points(grid_points)
-        .values(eg_values)
         .build()
         .unwrap();
 
     let mut orbit_eg_pes = PESSymmetryOrbit::builder()
         .origin(&eg_pes)
+        .group(&group_u_d4h)
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-7)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -345,10 +221,8 @@ fn test_pes_orbit_rep_analysis_d4h() {
         .calc_smat(Some(&weight), None, true)
         .unwrap()
         .calc_xmat(false);
-    // 2Eg because the grid is too coarse to allow the extra linearly independent components to be
-    // removed.
     assert_eq!(
         orbit_eg_pes.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)|").unwrap()
     );
 }

@@ -32,6 +32,10 @@ where
 
     /// The function $`\mathbb{R}^3 \to T`$ defining the PES.
     function: fn(&Point3<f64>) -> T,
+
+    /// A boolean indicating if action of [`Self::function`] needs to be complex-conjugated.
+    #[builder(default = "false")]
+    complex_conjugated: bool,
 }
 
 impl<T> PESBuilder<T>
@@ -75,22 +79,22 @@ where
 // Trait implementations
 // =====================
 
-// ----
-// From
-// ----
-impl<T> From<PES<T>> for PES<Complex<T>>
-where
-    T: Float + FloatConst + Lapack,
-    Complex<T>: Lapack,
-{
-    fn from(value: PES<T>) -> Self {
-        PES::<Complex<T>>::builder()
-            .grid_points(value.grid_points.clone())
-            .function(|pt| Complex::from(value.function()(pt)))
-            .build()
-            .expect("Unable to complexify a `PES`.")
-    }
-}
+// // ----
+// // From
+// // ----
+// impl<T> From<PES<T>> for PES<Complex<T>>
+// where
+//     T: Float + FloatConst + Lapack,
+//     Complex<T>: Lapack,
+// {
+//     fn from(value: PES<T>) -> Self {
+//         PES::<Complex<T>>::builder()
+//             .grid_points(value.grid_points.clone())
+//             .function(|pt| Complex::from(value.function()(pt)))
+//             .build()
+//             .expect("Unable to complexify a `PES`.")
+//     }
+// }
 
 // -------
 // Display
