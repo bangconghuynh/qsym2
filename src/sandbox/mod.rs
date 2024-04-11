@@ -1,4 +1,5 @@
 //! Targets for symmetry analysis via representation and corepresentation theories.
 
-mod target;
+pub mod bindings;
 mod drivers;
+mod target;

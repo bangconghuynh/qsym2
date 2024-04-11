@@ -6,6 +6,7 @@ use std::ops::Mul;
 use anyhow::{self, bail, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
+use nalgebra::Point3;
 use ndarray::Array1;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
@@ -205,18 +206,19 @@ where
 
 /// Structure to contain PES representation analysis results.
 #[derive(Clone, Builder)]
-pub struct PESRepAnalysisResult<'a, G, T>
+pub struct PESRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// The control parameters used to obtain this set of PES representation analysis results.
     parameters: &'a PESRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The PES being analysed.
-    pes: &'a PES<T>,
+    pes: &'a PES<T, F>,
 
     /// The group used for the representation analysis.
     group: G,
@@ -225,25 +227,27 @@ where
     pes_symmetry: Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
 }
 
-impl<'a, G, T> PESRepAnalysisResult<'a, G, T>
+impl<'a, G, T, F> PESRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Returns a builder to construct a new [`PESRepAnalysisResultBuilder`] structure.
-    fn builder() -> PESRepAnalysisResultBuilder<'a, G, T> {
+    fn builder() -> PESRepAnalysisResultBuilder<'a, G, T, F> {
         PESRepAnalysisResultBuilder::default()
     }
 }
 
-impl<'a, G, T> fmt::Display for PESRepAnalysisResult<'a, G, T>
+impl<'a, G, T, F> fmt::Display for PESRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
@@ -283,24 +287,26 @@ where
     }
 }
 
-impl<'a, G, T> fmt::Debug for PESRepAnalysisResult<'a, G, T>
+impl<'a, G, T, F> fmt::Debug for PESRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
     }
 }
 
-impl<'a, G, T> PESRepAnalysisResult<'a, G, T>
+impl<'a, G, T, F> PESRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Returns the PES symmetry obtained from the analysis result.
     pub fn pes_symmetry(
@@ -321,19 +327,20 @@ where
 /// Driver structure for performing representation analysis on PESes.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PESRepAnalysisDriver<'a, G, T>
+pub struct PESRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// The control parameters for PES representation analysis.
     parameters: &'a PESRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The PES to be analysed. This is always initialised to be [`None`]. A concrete value can
     /// only be set after the full symmetry group has been constructed and used to specify the PES.
-    pes: &'a PES<T>,
+    pes: &'a PES<T, F>,
 
     /// The result from symmetry-group detection that will then be used to construct the full group
     /// for the definition and analysis of the PES.
@@ -347,15 +354,16 @@ where
 
     /// The result of the vibrational coordinate representation analysis.
     #[builder(setter(skip), default = "None")]
-    result: Option<PESRepAnalysisResult<'a, G, T>>,
+    result: Option<PESRepAnalysisResult<'a, G, T, F>>,
 }
 
-impl<'a, G, T> PESRepAnalysisDriverBuilder<'a, G, T>
+impl<'a, G, T, F> PESRepAnalysisDriverBuilder<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn validate(&self) -> Result<(), String> {
         let _ = self.pes.ok_or("No PES specified.".to_string())?;
@@ -398,15 +406,16 @@ where
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T> PESRepAnalysisDriver<'a, G, T>
+impl<'a, G, T, F> PESRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Returns a builder to construct a [`PESRepAnalysisDriver`] structure.
-    pub fn builder() -> PESRepAnalysisDriverBuilder<'a, G, T> {
+    pub fn builder() -> PESRepAnalysisDriverBuilder<'a, G, T, F> {
         PESRepAnalysisDriverBuilder::default()
     }
 }
@@ -414,11 +423,12 @@ where
 // Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T> PESRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
+impl<'a, T, F> PESRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, F>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn_construct_unitary_group!(
         /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
@@ -430,11 +440,12 @@ where
 // Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T> PESRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
+impl<'a, T, F> PESRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, F>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn_construct_magnetic_group!(
         /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
@@ -468,7 +479,10 @@ where
         ]
     }
 )]
-impl<'a> PESRepAnalysisDriver<'a, gtype_, dtype_> {
+impl<'a, F> PESRepAnalysisDriver<'a, gtype_, dtype_, F>
+where
+    F: Clone + Sync + Send + Fn(&Point3<f64>) -> dtype_,
+{
     #[doc = doc_sub_]
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
@@ -523,12 +537,13 @@ impl<'a> PESRepAnalysisDriver<'a, gtype_, dtype_> {
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T> fmt::Display for PESRepAnalysisDriver<'a, G, T>
+impl<'a, G, T, F> fmt::Display for PESRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "PES Symmetry Analysis")?;
@@ -538,12 +553,13 @@ where
     }
 }
 
-impl<'a, G, T> fmt::Debug for PESRepAnalysisDriver<'a, G, T>
+impl<'a, G, T, F> fmt::Debug for PESRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -571,10 +587,13 @@ where
         ]
     }
 )]
-impl<'a> QSym2Driver for PESRepAnalysisDriver<'a, gtype_, dtype_> {
+impl<'a, F> QSym2Driver for PESRepAnalysisDriver<'a, gtype_, dtype_, F>
+where
+    F: Clone + Sync + Send + Fn(&Point3<f64>) -> dtype_,
+{
     type Params = PESRepAnalysisParams<f64>;
 
-    type Outcome = PESRepAnalysisResult<'a, gtype_, dtype_>;
+    type Outcome = PESRepAnalysisResult<'a, gtype_, dtype_, F>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result

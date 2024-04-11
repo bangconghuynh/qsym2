@@ -21,24 +21,26 @@ mod pes_transformation;
 /// Structure to manage potential energy surfaces.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PES<T>
+pub struct PES<T, F>
 where
     T: ComplexFloat + Lapack,
+    F: Fn(&Point3<f64>) -> T,
 {
     /// The grid points $`\mathbf{r}_j`$ at which the PES is to be evaluated.
     grid_points: Vec<Point3<f64>>,
 
     /// The function $`\mathbb{R}^3 \to T`$ defining the PES.
-    function: fn(&Point3<f64>) -> T,
+    function: F,
 
     /// A boolean indicating if action of [`Self::function`] needs to be complex-conjugated.
     #[builder(default = "false")]
     complex_conjugated: bool,
 }
 
-impl<T> PESBuilder<T>
+impl<T, F> PESBuilder<T, F>
 where
     T: ComplexFloat + Lapack,
+    F: Fn(&Point3<f64>) -> T,
 {
     fn validate(&self) -> Result<(), String> {
         let _ = self
@@ -53,12 +55,13 @@ where
     }
 }
 
-impl<T> PES<T>
+impl<T, F> PES<T, F>
 where
     T: ComplexFloat + Clone + Lapack,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Returns a builder to construct a new [`PES`].
-    pub fn builder() -> PESBuilder<T> {
+    pub fn builder() -> PESBuilder<T, F> {
         PESBuilder::default()
     }
 
@@ -68,7 +71,7 @@ where
     }
 
     /// Returns a shared reference to the function defining the PES.
-    pub fn function(&self) -> &fn(&Point3<f64>) -> T {
+    pub fn function(&self) -> &F {
         &self.function
     }
 }
@@ -80,9 +83,10 @@ where
 // -------
 // Display
 // -------
-impl<T> fmt::Display for PES<T>
+impl<T, F> fmt::Display for PES<T, F>
 where
     T: ComplexFloat + Lapack,
+    F: Fn(&Point3<f64>) -> T,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

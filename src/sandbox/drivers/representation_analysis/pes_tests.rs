@@ -4,12 +4,9 @@ use nalgebra::Point3;
 use ndarray::Array1;
 use num_traits::ToPrimitive;
 
-use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
-use crate::drivers::representation_analysis::{
-    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
-};
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
@@ -19,14 +16,14 @@ use crate::sandbox::drivers::representation_analysis::pes::{
 };
 use crate::sandbox::target::pes::PES;
 use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
-use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
+use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_pes_analysis_if7() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/if7.xyz");
 
     let afa_params = AngularFunctionRepAnalysisParams::default();
@@ -67,7 +64,7 @@ fn test_drivers_pes_analysis_if7() {
     // ~~~~~~~~~~~
     // E1'' (xz^3)
     // ~~~~~~~~~~~
-    let e1dd_pes = PES::<f64>::builder()
+    let e1dd_pes = PES::<f64, _>::builder()
         .function(|pt| pt.x * pt.z.powi(3))
         .grid_points(grid_points.clone())
         .build()
@@ -85,7 +82,7 @@ fn test_drivers_pes_analysis_if7() {
         .build()
         .unwrap();
 
-    let mut pes_driver = PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+    let mut pes_driver = PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
         .parameters(&pes_params)
         .angular_function_parameters(&afa_params)
         .pes(&e1dd_pes)
@@ -102,7 +99,7 @@ fn test_drivers_pes_analysis_if7() {
     // ~~~~~~~~~~
     // E2'' (xyz)
     // ~~~~~~~~~~
-    let e2dd_pes = PES::<f64>::builder()
+    let e2dd_pes = PES::<f64, _>::builder()
         .function(|pt| pt.x * pt.y * pt.z)
         .grid_points(grid_points.clone())
         .build()
@@ -120,7 +117,7 @@ fn test_drivers_pes_analysis_if7() {
         .build()
         .unwrap();
 
-    let mut pes_driver = PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+    let mut pes_driver = PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
         .parameters(&pes_params)
         .angular_function_parameters(&afa_params)
         .pes(&e2dd_pes)
@@ -137,7 +134,7 @@ fn test_drivers_pes_analysis_if7() {
     // ~~~~~~~~~~~~~~~~~~~~~
     // A2'' + E1' (z + yz^2)
     // ~~~~~~~~~~~~~~~~~~~~~
-    let a2dde1d_pes = PES::<f64>::builder()
+    let a2dde1d_pes = PES::<f64, _>::builder()
         .function(|pt| pt.z + 2.0 * pt.y * pt.z.powi(2))
         .grid_points(grid_points.clone())
         .build()
@@ -155,7 +152,7 @@ fn test_drivers_pes_analysis_if7() {
         .build()
         .unwrap();
 
-    let mut pes_driver = PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+    let mut pes_driver = PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
         .parameters(&pes_params)
         .angular_function_parameters(&afa_params)
         .pes(&a2dde1d_pes)

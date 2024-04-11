@@ -18,9 +18,10 @@ use crate::symmetry::symmetry_transformation::{
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<T> SpatialUnitaryTransformable for PES<T>
+impl<T, F> SpatialUnitaryTransformable for PES<T, F>
 where
     T: ComplexFloat + Lapack,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn transform_spatial_mut(
         &mut self,
@@ -31,7 +32,10 @@ where
         let rmatinv = rmat.t();
         let grid_array = Array2::from_shape_vec(
             (3, self.grid_points.len()).f(),
-            self.grid_points.iter().flat_map(|pt| pt.iter().cloned()).collect_vec(),
+            self.grid_points
+                .iter()
+                .flat_map(|pt| pt.iter().cloned())
+                .collect_vec(),
         )?;
         let rmatinv_grid_array = rmatinv.dot(&grid_array);
         let rmatinv_grid_points = rmatinv_grid_array
@@ -48,9 +52,10 @@ where
 // SpinUnitaryTransformable
 // ------------------------
 
-impl<T> SpinUnitaryTransformable for PES<T>
+impl<T, F> SpinUnitaryTransformable for PES<T, F>
 where
     T: ComplexFloat + Lapack,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Performs a spin transformation in-place.
     ///
@@ -68,9 +73,10 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<T> ComplexConjugationTransformable for PES<T>
+impl<T, F> ComplexConjugationTransformable for PES<T, F>
 where
     T: ComplexFloat + Lapack,
+    F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn transform_cc_mut(&mut self) -> &mut Self {
         self.complex_conjugated = !self.complex_conjugated;
@@ -81,15 +87,21 @@ where
 // --------------------------------
 // DefaultTimeReversalTransformable
 // --------------------------------
-impl<T> DefaultTimeReversalTransformable for PES<T> where T: ComplexFloat + Lapack {}
+impl<T, F> DefaultTimeReversalTransformable for PES<T, F>
+where
+    T: ComplexFloat + Lapack,
+    F: Clone + Fn(&Point3<f64>) -> T,
+{
+}
 
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<T> SymmetryTransformable for PES<T>
+impl<T, F> SymmetryTransformable for PES<T, F>
 where
     T: ComplexFloat + Lapack,
-    PES<T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    F: Clone + Fn(&Point3<f64>) -> T,
+    PES<T, F>: SpatialUnitaryTransformable + TimeReversalTransformable,
 {
     /// PESes have no local sites for permutation. This method therefore simply returns the
     /// identity permutation on one object.
