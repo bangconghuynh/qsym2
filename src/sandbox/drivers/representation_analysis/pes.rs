@@ -13,7 +13,9 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{log_overlap_eigenvalues, EigenvalueComparisonMode, RepAnalysis};
+use crate::analysis::{
+    log_overlap_eigenvalues, EigenvalueComparisonMode, ProjectionDecomposition, RepAnalysis,
+};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -466,6 +468,17 @@ where
             doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
             analyse_fn_ [ analyse_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
+            calc_projections_ [
+                log_subtitle("PES projection decompositions");
+                qsym2_output!("");
+                pes_orbit
+                    .projections_to_string(
+                        &pes_orbit.calc_projection_compositions()?,
+                        params.integrality_threshold,
+                    )
+                    .log_output_display();
+                qsym2_output!("");
+            ]
         ]
     }
     duplicate!{
@@ -476,6 +489,7 @@ where
             doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
             analyse_fn_ [ analyse_corepresentation ]
             construct_group_ [ self.construct_magnetic_group()? ]
+            calc_projections_ [ ]
         ]
     }
 )]
@@ -517,6 +531,8 @@ where
                 }
                 pes_orb.analyse_rep().map_err(|err| err.to_string())
             });
+
+        calc_projections_;
 
         let result = PESRepAnalysisResult::builder()
             .parameters(params)

@@ -2,6 +2,7 @@
 
 use std::cmp::Ordering;
 use std::fmt;
+use std::ops::Mul;
 
 use anyhow::{self, format_err, Context};
 use itertools::Itertools;
@@ -9,14 +10,15 @@ use log;
 use ndarray::{s, Array, Array1, Array2, Axis, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
-use num_complex::ComplexFloat;
-use num_traits::ToPrimitive;
+use num_complex::{Complex, ComplexFloat};
+use num_traits::{ToPrimitive, Zero};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
-use crate::chartab::{DecompositionError, SubspaceDecomposable};
+use crate::chartab::{CharacterTable, DecompositionError, SubspaceDecomposable};
 use crate::group::{class::ClassProperties, GroupProperties};
 use crate::io::format::{log_subtitle, qsym2_output};
 
@@ -545,11 +547,52 @@ where
         chis
     }
 
+    /// Reduces the representation or corepresentation spanned by the items in the orbit to a
+    /// direct sum of the irreducible representations or corepresentations of the generating group.
+    ///
+    /// # Returns
+    ///
+    /// The decomposed result.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
+    /// are non-integral.
+    fn analyse_rep(
+        &self,
+    ) -> Result<
+        <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
+        DecompositionError,
+    > {
+        let chis = self
+            .calc_characters()
+            .map_err(|err| DecompositionError(err.to_string()))?;
+        let res = self.group().character_table().reduce_characters(
+            &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
+            self.integrality_threshold(),
+        );
+        res
+    }
+
+    /// Converts a slice of tuples of class symbols and characters to a nicely formatted table.
+    ///
+    /// # Arguments
+    ///
+    /// * `chis` - A slice of tuples of class symbols and characters.
+    /// * `integrality_threshold` - Threshold for ascertaining the integrality of characters.
+    ///
+    /// # Returns
+    ///
+    /// A string of a nicely formatted table.
     fn characters_to_string(
         &self,
         chis: &[(<G as ClassProperties>::ClassSymbol, T)],
         integrality_threshold: <T as ComplexFloat>::Real,
-    ) -> String {
+    ) -> String
+    where
+        T: ComplexFloat + Lapack + fmt::Debug,
+        <T as ComplexFloat>::Real: ToPrimitive,
+    {
         let ndigits = (-integrality_threshold.log10()).to_usize().unwrap_or(6) + 1;
         let (ccs, characters): (Vec<_>, Vec<_>) = chis
             .iter()
@@ -583,32 +626,121 @@ where
         )
         .collect::<String>()
     }
+}
 
-    /// Reduces the representation or corepresentation spanned by the items in the orbit to a
-    /// direct sum of the irreducible representations or corepresentations of the generating group.
+/// Trait for representation or corepresentation analysis on an orbit of items spanning a
+/// linear space.
+pub trait ProjectionDecomposition<G, I, T, D>: RepAnalysis<G, I, T, D>
+where
+    T: ComplexFloat + Lapack + fmt::Debug,
+    <T as ComplexFloat>::Real: ToPrimitive,
+    G: GroupProperties + ClassProperties + CharacterProperties + Sync + Send,
+    <G as CharacterProperties>::RowSymbol: Sync + Send,
+    G::GroupElement: fmt::Display,
+    G::CharTab: SubspaceDecomposable<T>,
+    D: Dimension,
+    I: Overlap<T, D> + Clone,
+    Self: Sync + Send,
+    Self::OrbitIter: Iterator<Item = Result<I, anyhow::Error>>,
+    for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
+{
+    fn calc_projection_compositions(
+        &self,
+    ) -> Result<
+        Vec<(
+            <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+            Complex<f64>,
+        )>,
+        anyhow::Error,
+    > {
+        self.group()
+            .character_table()
+            .get_all_rows()
+            .iter()
+            .map(|row_label| {
+                let group = self.group();
+                let chartab = group.character_table();
+                let id_class = group
+                    .get_cc_symbol_of_index(0)
+                    .ok_or(format_err!("Unable to retrieve the identity class."))?;
+                let dim = chartab
+                    .get_character(&row_label, &id_class).complex_value();
+                let group_order = group.order().to_f64().ok_or(
+                    DecompositionError("The group order cannot be converted to `f64`.".to_string())
+                )?;
+                let projection: Complex<f64> = (0..group.order())
+                    .into_par_iter()
+                    .try_fold(|| Complex::<f64>::zero(), |acc, i| {
+                        let cc_i = group
+                            .get_cc_of_element_index(i)
+                            .ok_or(format_err!("Unable to retrieve the conjugacy class index of element index {i}."))?;
+                        let cc = group
+                            .get_cc_symbol_of_index(cc_i)
+                            .ok_or(format_err!("Unable to retrieve the conjugacy class symbol of conjugacy class index {cc_i}."))?;
+                        let chi_i_star = group.character_table().get_character(&row_label, &cc).complex_conjugate();
+                        let s_0i = self
+                            .smat()
+                            .ok_or(format_err!("No orbit overlap matrix found."))?
+                            .get((0, i))
+                            .ok_or(format_err!("Unable to retrieve the overlap matrix element with index `(0, {i})`."))?;
+                        Ok::<_, anyhow::Error>(acc + chi_i_star.complex_value() * s_0i)
+                    })
+                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))?;
+                Ok::<_, anyhow::Error>((row_label.clone(), &dim * projection / group_order))
+            }).collect::<Result<Vec<_>, anyhow::Error>>()
+    }
+
+    /// Converts a slice of tuples of class symbols and characters to a nicely formatted table.
+    ///
+    /// # Arguments
+    ///
+    /// * `chis` - A slice of tuples of class symbols and characters.
+    /// * `integrality_threshold` - Threshold for ascertaining the integrality of characters.
     ///
     /// # Returns
     ///
-    /// The decomposed result.
-    ///
-    /// # Errors
-    ///
-    /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
-    /// are non-integral.
-    fn analyse_rep(
+    /// A string of a nicely formatted table.
+    fn projections_to_string(
         &self,
-    ) -> Result<
-        <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
-        DecompositionError,
-    > {
-        let chis = self
-            .calc_characters()
-            .map_err(|err| DecompositionError(err.to_string()))?;
-        let res = self.group().character_table().reduce_characters(
-            &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
-            self.integrality_threshold(),
-        );
-        res
+        projections: &[(
+            <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+            Complex<f64>,
+        )],
+        integrality_threshold: <T as ComplexFloat>::Real,
+    ) -> String {
+        let ndigits = (-integrality_threshold.log10()).to_usize().unwrap_or(6) + 1;
+        let (row_labels, projection_values): (Vec<_>, Vec<_>) = projections
+            .iter()
+            .map(|(row, proj)| (row.to_string(), format!("{proj:+.ndigits$}")))
+            .unzip();
+        let row_width = row_labels
+            .iter()
+            .map(|row| row.chars().count())
+            .max()
+            .unwrap_or(9)
+            .max(9);
+        let proj_width = projection_values
+            .iter()
+            .map(|proj| proj.chars().count())
+            .max()
+            .unwrap_or(10)
+            .max(10);
+
+        let divider = "┈".repeat(row_width + proj_width + 4);
+        let header = format!(" {:<row_width$}  {:<}", "Component", "Projection");
+        let body = Itertools::intersperse(
+            projections.iter().map(|(row, proj)| {
+                format!(" {:<row_width$}  {:<+.ndigits$}", row.to_string(), proj)
+            }),
+            "\n".to_string(),
+        )
+        .collect::<String>();
+
+        Itertools::intersperse(
+            [divider.clone(), header, divider.clone(), body, divider].into_iter(),
+            "\n".to_string(),
+        )
+        .collect::<String>()
     }
 }
 
@@ -729,14 +861,11 @@ pub(crate) use fn_calc_xmat_real;
 ///
 /// * `eigvals` - The eigenvalues.
 /// * `thresh` - The cut-off threshold to be marked out.
-/// * `thresh_cmp` - The function for comparing with threshold. The threshold is marked out when
-/// the function first evaluates to [`Ordering::Less`].
 pub(crate) fn log_overlap_eigenvalues<T>(
     title: &str,
     eigvals: &Array1<T>,
     thresh: <T as ComplexFloat>::Real,
     eigenvalue_comparison_mode: &EigenvalueComparisonMode,
-    // thresh_cmp: fn(&T, &<T as ComplexFloat>::Real) -> Ordering,
 ) where
     T: std::fmt::LowerExp + ComplexFloat,
     <T as ComplexFloat>::Real: std::fmt::LowerExp,
