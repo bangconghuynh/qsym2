@@ -192,6 +192,11 @@ where
             }
         }
     }
+
+    /// Returns the mathematical definition of the overlap between two densities.
+    fn overlap_definition(&self) -> String {
+        "⟨ι ρ_1|ρ_2⟩ = ∫ [ι ρ_1(r)]* ρ_2(r) dr".to_string()
+    }
 }
 
 // ====================

@@ -16,7 +16,8 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{
-    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, ProjectionDecomposition, RepAnalysis,
+    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
+    RepAnalysis,
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -958,6 +959,9 @@ where
             construct_group_ [ self.construct_unitary_group()? ]
             calc_projections_ [
                 log_subtitle("Slater determinant projection decompositions");
+                qsym2_output!("");
+                qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                qsym2_output!("    {}", det_orbit.origin().overlap_definition());
                 qsym2_output!("");
                 det_orbit
                     .projections_to_string(

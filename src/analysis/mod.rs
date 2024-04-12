@@ -54,6 +54,10 @@ where
         metric: Option<&Array<T, D>>,
         metric_h: Option<&Array<T, D>>,
     ) -> Result<T, anyhow::Error>;
+
+    /// Returns a string describing the mathematical definition of the overlap (*i.e.* the inner
+    /// product) between two quantities of this type.
+    fn overlap_definition(&self) -> String;
 }
 
 // =====

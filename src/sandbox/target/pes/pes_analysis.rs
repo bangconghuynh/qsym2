@@ -96,6 +96,11 @@ where
             .sum();
         Ok(overlap)
     }
+
+    /// Returns the mathematical definition of the overlap between two PESes.
+    fn overlap_definition(&self) -> String {
+        "⟨ι f_1|f_2⟩ = ∫ [ι f_1(r)]* w(r) f_2(r) dr    where w(r) is a required weight".to_string()
+    }
 }
 
 // ================
