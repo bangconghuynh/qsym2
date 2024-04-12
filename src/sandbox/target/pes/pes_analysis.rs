@@ -6,7 +6,6 @@ use std::ops::Mul;
 use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
-use duplicate::duplicate_item;
 use itertools::Itertools;
 use log;
 use nalgebra::Point3;
@@ -23,7 +22,7 @@ use rayon::prelude::*;
 
 use crate::analysis::{
     fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, ProjectionDecomposition, RepAnalysis,
+    Overlap, RepAnalysis,
 };
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -32,7 +31,6 @@ use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 use crate::sandbox::target::pes::PES;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 
 // =======
@@ -369,18 +367,18 @@ where
     }
 }
 
-#[duplicate_item(
-    duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
-        [
-            gtype_ [ UnitaryRepresentedSymmetryGroup ]
-            dtype_ [ dtype_nested ]
-        ]
-    }
-)]
-impl<'a, F> ProjectionDecomposition<UnitaryRepresentedSymmetryGroup, PES<dtype_, F>, dtype_, Ix1>
-    for PESSymmetryOrbit<'a, gtype_, dtype_, F>
-where
-    F: Clone + Sync + Send + Fn(&Point3<f64>) -> dtype_,
-{
-}
+// #[duplicate_item(
+//     duplicate!{
+//         [ dtype_nested; [f64]; [Complex<f64>] ]
+//         [
+//             gtype_ [ UnitaryRepresentedSymmetryGroup ]
+//             dtype_ [ dtype_nested ]
+//         ]
+//     }
+// )]
+// impl<'a, F> ProjectionDecomposition<UnitaryRepresentedSymmetryGroup, PES<dtype_, F>, dtype_, Ix1>
+//     for PESSymmetryOrbit<'a, gtype_, dtype_, F>
+// where
+//     F: Clone + Sync + Send + Fn(&Point3<f64>) -> dtype_,
+// {
+// }
