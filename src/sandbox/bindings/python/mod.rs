@@ -11,7 +11,11 @@ pub(crate) fn register_sandbox_module(py: Python<'_>, parent_module: &PyModule) 
     // Functions
     // ---------
     sandbox_module.add_function(wrap_pyfunction!(
-        representation_analysis::pes::rep_analyse_pes,
+        representation_analysis::pes::rep_analyse_pes_real,
+        sandbox_module
+    )?)?;
+    sandbox_module.add_function(wrap_pyfunction!(
+        representation_analysis::pes::rep_analyse_pes_complex,
         sandbox_module
     )?)?;
 

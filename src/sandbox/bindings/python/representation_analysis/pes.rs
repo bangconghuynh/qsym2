@@ -2,20 +2,15 @@
 
 use std::path::PathBuf;
 
-use anyhow::format_err;
+use duplicate::duplicate_item;
 use nalgebra::Point3;
-use ndarray::{Array1, Array2};
-use num_complex::Complex;
+use num::Complex;
 use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
-use crate::auxiliary::molecule::Molecule;
-use crate::basis::ao::BasisAngularOrder;
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
-use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC};
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
@@ -37,8 +32,19 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 // Functions definitions
 // =====================
 
-/// Python-exposed function to perform representation symmetry analysis for potential energy
-/// surfaces (PESes) and log the result via the `qsym2-output` logger at the `INFO` level.
+#[duplicate_item(
+    [
+        dtype_ [ f64 ]
+        doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for real-valued potential energy surfaces (PESes) and log the result via the `qsym2-output` logger at the `INFO` level." ]
+        rep_analyse_pes_ [ rep_analyse_pes_real ]
+    ]
+    [
+        dtype_ [ Complex<f64> ]
+        doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for complex-valued potential energy surfaces (PESes) and log the result via the `qsym2-output` logger at the `INFO` level." ]
+        rep_analyse_pes_ [ rep_analyse_pes_complex ]
+    ]
+)]
+#[doc = doc_sub_]
 ///
 /// # Arguments
 ///
@@ -105,7 +111,7 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
     angular_function_linear_independence_threshold=1e-7,
     angular_function_max_angular_momentum=2
 ))]
-pub fn rep_analyse_pes(
+pub fn rep_analyse_pes_(
     py: Python<'_>,
     inp_sym: PathBuf,
     pes_function: Py<PyFunction>,
@@ -117,7 +123,7 @@ pub fn rep_analyse_pes(
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     grid_points: &PyArray2<f64>,
-    weight: &PyArray1<f64>,
+    weight: &PyArray1<dtype_>,
     write_overlap_eigenvalues: bool,
     write_character_table: bool,
     infinite_order_to_finite: Option<u32>,
@@ -125,10 +131,6 @@ pub fn rep_analyse_pes(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    // if !pes_function.is_callable() {
-    //     return Err(PyRuntimeError::new_err("`pes_function` is not callable."));
-    // }
-
     let pd_res: SymmetryGroupDetectionResult =
         read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
             .map_err(|err| PyIOError::new_err(err.to_string()))?;
@@ -178,14 +180,14 @@ pub fn rep_analyse_pes(
         .map(|col| Point3::new(col[0], col[1], col[2]))
         .collect::<Vec<_>>();
 
-    let pes = PES::<f64, _>::builder()
+    let pes = PES::<dtype_, _>::builder()
         .function(|pt| {
             Python::with_gil(|py_inner| {
                 let res = pes_function
                     .call1(py_inner, (pt.x, pt.y, pt.z))
                     .expect("Unable to apply the PES function.");
-                res.extract::<f64>(py_inner)
-                    .expect("Unable to extract the `f64` result from the PES function call.")
+                res.extract::<dtype_>(py_inner)
+                    .expect("Unable to extract the result from the PES function call.")
             })
         })
         .grid_points(grid_points)
@@ -195,7 +197,7 @@ pub fn rep_analyse_pes(
     match &use_magnetic_group {
         Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
             let mut pes_driver =
-                PESRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, f64, _>::builder()
+                PESRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, dtype_, _>::builder()
                     .parameters(&pes_params)
                     .angular_function_parameters(&afa_params)
                     .pes(&pes)
@@ -211,7 +213,7 @@ pub fn rep_analyse_pes(
         }
         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
             let mut pes_driver =
-                PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
+                PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, dtype_, _>::builder()
                     .parameters(&pes_params)
                     .angular_function_parameters(&afa_params)
                     .pes(&pes)
