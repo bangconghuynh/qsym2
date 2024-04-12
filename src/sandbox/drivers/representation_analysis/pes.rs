@@ -472,7 +472,6 @@ where
             calc_projections_ [
                 log_subtitle("PES projection decompositions");
                 qsym2_output!("");
-                qsym2_output!("");
                 qsym2_output!("  Projections are defined w.r.t. the following inner product:");
                 qsym2_output!("    {}", pes_orbit.origin().overlap_definition());
                 qsym2_output!("");
