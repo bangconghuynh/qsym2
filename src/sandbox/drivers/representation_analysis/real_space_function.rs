@@ -1,4 +1,4 @@
-//! Sandbox driver for symmetry analysis of PESes.
+//! Sandbox driver for symmetry analysis of RealSpaceFunctiones.
 
 use std::fmt;
 use std::ops::Mul;
@@ -32,16 +32,16 @@ use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresented
 use crate::io::format::{
     log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
 };
-use crate::sandbox::target::pes::pes_analysis::PESSymmetryOrbit;
-use crate::sandbox::target::pes::PES;
+use crate::sandbox::target::real_space_function::real_space_function_analysis::RealSpaceFunctionSymmetryOrbit;
+use crate::sandbox::target::real_space_function::RealSpaceFunction;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 #[cfg(test)]
-#[path = "pes_tests.rs"]
-mod pes_tests;
+#[path = "real_space_function_tests.rs"]
+mod real_space_function_tests;
 
 // ==================
 // Struct definitions
@@ -58,9 +58,9 @@ const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
 
-/// Structure containing control parameters for PES representation analysis.
+/// Structure containing control parameters for real-space function representation analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
-pub struct PESRepAnalysisParams<T: From<f64>> {
+pub struct RealSpaceFunctionRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
     pub integrality_threshold: T,
 
@@ -84,7 +84,7 @@ pub struct PESRepAnalysisParams<T: From<f64>> {
     #[serde(default = "default_true")]
     pub use_cayley_table: bool,
 
-    /// The kind of symmetry transformation to be applied on the reference vibrational coordinate to
+    /// The kind of symmetry transformation to be applied on the reference real-space function to
     /// generate the orbit for symmetry analysis.
     #[builder(default = "SymmetryTransformationKind::Spatial")]
     #[serde(default)]
@@ -113,27 +113,27 @@ pub struct PESRepAnalysisParams<T: From<f64>> {
     pub infinite_order_to_finite: Option<u32>,
 }
 
-impl<T> PESRepAnalysisParams<T>
+impl<T> RealSpaceFunctionRepAnalysisParams<T>
 where
     T: Float + From<f64>,
 {
-    /// Returns a builder to construct a [`PESRepAnalysisParams`] structure.
-    pub fn builder() -> PESRepAnalysisParamsBuilder<T> {
-        PESRepAnalysisParamsBuilder::default()
+    /// Returns a builder to construct a [`RealSpaceFunctionRepAnalysisParams`] structure.
+    pub fn builder() -> RealSpaceFunctionRepAnalysisParamsBuilder<T> {
+        RealSpaceFunctionRepAnalysisParamsBuilder::default()
     }
 }
 
-impl Default for PESRepAnalysisParams<f64> {
+impl Default for RealSpaceFunctionRepAnalysisParams<f64> {
     fn default() -> Self {
         Self::builder()
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
             .build()
-            .expect("Unable to construct a default `PESRepAnalysisParams<f64>`.")
+            .expect("Unable to construct a default `RealSpaceFunctionRepAnalysisParams<f64>`.")
     }
 }
 
-impl<T> fmt::Display for PESRepAnalysisParams<T>
+impl<T> fmt::Display for RealSpaceFunctionRepAnalysisParams<T>
 where
     T: From<f64> + fmt::LowerExp + fmt::Debug,
 {
@@ -207,9 +207,9 @@ where
 // Result
 // ------
 
-/// Structure to contain PES representation analysis results.
+/// Structure to contain real-space function representation analysis results.
 #[derive(Clone, Builder)]
-pub struct PESRepAnalysisResult<'a, G, T, F>
+pub struct RealSpaceFunctionRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -217,20 +217,22 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    /// The control parameters used to obtain this set of PES representation analysis results.
-    parameters: &'a PESRepAnalysisParams<<T as ComplexFloat>::Real>,
+    /// The control parameters used to obtain this set of real-space function representation
+    /// analysis results.
+    parameters: &'a RealSpaceFunctionRepAnalysisParams<<T as ComplexFloat>::Real>,
 
-    /// The PES being analysed.
-    pes: &'a PES<T, F>,
+    /// The RealSpaceFunction being analysed.
+    real_space_function: &'a RealSpaceFunction<T, F>,
 
     /// The group used for the representation analysis.
     group: G,
 
-    /// The deduced symmetry of the PES.
-    pes_symmetry: Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
+    /// The deduced symmetry of the real-space function.
+    real_space_function_symmetry:
+        Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
 }
 
-impl<'a, G, T, F> PESRepAnalysisResult<'a, G, T, F>
+impl<'a, G, T, F> RealSpaceFunctionRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -238,13 +240,13 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    /// Returns a builder to construct a new [`PESRepAnalysisResultBuilder`] structure.
-    fn builder() -> PESRepAnalysisResultBuilder<'a, G, T, F> {
-        PESRepAnalysisResultBuilder::default()
+    /// Returns a builder to construct a new [`RealSpaceFunctionRepAnalysisResultBuilder`] structure.
+    fn builder() -> RealSpaceFunctionRepAnalysisResultBuilder<'a, G, T, F> {
+        RealSpaceFunctionRepAnalysisResultBuilder::default()
     }
 }
 
-impl<'a, G, T, F> fmt::Display for PESRepAnalysisResult<'a, G, T, F>
+impl<'a, G, T, F> fmt::Display for RealSpaceFunctionRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -265,12 +267,12 @@ where
             self.group.group_type().to_string().to_lowercase()
         )?;
         writeln!(f)?;
-        writeln!(f, "> Overall PES result")?;
+        writeln!(f, "> Overall real-space function result")?;
         writeln!(
             f,
             "  Grid size: {} {}",
-            self.pes.grid_points().len(),
-            if self.pes.grid_points().len() == 1 {
+            self.real_space_function.grid_points().len(),
+            if self.real_space_function.grid_points().len() == 1 {
                 "point"
             } else {
                 "points"
@@ -279,7 +281,7 @@ where
         writeln!(
             f,
             "  Symmetry: {}",
-            self.pes_symmetry
+            self.real_space_function_symmetry
                 .as_ref()
                 .map(|s| s.to_string())
                 .unwrap_or_else(|err| format!("-- ({err})"))
@@ -290,7 +292,7 @@ where
     }
 }
 
-impl<'a, G, T, F> fmt::Debug for PESRepAnalysisResult<'a, G, T, F>
+impl<'a, G, T, F> fmt::Debug for RealSpaceFunctionRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -303,7 +305,7 @@ where
     }
 }
 
-impl<'a, G, T, F> PESRepAnalysisResult<'a, G, T, F>
+impl<'a, G, T, F> RealSpaceFunctionRepAnalysisResult<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -311,11 +313,11 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    /// Returns the PES symmetry obtained from the analysis result.
-    pub fn pes_symmetry(
+    /// Returns the real-space function symmetry obtained from the analysis result.
+    pub fn real_space_function_symmetry(
         &self,
     ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
-        &self.pes_symmetry
+        &self.real_space_function_symmetry
     }
 }
 
@@ -327,10 +329,10 @@ where
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
-/// Driver structure for performing representation analysis on PESes.
+/// Driver structure for performing representation analysis on real-space functions.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PESRepAnalysisDriver<'a, G, T, F>
+pub struct RealSpaceFunctionRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -338,29 +340,28 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    /// The control parameters for PES representation analysis.
-    parameters: &'a PESRepAnalysisParams<<T as ComplexFloat>::Real>,
+    /// The control parameters for real-space function representation analysis.
+    parameters: &'a RealSpaceFunctionRepAnalysisParams<<T as ComplexFloat>::Real>,
 
-    /// The PES to be analysed. This is always initialised to be [`None`]. A concrete value can
-    /// only be set after the full symmetry group has been constructed and used to specify the PES.
-    pes: &'a PES<T, F>,
+    /// The real-space function to be analysed.
+    real_space_function: &'a RealSpaceFunction<T, F>,
 
     /// The result from symmetry-group detection that will then be used to construct the full group
-    /// for the definition and analysis of the PES.
+    /// for the definition and analysis of the real-space function.
     symmetry_group: &'a SymmetryGroupDetectionResult,
 
-    /// The weight used in the evaluation of the inner products between PESes.
+    /// The weight used in the evaluation of the inner products between real-space functions.
     weight: &'a Array1<T>,
 
     /// The control parameters for symmetry analysis of angular functions.
     angular_function_parameters: &'a AngularFunctionRepAnalysisParams,
 
-    /// The result of the vibrational coordinate representation analysis.
+    /// The result of the real-space function representation analysis.
     #[builder(setter(skip), default = "None")]
-    result: Option<PESRepAnalysisResult<'a, G, T, F>>,
+    result: Option<RealSpaceFunctionRepAnalysisResult<'a, G, T, F>>,
 }
 
-impl<'a, G, T, F> PESRepAnalysisDriverBuilder<'a, G, T, F>
+impl<'a, G, T, F> RealSpaceFunctionRepAnalysisDriverBuilder<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -369,11 +370,13 @@ where
     F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn validate(&self) -> Result<(), String> {
-        let _ = self.pes.ok_or("No PES specified.".to_string())?;
+        let _ = self
+            .real_space_function
+            .ok_or("No real-space function specified.".to_string())?;
 
         let params = self
             .parameters
-            .ok_or("No PES representation analysis parameters found.".to_string())?;
+            .ok_or("No real-space function representation analysis parameters found.".to_string())?;
 
         let sym_res = self
             .symmetry_group
@@ -409,7 +412,7 @@ where
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T, F> PESRepAnalysisDriver<'a, G, T, F>
+impl<'a, G, T, F> RealSpaceFunctionRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -417,16 +420,16 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    /// Returns a builder to construct a [`PESRepAnalysisDriver`] structure.
-    pub fn builder() -> PESRepAnalysisDriverBuilder<'a, G, T, F> {
-        PESRepAnalysisDriverBuilder::default()
+    /// Returns a builder to construct a [`RealSpaceFunctionRepAnalysisDriver`] structure.
+    pub fn builder() -> RealSpaceFunctionRepAnalysisDriverBuilder<'a, G, T, F> {
+        RealSpaceFunctionRepAnalysisDriverBuilder::default()
     }
 }
 
-// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary-represented symmetry groups, but generic for function numeric type T
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T, F> PESRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, F>
+impl<'a, T, F> RealSpaceFunctionRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, F>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
@@ -435,15 +438,15 @@ where
 {
     fn_construct_unitary_group!(
         /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
-        /// for PES representation analysis.
+        /// for real-space function representation analysis.
         construct_unitary_group
     );
 }
 
-// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for magnetic-represented symmetry groups, but generic for function numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T, F> PESRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, F>
+impl<'a, T, F> RealSpaceFunctionRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, F>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
@@ -452,7 +455,7 @@ where
 {
     fn_construct_magnetic_group!(
         /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
-        /// PES corepresentation analysis.
+        /// real-space function corepresentation analysis.
         construct_magnetic_group
     );
 }
@@ -470,14 +473,14 @@ where
             analyse_fn_ [ analyse_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
             calc_projections_ [
-                log_subtitle("PES projection decompositions");
+                log_subtitle("Real-space function projection decompositions");
                 qsym2_output!("");
                 qsym2_output!("  Projections are defined w.r.t. the following inner product:");
-                qsym2_output!("    {}", pes_orbit.origin().overlap_definition());
+                qsym2_output!("    {}", real_space_function_orbit.origin().overlap_definition());
                 qsym2_output!("");
-                pes_orbit
+                real_space_function_orbit
                     .projections_to_string(
-                        &pes_orbit.calc_projection_compositions()?,
+                        &real_space_function_orbit.calc_projection_compositions()?,
                         params.integrality_threshold,
                     )
                     .log_output_display();
@@ -497,7 +500,7 @@ where
         ]
     }
 )]
-impl<'a, F> PESRepAnalysisDriver<'a, gtype_, dtype_, F>
+impl<'a, F> RealSpaceFunctionRepAnalysisDriver<'a, gtype_, dtype_, F>
 where
     F: Clone + Sync + Send + Fn(&Point3<f64>) -> dtype_,
 {
@@ -508,24 +511,26 @@ where
         log_cc_transversal(&group);
         let _ = find_angular_function_representation(&group, self.angular_function_parameters);
 
-        let mut pes_orbit = PESSymmetryOrbit::builder()
-            .origin(self.pes)
+        let mut real_space_function_orbit = RealSpaceFunctionSymmetryOrbit::builder()
+            .origin(self.real_space_function)
             .group(&group)
             .integrality_threshold(params.integrality_threshold)
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
             .build()?;
-        let pes_symmetry = pes_orbit
+        let real_space_function_symmetry = real_space_function_orbit
             .calc_smat(Some(self.weight), None, params.use_cayley_table)
-            .and_then(|pes_orb| pes_orb.normalise_smat())
+            .and_then(|real_space_function_orb| real_space_function_orb.normalise_smat())
             .map_err(|err| err.to_string())
-            .and_then(|pes_orb| {
-                pes_orb.calc_xmat(false).map_err(|err| err.to_string())?;
+            .and_then(|real_space_function_orb| {
+                real_space_function_orb
+                    .calc_xmat(false)
+                    .map_err(|err| err.to_string())?;
                 if params.write_overlap_eigenvalues {
-                    if let Some(smat_eigvals) = pes_orb.smat_eigvals.as_ref() {
+                    if let Some(smat_eigvals) = real_space_function_orb.smat_eigvals.as_ref() {
                         log_overlap_eigenvalues(
-                            "PES orbit overlap eigenvalues",
+                            "Real-space function orbit overlap eigenvalues",
                             smat_eigvals,
                             params.linear_independence_threshold,
                             &params.eigenvalue_comparison_mode,
@@ -533,16 +538,18 @@ where
                         qsym2_output!("");
                     }
                 }
-                pes_orb.analyse_rep().map_err(|err| err.to_string())
+                real_space_function_orb
+                    .analyse_rep()
+                    .map_err(|err| err.to_string())
             });
 
-        calc_projections_;
+        { calc_projections_ }
 
-        let result = PESRepAnalysisResult::builder()
+        let result = RealSpaceFunctionRepAnalysisResult::builder()
             .parameters(params)
-            .pes(self.pes)
+            .real_space_function(self.real_space_function)
             .group(group)
-            .pes_symmetry(pes_symmetry)
+            .real_space_function_symmetry(real_space_function_symmetry)
             .build()?;
         self.result = Some(result);
 
@@ -557,7 +564,7 @@ where
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T, F> fmt::Display for PESRepAnalysisDriver<'a, G, T, F>
+impl<'a, G, T, F> fmt::Display for RealSpaceFunctionRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -566,14 +573,14 @@ where
     F: Clone + Fn(&Point3<f64>) -> T,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_title(f, "PES Symmetry Analysis")?;
+        write_title(f, "Real-Space Function Symmetry Analysis")?;
         writeln!(f)?;
         writeln!(f, "{}", self.parameters)?;
         Ok(())
     }
 }
 
-impl<'a, G, T, F> fmt::Debug for PESRepAnalysisDriver<'a, G, T, F>
+impl<'a, G, T, F> fmt::Debug for RealSpaceFunctionRepAnalysisDriver<'a, G, T, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -586,8 +593,8 @@ where
     }
 }
 
-// Specific for unitary/magnetic-represented groups and vibration numeric type f64/Complex<f64>
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary/magnetic-represented groups and function numeric type f64/Complex<f64>
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #[duplicate_item(
     duplicate!{
@@ -607,18 +614,18 @@ where
         ]
     }
 )]
-impl<'a, F> QSym2Driver for PESRepAnalysisDriver<'a, gtype_, dtype_, F>
+impl<'a, F> QSym2Driver for RealSpaceFunctionRepAnalysisDriver<'a, gtype_, dtype_, F>
 where
     F: Clone + Sync + Send + Fn(&Point3<f64>) -> dtype_,
 {
-    type Params = PESRepAnalysisParams<f64>;
+    type Params = RealSpaceFunctionRepAnalysisParams<f64>;
 
-    type Outcome = PESRepAnalysisResult<'a, gtype_, dtype_, F>;
+    type Outcome = RealSpaceFunctionRepAnalysisResult<'a, gtype_, dtype_, F>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
             .as_ref()
-            .ok_or_else(|| format_err!("No PES analysis results found."))
+            .ok_or_else(|| format_err!("No real-space function analysis results found."))
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {

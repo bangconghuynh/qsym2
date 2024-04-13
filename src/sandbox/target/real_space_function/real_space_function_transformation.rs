@@ -1,4 +1,4 @@
-//! Implementation of symmetry transformations for PESes.
+//! Implementation of symmetry transformations for real-space functions.
 
 use itertools::Itertools;
 use nalgebra::Point3;
@@ -7,7 +7,7 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
 use crate::permutation::Permutation;
-use crate::sandbox::target::pes::PES;
+use crate::sandbox::target::real_space_function::RealSpaceFunction;
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
     ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
@@ -18,7 +18,7 @@ use crate::symmetry::symmetry_transformation::{
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<T, F> SpatialUnitaryTransformable for PES<T, F>
+impl<T, F> SpatialUnitaryTransformable for RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
@@ -52,15 +52,15 @@ where
 // SpinUnitaryTransformable
 // ------------------------
 
-impl<T, F> SpinUnitaryTransformable for PES<T, F>
+impl<T, F> SpinUnitaryTransformable for RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Performs a spin transformation in-place.
     ///
-    /// Since PESes are entirely spatial, spin transformations have no effect on them. This
-    /// thus simply returns `self` without modification.
+    /// Since real-space functions are entirely spatial, spin transformations have no effect on
+    /// them. This thus simply returns `self` without modification.
     fn transform_spin_mut(
         &mut self,
         _: &Array2<Complex<f64>>,
@@ -73,7 +73,7 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<T, F> ComplexConjugationTransformable for PES<T, F>
+impl<T, F> ComplexConjugationTransformable for RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
@@ -87,7 +87,7 @@ where
 // --------------------------------
 // DefaultTimeReversalTransformable
 // --------------------------------
-impl<T, F> DefaultTimeReversalTransformable for PES<T, F>
+impl<T, F> DefaultTimeReversalTransformable for RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
@@ -97,14 +97,14 @@ where
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<T, F> SymmetryTransformable for PES<T, F>
+impl<T, F> SymmetryTransformable for RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
-    PES<T, F>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    RealSpaceFunction<T, F>: SpatialUnitaryTransformable + TimeReversalTransformable,
 {
-    /// PESes have no local sites for permutation. This method therefore simply returns the
-    /// identity permutation on one object.
+    /// Real-space functions have no local sites for permutation. This method therefore simply
+    /// returns the identity permutation on one object.
     fn sym_permute_sites_spatial(
         &self,
         _: &SymmetryOperation,

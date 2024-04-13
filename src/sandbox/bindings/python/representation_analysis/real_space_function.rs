@@ -1,4 +1,4 @@
-//! Sandbox Python bindings for QSym² symmetry analysis of PESes.
+//! Sandbox Python bindings for QSym² symmetry analysis of real-space functions.
 
 use std::path::PathBuf;
 
@@ -19,10 +19,10 @@ use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::format::qsym2_output;
 use crate::io::{read_qsym2_binary, QSym2FileType};
-use crate::sandbox::drivers::representation_analysis::pes::{
-    PESRepAnalysisDriver, PESRepAnalysisParams,
+use crate::sandbox::drivers::representation_analysis::real_space_function::{
+    RealSpaceFunctionRepAnalysisDriver, RealSpaceFunctionRepAnalysisParams,
 };
-use crate::sandbox::target::pes::PES;
+use crate::sandbox::target::real_space_function::RealSpaceFunction;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -35,13 +35,13 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 #[duplicate_item(
     [
         dtype_ [ f64 ]
-        doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for real-valued potential energy surfaces (PESes) and log the result via the `qsym2-output` logger at the `INFO` level." ]
-        rep_analyse_pes_ [ rep_analyse_pes_real ]
+        doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for real-valued real-space functions and log the result via the `qsym2-output` logger at the `INFO` level." ]
+        rep_analyse_real_space_function_ [ rep_analyse_real_space_function_real ]
     ]
     [
         dtype_ [ Complex<f64> ]
-        doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for complex-valued potential energy surfaces (PESes) and log the result via the `qsym2-output` logger at the `INFO` level." ]
-        rep_analyse_pes_ [ rep_analyse_pes_complex ]
+        doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for complex-valued real-space functions and log the result via the `qsym2-output` logger at the `INFO` level." ]
+        rep_analyse_real_space_function_ [ rep_analyse_real_space_function_complex ]
     ]
 )]
 #[doc = doc_sub_]
@@ -51,8 +51,8 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
 /// representation analysis. Python type: `str`.
-/// * `pes_function` - A Python function callable on three Cartesian coordinates to give a potential
-/// energy value. Python type: `Callable[[float, float, float], float]`.
+/// * `function` - A Python function callable on three Cartesian coordinates to give a scalar value.
+/// Python type: `Callable[[float, float, float], float]`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are integral.
 /// Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -65,19 +65,18 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 /// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
 /// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin PES to generate the orbit. If this
-/// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically. Python type: `SymmetryTransformationKind`.
+/// transformations to be performed on the origin real-space function to generate the orbit.
+/// Python type: `SymmetryTransformationKind`.
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
 /// Python type: `EigenvalueComparisonMode`.
-/// * `grid_points` - The grid points at which the PES is evaluated specified as a $`3 \times N`$
-/// array where $`N`$ is the number of points. Python type: `numpy.2darray[float]`.
-/// * `weight` - The weight to be used in the computation of overlaps between PESes specified as a
-/// one-dimensional array. The number of weight values must match the number of grid points. Python
-/// type: `numpy.1darray[float]`.
-/// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
-/// orbit overlap matrix are to be written to the output. Python type: `bool`.
+/// * `grid_points` - The grid points at which the real-space function is evaluated specified as a
+/// $`3 \times N`$ array where $`N`$ is the number of points. Python type: `numpy.2darray[float]`.
+/// * `weight` - The weight to be used in the computation of overlaps between real-space functions
+/// specified as a one-dimensional array. The number of weight values must match the number of grid
+/// points. Python type: `numpy.1darray[float]`.
+/// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the real-space
+/// function orbit overlap matrix are to be written to the output. Python type: `bool`.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
 /// symmetry group is to be printed out. Python type: `bool`.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
@@ -94,7 +93,7 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
-    pes_function,
+    function,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -111,10 +110,10 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
     angular_function_linear_independence_threshold=1e-7,
     angular_function_max_angular_momentum=2
 ))]
-pub fn rep_analyse_pes_(
+pub fn rep_analyse_real_space_function_(
     py: Python<'_>,
     inp_sym: PathBuf,
-    pes_function: Py<PyFunction>,
+    function: Py<PyFunction>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -149,7 +148,7 @@ pub fn rep_analyse_pes_(
         .max_angular_momentum(angular_function_max_angular_momentum)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let pes_params = PESRepAnalysisParams::<f64>::builder()
+    let real_space_function_params = RealSpaceFunctionRepAnalysisParams::<f64>::builder()
         .integrality_threshold(integrality_threshold)
         .linear_independence_threshold(linear_independence_threshold)
         .use_magnetic_group(use_magnetic_group.clone())
@@ -180,14 +179,17 @@ pub fn rep_analyse_pes_(
         .map(|col| Point3::new(col[0], col[1], col[2]))
         .collect::<Vec<_>>();
 
-    let pes = PES::<dtype_, _>::builder()
+    let real_space_function = RealSpaceFunction::<dtype_, _>::builder()
         .function(|pt| {
             Python::with_gil(|py_inner| {
-                let res = pes_function
+                let res = function
                     .call1(py_inner, (pt.x, pt.y, pt.z))
-                    .expect("Unable to apply the PES function.");
-                res.extract::<dtype_>(py_inner)
-                    .expect("Unable to extract the result from the PES function call.")
+                    .expect(
+                        "Unable to apply the real-space function on the specified coordinates.",
+                    );
+                res.extract::<dtype_>(py_inner).expect(
+                    "Unable to extract the result from the real-space function call.",
+                )
             })
         })
         .grid_points(grid_points)
@@ -196,33 +198,39 @@ pub fn rep_analyse_pes_(
 
     match &use_magnetic_group {
         Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-            let mut pes_driver =
-                PESRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, dtype_, _>::builder()
-                    .parameters(&pes_params)
-                    .angular_function_parameters(&afa_params)
-                    .pes(&pes)
-                    .weight(&weight)
-                    .symmetry_group(&pd_res)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            let mut real_space_function_driver = RealSpaceFunctionRepAnalysisDriver::<
+                MagneticRepresentedSymmetryGroup,
+                dtype_,
+                _,
+            >::builder()
+            .parameters(&real_space_function_params)
+            .angular_function_parameters(&afa_params)
+            .real_space_function(&real_space_function)
+            .weight(&weight)
+            .symmetry_group(&pd_res)
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             py.allow_threads(|| {
-                pes_driver
+                real_space_function_driver
                     .run()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
             })?
         }
         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-            let mut pes_driver =
-                PESRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, dtype_, _>::builder()
-                    .parameters(&pes_params)
-                    .angular_function_parameters(&afa_params)
-                    .pes(&pes)
-                    .weight(&weight)
-                    .symmetry_group(&pd_res)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            let mut real_space_function_driver = RealSpaceFunctionRepAnalysisDriver::<
+                UnitaryRepresentedSymmetryGroup,
+                dtype_,
+                _,
+            >::builder()
+            .parameters(&real_space_function_params)
+            .angular_function_parameters(&afa_params)
+            .real_space_function(&real_space_function)
+            .weight(&weight)
+            .symmetry_group(&pd_res)
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             py.allow_threads(|| {
-                pes_driver
+                real_space_function_driver
                     .run()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
             })?

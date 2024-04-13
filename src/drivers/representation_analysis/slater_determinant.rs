@@ -1027,7 +1027,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
 
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
 
-            calc_projections_;
+            { calc_projections_ }
 
             let mo_symmetries = mo_orbitss
                 .iter_mut()
@@ -1160,7 +1160,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     det_orb.analyse_rep().map_err(|err| err.to_string())
                 });
 
-            calc_projections_;
+            { calc_projections_ }
 
             (det_symmetry, None, None, None)
         };

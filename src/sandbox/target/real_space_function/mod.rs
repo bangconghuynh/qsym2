@@ -1,4 +1,4 @@
-//! Potential energy surfaces.
+//! Real-space functions.
 
 use std::fmt;
 
@@ -9,27 +9,27 @@ use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 
 #[cfg(test)]
-mod pes_tests;
+mod real_space_function_tests;
 
-pub mod pes_analysis;
-mod pes_transformation;
+pub mod real_space_function_analysis;
+mod real_space_function_transformation;
 
 // ==================
 // Struct definitions
 // ==================
 
-/// Structure to manage potential energy surfaces.
+/// Structure to manage real-space functions.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PES<T, F>
+pub struct RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Fn(&Point3<f64>) -> T,
 {
-    /// The grid points $`\mathbf{r}_j`$ at which the PES is to be evaluated.
+    /// The grid points $`\mathbf{r}_j`$ at which the real-space function is to be evaluated.
     grid_points: Vec<Point3<f64>>,
 
-    /// The function $`\mathbb{R}^3 \to T`$ defining the PES.
+    /// The function $`\mathbb{R}^3 \to T`$.
     function: F,
 
     /// A boolean indicating if action of [`Self::function`] needs to be complex-conjugated.
@@ -37,7 +37,7 @@ where
     complex_conjugated: bool,
 }
 
-impl<T, F> PESBuilder<T, F>
+impl<T, F> RealSpaceFunctionBuilder<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Fn(&Point3<f64>) -> T,
@@ -50,27 +50,28 @@ where
         let _ = self
             .function
             .as_ref()
-            .ok_or("No PES function found.".to_string())?;
+            .ok_or("No real-space function found.".to_string())?;
         Ok(())
     }
 }
 
-impl<T, F> PES<T, F>
+impl<T, F> RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Clone + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    /// Returns a builder to construct a new [`PES`].
-    pub fn builder() -> PESBuilder<T, F> {
-        PESBuilder::default()
+    /// Returns a builder to construct a new [`RealSpaceFunction`].
+    pub fn builder() -> RealSpaceFunctionBuilder<T, F> {
+        RealSpaceFunctionBuilder::default()
     }
 
-    /// Returns a vector of shared references to the grid points at which the PES is evaluated.
+    /// Returns a vector of shared references to the grid points at which the real-space function is
+    /// evaluated.
     pub fn grid_points(&self) -> Vec<&Point3<f64>> {
         self.grid_points.iter().collect_vec()
     }
 
-    /// Returns a shared reference to the function defining the PES.
+    /// Returns a shared reference to the function defining the [`RealSpaceFunction`].
     pub fn function(&self) -> &F {
         &self.function
     }
@@ -83,7 +84,7 @@ where
 // -------
 // Display
 // -------
-impl<T, F> fmt::Display for PES<T, F>
+impl<T, F> fmt::Display for RealSpaceFunction<T, F>
 where
     T: ComplexFloat + Lapack,
     F: Fn(&Point3<f64>) -> T,
@@ -91,7 +92,7 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "PES{}[grid of {} {}]",
+            "RealSpaceFunction{}[grid of {} {}]",
             if self.complex_conjugated { "*" } else { "" },
             self.grid_points.len(),
             if self.grid_points.len() == 1 {

@@ -4,4 +4,4 @@
 //! See [`crate::drivers::representation_analysis`] and
 //! [`crate::sandbox::drivers::representation_analysis`] for more information.
 
-pub mod pes;
+pub mod real_space_function;
