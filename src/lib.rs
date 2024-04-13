@@ -74,6 +74,9 @@
 //! - `standard`: Enables the `openblas-static` and `qchem` features
 //! - `full`: Enables the `standard` and `integrals` features
 //!
+//! ### Developmental
+//! - `sandbox`: Enables experimental features that are still being actively developed
+//!
 //! ## Dependencies
 //!
 //! The compilation of QSym² requires the following:
