@@ -138,7 +138,7 @@ pages:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo doc --no-deps --features full,python
+    - cargo doc --no-deps --features full,python,sandbox
     - mv target/doc public/api
     - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/api/index.html
   needs:
