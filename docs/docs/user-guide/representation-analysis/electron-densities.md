@@ -194,4 +194,4 @@ The way to do this is shown below.
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
     25. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
-    </li></br>:material-cog-sync-outline: Default: `True`.
+    </br></br>:material-cog-sync-outline: Default: `True`.

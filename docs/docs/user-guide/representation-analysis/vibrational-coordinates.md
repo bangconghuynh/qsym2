@@ -216,4 +216,4 @@ More methods might become possible in the future. The parameter specifications f
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
     19. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
-    </li></br>:material-cog-sync-outline: Default: `True`.
+    </br></br>:material-cog-sync-outline: Default: `True`.
