@@ -36,11 +36,13 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
     [
         dtype_ [ f64 ]
         doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for real-valued real-space functions and log the result via the `qsym2-output` logger at the `INFO` level." ]
+        func_sub_ [ "* `function` - A Python function callable on three Cartesian coordinates to give a scalar value. Python type: `Callable[[float, float, float], float]`." ]
         rep_analyse_real_space_function_ [ rep_analyse_real_space_function_real ]
     ]
     [
         dtype_ [ Complex<f64> ]
         doc_sub_ [ "Python-exposed function to perform representation symmetry analysis for complex-valued real-space functions and log the result via the `qsym2-output` logger at the `INFO` level." ]
+        func_sub_ [ "* `function` - A Python function callable on three Cartesian coordinates to give a scalar value. Python type: `Callable[[float, float, float], complex]`." ]
         rep_analyse_real_space_function_ [ rep_analyse_real_space_function_complex ]
     ]
 )]
@@ -51,8 +53,7 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
 /// representation analysis. Python type: `str`.
-/// * `function` - A Python function callable on three Cartesian coordinates to give a scalar value.
-/// Python type: `Callable[[float, float, float], float]`.
+#[doc = func_sub_]
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are integral.
 /// Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
