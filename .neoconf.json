@@ -1,7 +1,7 @@
 {
     "lspconfig": {
         "rust_analyzer": {
-            "rust-analyzer.cargo.features": [ "full", "python" ],
+            "rust-analyzer.cargo.features": [ "full", "python", "sandbox" ],
         }
     }
 }

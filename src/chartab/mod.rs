@@ -138,7 +138,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `characters` - A hashmap of characters for conjugacy classes.
+    /// * `characters` - A slice of characters for conjugacy classes.
+    /// * `thresh` - Threshold for determining non-zero imaginary parts of multiplicities.
     ///
     /// # Returns
     ///
@@ -534,7 +535,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `characters` - A hashmap of characters for conjugacy classes.
+    /// * `characters` - A slice of characters for conjugacy classes.
+    /// * `thresh` - Threshold for determining non-zero imaginary parts of multiplicities.
     ///
     /// # Returns
     ///
@@ -1020,7 +1022,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `characters` - A hashmap of characters for conjugacy classes.
+    /// * `characters` - A slice of characters for conjugacy classes.
+    /// * `thresh` - Threshold for determining non-zero imaginary parts of multiplicities.
     ///
     /// # Returns
     ///

@@ -12,6 +12,9 @@ use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::interfaces::cli::{qsym2_output_contributors, qsym2_output_heading};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
+#[cfg(feature = "sandbox")]
+use crate::sandbox::bindings::python::register_sandbox_module;
+
 /// Python module for QSym² implemented in Rust.
 #[pymodule]
 pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -78,5 +81,12 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<EigenvalueComparisonMode>()?;
     m.add_class::<MagneticSymmetryAnalysisKind>()?;
     m.add_class::<SymmetryTransformationKind>()?;
+
+    // ----------
+    // Submodules
+    // ----------
+    #[cfg(feature = "sandbox")]
+    register_sandbox_module(_py, m)?;
+
     Ok(())
 }

@@ -452,7 +452,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
-    /// The control parameters for Slater determinant representation analysis.
+    /// The control parameters for vibrational coordinate representation analysis.
     parameters: &'a VibrationalCoordinateRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The collection of vibrational coordinates to be analysed.

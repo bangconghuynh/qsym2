@@ -116,6 +116,7 @@ nav:
       - user-guide/representation-analysis/slater-determinants.md
       - user-guide/representation-analysis/vibrational-coordinates.md
       - user-guide/representation-analysis/electron-densities.md
+      - user-guide/representation-analysis/real-space-functions.md
   - API documentation: https://qsym2.dev/api
   - About:
     - about/authorship.md
