@@ -122,6 +122,11 @@ where
         };
         Ok(ov)
     }
+
+    /// Returns the mathematical definition of the overlap between two orbitals.
+    fn overlap_definition(&self) -> String {
+        "⟨ι ψ_1|ψ_2⟩ = ∫ [ι ψ_1(x)]* ψ_2(x) dx".to_string()
+    }
 }
 
 // =============================

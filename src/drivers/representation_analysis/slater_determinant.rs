@@ -15,7 +15,10 @@ use num_traits::Float;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, RepAnalysis};
+use crate::analysis::{
+    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
+    RepAnalysis,
+};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -954,6 +957,20 @@ where
             doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
             analyse_fn_ [ analyse_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
+            calc_projections_ [
+                log_subtitle("Slater determinant projection decompositions");
+                qsym2_output!("");
+                qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                qsym2_output!("    {}", det_orbit.origin().overlap_definition());
+                qsym2_output!("");
+                det_orbit
+                    .projections_to_string(
+                        &det_orbit.calc_projection_compositions()?,
+                        params.integrality_threshold,
+                    )
+                    .log_output_display();
+                qsym2_output!("");
+            ]
         ]
     }
     duplicate!{
@@ -964,6 +981,7 @@ where
             doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
             analyse_fn_ [ analyse_corepresentation ]
             construct_group_ [ self.construct_magnetic_group()? ]
+            calc_projections_ [ ]
         ]
     }
 )]
@@ -1008,6 +1026,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
             }
 
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
+
+            { calc_projections_ }
 
             let mo_symmetries = mo_orbitss
                 .iter_mut()
@@ -1139,6 +1159,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
                 });
+
+            { calc_projections_ }
+
             (det_symmetry, None, None, None)
         };
 

@@ -1,4 +1,4 @@
-//! Driver for symmetry analysis via representation and corepresentation theories.
+//! Drivers for symmetry analysis via representation and corepresentation theories.
 
 use std::fmt;
 
@@ -87,7 +87,7 @@ fn log_bao(bao: &BasisAngularOrder) {
 /// # Arguments
 ///
 /// * `group` - A group for which a conjugacy class transversal should be logged nicely.
-fn log_cc_transversal<G>(group: &G)
+pub(crate) fn log_cc_transversal<G>(group: &G)
 where
     G: ClassPropertiesSummary,
     G::GroupElement: fmt::Display,

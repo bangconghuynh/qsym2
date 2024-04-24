@@ -258,10 +258,10 @@ More methods might become possible in the future. The parameter specifications f
         infinite_order_to_finite=None, #(31)!
         # Other options
         write_character_table=True, #(32)!
-        write_overlap_eigenvalues=True, #(36)!
-        analyse_mo_symmetries=True, #(37)!
-        analyse_mo_mirror_parities=False, #(38)!
-        analyse_density_symmetries=False, #(39)!
+        write_overlap_eigenvalues=True, #(33)!
+        analyse_mo_symmetries=True, #(34)!
+        analyse_mo_mirror_parities=False, #(35)!
+        analyse_density_symmetries=False, #(36)!
     )
     ```
 
@@ -329,12 +329,12 @@ More methods might become possible in the future. The parameter specifications f
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
     32. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
-    </li></br>:material-cog-sync-outline: Default: `True`.
-    36. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    37. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
+    33. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    38. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
+    34. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
+    </br></br>:material-cog-sync-outline: Default: `True`.
+    35. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
     </br></br>:material-cog-sync-outline: Default: `False`.
-    39. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
+    36. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
     </br></br>:material-cog-sync-outline: Default: `False`.

@@ -32,6 +32,9 @@ If the `*-static` backends give rise to numerical problems, please try installin
 - `standard`: Enables the `openblas-static` and `qchem` features
 - `full`: Enables the `standard` and `integrals` features
 
+### Developmental
+- `sandbox`: Enables experimental features that are still being actively developed
+
 ## Dependencies
 
 The installation of QSym² requires the following:

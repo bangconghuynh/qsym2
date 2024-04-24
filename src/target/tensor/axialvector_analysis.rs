@@ -68,6 +68,11 @@ where
         };
         Ok(ov)
     }
+
+    /// Returns the mathematical definition of the overlap between two axial vectors.
+    fn overlap_definition(&self) -> String {
+        "⟨ι v_1|v_2⟩ = [ι v_1]† g v_2    where g is an optional metric".to_string()
+    }
 }
 
 // =========================

@@ -154,6 +154,11 @@ where
             SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => Ok(ov),
         }
     }
+
+    /// Returns the mathematical definition of the overlap between two Slater determinants.
+    fn overlap_definition(&self) -> String {
+        "⟨ι Ψ_1|Ψ_2⟩ = ∫ [ι Ψ_1(x^Ne)]* Ψ_2(x^Ne) dx^Ne".to_string()
+    }
 }
 
 // ==============================

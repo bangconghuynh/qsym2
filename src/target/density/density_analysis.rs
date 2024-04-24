@@ -192,6 +192,11 @@ where
             }
         }
     }
+
+    /// Returns the mathematical definition of the overlap between two densities.
+    fn overlap_definition(&self) -> String {
+        "⟨ι ρ_1|ρ_2⟩ = ∫ [ι ρ_1(r)]* ρ_2(r) dr".to_string()
+    }
 }
 
 // ====================
@@ -416,8 +421,6 @@ where
     fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
         &self.eigenvalue_comparison_mode
     }
-
-    /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
 
     /// Reduces the representation or corepresentation spanned by the densities in the orbit to
     /// a direct sum of the irreducible representations or corepresentations of the generating
