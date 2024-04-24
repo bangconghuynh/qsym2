@@ -7,6 +7,9 @@ use itertools::Itertools;
 
 use crate::group::GroupProperties;
 
+#[path = "basis_transformation.rs"]
+mod basis_transformation;
+
 // =====
 // Basis
 // =====
@@ -35,13 +38,13 @@ pub(crate) trait Basis<I> {
 // Lazy basis from orbits
 // ~~~~~~~~~~~~~~~~~~~~~~
 
-#[derive(Builder)]
-struct OrbitBasis<'g, 'i, G, I>
+#[derive(Builder, Clone)]
+struct OrbitBasis<'g, G, I>
 where
     G: GroupProperties,
 {
     /// The origins from which orbits are generated.
-    origins: Vec<&'i I>,
+    origins: Vec<I>,
 
     /// The group acting on the origins to generate orbits, the concatenation of which forms the
     /// basis.
@@ -51,21 +54,21 @@ where
     action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
 }
 
-impl<'g, 'i, G, I> OrbitBasis<'g, 'i, G, I>
+impl<'g, G, I> OrbitBasis<'g, G, I>
 where
     G: GroupProperties + Clone,
     I: Clone,
 {
-    fn builder() -> OrbitBasisBuilder<'g, 'i, G, I> {
+    fn builder() -> OrbitBasisBuilder<'g, G, I> {
         OrbitBasisBuilder::<G, I>::default()
     }
 }
 
-impl<'g, 'i, G, I> Basis<I> for OrbitBasis<'g, 'i, G, I>
+impl<'g, G, I> Basis<I> for OrbitBasis<'g, G, I>
 where
     G: GroupProperties,
 {
-    type BasisIter = OrbitBasisIterator<'i, G, I>;
+    type BasisIter = OrbitBasisIterator<G, I>;
 
     fn n_items(&self) -> usize {
         self.origins.len() * self.group.order()
@@ -78,21 +81,21 @@ where
 
 /// Lazy iterator for basis constructed from the concatenation of orbits generated from multiple
 /// origins.
-struct OrbitBasisIterator<'i, G, I>
+struct OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
     /// A mutable iterator over the Cartesian product between the group elements and the origins.
     group_origin_iter: Product<
         <<G as GroupProperties>::ElementCollection as IntoIterator>::IntoIter,
-        std::vec::IntoIter<&'i I>,
+        std::vec::IntoIter<I>,
     >,
 
     /// A function defining the action of each group element on the origin.
     action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
 }
 
-impl<'i, G, I> OrbitBasisIterator<'i, G, I>
+impl<G, I> OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
@@ -109,7 +112,7 @@ where
     /// An orbit basis iterator.
     fn new(
         group: &G,
-        origins: Vec<&'i I>,
+        origins: Vec<I>,
         action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
     ) -> Self {
         Self {
@@ -123,7 +126,7 @@ where
     }
 }
 
-impl<'i, G, I> Iterator for OrbitBasisIterator<'i, G, I>
+impl<G, I> Iterator for OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
@@ -140,7 +143,7 @@ where
 // Eager basis
 // ~~~~~~~~~~~
 
-#[derive(Builder)]
+#[derive(Builder, Clone)]
 struct EagerBasis<I: Clone> {
     /// The elements in the basis.
     elements: Vec<I>,

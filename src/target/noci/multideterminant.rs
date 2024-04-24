@@ -17,8 +17,7 @@ use super::basis::Basis;
 // Struct definitions
 // ------------------
 
-/// Structure to manage multi-determinantal wavefunctions constructed from orbits of multiple origin
-/// determinants.
+/// Structure to manage multi-determinantal wavefunctions.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct MultiDeterminant<'a, T, B>
@@ -31,7 +30,7 @@ where
     #[builder(setter(skip), default = "self.complex_symmetric_from_basis()?")]
     complex_symmetric: bool,
 
-    /// A boolean indicating if the determinant has been acted on by an antiunitary operation. This
+    /// A boolean indicating if the wavefunction has been acted on by an antiunitary operation. This
     /// is so that the correct metric can be used during overlap evaluation.
     #[builder(default = "false")]
     complex_conjugated: bool,
