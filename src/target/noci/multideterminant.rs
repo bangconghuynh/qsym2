@@ -13,6 +13,9 @@ use crate::target::determinant::SlaterDeterminant;
 
 use super::basis::Basis;
 
+#[path = "multideterminant_transformation.rs"]
+mod multideterminant_transformation;
+
 // ------------------
 // Struct definitions
 // ------------------

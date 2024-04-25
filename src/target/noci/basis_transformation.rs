@@ -2,22 +2,17 @@
 //! interaction of Slater determinants.
 
 use std::collections::HashSet;
-use std::ops::Mul;
 
-use approx;
-use itertools::Itertools;
-use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
-use ndarray_linalg::types::Lapack;
-use num_complex::{Complex, ComplexFloat};
+use ndarray::Array2;
+use num_complex::Complex;
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::group::GroupProperties;
-use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
+use crate::permutation::Permutation;
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
-    SymmetryTransformable, TimeReversalTransformable, TransformationError,
+    ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
+    SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
+    TransformationError,
 };
 use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
 
@@ -187,9 +182,8 @@ where
 // --------------------------------
 // DefaultTimeReversalTransformable
 // --------------------------------
-impl<I> DefaultTimeReversalTransformable for EagerBasis<I>
-where
-    I: DefaultTimeReversalTransformable + Clone,
+impl<I> DefaultTimeReversalTransformable for EagerBasis<I> where
+    I: DefaultTimeReversalTransformable + Clone
 {
 }
 
