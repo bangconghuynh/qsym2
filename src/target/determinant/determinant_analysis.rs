@@ -19,23 +19,20 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
+use crate::analysis::{
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+    Overlap, RepAnalysis,
+};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
-use crate::io::format::{log_subtitle, qsym2_output};
+use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
-use crate::{
-    analysis::{
-        fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-        Overlap, RepAnalysis,
-    },
-    io::format::QSym2Output,
-};
 
 // =======
 // Overlap

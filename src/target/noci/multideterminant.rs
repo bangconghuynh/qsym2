@@ -9,12 +9,16 @@ use ndarray::Array1;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::target::determinant::SlaterDeterminant;
 
 use super::basis::Basis;
 
 #[path = "multideterminant_transformation.rs"]
 mod multideterminant_transformation;
+
+#[path = "multideterminant_analysis.rs"]
+mod multideterminant_analysis;
 
 // ------------------
 // Struct definitions
@@ -133,6 +137,16 @@ where
     /// Returns a builder to construct a new [`MultiDeterminant`].
     fn builder() -> MultiDeterminantBuilder<'a, T, B> {
         MultiDeterminantBuilder::default()
+    }
+
+    /// Returns the spin constraint of the multi-determinantal wavefunction.
+    fn spin_constraint(&self) -> &SpinConstraint {
+        self.basis
+            .iter()
+            .next()
+            .expect("No basis determinant found.")
+            .expect("No basis determinant found.")
+            .spin_constraint()
     }
 
     /// Returns the complex-conjugated flag of the multi-determinantal wavefunction.
