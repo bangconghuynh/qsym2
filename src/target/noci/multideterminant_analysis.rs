@@ -1,5 +1,6 @@
 //! Implementation of symmetry analysis for multi-determinantal wavefunctions.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::ops::Mul;
 
@@ -25,6 +26,7 @@ use crate::analysis::{
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
+use crate::auxiliary::misc::HashableFloat;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
@@ -193,242 +195,269 @@ where
         MultiDeterminantSymmetryOrbitBuilder::default()
     }
 }
-//
-// impl<'a, G> SlaterDeterminantSymmetryOrbit<'a, G, f64>
-// where
-//     G: SymmetryGroupProperties,
-// {
-//     fn_calc_xmat_real!(
-//         /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix
-//         /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
-//         ///
-//         /// The resulting $`\mathbf{X}`$ is stored in the orbit.
-//         ///
-//         /// # Arguments
-//         ///
-//         /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-//         /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
-//         /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
-//         /// full rank.
-//         pub calc_xmat
-//     );
-// }
-//
-// impl<'a, G, T> SlaterDeterminantSymmetryOrbit<'a, G, Complex<T>>
-// where
-//     G: SymmetryGroupProperties,
-//     T: Float + Scalar<Complex = Complex<T>>,
-//     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-//     SlaterDeterminant<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
-// {
-//     fn_calc_xmat_complex!(
-//         /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap
-//         /// matrix $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
-//         ///
-//         /// The resulting $`\mathbf{X}`$ is stored in the orbit.
-//         ///
-//         /// # Arguments
-//         ///
-//         /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-//         /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
-//         /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
-//         /// full rank.
-//         pub calc_xmat
-//     );
-// }
-//
-// // ---------------------
-// // Trait implementations
-// // ---------------------
-//
-// // ~~~~~
-// // Orbit
-// // ~~~~~
-//
-// impl<'a, G, T> Orbit<G, SlaterDeterminant<'a, T>> for SlaterDeterminantSymmetryOrbit<'a, G, T>
-// where
-//     G: SymmetryGroupProperties,
-//     T: ComplexFloat + fmt::Debug + Lapack,
-//     SlaterDeterminant<'a, T>: SymmetryTransformable,
-// {
-//     type OrbitIter = OrbitIterator<'a, G, SlaterDeterminant<'a, T>>;
-//
-//     fn group(&self) -> &G {
-//         self.group
-//     }
-//
-//     fn origin(&self) -> &SlaterDeterminant<'a, T> {
-//         self.origin
-//     }
-//
-//     fn iter(&self) -> Self::OrbitIter {
-//         OrbitIterator::new(
-//             self.group,
-//             self.origin,
-//             match self.symmetry_transformation_kind {
-//                 SymmetryTransformationKind::Spatial => |op, det| {
-//                     det.sym_transform_spatial(op).with_context(|| {
-//                         format!("Unable to apply `{op}` spatially on the origin determinant")
-//                     })
-//                 },
-//                 SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
-//                     det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
-//                         format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin determinant")
-//                     })
-//                 },
-//                 SymmetryTransformationKind::Spin => |op, det| {
-//                     det.sym_transform_spin(op).with_context(|| {
-//                         format!("Unable to apply `{op}` spin-wise on the origin determinant")
-//                     })
-//                 },
-//                 SymmetryTransformationKind::SpinSpatial => |op, det| {
-//                     det.sym_transform_spin_spatial(op).with_context(|| {
-//                         format!("Unable to apply `{op}` spin-spatially on the origin determinant")
-//                     })
-//                 },
-//             },
-//         )
-//     }
-// }
-//
-// // ~~~~~~~~~~~
-// // RepAnalysis
-// // ~~~~~~~~~~~
-//
-// impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T, Ix2>
-//     for SlaterDeterminantSymmetryOrbit<'a, G, T>
-// where
-//     G: SymmetryGroupProperties,
-//     G::CharTab: SubspaceDecomposable<T>,
-//     T: Lapack
-//         + ComplexFloat<Real = <T as Scalar>::Real>
-//         + fmt::Debug
-//         + Mul<<T as ComplexFloat>::Real, Output = T>,
-//     <T as ComplexFloat>::Real: fmt::Debug
-//         + Zero
-//         + From<u16>
-//         + ToPrimitive
-//         + approx::RelativeEq<<T as ComplexFloat>::Real>
-//         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-//     SlaterDeterminant<'a, T>: SymmetryTransformable,
-// {
-//     fn set_smat(&mut self, smat: Array2<T>) {
-//         self.smat = Some(smat)
-//     }
-//
-//     fn smat(&self) -> Option<&Array2<T>> {
-//         self.smat.as_ref()
-//     }
-//
-//     fn xmat(&self) -> &Array2<T> {
-//         self.xmat
-//             .as_ref()
-//             .expect("Orbit overlap orthogonalisation matrix not found.")
-//     }
-//
-//     fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-//         if self
-//             .group
-//             .get_index(i)
-//             .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-//             .contains_time_reversal()
-//         {
-//             ComplexFloat::conj
-//         } else {
-//             |x| x
-//         }
-//     }
-//
-//     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
-//         self.integrality_threshold
-//     }
-//
-//     fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
-//         &self.eigenvalue_comparison_mode
-//     }
-//
-//     /// Reduces the representation or corepresentation spanned by the determinants in the orbit to
-//     /// a direct sum of the irreducible representations or corepresentations of the generating
-//     /// symmetry group.
-//     ///
-//     /// # Returns
-//     ///
-//     /// The decomposed result.
-//     ///
-//     /// # Errors
-//     ///
-//     /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
-//     /// are non-integral, or also because the combination of group type, transformation type, and
-//     /// oddity of the number of electrons would not give sensible symmetry results. In particular,
-//     /// spin or spin-spatial symmetry analysis of odd-electron systems in unitary-represented
-//     /// magnetic groups is not valid.
-//     fn analyse_rep(
-//         &self,
-//     ) -> Result<
-//         <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
-//         DecompositionError,
-//     > {
-//         log::debug!("Analysing representation symmetry for a Slater determinant...");
-//         let nelectrons_float = self.origin().nelectrons();
-//         if approx::relative_eq!(
-//             nelectrons_float.round(),
-//             nelectrons_float,
-//             epsilon = self.integrality_threshold,
-//             max_relative = self.integrality_threshold
-//         ) {
-//             let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
-//                 panic!(
-//                     "Unable to convert the number of electrons `{nelectrons_float:.7}` to `usize`."
-//                 );
-//             });
-//             let (valid_symmetry, err_str) = if nelectrons_usize.rem_euclid(2) == 0 {
-//                 // Even number of electrons; always valid
-//                 (true, String::new())
-//             } else {
-//                 // Odd number of electrons; validity depends on group and orbit type
-//                 match self.symmetry_transformation_kind {
-//                     SymmetryTransformationKind::Spatial => (true, String::new()),
-//                     SymmetryTransformationKind::SpatialWithSpinTimeReversal
-//                         | SymmetryTransformationKind::Spin
-//                         | SymmetryTransformationKind::SpinSpatial => {
-//                         match self.group().group_type() {
-//                             GroupType::Ordinary(_) => (true, String::new()),
-//                             GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
-//                                 (!self.group().unitary_represented(),
-//                                 "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems where spin is treated explicitly.".to_string())
-//                             }
-//                         }
-//                     }
-//                 }
-//             };
-//
-//             if valid_symmetry {
-//                 let chis = self
-//                     .calc_characters()
-//                     .map_err(|err| DecompositionError(err.to_string()))?;
-//                 log::debug!("Characters calculated.");
-//
-//                 log_subtitle("Determinant orbit characters");
-//                 qsym2_output!("");
-//                 self.characters_to_string(&chis, self.integrality_threshold)
-//                     .log_output_display();
-//                 qsym2_output!("");
-//
-//                 let res = self.group().character_table().reduce_characters(
-//                     &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
-//                     self.integrality_threshold(),
-//                 );
-//                 log::debug!("Characters reduced.");
-//                 log::debug!("Analysing representation symmetry for a Slater determinant... Done.");
-//                 res
-//             } else {
-//                 Err(DecompositionError(err_str))
-//             }
-//         } else {
-//             Err(DecompositionError(format!(
-//                 "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` (threshold = {:.3e}) not supported.",
-//                 self.integrality_threshold
-//             )))
-//         }
-//     }
-// }
+
+impl<'a, G, B> MultiDeterminantSymmetryOrbit<'a, G, f64, B>
+where
+    G: SymmetryGroupProperties,
+    B: 'a + Basis<SlaterDeterminant<'a, f64>> + Clone,
+    MultiDeterminant<'a, f64, B>: SymmetryTransformable,
+{
+    fn_calc_xmat_real!(
+        /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix
+        /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+        ///
+        /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+        ///
+        /// # Arguments
+        ///
+        /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
+        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
+        /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
+        /// full rank.
+        pub calc_xmat
+    );
+}
+
+impl<'a, G, T, B> MultiDeterminantSymmetryOrbit<'a, G, Complex<T>, B>
+where
+    G: SymmetryGroupProperties,
+    T: Float + Scalar<Complex = Complex<T>>,
+    Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
+    B: 'a + Basis<SlaterDeterminant<'a, Complex<T>>> + Clone,
+    MultiDeterminant<'a, Complex<T>, B>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
+{
+    fn_calc_xmat_complex!(
+        /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap
+        /// matrix $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+        ///
+        /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+        ///
+        /// # Arguments
+        ///
+        /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
+        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
+        /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
+        /// full rank.
+        pub calc_xmat
+    );
+}
+
+// ---------------------
+// Trait implementations
+// ---------------------
+
+// ~~~~~
+// Orbit
+// ~~~~~
+
+impl<'a, G, T, B> Orbit<G, MultiDeterminant<'a, T, B>>
+    for MultiDeterminantSymmetryOrbit<'a, G, T, B>
+where
+    G: SymmetryGroupProperties,
+    T: ComplexFloat + fmt::Debug + Lapack,
+    B: 'a + Basis<SlaterDeterminant<'a, T>> + Clone,
+    MultiDeterminant<'a, T, B>: SymmetryTransformable,
+{
+    type OrbitIter = OrbitIterator<'a, G, MultiDeterminant<'a, T, B>>;
+
+    fn group(&self) -> &G {
+        self.group
+    }
+
+    fn origin(&self) -> &MultiDeterminant<'a, T, B> {
+        self.origin
+    }
+
+    fn iter(&self) -> Self::OrbitIter {
+        OrbitIterator::new(
+            self.group,
+            self.origin,
+            match self.symmetry_transformation_kind {
+                SymmetryTransformationKind::Spatial => |op, det| {
+                    det.sym_transform_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin multi-determinantal wavefunction")
+                    })
+                },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin multi-determinantal wavefunction")
+                    })
+                },
+                SymmetryTransformationKind::Spin => |op, det| {
+                    det.sym_transform_spin(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin multi-determinantal wavefunction")
+                    })
+                },
+                SymmetryTransformationKind::SpinSpatial => |op, det| {
+                    det.sym_transform_spin_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin multi-determinantal wavefunction")
+                    })
+                },
+            },
+        )
+    }
+}
+
+// ~~~~~~~~~~~
+// RepAnalysis
+// ~~~~~~~~~~~
+
+impl<'a, G, T, B> RepAnalysis<G, MultiDeterminant<'a, T, B>, T, Ix2>
+    for MultiDeterminantSymmetryOrbit<'a, G, T, B>
+where
+    G: SymmetryGroupProperties,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: Lapack
+        + ComplexFloat<Real = <T as Scalar>::Real>
+        + fmt::Debug
+        + Mul<<T as ComplexFloat>::Real, Output = T>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + Zero
+        + From<u16>
+        + ToPrimitive
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
+    B: 'a + Basis<SlaterDeterminant<'a, T>> + Clone,
+    MultiDeterminant<'a, T, B>: SymmetryTransformable,
+{
+    fn set_smat(&mut self, smat: Array2<T>) {
+        self.smat = Some(smat)
+    }
+
+    fn smat(&self) -> Option<&Array2<T>> {
+        self.smat.as_ref()
+    }
+
+    fn xmat(&self) -> &Array2<T> {
+        self.xmat
+            .as_ref()
+            .expect("Orbit overlap orthogonalisation matrix not found.")
+    }
+
+    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
+        if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            ComplexFloat::conj
+        } else {
+            |x| x
+        }
+    }
+
+    fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
+        self.integrality_threshold
+    }
+
+    fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
+        &self.eigenvalue_comparison_mode
+    }
+
+    /// Reduces the representation or corepresentation spanned by the determinants in the orbit to
+    /// a direct sum of the irreducible representations or corepresentations of the generating
+    /// symmetry group.
+    ///
+    /// # Returns
+    ///
+    /// The decomposed result.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
+    /// are non-integral, or also because the combination of group type, transformation type, and
+    /// oddity of the number of electrons would not give sensible symmetry results. In particular,
+    /// spin or spin-spatial symmetry analysis of odd-electron systems in unitary-represented
+    /// magnetic groups is not valid.
+    fn analyse_rep(
+        &self,
+    ) -> Result<
+        <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
+        DecompositionError,
+    > {
+        log::debug!("Analysing representation symmetry for a multi-determinantal wavefunction...");
+        let nelectrons_set = self
+            .origin()
+            .basis
+            .iter()
+            .map(|det_res| det_res.and_then(|det| {
+                let det_nelectrons_float = det.nelectrons();
+                if approx::relative_eq!(
+                    det_nelectrons_float.round(),
+                    det_nelectrons_float,
+                    epsilon = self.integrality_threshold,
+                    max_relative = self.integrality_threshold
+                ) {
+                    det_nelectrons_float.round().to_usize().ok_or(format_err!("Unable to convert the number of electrons `{det_nelectrons_float:.7}` to `usize`."))
+                } else {
+                    Err(format_err!("Fractional number of electrons encountered: `{det_nelectrons_float:.7}`"))
+                }
+            }))
+            .collect::<Result<HashSet<_>, _>>()
+            .map_err(|err| DecompositionError(err.to_string()))?;
+        if nelectrons_set.len() != 1 {
+            Err(DecompositionError("Symmetry analysis for multi-determinantal wavefunctions with multiple numbers of electrons is not yet supported.".to_string()))
+        }
+        if approx::relative_eq!(
+            nelectrons_float.round(),
+            nelectrons_float,
+            epsilon = self.integrality_threshold,
+            max_relative = self.integrality_threshold
+        ) {
+            let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
+                panic!(
+                    "Unable to convert the number of electrons `{nelectrons_float:.7}` to `usize`."
+                );
+            });
+            let (valid_symmetry, err_str) = if nelectrons_usize.rem_euclid(2) == 0 {
+                // Even number of electrons; always valid
+                (true, String::new())
+            } else {
+                // Odd number of electrons; validity depends on group and orbit type
+                match self.symmetry_transformation_kind {
+                    SymmetryTransformationKind::Spatial => (true, String::new()),
+                    SymmetryTransformationKind::SpatialWithSpinTimeReversal
+                        | SymmetryTransformationKind::Spin
+                        | SymmetryTransformationKind::SpinSpatial => {
+                        match self.group().group_type() {
+                            GroupType::Ordinary(_) => (true, String::new()),
+                            GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
+                                (!self.group().unitary_represented(),
+                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems where spin is treated explicitly.".to_string())
+                            }
+                        }
+                    }
+                }
+            };
+
+            if valid_symmetry {
+                let chis = self
+                    .calc_characters()
+                    .map_err(|err| DecompositionError(err.to_string()))?;
+                log::debug!("Characters calculated.");
+
+                log_subtitle("Determinant orbit characters");
+                qsym2_output!("");
+                self.characters_to_string(&chis, self.integrality_threshold)
+                    .log_output_display();
+                qsym2_output!("");
+
+                let res = self.group().character_table().reduce_characters(
+                    &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
+                    self.integrality_threshold(),
+                );
+                log::debug!("Characters reduced.");
+                log::debug!("Analysing representation symmetry for a Slater determinant... Done.");
+                res
+            } else {
+                Err(DecompositionError(err_str))
+            }
+        } else {
+            Err(DecompositionError(format!(
+                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` (threshold = {:.3e}) not supported.",
+                self.integrality_threshold
+            )))
+        }
+    }
+}
