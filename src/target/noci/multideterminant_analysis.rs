@@ -7,13 +7,12 @@ use std::ops::Mul;
 use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, Axis, Ix2};
+use ndarray::{s, Array1, Array2, Array3, Axis, Ix2};
 use ndarray_linalg::{
     eig::Eig,
     eigh::Eigh,
-    solve::Determinant,
     types::{Lapack, Scalar},
     UPLO,
 };
@@ -24,9 +23,7 @@ use crate::analysis::{
     fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
     Overlap, RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
-use crate::auxiliary::misc::HashableFloat;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
@@ -35,7 +32,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::Basis;
+use crate::target::noci::basis::{Basis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 // =======
@@ -355,9 +352,9 @@ where
         &self.eigenvalue_comparison_mode
     }
 
-    /// Reduces the representation or corepresentation spanned by the determinants in the orbit to
-    /// a direct sum of the irreducible representations or corepresentations of the generating
-    /// symmetry group.
+    /// Reduces the representation or corepresentation spanned by the multi-determinantal
+    /// wavefunctions in the orbit to a direct sum of the irreducible representations or
+    /// corepresentations of the generating symmetry group.
     ///
     /// # Returns
     ///
@@ -377,7 +374,7 @@ where
         DecompositionError,
     > {
         log::debug!("Analysing representation symmetry for a multi-determinantal wavefunction...");
-        let nelectrons_set = self
+        let mut nelectrons_set = self
             .origin()
             .basis
             .iter()
@@ -398,19 +395,11 @@ where
             .map_err(|err| DecompositionError(err.to_string()))?;
         if nelectrons_set.len() != 1 {
             Err(DecompositionError("Symmetry analysis for multi-determinantal wavefunctions with multiple numbers of electrons is not yet supported.".to_string()))
-        }
-        if approx::relative_eq!(
-            nelectrons_float.round(),
-            nelectrons_float,
-            epsilon = self.integrality_threshold,
-            max_relative = self.integrality_threshold
-        ) {
-            let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
-                panic!(
-                    "Unable to convert the number of electrons `{nelectrons_float:.7}` to `usize`."
-                );
-            });
-            let (valid_symmetry, err_str) = if nelectrons_usize.rem_euclid(2) == 0 {
+        } else {
+            let nelectrons = nelectrons_set.drain().next().ok_or(DecompositionError(
+                "Unable to obtain the number of electrons.".to_string(),
+            ))?;
+            let (valid_symmetry, err_str) = if nelectrons.rem_euclid(2) == 0 {
                 // Even number of electrons; always valid
                 (true, String::new())
             } else {
@@ -437,7 +426,7 @@ where
                     .map_err(|err| DecompositionError(err.to_string()))?;
                 log::debug!("Characters calculated.");
 
-                log_subtitle("Determinant orbit characters");
+                log_subtitle("Multi-determinantal wavefunction orbit characters");
                 qsym2_output!("");
                 self.characters_to_string(&chis, self.integrality_threshold)
                     .log_output_display();
@@ -448,16 +437,135 @@ where
                     self.integrality_threshold(),
                 );
                 log::debug!("Characters reduced.");
-                log::debug!("Analysing representation symmetry for a Slater determinant... Done.");
+                log::debug!("Analysing representation symmetry for a multi-determinantal wavefunction... Done.");
                 res
             } else {
                 Err(DecompositionError(err_str))
             }
+        }
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Optimised implementation for multi-determinantal wavefunctions constructed from orbits
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+impl<'a, 'g, G, T>
+    MultiDeterminantSymmetryOrbit<'a, G, T, OrbitBasis<'g, G, SlaterDeterminant<'a, T>>>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: Lapack
+        + ComplexFloat<Real = <T as Scalar>::Real>
+        + fmt::Debug
+        + Mul<<T as ComplexFloat>::Real, Output = T>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + Zero
+        + From<u16>
+        + ToPrimitive
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
+    MultiDeterminant<'a, T, OrbitBasis<'g, G, SlaterDeterminant<'a, T>>>: SymmetryTransformable,
+{
+    /// Calculates and stores the overlap matrix between multi-determinantal wavefunctions in the
+    /// orbit, with respect to a metric of the basis in which the constituting Slater determinants
+    /// are expressed.
+    ///
+    /// This function is particularly optimised for multi-determinantal wavefunctions constructed
+    /// from orbits of Slater determinants.
+    ///
+    /// # Arguments
+    ///
+    /// * `metric` - The metric of the basis in which the orbit items are expressed.
+    /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
+    /// expressed. This is required if antiunitary operations are involved.
+    /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
+    /// to speed up the computation of the overlap matrix. If `false`, this will error out.
+    pub(crate) fn calc_smat_optimised(
+        &mut self,
+        metric: Option<&Array2<T>>,
+        metric_h: Option<&Array2<T>>,
+        use_cayley_table: bool,
+    ) -> Result<&mut Self, anyhow::Error> {
+        ensure!(
+            self.group.name() == self.origin.basis.group().name(),
+            "Multi-determinantal wavefunction orbit-generating group does not match symmetry analysis group."
+        );
+
+        if let (Some(ctb), true) = (self.group().cayley_table(), use_cayley_table) {
+            log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
+
+            let order = self.group.order();
+            let mut smat = Array2::<T>::zeros((order, order));
+            let multidet_0 = self.origin();
+            let det_origins = multidet_0.basis.origins();
+            let n_det_origins = det_origins.len();
+
+            let detov_kpwx_vec = multidet_0
+                .basis
+                .iter()
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .cartesian_product(det_origins.iter())
+                .map(|(w, x)| w.overlap(x, metric, metric_h))
+                .collect::<Result<Vec<_>, _>>()?;
+            let detov_kpwx =
+                Array3::from_shape_vec((order, n_det_origins, n_det_origins), detov_kpwx_vec)?;
+            let ovs = (0..order)
+                .map(|k| {
+                    [
+                        (0..order),
+                        (0..order),
+                        (0..n_det_origins),
+                        (0..n_det_origins),
+                    ]
+                    .into_iter()
+                    .multi_cartesian_product()
+                    .try_fold(T::zero(), |acc, v| {
+                        let ip = v[0];
+                        let jp = v[1];
+                        let w = v[2];
+                        let x = v[3];
+                        let aipw = multidet_0.coefficients[ip * n_det_origins + w];
+                        let ajpx = multidet_0.coefficients[jp * n_det_origins + x];
+
+                        let jpinv = ctb.slice(s![.., jp]).iter().position(|&x| x == 0).ok_or(
+                            format_err!("Unable to find the inverse of group element `{jp}`."),
+                        )?;
+                        let kp = ctb[(jpinv, ctb[(k, ip)])];
+                        let ukipwjpx = self.norm_preserving_scalar_map(jp)(detov_kpwx[(kp, w, x)]);
+
+                        Ok::<_, anyhow::Error>(
+                            acc + self.norm_preserving_scalar_map(k)(aipw.conj()) * ukipwjpx * ajpx,
+                        )
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            for (i, j) in (0..order).cartesian_product(0..order) {
+                let jinv = ctb
+                    .slice(s![.., j])
+                    .iter()
+                    .position(|&x| x == 0)
+                    .ok_or(format_err!(
+                        "Unable to find the inverse of group element `{j}`."
+                    ))?;
+                let jinv_i = ctb[(jinv, i)];
+                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)(ovs[jinv_i]);
+            }
+            if self.origin().complex_symmetric() {
+                self.set_smat(
+                    (smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
+                )
+            } else {
+                self.set_smat(
+                    (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
+                        .mapv(|x| x / (T::one() + T::one())),
+                )
+            }
+            Ok(self)
         } else {
-            Err(DecompositionError(format!(
-                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` (threshold = {:.3e}) not supported.",
-                self.integrality_threshold
-            )))
+            Err(format_err!(
+                "Cayley table not available for optimised overlap matrix calculation."
+            ))
         }
     }
 }

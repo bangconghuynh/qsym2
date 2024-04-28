@@ -39,7 +39,7 @@ pub(crate) trait Basis<I> {
 // ~~~~~~~~~~~~~~~~~~~~~~
 
 #[derive(Builder, Clone)]
-struct OrbitBasis<'g, G, I>
+pub(crate) struct OrbitBasis<'g, G, I>
 where
     G: GroupProperties,
 {
@@ -59,14 +59,26 @@ where
     G: GroupProperties + Clone,
     I: Clone,
 {
-    fn builder() -> OrbitBasisBuilder<'g, G, I> {
+    pub(crate) fn builder() -> OrbitBasisBuilder<'g, G, I> {
         OrbitBasisBuilder::<G, I>::default()
+    }
+
+    /// The origins from which orbits are generated.
+    pub fn origins(&self) -> &Vec<I> {
+        &self.origins
+    }
+
+    /// The group acting on the origins to generate orbits, the concatenation of which forms the
+    /// basis.
+    pub fn group(&self) -> &G {
+        self.group
     }
 }
 
 impl<'g, G, I> Basis<I> for OrbitBasis<'g, G, I>
 where
     G: GroupProperties,
+    I: Clone,
 {
     type BasisIter = OrbitBasisIterator<G, I>;
 
@@ -81,7 +93,7 @@ where
 
 /// Lazy iterator for basis constructed from the concatenation of orbits generated from multiple
 /// origins.
-struct OrbitBasisIterator<G, I>
+pub struct OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
@@ -98,6 +110,7 @@ where
 impl<G, I> OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
+    I: Clone,
 {
     /// Creates and returns a new orbit basis iterator.
     ///
@@ -129,13 +142,14 @@ where
 impl<G, I> Iterator for OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
+    I: Clone,
 {
     type Item = Result<I, anyhow::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.group_origin_iter
             .next()
-            .map(|(op, origin)| (self.action)(&op, origin))
+            .map(|(op, origin)| (self.action)(&op, &origin))
     }
 }
 

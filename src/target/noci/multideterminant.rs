@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 use std::fmt;
+use std::marker::PhantomData;
 
 use derive_builder::Builder;
 use log;
@@ -20,6 +21,10 @@ mod multideterminant_transformation;
 #[path = "multideterminant_analysis.rs"]
 mod multideterminant_analysis;
 
+#[cfg(test)]
+#[path = "multideterminant_tests.rs"]
+mod multideterminant_tests;
+
 // ------------------
 // Struct definitions
 // ------------------
@@ -32,6 +37,9 @@ where
     T: ComplexFloat + Lapack,
     B: Basis<SlaterDeterminant<'a, T>> + Clone,
 {
+    #[builder(setter(skip), default = "PhantomData")]
+    _lifetime: PhantomData<&'a ()>,
+
     /// A boolean indicating if inner products involving this wavefunction should be the
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     #[builder(setter(skip), default = "self.complex_symmetric_from_basis()?")]
@@ -43,7 +51,7 @@ where
     complex_conjugated: bool,
 
     /// The basis of Slater determinants in which this multi-determinantal wavefunction is defined.
-    basis: &'a B,
+    basis: B,
 
     /// The linear combination coefficients of the elements in the multi-orbit to give this
     /// multi-determinant wavefunction.
@@ -69,7 +77,7 @@ where
     B: Basis<SlaterDeterminant<'a, T>> + Clone,
 {
     fn validate(&self) -> Result<(), String> {
-        let basis = self.basis.ok_or("No basis found.".to_string())?;
+        let basis = self.basis.as_ref().ok_or("No basis found.".to_string())?;
         let coefficients = self
             .coefficients
             .as_ref()
@@ -112,7 +120,7 @@ where
 
     /// Retrieves the consistent complex-symmetric flag from the basis determinants.
     fn complex_symmetric_from_basis(&self) -> Result<bool, String> {
-        let basis = self.basis.ok_or("No basis found.".to_string())?;
+        let basis = self.basis.as_ref().ok_or("No basis found.".to_string())?;
         let complex_symmetric_set = basis
             .iter()
             .map(|det_res| det_res.map(|det| det.complex_symmetric()))
@@ -140,13 +148,14 @@ where
     }
 
     /// Returns the spin constraint of the multi-determinantal wavefunction.
-    fn spin_constraint(&self) -> &SpinConstraint {
+    fn spin_constraint(&self) -> SpinConstraint {
         self.basis
             .iter()
             .next()
             .expect("No basis determinant found.")
             .expect("No basis determinant found.")
             .spin_constraint()
+            .clone()
     }
 
     /// Returns the complex-conjugated flag of the multi-determinantal wavefunction.
@@ -157,7 +166,7 @@ where
     /// Returns the basis of determinants in which this multi-determinantal wavefunction is
     /// defined.
     fn basis(&self) -> &B {
-        self.basis
+        &self.basis
     }
 
     /// Returns the coefficients of the basis determinants constituting this multi-determinantal
