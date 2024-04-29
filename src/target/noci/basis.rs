@@ -19,7 +19,7 @@ mod basis_transformation;
 // -----------------
 
 /// Trait defining behaviours of a basis consisting of linear-space items.
-pub(crate) trait Basis<I> {
+pub trait Basis<I> {
     /// Type of the iterator over items in the basis.
     type BasisIter: Iterator<Item = Result<I, anyhow::Error>>;
 

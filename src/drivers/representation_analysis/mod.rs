@@ -12,6 +12,7 @@ use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 
 pub mod angular_function;
 pub mod density;
+pub mod multideterminant;
 pub mod slater_determinant;
 pub mod vibrational_coordinate;
 
@@ -223,5 +224,5 @@ macro_rules! fn_construct_magnetic_group {
     }
 }
 
-pub(crate) use fn_construct_unitary_group;
 pub(crate) use fn_construct_magnetic_group;
+pub(crate) use fn_construct_unitary_group;

@@ -148,7 +148,7 @@ where
     }
 
     /// Returns the spin constraint of the multi-determinantal wavefunction.
-    fn spin_constraint(&self) -> SpinConstraint {
+    pub(crate) fn spin_constraint(&self) -> SpinConstraint {
         self.basis
             .iter()
             .next()

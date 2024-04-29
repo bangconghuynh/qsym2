@@ -1,4 +1,4 @@
 //! Non-orthogonal configuration interaction of Slater determinants.
 
-mod basis;
-mod multideterminant;
+pub(crate) mod basis;
+pub(crate) mod multideterminant;
