@@ -148,7 +148,7 @@ where
     }
 
     /// Returns the spin constraint of the multi-determinantal wavefunction.
-    pub(crate) fn spin_constraint(&self) -> SpinConstraint {
+    pub fn spin_constraint(&self) -> SpinConstraint {
         self.basis
             .iter()
             .next()
@@ -159,19 +159,19 @@ where
     }
 
     /// Returns the complex-conjugated flag of the multi-determinantal wavefunction.
-    fn complex_conjugated(&self) -> bool {
+    pub fn complex_conjugated(&self) -> bool {
         self.complex_conjugated
     }
 
     /// Returns the basis of determinants in which this multi-determinantal wavefunction is
     /// defined.
-    fn basis(&self) -> &B {
+    pub fn basis(&self) -> &B {
         &self.basis
     }
 
     /// Returns the coefficients of the basis determinants constituting this multi-determinantal
     /// wavefunction.
-    fn coefficients(&self) -> &Array1<T> {
+    pub fn coefficients(&self) -> &Array1<T> {
         &self.coefficients
     }
 
@@ -181,7 +181,7 @@ where
     }
 
     /// Returns the threshold with which multi-determinantal wavefunctions are compared.
-    fn threshold(&self) -> <T as ComplexFloat>::Real {
+    pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
     }
 }
