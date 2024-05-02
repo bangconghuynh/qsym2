@@ -678,8 +678,8 @@ where
     );
 }
 
-// Specific for unitary-represented and magnetic-represented symmetry groups and determinant numeric types f64 and C128
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary-represented and magnetic-represented symmetry groups and wavefunction numeric types f64 and C128
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #[duplicate_item(
     duplicate!{
