@@ -87,9 +87,6 @@ where
             "Inconsistent numbers of coefficients between `self` and `other`."
         );
 
-        let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
-        let sao_h = metric_h.unwrap_or(sao);
-
         let s_dets = self.basis.iter().collect::<Result<Vec<_>, _>>()?;
         let o_dets = other.basis.iter().collect::<Result<Vec<_>, _>>()?;
         let swx_vec = s_dets

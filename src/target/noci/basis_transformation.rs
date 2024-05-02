@@ -14,7 +14,7 @@ use crate::symmetry::symmetry_transformation::{
     SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
     TransformationError,
 };
-use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
+use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 
 // ~~~~~~~~~~~~~~~~~~~~~~
 // Lazy basis from orbits

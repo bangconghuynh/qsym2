@@ -4,22 +4,16 @@ use std::collections::HashSet;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, bail, ensure, format_err};
+use anyhow::{self, bail, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
-use indexmap::IndexMap;
-use itertools::Itertools;
-use ndarray::{s, Array2, Array4};
+use ndarray::{s, Array2};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{
-    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
-    RepAnalysis,
-};
+use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -36,24 +30,14 @@ use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresented
 use crate::io::format::{
     log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
 };
-use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation,
-};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
-use crate::symmetry::symmetry_symbols::{
-    deduce_mirror_parities, MirrorParity, SymmetryClassSymbol,
-};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
-use crate::target::density::density_analysis::DensitySymmetryOrbit;
-use crate::target::density::Density;
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
 use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 use crate::target::noci::multideterminant::MultiDeterminant;
-use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
 
 // #[cfg(test)]
 // #[path = "slater_determinant_tests.rs"]
@@ -760,7 +744,7 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
                     .build()
                     .map_err(|err| format_err!(err))
                     .and_then(|mut multidet_orbit| {
-                        multidet_orbit
+                        let _ = multidet_orbit
                             .calc_smat_(Some(&sao), sao_h.as_ref(), true)?
                             .normalise_smat()?
                             .calc_xmat(false)?
@@ -836,77 +820,97 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
         Ok(())
     }
 }
-//
-// // ~~~~~~~~~~~~~~~~~~~~~
-// // Trait implementations
-// // ~~~~~~~~~~~~~~~~~~~~~
-//
-// // Generic for all symmetry groups G and determinant numeric type T
-// // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-//
-// impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, G, T>
-// where
-//     G: SymmetryGroupProperties + Clone,
-//     G::CharTab: SubspaceDecomposable<T>,
-//     T: ComplexFloat + Lapack,
-//     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write_title(f, "Slater Determinant Symmetry Analysis")?;
-//         writeln!(f)?;
-//         writeln!(f, "{}", self.parameters)?;
-//         Ok(())
-//     }
-// }
-//
-// impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, G, T>
-// where
-//     G: SymmetryGroupProperties + Clone,
-//     G::CharTab: SubspaceDecomposable<T>,
-//     T: ComplexFloat + Lapack,
-//     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         writeln!(f, "{self}")
-//     }
-// }
-//
-// // Specific for unitary/magnetic-represented groups and determinant numeric type f64/Complex<f64>
-// // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-//
-// #[duplicate_item(
-//     duplicate!{
-//         [ dtype_nested; [f64]; [Complex<f64>] ]
-//         [
-//             gtype_ [ UnitaryRepresentedSymmetryGroup ]
-//             dtype_ [ dtype_nested ]
-//             analyse_fn_ [ analyse_representation ]
-//         ]
-//     }
-//     duplicate!{
-//         [ dtype_nested; [f64]; [Complex<f64>] ]
-//         [
-//             gtype_ [ MagneticRepresentedSymmetryGroup ]
-//             dtype_ [ dtype_nested ]
-//             analyse_fn_ [ analyse_corepresentation ]
-//         ]
-//     }
-// )]
-// impl<'a> QSym2Driver for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
-//     type Params = SlaterDeterminantRepAnalysisParams<f64>;
-//
-//     type Outcome = SlaterDeterminantRepAnalysisResult<'a, gtype_, dtype_>;
-//
-//     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-//         self.result.as_ref().ok_or_else(|| {
-//             format_err!("No Slater determinant representation analysis results found.")
-//         })
-//     }
-//
-//     fn run(&mut self) -> Result<(), anyhow::Error> {
-//         self.log_output_display();
-//         self.analyse_fn_()?;
-//         self.result()?.log_output_display();
-//         Ok(())
-//     }
-// }
+
+// ~~~~~~~~~~~~~~~~~~~~~
+// Trait implementations
+// ~~~~~~~~~~~~~~~~~~~~~
+
+// Generic for all symmetry groups G, basis B, and wavefunction numeric type T
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+impl<'a, G, T, B> fmt::Display for MultiDeterminantRepAnalysisDriver<'a, G, T, B>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_title(f, "Multi-determinantal Wavefunction Symmetry Analysis")?;
+        writeln!(f)?;
+        writeln!(f, "{}", self.parameters)?;
+        Ok(())
+    }
+}
+
+impl<'a, G, T, B> fmt::Debug for MultiDeterminantRepAnalysisDriver<'a, G, T, B>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{self}")
+    }
+}
+
+// Specific for unitary/magnetic-represented groups and determinant numeric type f64/Complex<f64>
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+#[duplicate_item(
+    duplicate!{
+        [ dtype_nested; [f64]; [Complex<f64>] ]
+        duplicate!{
+            [
+                btype_nested;
+                [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>];
+                [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
+            ]
+            [
+                gtype_ [ UnitaryRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                analyse_fn_ [ analyse_representation ]
+            ]
+        }
+    }
+    duplicate!{
+        [ dtype_nested; [f64]; [Complex<f64>] ]
+        duplicate!{
+            [
+                btype_nested;
+                [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>];
+                [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
+            ]
+            [
+                gtype_ [ MagneticRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                analyse_fn_ [ analyse_corepresentation ]
+            ]
+        }
+    }
+)]
+impl<'a> QSym2Driver for MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
+    type Params = MultiDeterminantRepAnalysisParams<f64>;
+
+    type Outcome = MultiDeterminantRepAnalysisResult<'a, gtype_, dtype_, btype_>;
+
+    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
+        self.result.as_ref().ok_or_else(|| {
+            format_err!(
+                "No multi-determinantal wavefunction representation analysis results found."
+            )
+        })
+    }
+
+    fn run(&mut self) -> Result<(), anyhow::Error> {
+        self.log_output_display();
+        self.analyse_fn_()?;
+        self.result()?.log_output_display();
+        Ok(())
+    }
+}
