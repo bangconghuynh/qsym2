@@ -39,9 +39,9 @@ use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
 use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 use crate::target::noci::multideterminant::MultiDeterminant;
 
-// #[cfg(test)]
-// #[path = "slater_determinant_tests.rs"]
-// mod slater_determinant_tests;
+#[cfg(test)]
+#[path = "multideterminant_tests.rs"]
+mod multideterminant_tests;
 
 // ==================
 // Struct definitions
@@ -281,7 +281,7 @@ where
         )?;
         writeln!(f)?;
 
-        let multidet_index_length = usize::try_from(self.multidets.len().ilog10() + 2).unwrap_or(4);
+        let multidet_index_length = usize::try_from(self.multidets.len().ilog10() + 1).unwrap_or(4);
         let multidet_symmetry_length = self
             .multidet_symmetries
             .iter()
@@ -339,7 +339,7 @@ where
             .unwrap_or(10)
             .max(10);
 
-        let table_width = 14
+        let table_width = 10
             + multidet_index_length
             + multidet_energy_length
             + multidet_symmetry_length
@@ -733,7 +733,10 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
 
         let (multidet_symmetries, multidet_symmetries_thresholds): (Vec<_>, Vec<_>) = self.multidets
             .iter()
-            .map(|multidet| {
+           .enumerate()
+            .map(|(i, multidet)| {
+                qsym2_output!("§ Multi-determinantal wavefunction {i}");
+                qsym2_output!("");
                 MultiDeterminantSymmetryOrbit::builder()
                     .group(&group)
                     .origin(multidet)
@@ -744,11 +747,10 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
                     .build()
                     .map_err(|err| format_err!(err))
                     .and_then(|mut multidet_orbit| {
-                        let _ = multidet_orbit
+                        multidet_orbit
                             .calc_smat_(Some(&sao), sao_h.as_ref(), true)?
                             .normalise_smat()?
-                            .calc_xmat(false)?
-                            .analyse_rep().map_err(|err| format_err!(err));
+                            .calc_xmat(false)?;
                         let multidet_symmetry_thresholds = multidet_orbit
                             .smat_eigvals
                             .as_ref()

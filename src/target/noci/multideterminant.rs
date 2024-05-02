@@ -143,7 +143,7 @@ where
     B: Basis<SlaterDeterminant<'a, T>> + Clone,
 {
     /// Returns a builder to construct a new [`MultiDeterminant`].
-    fn builder() -> MultiDeterminantBuilder<'a, T, B> {
+    pub(crate) fn builder() -> MultiDeterminantBuilder<'a, T, B> {
         MultiDeterminantBuilder::default()
     }
 
