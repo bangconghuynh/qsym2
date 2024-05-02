@@ -28,6 +28,9 @@ pub trait Basis<I> {
 
     /// An iterator over items in the basis.
     fn iter(&self) -> Self::BasisIter;
+
+    /// Shared reference to the first item in the basis.
+    fn first(&self) -> Option<&I>;
 }
 
 // --------------------------------------
@@ -88,6 +91,10 @@ where
 
     fn iter(&self) -> Self::BasisIter {
         OrbitBasisIterator::new(self.group, self.origins.clone(), self.action)
+    }
+
+    fn first(&self) -> Option<&I> {
+        self.origins.get(0)
     }
 }
 
@@ -158,7 +165,7 @@ where
 // ~~~~~~~~~~~
 
 #[derive(Builder, Clone)]
-struct EagerBasis<I: Clone> {
+pub(crate) struct EagerBasis<I: Clone> {
     /// The elements in the basis.
     elements: Vec<I>,
 }
@@ -183,5 +190,9 @@ impl<I: Clone> Basis<I> for EagerBasis<I> {
             .map(Ok)
             .collect_vec()
             .into_iter()
+    }
+
+    fn first(&self) -> Option<&I> {
+        self.elements.get(0)
     }
 }

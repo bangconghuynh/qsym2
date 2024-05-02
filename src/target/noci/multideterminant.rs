@@ -16,10 +16,10 @@ use crate::target::determinant::SlaterDeterminant;
 use super::basis::Basis;
 
 #[path = "multideterminant_transformation.rs"]
-mod multideterminant_transformation;
+pub(crate) mod multideterminant_transformation;
 
 #[path = "multideterminant_analysis.rs"]
-mod multideterminant_analysis;
+pub(crate) mod multideterminant_analysis;
 
 #[cfg(test)]
 #[path = "multideterminant_tests.rs"]

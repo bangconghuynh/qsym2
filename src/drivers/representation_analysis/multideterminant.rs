@@ -50,7 +50,8 @@ use crate::target::density::density_analysis::DensitySymmetryOrbit;
 use crate::target::density::Density;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::Basis;
+use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
+use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 use crate::target::noci::multideterminant::MultiDeterminant;
 use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
 
@@ -245,11 +246,11 @@ where
 
     /// The deduced symmetries of the multi-determinantal wavefunctions.
     multidet_symmetries:
-        Option<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>,
+        Vec<Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>>,
 
     /// The overlap eigenvalues above and below the linear independence threshold for each
     /// multi-determinantal wavefunction symmetry deduction.
-    multidet_symmetries_thresholds: Option<Vec<(Option<T>, Option<T>)>>,
+    multidet_symmetries_thresholds: Vec<(Option<T>, Option<T>)>,
 }
 
 impl<'a, G, T, B> MultiDeterminantRepAnalysisResult<'a, G, T, B>
@@ -269,8 +270,8 @@ where
     /// Returns the multi-determinantal wavefunction symmetries obtained from the analysis result.
     pub fn multidet_symmetries(
         &self,
-    ) -> Option<&Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>> {
-        self.multidet_symmetries.as_ref()
+    ) -> &Vec<Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>> {
+        &self.multidet_symmetries
     }
 }
 
@@ -299,23 +300,18 @@ where
         let multidet_index_length = usize::try_from(self.multidets.len().ilog10() + 2).unwrap_or(4);
         let multidet_symmetry_length = self
             .multidet_symmetries
-            .as_ref()
-            .map(|multidet_symmetries| {
-                multidet_symmetries
-                    .iter()
-                    .map(|multidet_sym| {
-                        multidet_sym
-                            .as_ref()
-                            .map(|sym| sym.to_string())
-                            .unwrap_or("--".to_string())
-                            .chars()
-                            .count()
-                    })
-                    .max()
-                    .unwrap_or(0)
-                    .max(8)
+            .iter()
+            .map(|multidet_sym| {
+                multidet_sym
+                    .as_ref()
+                    .map(|sym| sym.to_string())
+                    .unwrap_or("--".to_string())
+                    .chars()
+                    .count()
             })
-            .unwrap_or(8);
+            .max()
+            .unwrap_or(0)
+            .max(8);
         let multidet_energy_length = self
             .multidets
             .iter()
@@ -331,43 +327,33 @@ where
 
         let multidet_eig_above_length: usize = self
             .multidet_symmetries_thresholds
-            .as_ref()
-            .map(|multidet_symmetries_thresholds| {
-                multidet_symmetries_thresholds
-                    .iter()
-                    .map(|(above, _)| {
-                        above
-                            .as_ref()
-                            .map(|eig| format!("{eig:+.3e}"))
-                            .unwrap_or("--".to_string())
-                            .chars()
-                            .count()
-                    })
-                    .max()
-                    .unwrap_or(10)
-                    .max(10)
+            .iter()
+            .map(|(above, _)| {
+                above
+                    .as_ref()
+                    .map(|eig| format!("{eig:+.3e}"))
+                    .unwrap_or("--".to_string())
+                    .chars()
+                    .count()
             })
-            .unwrap_or(10);
+            .max()
+            .unwrap_or(10)
+            .max(10);
 
         let multidet_eig_below_length: usize = self
             .multidet_symmetries_thresholds
-            .as_ref()
-            .map(|multidet_symmetries_thresholds| {
-                multidet_symmetries_thresholds
-                    .iter()
-                    .map(|(_, below)| {
-                        below
-                            .as_ref()
-                            .map(|eig| format!("{eig:+.3e}"))
-                            .unwrap_or("--".to_string())
-                            .chars()
-                            .count()
-                    })
-                    .max()
-                    .unwrap_or(10)
-                    .max(10)
+            .iter()
+            .map(|(_, below)| {
+                below
+                    .as_ref()
+                    .map(|eig| format!("{eig:+.3e}"))
+                    .unwrap_or("--".to_string())
+                    .chars()
+                    .count()
             })
-            .unwrap_or(10);
+            .max()
+            .unwrap_or(10)
+            .max(10);
 
         let table_width = 14
             + multidet_index_length
@@ -403,17 +389,14 @@ where
                 .unwrap_or("--".to_string());
             let multidet_sym_str = self
                 .multidet_symmetries
-                .as_ref()
-                .and_then(|syms| syms.get(multidet_i))
-                .and_then(|sym_opt| sym_opt.as_ref().map(|sym| sym.to_string()))
+                .get(multidet_i)
+                .ok_or_else(|| format!("Unable to retrieve the symmetry  of multideterminantal wavefunction index `{multidet_i}`."))
+                .and_then(|sym_res| sym_res.as_ref().map(|sym| sym.to_string()).map_err(|err| err.to_string()))
                 .unwrap_or("--".to_string());
 
             let (eig_above_str, eig_below_str) = self
                 .multidet_symmetries_thresholds
-                .as_ref()
-                .and_then(|multidet_symmetries_thresholds| {
-                    multidet_symmetries_thresholds.get(multidet_i)
-                })
+                .get(multidet_i)
                 .map(|(eig_above_opt, eig_below_opt)| {
                     (
                         eig_above_opt
@@ -701,41 +684,54 @@ where
 #[duplicate_item(
     duplicate!{
         [ dtype_nested; [f64]; [Complex<f64>] ]
-        [
-            gtype_ [ UnitaryRepresentedSymmetryGroup ]
-            dtype_ [ dtype_nested ]
-            doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
-            analyse_fn_ [ analyse_representation ]
-            construct_group_ [ self.construct_unitary_group()? ]
-            calc_projections_ [
-                log_subtitle("Slater determinant projection decompositions");
-                qsym2_output!("");
-                qsym2_output!("  Projections are defined w.r.t. the following inner product:");
-                qsym2_output!("    {}", det_orbit.origin().overlap_definition());
-                qsym2_output!("");
-                det_orbit
-                    .projections_to_string(
-                        &det_orbit.calc_projection_compositions()?,
-                        params.integrality_threshold,
-                    )
-                    .log_output_display();
-                qsym2_output!("");
+        duplicate!{
+            [
+                [
+                    btype_nested [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>]
+                    calc_smat_nested [calc_smat_optimised]
+                ]
+                [
+                    btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
+                    calc_smat_nested [calc_smat]
+                ]
             ]
-        ]
+            [
+                gtype_ [ UnitaryRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
+                analyse_fn_ [ analyse_representation ]
+                construct_group_ [ self.construct_unitary_group()? ]
+                calc_smat_ [ calc_smat_nested ]
+            ]
+        }
     }
     duplicate!{
         [ dtype_nested; [f64]; [Complex<f64>] ]
-        [
-            gtype_ [ MagneticRepresentedSymmetryGroup ]
-            dtype_ [ dtype_nested ]
-            doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
-            analyse_fn_ [ analyse_corepresentation ]
-            construct_group_ [ self.construct_magnetic_group()? ]
-            calc_projections_ [ ]
-        ]
+        duplicate!{
+            [
+                [
+                    btype_nested [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>]
+                    calc_smat_nested [calc_smat_optimised]
+                ]
+                [
+                    btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
+                    calc_smat_nested [calc_smat]
+                ]
+            ]
+            [
+                gtype_ [ MagneticRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
+                analyse_fn_ [ analyse_corepresentation ]
+                construct_group_ [ self.construct_magnetic_group()? ]
+                calc_smat_ [ calc_smat_nested ]
+            ]
+        }
     }
 )]
-impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
+impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
     #[doc = doc_sub_]
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
@@ -743,134 +739,97 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
         let group = construct_group_;
         log_cc_transversal(&group);
         let _ = find_angular_function_representation(&group, self.angular_function_parameters);
-        log_bao(self.determinant.bao());
+        if let Some(det) = self
+            .multidets
+            .get(0)
+            .and_then(|multidet| multidet.basis().first())
+        {
+            log_bao(det.bao());
+        }
 
-        // Determinant and orbital symmetries
-        let (multidet_symmetries, multidet_symmetries_thresholds) = {
-            let mos = self.determinant.to_orbitals();
-            let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
-                self.determinant,
-                &mos,
-                &group,
-                &sao,
-                sao_h.as_ref(),
-                params.integrality_threshold,
-                params.linear_independence_threshold,
-                params.symmetry_transformation_kind.clone(),
-                params.eigenvalue_comparison_mode.clone(),
-                params.use_cayley_table,
-            )?;
-            det_orbit.calc_xmat(false)?;
-            if params.write_overlap_eigenvalues {
-                if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                    log_overlap_eigenvalues(
-                        "Determinant orbit overlap eigenvalues",
-                        smat_eigvals,
-                        params.linear_independence_threshold,
-                        &params.eigenvalue_comparison_mode,
-                    );
-                    qsym2_output!("");
-                }
-            }
-
-            let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
-
-            { calc_projections_ }
-
-            let mo_symmetries = mo_orbitss
-                .iter_mut()
-                .map(|mo_orbits| {
-                    mo_orbits
-                        .par_iter_mut()
-                        .map(|mo_orbit| {
-                            mo_orbit.calc_xmat(false).ok()?;
-                            mo_orbit.analyse_rep().ok()
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
-
-            let mo_symmetries_thresholds = mo_orbitss
-                .iter_mut()
-                .map(|mo_orbits| {
-                    mo_orbits
-                        .par_iter_mut()
-                        .map(|mo_orbit| {
-                            mo_orbit
-                                .smat_eigvals
-                                .as_ref()
-                                .map(|eigvals| {
-                                    let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
-                                    match mo_orbit.eigenvalue_comparison_mode {
-                                        EigenvalueComparisonMode::Modulus => {
-                                            eigvals_vec.sort_by(|a, b| {
-                                                a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
-                                            });
-                                        }
-                                        EigenvalueComparisonMode::Real => {
-                                            eigvals_vec.sort_by(|a, b| {
-                                                a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
-                                            });
-                                        }
+        let (multidet_symmetries, multidet_symmetries_thresholds): (Vec<_>, Vec<_>) = self.multidets
+            .iter()
+            .map(|multidet| {
+                MultiDeterminantSymmetryOrbit::builder()
+                    .group(&group)
+                    .origin(multidet)
+                    .integrality_threshold(params.integrality_threshold)
+                    .linear_independence_threshold(params.linear_independence_threshold)
+                    .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+                    .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
+                    .build()
+                    .map_err(|err| format_err!(err))
+                    .and_then(|mut multidet_orbit| {
+                        multidet_orbit
+                            .calc_smat_(Some(&sao), sao_h.as_ref(), true)?
+                            .normalise_smat()?
+                            .calc_xmat(false)?
+                            .analyse_rep().map_err(|err| format_err!(err));
+                        let multidet_symmetry_thresholds = multidet_orbit
+                            .smat_eigvals
+                            .as_ref()
+                            .map(|eigvals| {
+                                let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
+                                match multidet_orbit.eigenvalue_comparison_mode() {
+                                    EigenvalueComparisonMode::Modulus => {
+                                        eigvals_vec.sort_by(|a, b| {
+                                            a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
+                                        });
                                     }
-                                    let eigval_above = match mo_orbit.eigenvalue_comparison_mode {
-                                        EigenvalueComparisonMode::Modulus => eigvals_vec
-                                            .iter()
-                                            .find(|val| {
-                                                val.abs() >= mo_orbit.linear_independence_threshold
-                                            })
-                                            .copied()
-                                            .copied(),
-                                        EigenvalueComparisonMode::Real => eigvals_vec
-                                            .iter()
-                                            .find(|val| {
-                                                val.re() >= mo_orbit.linear_independence_threshold
-                                            })
-                                            .copied()
-                                            .copied(),
-                                    };
-                                    eigvals_vec.reverse();
-                                    let eigval_below = match mo_orbit.eigenvalue_comparison_mode {
-                                        EigenvalueComparisonMode::Modulus => eigvals_vec
-                                            .iter()
-                                            .find(|val| {
-                                                val.abs() < mo_orbit.linear_independence_threshold
-                                            })
-                                            .copied()
-                                            .copied(),
-                                        EigenvalueComparisonMode::Real => eigvals_vec
-                                            .iter()
-                                            .find(|val| {
-                                                val.re() < mo_orbit.linear_independence_threshold
-                                            })
-                                            .copied()
-                                            .copied(),
-                                    };
-                                    (eigval_above, eigval_below)
-                                })
-                                .unwrap_or((None, None))
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
-            (
-                det_symmetry,
-                Some(mo_symmetries),
-                mo_mirror_parities,
-                Some(mo_symmetries_thresholds),
-            )
-        };
+                                    EigenvalueComparisonMode::Real => {
+                                        eigvals_vec.sort_by(|a, b| {
+                                            a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
+                                        });
+                                    }
+                                }
+                                let eigval_above = match multidet_orbit.eigenvalue_comparison_mode() {
+                                    EigenvalueComparisonMode::Modulus => eigvals_vec
+                                        .iter()
+                                        .find(|val| {
+                                            val.abs() >= multidet_orbit.linear_independence_threshold
+                                        })
+                                        .copied()
+                                        .copied(),
+                                    EigenvalueComparisonMode::Real => eigvals_vec
+                                        .iter()
+                                        .find(|val| {
+                                            val.re() >= multidet_orbit.linear_independence_threshold
+                                        })
+                                        .copied()
+                                        .copied(),
+                                };
+                                eigvals_vec.reverse();
+                                let eigval_below = match multidet_orbit.eigenvalue_comparison_mode() {
+                                    EigenvalueComparisonMode::Modulus => eigvals_vec
+                                        .iter()
+                                        .find(|val| {
+                                            val.abs() < multidet_orbit.linear_independence_threshold
+                                        })
+                                        .copied()
+                                        .copied(),
+                                    EigenvalueComparisonMode::Real => eigvals_vec
+                                        .iter()
+                                        .find(|val| {
+                                            val.re() < multidet_orbit.linear_independence_threshold
+                                        })
+                                        .copied()
+                                        .copied(),
+                                };
+                                (eigval_above, eigval_below)
+                            })
+                            .unwrap_or((None, None));
+                        let multidet_sym = multidet_orbit.analyse_rep().map_err(|err| err.to_string());
+                        Ok((multidet_sym, multidet_symmetry_thresholds))
+                    })
+                    .unwrap_or_else(|err| (Err(err.to_string()), (None, None)))
+            }).unzip();
 
-        let result = SlaterDeterminantRepAnalysisResult::builder()
+        let result = MultiDeterminantRepAnalysisResult::builder()
             .parameters(params)
-            .determinant(self.determinant)
+            .multidets(self.multidets.clone())
             .group(group)
-            .determinant_symmetry(det_symmetry)
-            .determinant_density_symmetries(den_symmetries)
-            .mo_symmetries(mo_symmetries)
-            .mo_mirror_parities(mo_mirror_parities)
-            .mo_symmetries_thresholds(mo_symmetries_thresholds)
-            .mo_density_symmetries(mo_den_symmetries)
+            .multidet_symmetries(multidet_symmetries)
+            .multidet_symmetries_thresholds(multidet_symmetries_thresholds)
             .build()?;
         self.result = Some(result);
 
