@@ -7,6 +7,7 @@ use numpy::{PyArray2, PyArray4};
 use pyo3::prelude::*;
 
 pub mod density;
+pub mod multideterminant;
 pub mod slater_determinant;
 pub mod vibrational_coordinate;
 

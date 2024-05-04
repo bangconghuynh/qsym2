@@ -1,15 +1,12 @@
 use anyhow::format_err;
 use log4rs;
-use nalgebra::Point3;
 use ndarray::array;
-use serial_test::serial;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
-use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
@@ -21,7 +18,6 @@ use crate::drivers::symmetry_group_detection::{
 use crate::drivers::QSym2Driver;
 use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_group::{SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup};
-use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::OrbitBasis;
@@ -127,7 +123,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
     assert!(pd_driver.run().is_ok());
     let pd_res = pd_driver.result().unwrap();
 
-    let md_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
+    let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-6)
         .linear_independence_threshold(1e-6)
         .use_magnetic_group(None)
@@ -208,7 +204,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
 
     let mut md_driver =
         MultiDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
-            .parameters(&md_params)
+            .parameters(&mda_params)
             .angular_function_parameters(&afa_params)
             .multidets(vec![&a1_multidet, &ex_multidet, &ey_multidet])
             .sao_spatial(&sao_spatial)
