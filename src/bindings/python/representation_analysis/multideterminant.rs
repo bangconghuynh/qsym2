@@ -1,5 +1,6 @@
 //! Python bindings for QSym² symmetry analysis of Slater determinants.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::{bail, format_err, Context};
@@ -8,12 +9,15 @@ use num_complex::Complex;
 use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
+use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
-use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
+use crate::bindings::python::representation_analysis::slater_determinant::{
+    PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
+};
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC};
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
@@ -24,7 +28,6 @@ use crate::drivers::representation_analysis::{
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
-use crate::group::MagneticRepresentedGroup;
 use crate::io::format::qsym2_output;
 use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_group::{
@@ -34,7 +37,8 @@ use crate::symmetry::symmetry_transformation::{
     self, SymmetryTransformable, SymmetryTransformationKind,
 };
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::OrbitBasis;
+use crate::target::noci::basis::{Basis, OrbitBasis};
+use crate::target::noci::multideterminant::MultiDeterminant;
 
 type C128 = Complex<f64>;
 
@@ -111,6 +115,7 @@ type C128 = Complex<f64>;
 #[pyo3(signature = (
     inp_sym,
     pyorigins,
+    py_noci_function,
     pybao,
     integrality_threshold,
     linear_independence_threshold,
@@ -132,6 +137,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
     py: Python<'_>,
     inp_sym: PathBuf,
     pyorigins: Vec<PySlaterDeterminant>,
+    py_noci_function: Py<PyFunction>,
     pybao: &PyBasisAngularOrder,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
@@ -149,6 +155,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
+    // Read in point-group detection results
     let pd_res: SymmetryGroupDetectionResult =
         read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
             .map_err(|err| PyIOError::new_err(err.to_string()))?;
@@ -161,6 +168,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
     );
     qsym2_output!("");
 
+    // Set up basic parameters
     let mol = &pd_res.pre_symmetry.recentred_molecule;
     let bao = pybao
         .to_qsym2(mol)
@@ -183,7 +191,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
         .use_magnetic_group(use_magnetic_group.clone())
         .use_double_group(use_double_group)
         .use_cayley_table(use_cayley_table)
-        .symmetry_transformation_kind(symmetry_transformation_kind)
+        .symmetry_transformation_kind(symmetry_transformation_kind.clone())
         .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
         .write_overlap_eigenvalues(write_overlap_eigenvalues)
         .write_character_table(if write_character_table {
@@ -195,12 +203,85 @@ pub fn rep_analyse_multideterminants_orbit_basis(
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
+    // Set up NOCI function
+    let noci_function_r = |multidets: &Vec<SlaterDeterminant<f64>>| {
+        Python::with_gil(|py_inner| {
+            let pymultidets = multidets
+                .iter()
+                .map(|det| {
+                    let pysc = det.spin_constraint().clone().try_into()?;
+                    Ok(PySlaterDeterminantReal::new(
+                        pysc,
+                        det.complex_symmetric(),
+                        det.coefficients()
+                            .iter()
+                            .map(|arr| PyArray2::from_array(py_inner, arr))
+                            .collect::<Vec<_>>(),
+                        det.occupations()
+                            .iter()
+                            .map(|arr| PyArray1::from_array(py_inner, arr))
+                            .collect::<Vec<_>>(),
+                        det.threshold(),
+                        det.mo_energies().map(|mo_energies| {
+                            mo_energies
+                                .iter()
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
+                                .collect::<Vec<_>>()
+                        }),
+                        det.energy().ok().cloned(),
+                    ))
+                })
+                .collect::<Result<Vec<_>, anyhow::Error>>()
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            py_noci_function
+                .call1(py_inner, (pymultidets,))
+                .and_then(|res| res.extract::<(Vec<f64>, Vec<Vec<f64>>)>(py_inner))
+        })
+    };
+    let noci_function_c = |multidets: &Vec<SlaterDeterminant<C128>>| {
+        Python::with_gil(|py_inner| {
+            let pymultidets = multidets
+                .iter()
+                .map(|det| {
+                    let pysc = det.spin_constraint().clone().try_into()?;
+                    Ok(PySlaterDeterminantComplex::new(
+                        pysc,
+                        det.complex_symmetric(),
+                        det.coefficients()
+                            .iter()
+                            .map(|arr| PyArray2::from_array(py_inner, arr))
+                            .collect::<Vec<_>>(),
+                        det.occupations()
+                            .iter()
+                            .map(|arr| PyArray1::from_array(py_inner, arr))
+                            .collect::<Vec<_>>(),
+                        det.threshold(),
+                        det.mo_energies().map(|mo_energies| {
+                            mo_energies
+                                .iter()
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
+                                .collect::<Vec<_>>()
+                        }),
+                        det.energy().ok().cloned(),
+                    ))
+                })
+                .collect::<Result<Vec<_>, anyhow::Error>>()
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            py_noci_function
+                .call1(py_inner, (pymultidets,))
+                .and_then(|res| res.extract::<(Vec<C128>, Vec<Vec<C128>>)>(py_inner))
+        })
+    };
+
     let all_real = pyorigins
         .iter()
         .all(|pyorigin| matches!(pyorigin, PySlaterDeterminant::Real(_)));
 
     match (all_real, &sao_spatial) {
         (true, PyArray2RC::Real(pysao_r)) => {
+            // Real numeric daya type
+
+            // Preparation
             let sao_spatial = pysao_r.to_owned_array();
             let origins_r = if augment_to_generalised {
                 pyorigins
@@ -228,22 +309,32 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                     .collect::<Result<Vec<_>, _>>()
             }
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-                    let group = if use_double_group {
-                        MagneticRepresentedGroup::from_molecular_symmetry(
-                            &pd_res.unitary_symmetry,
-                            infinite_order_to_finite,
-                        )
-                        .and_then(|grp| grp.to_double_group())
-                    } else {
-                        MagneticRepresentedGroup::from_molecular_symmetry(
-                            &pd_res.unitary_symmetry,
-                            infinite_order_to_finite,
-                        )
-                    }
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    // Magnetic groups with corepresentations
+                    let group = py
+                        .allow_threads(|| {
+                            let magsym = pd_res
+                                .magnetic_symmetry
+                                .as_ref()
+                                .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?;
+                            if use_double_group {
+                                MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    magsym,
+                                    infinite_order_to_finite,
+                                )
+                                .and_then(|grp| grp.to_double_group())
+                            } else {
+                                MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    magsym,
+                                    infinite_order_to_finite,
+                                )
+                            }
+                        })
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
+                    // Construct the orbit basis
                     let orbit_basis = match symmetry_transformation_kind {
                         SymmetryTransformationKind::Spatial => {
                             OrbitBasis::builder()
@@ -291,6 +382,40 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         }
                     }.map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
+                    // Run non-orthogonal configuration interaction
+                    let dets = orbit_basis
+                        .iter()
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let (noci_energies_vec, noci_coeffs_vec) = noci_function_r(&dets)
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    if noci_energies_vec.len() != noci_coeffs_vec.len()
+                        || noci_coeffs_vec
+                            .iter()
+                            .map(|coeffs| coeffs.len())
+                            .collect::<HashSet<_>>()
+                            .len()
+                            != 1
+                    {
+                        return Err(PyRuntimeError::new_err(
+                            "Inconsistent dimensions encountered in NOCI results.",
+                        ));
+                    }
+                    let multidets = noci_energies_vec
+                        .into_iter()
+                        .zip(noci_coeffs_vec.into_iter())
+                        .map(|(energy, coeffs)| {
+                            MultiDeterminant::builder()
+                                .basis(orbit_basis.clone())
+                                .coefficients(Array1::from_vec(coeffs))
+                                .threshold(1e-7)
+                                .energy(Ok(energy))
+                                .build()
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
                     let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         f64,
@@ -298,127 +423,150 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
-                    .multidets(&det_r)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
                     .sao_spatial(&sao_spatial)
                     .sao_spatial_h(None) // Real SAO.
-                    .sao_spatial_4c(sao_spatial_4c.as_ref())
-                    .sao_spatial_4c_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     py.allow_threads(|| {
-                        sda_driver
+                        mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                     })?
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                    // Unitary groups or magnetic groups with representations
+                    let group = py
+                        .allow_threads(|| {
+                            let sym = if use_magnetic_group.is_some() {
+                                pd_res
+                                    .magnetic_symmetry
+                                    .as_ref()
+                                    .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?
+                            } else {
+                                &pd_res.unitary_symmetry
+                            };
+                            if use_double_group {
+                                UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    sym,
+                                    infinite_order_to_finite,
+                                )
+                                .and_then(|grp| grp.to_double_group())
+                            } else {
+                                UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    sym,
+                                    infinite_order_to_finite,
+                                )
+                            }
+                        })
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Construct the orbit basis
+                    let orbit_basis = match symmetry_transformation_kind {
+                        SymmetryTransformationKind::Spatial => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_r)
+                            .action(|op, det| {
+                                det.sym_transform_spatial(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spatially on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_r)
+                            .action(|op, det| {
+                                 det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::Spin => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_r)
+                            .action(|op, det| {
+                                 det.sym_transform_spin(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spin-wise on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::SpinSpatial => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_r)
+                            .action(|op, det| {
+                                 det.sym_transform_spin_spatial(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spin-spatially on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                    }.map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Run non-orthogonal configuration interaction
+                    let dets = orbit_basis
+                        .iter()
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let (noci_energies_vec, noci_coeffs_vec) = noci_function_r(&dets)
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    if noci_energies_vec.len() != noci_coeffs_vec.len()
+                        || noci_coeffs_vec
+                            .iter()
+                            .map(|coeffs| coeffs.len())
+                            .collect::<HashSet<_>>()
+                            .len()
+                            != 1
+                    {
+                        return Err(PyRuntimeError::new_err(
+                            "Inconsistent dimensions encountered in NOCI results.",
+                        ));
+                    }
+                    let multidets = noci_energies_vec
+                        .into_iter()
+                        .zip(noci_coeffs_vec.into_iter())
+                        .map(|(energy, coeffs)| {
+                            MultiDeterminant::builder()
+                                .basis(orbit_basis.clone())
+                                .coefficients(Array1::from_vec(coeffs))
+                                .threshold(1e-7)
+                                .energy(Ok(energy))
+                                .build()
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         f64,
+                        _,
                     >::builder()
-                    .parameters(&sda_params)
+                    .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
-                    .determinant(&det_r)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
                     .sao_spatial(&sao_spatial)
                     .sao_spatial_h(None) // Real SAO.
-                    .sao_spatial_4c(sao_spatial_4c.as_ref())
-                    .sao_spatial_4c_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     py.allow_threads(|| {
-                        sda_driver
+                        mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                     })?
                 }
             };
         }
-        (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Complex(pysao_c)) => {
-            let det_r = if augment_to_generalised {
-                pydet_r
-                    .to_qsym2(&bao, mol)
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-                    .to_generalised()
-            } else {
-                pydet_r
-                    .to_qsym2(&bao, mol)
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            };
-            let det_c: SlaterDeterminant<C128> = det_r.into();
-            let sao_spatial_c = pysao_c.to_owned_array();
-            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
-                // sao_spatial_h must have the same reality as sao_spatial.
-                PyArray2RC::Real(_) => None,
-                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
-            });
-            let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
-                // sao_spatial_4c must have the same reality as sao_spatial.
-                PyArray4RC::Real(_) => None,
-                PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
-            });
-            let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
-                // sao_spatial_4c_h must have the same reality as sao_spatial.
-                PyArray4RC::Real(_) => None,
-                PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
-            });
-            match &use_magnetic_group {
-                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                        MagneticRepresentedSymmetryGroup,
-                        C128,
-                    >::builder()
-                    .parameters(&sda_params)
-                    .angular_function_parameters(&afa_params)
-                    .determinant(&det_c)
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
-                    .symmetry_group(&pd_res)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
-                        sda_driver
-                            .run()
-                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
-                }
-                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                        UnitaryRepresentedSymmetryGroup,
-                        C128,
-                    >::builder()
-                    .parameters(&sda_params)
-                    .angular_function_parameters(&afa_params)
-                    .determinant(&det_c)
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
-                    .symmetry_group(&pd_res)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
-                        sda_driver
-                            .run()
-                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
-                }
-            };
-        }
-        (PySlaterDeterminant::Complex(pydet_c), _) => {
-            let det_c = if augment_to_generalised {
-                pydet_c
-                    .to_qsym2(&bao, mol)
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-                    .to_generalised()
-            } else {
-                pydet_c
-                    .to_qsym2(&bao, mol)
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            };
+        (_, _) => {
+            // Preparation
             let sao_spatial_c = match sao_spatial {
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
@@ -428,57 +576,280 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                 PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
                 PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
             });
-            let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
-                // sao_spatial_4c must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
-                PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
-            });
-            let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
-                // sao_spatial_4c_h must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_h_r) => {
-                    Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
-                }
-                PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
-            });
+            let origins_c = if augment_to_generalised {
+                pyorigins
+                    .iter()
+                    .map(|pydet| match pydet {
+                        PySlaterDeterminant::Real(pydet_r) => pydet_r
+                            .to_qsym2(&bao, mol)
+                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r).to_generalised()),
+                        PySlaterDeterminant::Complex(pydet_c) => pydet_c
+                            .to_qsym2(&bao, mol)
+                            .map(|det_c| det_c.to_generalised()),
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            } else {
+                pyorigins
+                    .iter()
+                    .map(|pydet| match pydet {
+                        PySlaterDeterminant::Real(pydet_r) => pydet_r
+                            .to_qsym2(&bao, mol)
+                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r)),
+                        PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            }
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                    // Magnetic groups with corepresentations
+                    let group = py
+                        .allow_threads(|| {
+                            let magsym = pd_res
+                                .magnetic_symmetry
+                                .as_ref()
+                                .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?;
+                            if use_double_group {
+                                MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    magsym,
+                                    infinite_order_to_finite,
+                                )
+                                .and_then(|grp| grp.to_double_group())
+                            } else {
+                                MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    magsym,
+                                    infinite_order_to_finite,
+                                )
+                            }
+                        })
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Construct the orbit basis
+                    let orbit_basis = match symmetry_transformation_kind {
+                        SymmetryTransformationKind::Spatial => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                det.sym_transform_spatial(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spatially on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                 det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::Spin => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                 det.sym_transform_spin(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spin-wise on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::SpinSpatial => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                 det.sym_transform_spin_spatial(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spin-spatially on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                    }.map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Run non-orthogonal configuration interaction
+                    let dets = orbit_basis
+                        .iter()
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let (noci_energies_vec, noci_coeffs_vec) = noci_function_c(&dets)
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    if noci_energies_vec.len() != noci_coeffs_vec.len()
+                        || noci_coeffs_vec
+                            .iter()
+                            .map(|coeffs| coeffs.len())
+                            .collect::<HashSet<_>>()
+                            .len()
+                            != 1
+                    {
+                        return Err(PyRuntimeError::new_err(
+                            "Inconsistent dimensions encountered in NOCI results.",
+                        ));
+                    }
+                    let multidets = noci_energies_vec
+                        .into_iter()
+                        .zip(noci_coeffs_vec.into_iter())
+                        .map(|(energy, coeffs)| {
+                            MultiDeterminant::builder()
+                                .basis(orbit_basis.clone())
+                                .coefficients(Array1::from_vec(coeffs))
+                                .threshold(1e-7)
+                                .energy(Ok(energy))
+                                .build()
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         C128,
+                        _,
                     >::builder()
-                    .parameters(&sda_params)
+                    .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
-                    .determinant(&det_c)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
                     .sao_spatial(&sao_spatial_c)
                     .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     py.allow_threads(|| {
-                        sda_driver
+                        mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                     })?
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                    // Unitary groups or magnetic groups with representations
+                    let group = py
+                        .allow_threads(|| {
+                            let sym = if use_magnetic_group.is_some() {
+                                pd_res
+                                    .magnetic_symmetry
+                                    .as_ref()
+                                    .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?
+                            } else {
+                                &pd_res.unitary_symmetry
+                            };
+                            if use_double_group {
+                                UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    sym,
+                                    infinite_order_to_finite,
+                                )
+                                .and_then(|grp| grp.to_double_group())
+                            } else {
+                                UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                    sym,
+                                    infinite_order_to_finite,
+                                )
+                            }
+                        })
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Construct the orbit basis
+                    let orbit_basis = match symmetry_transformation_kind {
+                        SymmetryTransformationKind::Spatial => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                det.sym_transform_spatial(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spatially on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                 det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::Spin => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                 det.sym_transform_spin(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spin-wise on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                        SymmetryTransformationKind::SpinSpatial => {
+                            OrbitBasis::builder()
+                            .group(&group)
+                            .origins(origins_c)
+                            .action(|op, det| {
+                                 det.sym_transform_spin_spatial(op).with_context(|| {
+                                    format!("Unable to apply `{op}` spin-spatially on the origin multi-determinantal wavefunction")
+                                })
+                            })
+                            .build()
+                        }
+                    }.map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Run non-orthogonal configuration interaction
+                    let dets = orbit_basis
+                        .iter()
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let (noci_energies_vec, noci_coeffs_vec) = noci_function_c(&dets)
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    if noci_energies_vec.len() != noci_coeffs_vec.len()
+                        || noci_coeffs_vec
+                            .iter()
+                            .map(|coeffs| coeffs.len())
+                            .collect::<HashSet<_>>()
+                            .len()
+                            != 1
+                    {
+                        return Err(PyRuntimeError::new_err(
+                            "Inconsistent dimensions encountered in NOCI results.",
+                        ));
+                    }
+                    let multidets = noci_energies_vec
+                        .into_iter()
+                        .zip(noci_coeffs_vec.into_iter())
+                        .map(|(energy, coeffs)| {
+                            MultiDeterminant::builder()
+                                .basis(orbit_basis.clone())
+                                .coefficients(Array1::from_vec(coeffs))
+                                .threshold(1e-7)
+                                .energy(Ok(energy))
+                                .build()
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         C128,
+                        _,
                     >::builder()
-                    .parameters(&sda_params)
+                    .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
-                    .determinant(&det_c)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
                     .sao_spatial(&sao_spatial_c)
                     .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     py.allow_threads(|| {
-                        sda_driver
+                        mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                     })?

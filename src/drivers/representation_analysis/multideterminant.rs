@@ -289,7 +289,7 @@ where
                 multidet_sym
                     .as_ref()
                     .map(|sym| sym.to_string())
-                    .unwrap_or("--".to_string())
+                    .unwrap_or_else(|err| err.clone())
                     .chars()
                     .count()
             })
@@ -374,9 +374,9 @@ where
             let multidet_sym_str = self
                 .multidet_symmetries
                 .get(multidet_i)
-                .ok_or_else(|| format!("Unable to retrieve the symmetry  of multideterminantal wavefunction index `{multidet_i}`."))
+                .ok_or_else(|| format!("Unable to retrieve the symmetry of multideterminantal wavefunction index `{multidet_i}`."))
                 .and_then(|sym_res| sym_res.as_ref().map(|sym| sym.to_string()).map_err(|err| err.to_string()))
-                .unwrap_or("--".to_string());
+                .unwrap_or_else(|err| err);
 
             let (eig_above_str, eig_below_str) = self
                 .multidet_symmetries_thresholds
@@ -403,6 +403,7 @@ where
         }
 
         writeln!(f, "{}", "┈".repeat(table_width))?;
+        writeln!(f)?;
 
         Ok(())
     }

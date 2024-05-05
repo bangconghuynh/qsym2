@@ -1,6 +1,6 @@
 //! Python bindings for QSym² atomic-orbital integral evaluations.
 
-use anyhow::{self, bail, ensure};
+use anyhow::{self, bail, ensure, format_err};
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
 #[cfg(feature = "integrals")]
@@ -190,6 +190,21 @@ impl From<PySpinConstraint> for SpinConstraint {
             PySpinConstraint::Restricted => SpinConstraint::Restricted(2),
             PySpinConstraint::Unrestricted => SpinConstraint::Unrestricted(2, false),
             PySpinConstraint::Generalised => SpinConstraint::Generalised(2, false),
+        }
+    }
+}
+
+impl TryFrom<SpinConstraint> for PySpinConstraint {
+    type Error = anyhow::Error;
+
+    fn try_from(sc: SpinConstraint) -> Result<Self, Self::Error> {
+        match sc {
+            SpinConstraint::Restricted(2) => Ok(PySpinConstraint::Restricted),
+            SpinConstraint::Unrestricted(2, false) => Ok(PySpinConstraint::Unrestricted),
+            SpinConstraint::Generalised(2, false) => Ok(PySpinConstraint::Generalised),
+            _ => Err(format_err!(
+                "`PySpinConstraint` can only support two spin spaces."
+            )),
         }
     }
 }

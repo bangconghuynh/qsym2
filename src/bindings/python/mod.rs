@@ -50,6 +50,10 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         m
     )?)?;
     m.add_function(wrap_pyfunction!(
+        representation_analysis::multideterminant::rep_analyse_multideterminants_orbit_basis,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
         representation_analysis::vibrational_coordinate::rep_analyse_vibrational_coordinate_collection,
         m
     )?)?;
