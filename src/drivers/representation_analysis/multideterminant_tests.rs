@@ -1,5 +1,5 @@
 use anyhow::format_err;
-use log4rs;
+// use log4rs;
 use ndarray::array;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
@@ -7,6 +7,7 @@ use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
@@ -18,6 +19,7 @@ use crate::drivers::symmetry_group_detection::{
 use crate::drivers::QSym2Driver;
 use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_group::{SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup};
+use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::OrbitBasis;
@@ -25,7 +27,7 @@ use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[test]
 fn test_drivers_multideterminant_analysis_bh3() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ----
     // Data
     // ----
@@ -202,7 +204,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
         .build()
         .unwrap();
 
-    let mut md_driver =
+    let mut mda_driver =
         MultiDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
             .parameters(&mda_params)
             .angular_function_parameters(&afa_params)
@@ -211,33 +213,17 @@ fn test_drivers_multideterminant_analysis_bh3() {
             .symmetry_group(pd_res)
             .build()
             .unwrap();
-    assert!(md_driver.run().is_ok());
-    // assert_eq!(
-    //     md_driver.result().unwrap().density_symmetries()[0],
-    //     Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new(
-    //         "||A|_(1g)| ⊕ ||A|_(2g)| ⊕ ||B|_(1g)| ⊕ ||B|_(2g)| ⊕ 2||E|_(u)|"
-    //     )
-    //     .unwrap())
-    // );
-    // assert_eq!(
-    //     da_driver.result().unwrap().density_symmetries()[1],
-    //     Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new(
-    //         "||A|_(1g)| ⊕ ||A|_(2g)| ⊕ ||B|_(1g)| ⊕ ||B|_(2g)| ⊕ 2||E|_(u)|"
-    //     )
-    //     .unwrap())
-    // );
-    // assert_eq!(
-    //     da_driver.result().unwrap().density_symmetries()[2],
-    //     Ok(
-    //         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||B|_(2g)| ⊕ ||E|_(u)|")
-    //             .unwrap()
-    //     )
-    // );
-    // assert_eq!(
-    //     da_driver.result().unwrap().density_symmetries()[3],
-    //     Ok(
-    //         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(2g)| ⊕ ||B|_(1g)| ⊕ ||E|_(u)|")
-    //             .unwrap()
-    //     )
-    // );
+    assert!(mda_driver.run().is_ok());
+    assert_eq!(
+        mda_driver.result().unwrap().multidet_symmetries()[0],
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1)^(')|").unwrap())
+    );
+    assert_eq!(
+        mda_driver.result().unwrap().multidet_symmetries()[1],
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap())
+    );
+    assert_eq!(
+        mda_driver.result().unwrap().multidet_symmetries()[2],
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap())
+    );
 }
