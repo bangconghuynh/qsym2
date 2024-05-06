@@ -9,10 +9,10 @@ use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
-use crate::group::UnitaryRepresentedGroup;
+use crate::group::{MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
+use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
@@ -151,7 +151,7 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
         .build()
         .unwrap();
 
-    let mut orbit_a1_multidet = MultiDeterminantSymmetryOrbit::builder()
+    let mut orbit_a1_multidet_optimised = MultiDeterminantSymmetryOrbit::builder()
         .group(&group_u_d3h)
         .origin(&a1_multidet)
         .integrality_threshold(1e-6)
@@ -160,12 +160,30 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_a1_multidet
+    let _ = orbit_a1_multidet_optimised
         .calc_smat_optimised(Some(&sao_spatial), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_a1_multidet.analyse_rep().unwrap(),
+        orbit_a1_multidet_optimised.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|^(')_(1)|").unwrap()
+    );
+
+    let mut orbit_a1_multidet_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d3h)
+        .origin(&a1_multidet)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_a1_multidet_nonoptimised
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_a1_multidet_nonoptimised.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|^(')_(1)|").unwrap()
     );
 
@@ -190,7 +208,7 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
         .build()
         .unwrap();
 
-    let mut orbit_ex_multidet = MultiDeterminantSymmetryOrbit::builder()
+    let mut orbit_ex_multidet_optimised = MultiDeterminantSymmetryOrbit::builder()
         .group(&group_u_d3h)
         .origin(&ex_multidet)
         .integrality_threshold(1e-6)
@@ -199,12 +217,30 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_ex_multidet
+    let _ = orbit_ex_multidet_optimised
         .calc_smat_optimised(Some(&sao_spatial), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_ex_multidet.analyse_rep().unwrap(),
+        orbit_ex_multidet_optimised.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap()
+    );
+
+    let mut orbit_ex_multidet_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d3h)
+        .origin(&ex_multidet)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_ex_multidet_nonoptimised
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_ex_multidet_nonoptimised.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap()
     );
 
@@ -229,7 +265,7 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
         .build()
         .unwrap();
 
-    let mut orbit_ey_multidet = MultiDeterminantSymmetryOrbit::builder()
+    let mut orbit_ey_multidet_optimised = MultiDeterminantSymmetryOrbit::builder()
         .group(&group_u_d3h)
         .origin(&ey_multidet)
         .integrality_threshold(1e-6)
@@ -238,12 +274,334 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_ey_multidet
+    let _ = orbit_ey_multidet_optimised
         .calc_smat_optimised(Some(&sao_spatial), None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_ey_multidet.analyse_rep().unwrap(),
+        orbit_ey_multidet_optimised.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap()
+    );
+
+    let mut orbit_ey_multidet_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d3h)
+        .origin(&ey_multidet)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_ey_multidet_nonoptimised
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_ey_multidet_nonoptimised.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap()
+    );
+}
+
+#[test]
+fn test_multideterminant_orbit_rep_analysis_h2() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0000000 0.0000000 +1.0000000", &emap, 1e-6).unwrap();
+    let atm_h1 = Atom::from_xyz("H 0.0000000 0.0000000 -1.0000000", &emap, 1e-6).unwrap();
+
+    let bsc_s = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bsc_s.clone(), bsc_s.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bsc_s.clone(), bsc_s]);
+
+    let bao_h2 = BasisAngularOrder::new(&[batm_h0, batm_h1]);
+    let mol_h2 = Molecule::from_atoms(&[atm_h0.clone(), atm_h1.clone()], 1e-7).recentre();
+
+    #[rustfmt::skip]
+    let sao_spatial = array![
+        [9.999999999999997780e-01, 6.582920493393298322e-01, 6.999342736508335633e-03, 1.011265424388186202e-01],
+        [6.582920493393298322e-01, 1.000000000000000222e+00, 1.011265424388185785e-01, 3.160461732885219699e-01],
+        [6.999342736508335633e-03, 1.011265424388186202e-01, 9.999999999999997780e-01, 6.582920493393298322e-01],
+        [1.011265424388185785e-01, 3.160461732885219699e-01, 6.582920493393298322e-01, 1.000000000000000222e+00],
+    ];
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol_h2)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_d2h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(2)).unwrap();
+
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true).unwrap();
+    let group_u_d2h_grey =
+        UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(2)).unwrap();
+    let group_m_d2h_grey =
+        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(2)).unwrap();
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+    ];
+    let oalpha = array![1.0];
+    let obeta = array![1.0];
+    let det = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[calpha, cbeta])
+        .occupations(&[oalpha, obeta])
+        .bao(&bao_h2)
+        .mol(&mol_h2)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    // --------------------
+    // Determinant symmetry
+    // --------------------
+
+    let mut orbit_det_d2h_u = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d2h)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_det_d2h_u
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_det_d2h_u.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(g)| ⊕ ||B|_(1u)|").unwrap()
+    );
+
+    let mut orbit_det_d2h_grey_u = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d2h_grey)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpatialWithSpinTimeReversal)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_det_d2h_grey_u
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_det_d2h_grey_u.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("|^(-)|A|_(g)| ⊕ |^(+)|B|_(1u)|").unwrap()
+    );
+
+    let mut orbit_det_d2h_grey_m = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_m_d2h_grey)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpatialWithSpinTimeReversal)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_det_d2h_grey_m
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_det_d2h_grey_m.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ ||B|_(1u)|").unwrap()
+    );
+
+    // -------------
+    // NOCI symmetry
+    // -------------
+
+    // ~~~~~~~
+    // D2h (u)
+    // ~~~~~~~
+    let orbit_basis_d2h_u = OrbitBasis::builder()
+        .group(&group_u_d2h)
+        .origins(vec![det.clone()])
+        .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
+        .build()
+        .unwrap();
+
+    // Ag
+    let sqrt2inv = 1.0 / (2.0f64.sqrt());
+    let a1_multidet_d2h_u = MultiDeterminant::builder()
+        .basis(orbit_basis_d2h_u.clone())
+        .coefficients(array![sqrt2inv, 0.0, 0.0, 0.0, sqrt2inv, 0.0, 0.0, 0.0])
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    let mut orbit_a1_multidet_d2h_u_optimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d2h)
+        .origin(&a1_multidet_d2h_u)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_a1_multidet_d2h_u_optimised
+        .calc_smat_optimised(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_a1_multidet_d2h_u_optimised.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(g)|").unwrap()
+    );
+
+    // B1u
+    let b1u_multidet_d2h_u = MultiDeterminant::builder()
+        .basis(orbit_basis_d2h_u.clone())
+        .coefficients(array![sqrt2inv, 0.0, 0.0, 0.0, -sqrt2inv, 0.0, 0.0, 0.0])
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    let mut orbit_b1u_multidet_d2h_u_optimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d2h)
+        .origin(&b1u_multidet_d2h_u)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_b1u_multidet_d2h_u_optimised
+        .calc_smat_optimised(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_b1u_multidet_d2h_u_optimised.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(1u)|").unwrap()
+    );
+
+    // ~~~~~~~~~~
+    // D2h' (u/m)
+    // ~~~~~~~~~~
+    let orbit_basis_d2h_grey_u = OrbitBasis::builder()
+        .group(&group_u_d2h_grey)
+        .origins(vec![det.clone()])
+        .action(|g, det| {
+            det.sym_transform_spatial_with_spintimerev(g)
+                .map_err(|err| format_err!(err))
+        })
+        .build()
+        .unwrap();
+
+    // -Ag
+    let sqrt2inv = 1.0 / (2.0f64.sqrt());
+    let a1_multidet_d2h_grey_u = MultiDeterminant::builder()
+        .basis(orbit_basis_d2h_grey_u.clone())
+        .coefficients(array![
+            sqrt2inv, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            -sqrt2inv, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        ])
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    let mut orbit_a1_multidet_d2h_grey_u_optimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d2h_grey)
+        .origin(&a1_multidet_d2h_grey_u)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_a1_multidet_d2h_grey_u_optimised
+        .calc_smat_optimised(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_a1_multidet_d2h_grey_u_optimised
+            .analyse_rep()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("|^(-)|A|_(g)|").unwrap()
+    );
+
+    let mut orbit_a1_multidet_d2h_grey_m = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_m_d2h_grey)
+        .origin(&a1_multidet_d2h_grey_u)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_a1_multidet_d2h_grey_m
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_a1_multidet_d2h_grey_m
+            .analyse_rep()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)|").unwrap()
+    );
+
+    // +B1u
+    let b1u_multidet_d2h_grey_u = MultiDeterminant::builder()
+        .basis(orbit_basis_d2h_grey_u.clone())
+        .coefficients(array![
+            sqrt2inv, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            sqrt2inv, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        ])
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    let mut orbit_b1u_multidet_d2h_grey_u_optimised = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d2h_grey)
+        .origin(&b1u_multidet_d2h_grey_u)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_b1u_multidet_d2h_grey_u_optimised
+        .calc_smat_optimised(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_b1u_multidet_d2h_grey_u_optimised.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("|^(+)|B|_(1u)|").unwrap()
+    );
+
+    let mut orbit_b1u_multidet_d2h_grey_m = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_m_d2h_grey)
+        .origin(&b1u_multidet_d2h_grey_u)
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_b1u_multidet_d2h_grey_m
+        .calc_smat(Some(&sao_spatial), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_b1u_multidet_d2h_grey_m.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||B|_(1u)|").unwrap()
     );
 }
