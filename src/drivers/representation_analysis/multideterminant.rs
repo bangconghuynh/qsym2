@@ -13,7 +13,7 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
+use crate::analysis::{EigenvalueComparisonMode, Overlap, ProjectionDecomposition, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -688,6 +688,20 @@ where
                 analyse_fn_ [ analyse_representation ]
                 construct_group_ [ self.construct_unitary_group()? ]
                 calc_smat_ [ calc_smat_nested ]
+                calc_projections_ [
+                    log_subtitle("Multi-determinantal wavefunction projection decompositions");
+                    qsym2_output!("");
+                    qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                    qsym2_output!("    {}", multidet_orbit.origin().overlap_definition());
+                    qsym2_output!("");
+                    multidet_orbit
+                        .projections_to_string(
+                            &multidet_orbit.calc_projection_compositions()?,
+                            params.integrality_threshold,
+                        )
+                        .log_output_display();
+                    qsym2_output!("");
+                ]
             ]
         }
     }
@@ -712,6 +726,7 @@ where
                 analyse_fn_ [ analyse_corepresentation ]
                 construct_group_ [ self.construct_magnetic_group()? ]
                 calc_smat_ [ calc_smat_nested ]
+                calc_projections_ [ ]
             ]
         }
     }
@@ -806,6 +821,7 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
                             })
                             .unwrap_or((None, None));
                         let multidet_sym = multidet_orbit.analyse_rep().map_err(|err| err.to_string());
+                        { calc_projections_ }
                         Ok((multidet_sym, multidet_symmetry_thresholds))
                     })
                     .unwrap_or_else(|err| (Err(err.to_string()), (None, None)))

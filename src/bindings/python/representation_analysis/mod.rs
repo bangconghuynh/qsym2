@@ -3,7 +3,7 @@
 //! See [`crate::drivers::representation_analysis`] for more information.
 
 use num_complex::Complex;
-use numpy::{PyArray2, PyArray4};
+use numpy::{PyArray1, PyArray2, PyArray4};
 use pyo3::prelude::*;
 
 pub mod density;
@@ -12,6 +12,14 @@ pub mod slater_determinant;
 pub mod vibrational_coordinate;
 
 type C128 = Complex<f64>;
+
+/// Python-exposed enumerated type to handle the union type of numpy float 1d-arrays and numpy
+/// complex 1d-arrays in Python.
+#[derive(FromPyObject)]
+pub enum PyArray1RC<'a> {
+    Real(&'a PyArray1<f64>),
+    Complex(&'a PyArray1<C128>),
+}
 
 /// Python-exposed enumerated type to handle the union type of numpy float 2d-arrays and numpy
 /// complex 2d-arrays in Python.

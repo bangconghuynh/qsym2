@@ -188,6 +188,11 @@ where
     pub fn builder() -> MultiDeterminantSymmetryOrbitBuilder<'a, 'g, G, T, B> {
         MultiDeterminantSymmetryOrbitBuilder::default()
     }
+
+    /// Returns the origin of the multi-determinantal wavefunction symmetry orbit.
+    pub fn origin(&self) -> &MultiDeterminant<'a, T, B> {
+        self.origin
+    }
 }
 
 impl<'a, 'g, G, B> MultiDeterminantSymmetryOrbit<'a, 'g, G, f64, B>

@@ -171,7 +171,7 @@ pub(crate) struct EagerBasis<I: Clone> {
 }
 
 impl<I: Clone> EagerBasis<I> {
-    fn builder() -> EagerBasisBuilder<I> {
+    pub(crate) fn builder() -> EagerBasisBuilder<I> {
         EagerBasisBuilder::default()
     }
 }
