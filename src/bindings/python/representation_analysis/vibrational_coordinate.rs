@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2};
+use numpy::{PyArray1, PyArray2, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -73,7 +73,11 @@ impl PyVibrationalCoordinateCollectionReal {
     /// * `frequencies` - The real vibrational frequencies. Python type: `numpy.1darray[float]`.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
     #[new]
-    fn new(coefficients: &PyArray2<f64>, frequencies: &PyArray1<f64>, threshold: f64) -> Self {
+    fn new(
+        coefficients: Bound<'_, PyArray2<f64>>,
+        frequencies: Bound<'_, PyArray1<f64>>,
+        threshold: f64,
+    ) -> Self {
         let vibs = Self {
             coefficients: coefficients.to_owned_array(),
             frequencies: frequencies.to_owned_array(),
@@ -153,7 +157,11 @@ impl PyVibrationalCoordinateCollectionComplex {
     /// * `frequencies` - The complex vibrational frequencies. Python type: `numpy.1darray[complex]`.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
     #[new]
-    fn new(coefficients: &PyArray2<C128>, frequencies: &PyArray1<C128>, threshold: f64) -> Self {
+    fn new(
+        coefficients: Bound<'_, PyArray2<C128>>,
+        frequencies: Bound<'_, PyArray1<C128>>,
+        threshold: f64,
+    ) -> Self {
         let vibs = Self {
             coefficients: coefficients.to_owned_array(),
             frequencies: frequencies.to_owned_array(),

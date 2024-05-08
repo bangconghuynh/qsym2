@@ -433,7 +433,7 @@ fn create_basis_shell(
 pub fn calc_overlap_2c_real<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray2<f64>> {
+) -> PyResult<Bound<'py, PyArray2<f64>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -457,7 +457,7 @@ pub fn calc_overlap_2c_real<'py>(
             .pop()
             .expect("Unable to retrieve the two-centre overlap matrix.")
     });
-    let pysao_2c = sao_2c.into_pyarray(py);
+    let pysao_2c = sao_2c.into_pyarray_bound(py);
     Ok(pysao_2c)
 }
 
@@ -479,7 +479,7 @@ pub fn calc_overlap_2c_complex<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
     complex_symmetric: bool,
-) -> PyResult<&'py PyArray2<Complex<f64>>> {
+) -> PyResult<Bound<'py, PyArray2<Complex<f64>>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -503,7 +503,7 @@ pub fn calc_overlap_2c_complex<'py>(
             .pop()
             .expect("Unable to retrieve the two-centre overlap matrix.")
     });
-    let pysao_2c = sao_2c.into_pyarray(py);
+    let pysao_2c = sao_2c.into_pyarray_bound(py);
     Ok(pysao_2c)
 }
 
@@ -526,7 +526,7 @@ pub fn calc_overlap_2c_complex<'py>(
 pub fn calc_overlap_4c_real<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray4<f64>> {
+) -> PyResult<Bound<'py, PyArray4<f64>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -550,7 +550,7 @@ pub fn calc_overlap_4c_real<'py>(
             .pop()
             .expect("Unable to retrieve the four-centre overlap tensor.")
     });
-    let pysao_4c = sao_4c.into_pyarray(py);
+    let pysao_4c = sao_4c.into_pyarray_bound(py);
     Ok(pysao_4c)
 }
 
@@ -572,7 +572,7 @@ pub fn calc_overlap_4c_complex<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
     complex_symmetric: bool,
-) -> PyResult<&'py PyArray4<Complex<f64>>> {
+) -> PyResult<Bound<'py, PyArray4<Complex<f64>>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -596,6 +596,6 @@ pub fn calc_overlap_4c_complex<'py>(
             .pop()
             .expect("Unable to retrieve the four-centre overlap tensor.")
     });
-    let pysao_4c = sao_4c.into_pyarray(py);
+    let pysao_4c = sao_4c.into_pyarray_bound(py);
     Ok(pysao_4c)
 }

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2, ToPyArray};
+use numpy::{PyArray1, PyArray2, ToPyArray, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -118,10 +118,10 @@ impl PySlaterDeterminantReal {
     pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
-        coefficients: Vec<&PyArray2<f64>>,
-        occupations: Vec<&PyArray1<f64>>,
+        coefficients: Vec<Bound<'_, PyArray2<f64>>>,
+        occupations: Vec<Bound<'_, PyArray1<f64>>>,
         threshold: f64,
-        mo_energies: Option<Vec<&PyArray1<f64>>>,
+        mo_energies: Option<Vec<Bound<'_, PyArray1<f64>>>>,
         energy: Option<f64>,
     ) -> Self {
         let det = Self {
@@ -148,20 +148,20 @@ impl PySlaterDeterminantReal {
     }
 
     #[getter]
-    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<&'py PyArray1<f64>>> {
+    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
         Ok(self
             .occupations
             .iter()
-            .map(|occ| occ.to_pyarray(py))
+            .map(|occ| occ.to_pyarray_bound(py))
             .collect::<Vec<_>>())
     }
 
     #[getter]
-    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<&'py PyArray2<f64>>> {
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<f64>>>> {
         Ok(self
             .coefficients
             .iter()
-            .map(|occ| occ.to_pyarray(py))
+            .map(|occ| occ.to_pyarray_bound(py))
             .collect::<Vec<_>>())
     }
 }
@@ -289,10 +289,10 @@ impl PySlaterDeterminantComplex {
     pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
-        coefficients: Vec<&PyArray2<C128>>,
-        occupations: Vec<&PyArray1<f64>>,
+        coefficients: Vec<Bound<'_, PyArray2<C128>>>,
+        occupations: Vec<Bound<'_, PyArray1<f64>>>,
         threshold: f64,
-        mo_energies: Option<Vec<&PyArray1<C128>>>,
+        mo_energies: Option<Vec<Bound<'_, PyArray1<C128>>>>,
         energy: Option<C128>,
     ) -> Self {
         let det = Self {
@@ -319,20 +319,20 @@ impl PySlaterDeterminantComplex {
     }
 
     #[getter]
-    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<&'py PyArray1<f64>>> {
+    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
         Ok(self
             .occupations
             .iter()
-            .map(|occ| occ.to_pyarray(py))
+            .map(|occ| occ.to_pyarray_bound(py))
             .collect::<Vec<_>>())
     }
 
     #[getter]
-    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<&'py PyArray2<C128>>> {
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<C128>>>> {
         Ok(self
             .coefficients
             .iter()
-            .map(|occ| occ.to_pyarray(py))
+            .map(|occ| occ.to_pyarray_bound(py))
             .collect::<Vec<_>>())
     }
 }

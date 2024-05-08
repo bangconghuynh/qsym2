@@ -4,8 +4,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::{bail, format_err, Context};
-use duplicate::duplicate_item;
-use ndarray::{Array1, Array2};
+use ndarray::Array1;
 use num_complex::Complex;
 use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
@@ -13,9 +12,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
-use crate::auxiliary::molecule::Molecule;
-use crate::basis::ao::BasisAngularOrder;
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
+use crate::bindings::python::integrals::PyBasisAngularOrder;
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
 };
@@ -67,10 +64,7 @@ type C128 = Complex<f64>;
 /// non-orthogonal configuration interaction (NOCI) and return a list of NOCI energies and a
 /// corresponding list of lists of linear combination coefficients, where each inner list is for one
 /// multi-determinantal wavefunction resulting from the NOCI calculation.
-/// Python type: `Callable[
-///     [list[PySlaterDeterminantReal | PySlaterDeterminantComplex]],
-///     tuple[list[float], list[list[float]]] | tuple[list[complex], list[list[complex]]]
-/// ]`.
+/// Python type: `Callable[[list[PySlaterDeterminantReal | PySlaterDeterminantComplex]], tuple[list[float], list[list[float]]] | tuple[list[complex], list[list[complex]]]]`.
 /// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
 /// Python type: `PyBasisAngularOrder`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
@@ -215,17 +209,17 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         det.complex_symmetric(),
                         det.coefficients()
                             .iter()
-                            .map(|arr| PyArray2::from_array(py_inner, arr))
+                            .map(|arr| PyArray2::from_array_bound(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.occupations()
                             .iter()
-                            .map(|arr| PyArray1::from_array(py_inner, arr))
+                            .map(|arr| PyArray1::from_array_bound(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.threshold(),
                         det.mo_energies().map(|mo_energies| {
                             mo_energies
                                 .iter()
-                                .map(|arr| PyArray1::from_array(py_inner, arr))
+                                .map(|arr| PyArray1::from_array_bound(py_inner, arr))
                                 .collect::<Vec<_>>()
                         }),
                         det.energy().ok().cloned(),
@@ -249,17 +243,17 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         det.complex_symmetric(),
                         det.coefficients()
                             .iter()
-                            .map(|arr| PyArray2::from_array(py_inner, arr))
+                            .map(|arr| PyArray2::from_array_bound(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.occupations()
                             .iter()
-                            .map(|arr| PyArray1::from_array(py_inner, arr))
+                            .map(|arr| PyArray1::from_array_bound(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.threshold(),
                         det.mo_energies().map(|mo_energies| {
                             mo_energies
                                 .iter()
-                                .map(|arr| PyArray1::from_array(py_inner, arr))
+                                .map(|arr| PyArray1::from_array_bound(py_inner, arr))
                                 .collect::<Vec<_>>()
                         }),
                         det.energy().ok().cloned(),
@@ -863,8 +857,8 @@ pub fn rep_analyse_multideterminants_orbit_basis(
 }
 
 /// Python-exposed function to perform representation symmetry analysis for real and complex
-/// multi-determinantal wavefunctions constructed from group-generated orbits and log the result via
-/// the `qsym2-output` logger at the `INFO` level.
+/// multi-determinantal wavefunctions constructed from an eager basis of Slater determinants and log
+/// the result via the `qsym2-output` logger at the `INFO` level.
 ///
 /// If `symmetry_transformation_kind` includes spin transformation, the provided
 /// multi-determinantal wavefunctions will be augmented to generalised spin constraint
@@ -875,19 +869,18 @@ pub fn rep_analyse_multideterminants_orbit_basis(
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
 /// representation analysis. Python type: `str`.
-/// * `pyorigins` - A list of Python-exposed Slater determinants whose coefficients are of type
-/// `float64` or `complex128`. These determinants serve as origins for group-generated orbits which
-/// serve as basis states for non-orthogonal configuration interaction to yield multi-determinantal
-/// wavefunctions, the symmetry of which will be analysed by this function.
+/// * `pydets` - A list of Python-exposed Slater determinants whose coefficients are of type
+/// `float64` or `complex128`. These determinants serve as basis states for non-orthogonal
+/// configuration interaction to yield multi-determinantal wavefunctions, the symmetry of which will
+/// be analysed by this function.
 /// Python type: `list[PySlaterDeterminantReal | PySlaterDeterminantComplex]`.
-/// * `py_noci_solver` - A Python function callable on a sequence of Slater determinants to perform
-/// non-orthogonal configuration interaction (NOCI) and return a list of NOCI energies and a
-/// corresponding list of lists of linear combination coefficients, where each inner list is for one
-/// multi-determinantal wavefunction resulting from the NOCI calculation.
-/// Python type: `Callable[
-///     [list[PySlaterDeterminantReal | PySlaterDeterminantComplex]],
-///     tuple[list[float], list[list[float]]] | tuple[list[complex], list[list[complex]]]
-/// ]`.
+/// * `coefficients` - The coefficient matrix where each column gives the linear combination
+/// coefficients for one multi-determinantal wavefunction. The number of rows must match the number
+/// of determinants specified in `pydets`. The elements are of type `float64` or `complex128`.
+/// Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
+/// * `energies` - The `float64` or `complex128` energies of the multi-determinantal wavefunctions.
+/// The number of terms must match the number of columns of `coefficients`.
+/// Python type: `numpy.1darray[float] | numpy.1darray[complex]`.
 /// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
 /// Python type: `PyBasisAngularOrder`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
