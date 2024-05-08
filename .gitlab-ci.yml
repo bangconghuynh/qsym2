@@ -18,7 +18,7 @@ check:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo check --release --verbose --features full --color always
+    - cargo check --release --verbose --features full,sandbox --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
@@ -33,7 +33,7 @@ unit_tests:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo test -r --features full -- --include-ignored
+    - cargo test -r --features full,sandbox -- --include-ignored
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
@@ -51,7 +51,7 @@ tarpaulin:
     - apt-get install gfortran build-essential cmake -y
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --no-dead-code --features full --color always
+    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
