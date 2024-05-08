@@ -28,7 +28,8 @@ use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+    log_micsec_begin, log_micsec_end, log_subtitle, nice_bool, qsym2_output, write_subtitle,
+    write_title, QSym2Output,
 };
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
@@ -751,9 +752,9 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
             .iter()
            .enumerate()
             .map(|(i, multidet)| {
-                qsym2_output!("§ Multi-determinantal wavefunction {i}");
+                log_micsec_begin(&format!("Multi-determinantal wavefunction {i}"));
                 qsym2_output!("");
-                MultiDeterminantSymmetryOrbit::builder()
+                let res = MultiDeterminantSymmetryOrbit::builder()
                     .group(&group)
                     .origin(multidet)
                     .integrality_threshold(params.integrality_threshold)
@@ -824,7 +825,10 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
                         { calc_projections_ }
                         Ok((multidet_sym, multidet_symmetry_thresholds))
                     })
-                    .unwrap_or_else(|err| (Err(err.to_string()), (None, None)))
+                    .unwrap_or_else(|err| (Err(err.to_string()), (None, None)));
+                log_micsec_end(&format!("Multi-determinantal wavefunction {i}"));
+                qsym2_output!("");
+                res
             }).unzip();
 
         let result = MultiDeterminantRepAnalysisResult::builder()
