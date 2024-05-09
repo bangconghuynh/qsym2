@@ -114,6 +114,7 @@ nav:
     - Representation analysis:
       - user-guide/representation-analysis/basics.md
       - user-guide/representation-analysis/slater-determinants.md
+      - user-guide/representation-analysis/multideterminants.md
       - user-guide/representation-analysis/vibrational-coordinates.md
       - user-guide/representation-analysis/electron-densities.md
       - user-guide/representation-analysis/real-space-functions.md

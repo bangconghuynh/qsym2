@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use anyhow::{bail, format_err, Context};
 use ndarray::Array1;
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2};
+use numpy::{PyArray1, PyArray2, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 use pyo3::types::PyFunction;

@@ -17,22 +17,22 @@ type C128 = Complex<f64>;
 /// complex 1d-arrays in Python.
 #[derive(FromPyObject)]
 pub enum PyArray1RC<'a> {
-    Real(&'a PyArray1<f64>),
-    Complex(&'a PyArray1<C128>),
+    Real(Bound<'a, PyArray1<f64>>),
+    Complex(Bound<'a, PyArray1<C128>>),
 }
 
 /// Python-exposed enumerated type to handle the union type of numpy float 2d-arrays and numpy
 /// complex 2d-arrays in Python.
 #[derive(FromPyObject)]
 pub enum PyArray2RC<'a> {
-    Real(&'a PyArray2<f64>),
-    Complex(&'a PyArray2<C128>),
+    Real(Bound<'a, PyArray2<f64>>),
+    Complex(Bound<'a, PyArray2<C128>>),
 }
 
 /// Python-exposed enumerated type to handle the union type of numpy float 4d-arrays and numpy
 /// complex 4d-arrays in Python.
 #[derive(FromPyObject)]
 pub enum PyArray4RC<'a> {
-    Real(&'a PyArray4<f64>),
-    Complex(&'a PyArray4<C128>),
+    Real(Bound<'a, PyArray4<f64>>),
+    Complex(Bound<'a, PyArray4<C128>>),
 }
