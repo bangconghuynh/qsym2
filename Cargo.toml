@@ -55,7 +55,7 @@ serial_test = "3.0.0"
 cargo-upgrades = "2.0.0"
 
 [dev-dependencies]
-env_logger = "0.11.2"
+env_logger = "0.11.3"
 
 [features]
 intel-mkl-static = ["ndarray-linalg/intel-mkl-static"]
