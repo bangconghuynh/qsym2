@@ -27,14 +27,17 @@ where
         &mut self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error> {
+    ) -> Result<&mut Self, TransformationError> {
         let vib_bao = construct_vibration_bao(self.mol);
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&vib_bao, rmat, perm)?
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&vib_bao, rmat, perm)
+            .map_err(|err| TransformationError(err.to_string()))?
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))
             .collect();
         let pbao = if let Some(p) = perm {
-            vib_bao.permute(p)?
+            vib_bao
+                .permute(p)
+                .map_err(|err| TransformationError(err.to_string()))?
         } else {
             vib_bao.clone()
         };
@@ -92,9 +95,9 @@ where
     T: ComplexFloat + Lapack,
 {
     /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self) -> &mut Self {
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
         self.coefficients.mapv_inplace(|x| x.conj());
-        self
+        Ok(self)
     }
 }
 
@@ -108,8 +111,7 @@ where
     /// Provides a custom implementation of time reversal where the components of the vibrational
     /// coordinates are complex-conjugated to respect the antiunitarity of time reversal.
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        self.transform_cc_mut();
-        Ok(self)
+        self.transform_cc_mut()
     }
 }
 

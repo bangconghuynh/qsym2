@@ -250,8 +250,12 @@ where
     /// Typically, if $`\hat{g}_i`$ is unitary, then $`f`$ is the identity, and if $`\hat{g}_i`$ is
     /// antiunitary, then $`f`$ is the complex-conjugation operation. Either way, the norm of the
     /// inner product is preserved.
+    ///
+    /// If the overlap between items is complex-symmetric (see [`Overlap::complex_symmetric`]), then
+    /// this map is currently unsupported because it is currently unclear if the unitary and
+    /// antiunitary symmetry operators in QSym² are .
     #[must_use]
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T;
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error>;
 
     /// Returns the threshold for integrality checks of irreducible representation or
     /// corepresentation multiplicities.
@@ -304,7 +308,7 @@ where
                         "Unable to find the inverse of group element `{j}`."
                     ))?;
                 let jinv_i = ctb[(jinv, i)];
-                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)(ovs[jinv_i]);
+                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
             }
         } else {
             log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");
@@ -333,12 +337,12 @@ where
                 })?;
                 if *w != *x {
                     smat[(*x, *w)] = item_x.overlap(item_w, metric, metric_h).map_err(|err| {
-                            log::warn!("{err}");
-                            log::warn!(
-                                "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
-                            );
-                            err
-                        })?;
+                        log::warn!("{err}");
+                        log::warn!(
+                            "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
+                        );
+                        err
+                    })?;
                 }
             }
         }

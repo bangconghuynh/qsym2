@@ -195,7 +195,8 @@ where
 
     /// Returns the mathematical definition of the overlap between two densities.
     fn overlap_definition(&self) -> String {
-        "⟨ι ρ_1|ρ_2⟩ = ∫ [ι ρ_1(r)]* ρ_2(r) dr".to_string()
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}ρ_1|ρ_2⟩ = ∫ [{k}ρ_1(r)]* ρ_2(r) dr")
     }
 }
 
@@ -401,16 +402,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .contains_time_reversal()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 

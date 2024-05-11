@@ -97,7 +97,7 @@ pub trait SpatialUnitaryTransformable: Clone {
         &mut self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error>;
+    ) -> Result<&mut Self, TransformationError>;
 
     // ----------------
     // Provided methods
@@ -116,7 +116,7 @@ pub trait SpatialUnitaryTransformable: Clone {
         &self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
         tself.transform_spatial_mut(rmat, perm)?;
         Ok(tself)
@@ -165,7 +165,7 @@ pub trait ComplexConjugationTransformable: Clone {
     // Required methods
     // ----------------
     /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self) -> &mut Self;
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError>;
 
     // ----------------
     // Provided methods
@@ -175,10 +175,10 @@ pub trait ComplexConjugationTransformable: Clone {
     /// # Returns
     ///
     /// The complex-conjugated result.
-    fn transform_cc(&self) -> Self {
+    fn transform_cc(&self) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
-        tself.transform_cc_mut();
-        tself
+        tself.transform_cc_mut()?;
+        Ok(tself)
     }
 }
 
@@ -230,8 +230,7 @@ where
     /// $`\pi`$ about the space-fixed $`y`$-axis followed by a complex conjugation.
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
         let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
-        self.transform_spin_mut(&dmat_y)?.transform_cc_mut();
-        Ok(self)
+        self.transform_spin_mut(&dmat_y)?.transform_cc_mut()
     }
 }
 
@@ -279,9 +278,10 @@ pub trait SymmetryTransformable:
         self.transform_spatial_mut(&rmat, Some(&perm))
             .map_err(|err| TransformationError(err.to_string()))?;
         if symop.contains_time_reversal() {
-            self.transform_cc_mut();
+            self.transform_cc_mut()
+        } else {
+            Ok(self)
         }
-        Ok(self)
     }
 
     /// Performs a spatial transformation according to a specified symmetry operation and returns

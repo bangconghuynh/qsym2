@@ -27,7 +27,7 @@ use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[test]
 fn test_drivers_multideterminant_analysis_bh3() {
-    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ----
     // Data
     // ----
@@ -130,7 +130,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
         .linear_independence_threshold(1e-6)
         .use_magnetic_group(None)
         .use_double_group(false)
-        .use_cayley_table(true)
+        .use_cayley_table(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_character_table(Some(CharacterTableDisplay::Symbolic))
         .build()

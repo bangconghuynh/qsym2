@@ -10,6 +10,10 @@ use crate::group::GroupProperties;
 #[path = "basis_transformation.rs"]
 mod basis_transformation;
 
+#[cfg(test)]
+#[path = "basis_tests.rs"]
+mod basis_tests;
+
 // =====
 // Basis
 // =====
@@ -30,7 +34,7 @@ pub trait Basis<I> {
     fn iter(&self) -> Self::BasisIter;
 
     /// Shared reference to the first item in the basis.
-    fn first(&self) -> Option<&I>;
+    fn first(&self) -> Option<I>;
 }
 
 // --------------------------------------
@@ -52,6 +56,10 @@ where
     /// The group acting on the origins to generate orbits, the concatenation of which forms the
     /// basis.
     group: &'g G,
+
+    /// Additional operator acting on the entire orbit basis.
+    #[builder(default = "None")]
+    prefactor: Option<G::GroupElement>,
 
     /// A function defining the action of each group element on the origin.
     action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
@@ -76,6 +84,11 @@ where
     pub fn group(&self) -> &G {
         self.group
     }
+
+    /// Additional operator acting on the entire orbit basis.
+    pub fn prefactor(&self) -> Option<&G::GroupElement> {
+        self.prefactor.as_ref()
+    }
 }
 
 impl<'g, G, I> Basis<I> for OrbitBasis<'g, G, I>
@@ -90,11 +103,20 @@ where
     }
 
     fn iter(&self) -> Self::BasisIter {
-        OrbitBasisIterator::new(self.group, self.origins.clone(), self.action)
+        OrbitBasisIterator::new(
+            self.prefactor.clone(),
+            self.group,
+            self.origins.clone(),
+            self.action,
+        )
     }
 
-    fn first(&self) -> Option<&I> {
-        self.origins.get(0)
+    fn first(&self) -> Option<I> {
+        if let Some(prefactor) = self.prefactor.as_ref() {
+            (self.action)(prefactor, self.origins.get(0)?).ok()
+        } else {
+            self.origins.get(0).cloned()
+        }
     }
 }
 
@@ -104,6 +126,8 @@ pub struct OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
+    prefactor: Option<G::GroupElement>,
+
     /// A mutable iterator over the Cartesian product between the group elements and the origins.
     group_origin_iter: Product<
         <<G as GroupProperties>::ElementCollection as IntoIterator>::IntoIter,
@@ -131,11 +155,13 @@ where
     ///
     /// An orbit basis iterator.
     fn new(
+        prefactor: Option<G::GroupElement>,
         group: &G,
         origins: Vec<I>,
         action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
     ) -> Self {
         Self {
+            prefactor,
             group_origin_iter: group
                 .elements()
                 .clone()
@@ -154,9 +180,17 @@ where
     type Item = Result<I, anyhow::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.group_origin_iter
-            .next()
-            .map(|(op, origin)| (self.action)(&op, &origin))
+        if let Some(prefactor) = self.prefactor.as_ref() {
+            let group_action_result = self
+                .group_origin_iter
+                .next()
+                .map(|(op, origin)| (self.action)(&op, &origin))?;
+            Some((self.action)(prefactor, group_action_result.as_ref().ok()?))
+        } else {
+            self.group_origin_iter
+                .next()
+                .map(|(op, origin)| (self.action)(&op, &origin))
+        }
     }
 }
 
@@ -192,7 +226,7 @@ impl<I: Clone> Basis<I> for EagerBasis<I> {
             .into_iter()
     }
 
-    fn first(&self) -> Option<&I> {
-        self.elements.get(0)
+    fn first(&self) -> Option<I> {
+        self.elements.get(0).cloned()
     }
 }

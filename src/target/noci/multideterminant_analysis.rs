@@ -112,7 +112,8 @@ where
     /// Returns the mathematical definition of the overlap between two multi-determinantal
     /// wavefunctions.
     fn overlap_definition(&self) -> String {
-        "⟨ι Ψ_1|Ψ_2⟩ = ∫ [ι Ψ_1(x^Ne)]* Ψ_2(x^Ne) dx^Ne".to_string()
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}Ψ_1|Ψ_2⟩ = ∫ [{k}Ψ_1(x^Ne)]* Ψ_2(x^Ne) dx^Ne")
     }
 }
 
@@ -272,23 +273,23 @@ where
             self.group,
             self.origin,
             match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, det| {
-                    det.sym_transform_spatial(op).with_context(|| {
+                SymmetryTransformationKind::Spatial => |op, multidet| {
+                    multidet.sym_transform_spatial(op).with_context(|| {
                         format!("Unable to apply `{op}` spatially on the origin multi-determinantal wavefunction")
                     })
                 },
-                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
-                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, multidet| {
+                    multidet.sym_transform_spatial_with_spintimerev(op).with_context(|| {
                         format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin multi-determinantal wavefunction")
                     })
                 },
-                SymmetryTransformationKind::Spin => |op, det| {
-                    det.sym_transform_spin(op).with_context(|| {
+                SymmetryTransformationKind::Spin => |op, multidet| {
+                    multidet.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin multi-determinantal wavefunction")
                     })
                 },
-                SymmetryTransformationKind::SpinSpatial => |op, det| {
-                    det.sym_transform_spin_spatial(op).with_context(|| {
+                SymmetryTransformationKind::SpinSpatial => |op, multidet| {
+                    multidet.sym_transform_spin_spatial(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-spatially on the origin multi-determinantal wavefunction")
                     })
                 },
@@ -333,16 +334,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .contains_time_reversal()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 
@@ -481,7 +486,8 @@ where
     /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
     /// expressed. This is required if antiunitary operations are involved.
     /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
-    /// to speed up the computation of the overlap matrix. If `false`, this will error out.
+    /// to speed up the computation of the overlap matrix. If `false`, this will revert back to the
+    /// non-optimised overlap matrix calculation.
     pub(crate) fn calc_smat_optimised(
         &mut self,
         metric: Option<&Array2<T>>,
@@ -534,10 +540,10 @@ where
                             format_err!("Unable to find the inverse of group element `{jp}`."),
                         )?;
                         let kp = ctb[(jpinv, ctb[(k, ip)])];
-                        let ukipwjpx = self.norm_preserving_scalar_map(jp)(detov_kpwx[(kp, w, x)]);
+                        let ukipwjpx = self.norm_preserving_scalar_map(jp)?(detov_kpwx[(kp, w, x)]);
 
                         Ok::<_, anyhow::Error>(
-                            acc + self.norm_preserving_scalar_map(k)(aipw.conj()) * ukipwjpx * ajpx,
+                            acc + self.norm_preserving_scalar_map(k)?(aipw.conj()) * ukipwjpx * ajpx,
                         )
                     })
                 })
@@ -551,7 +557,7 @@ where
                         "Unable to find the inverse of group element `{j}`."
                     ))?;
                 let jinv_i = ctb[(jinv, i)];
-                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)(ovs[jinv_i]);
+                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
             }
             if self.origin().complex_symmetric() {
                 self.set_smat(
@@ -565,9 +571,7 @@ where
             }
             Ok(self)
         } else {
-            Err(format_err!(
-                "Cayley table not available for optimised overlap matrix calculation."
-            ))
+            self.calc_smat(metric, metric_h, use_cayley_table)
         }
     }
 }

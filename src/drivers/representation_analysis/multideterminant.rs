@@ -13,7 +13,10 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{EigenvalueComparisonMode, Overlap, ProjectionDecomposition, RepAnalysis};
+use crate::analysis::{
+    log_overlap_eigenvalues, EigenvalueComparisonMode, Overlap, ProjectionDecomposition,
+    RepAnalysis,
+};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -750,7 +753,7 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
 
         let (multidet_symmetries, multidet_symmetries_thresholds): (Vec<_>, Vec<_>) = self.multidets
             .iter()
-           .enumerate()
+            .enumerate()
             .map(|(i, multidet)| {
                 log_micsec_begin(&format!("Multi-determinantal wavefunction {i}"));
                 qsym2_output!("");
@@ -765,9 +768,16 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
                     .map_err(|err| format_err!(err))
                     .and_then(|mut multidet_orbit| {
                         multidet_orbit
-                            .calc_smat_(Some(&sao), sao_h.as_ref(), true)?
+                            .calc_smat_(Some(&sao), sao_h.as_ref(), params.use_cayley_table)?
                             .normalise_smat()?
                             .calc_xmat(false)?;
+                        log_overlap_eigenvalues(
+                            "Overlap eigenvalues",
+                            multidet_orbit.smat_eigvals.as_ref().ok_or(format_err!("Orbit overlap eigenvalues not found."))?,
+                            params.linear_independence_threshold,
+                            &params.eigenvalue_comparison_mode
+                        );
+                        qsym2_output!("");
                         let multidet_symmetry_thresholds = multidet_orbit
                             .smat_eigvals
                             .as_ref()

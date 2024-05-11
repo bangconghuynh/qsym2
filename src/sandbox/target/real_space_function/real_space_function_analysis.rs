@@ -102,7 +102,8 @@ where
 
     /// Returns the mathematical definition of the overlap between two real-space functions.
     fn overlap_definition(&self) -> String {
-        "⟨ι f_1|f_2⟩ = ∫ [ι f_1(r)]* w(r) f_2(r) dr    where w(r) is a required weight".to_string()
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}f_1|f_2⟩ = ∫ [{k}f_1(r)]* w(r) f_2(r) dr    where w(r) is a required weight")
     }
 }
 
@@ -321,16 +322,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group()
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .contains_time_reversal()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric() {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 

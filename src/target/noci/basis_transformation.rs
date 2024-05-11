@@ -30,14 +30,10 @@ where
 {
     fn transform_spatial_mut(
         &mut self,
-        rmat: &Array2<f64>,
-        perm: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error> {
-        self.origins
-            .iter_mut()
-            .map(|origin| origin.transform_spatial_mut(rmat, perm))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(self)
+        _: &Array2<f64>,
+        _: Option<&Permutation<usize>>,
+    ) -> Result<&mut Self, TransformationError> {
+        Err(TransformationError("Transforming an orbit basis by an arbitrary spatial transformation matrix is not supported.".to_string()))
     }
 }
 
@@ -51,13 +47,14 @@ where
 {
     fn transform_spin_mut(
         &mut self,
-        dmat: &Array2<Complex<f64>>,
+        _: &Array2<Complex<f64>>,
     ) -> Result<&mut Self, TransformationError> {
-        self.origins
-            .iter_mut()
-            .map(|origin| origin.transform_spin_mut(dmat))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(self)
+        Err(TransformationError("Transforming an orbit basis by an arbitrary spin transformation matrix is not supported.".to_string()))
+        // self.origins
+        //     .iter_mut()
+        //     .map(|origin| origin.transform_spin_mut(dmat))
+        //     .collect::<Result<Vec<_>, _>>()?;
+        // Ok(self)
     }
 }
 
@@ -71,11 +68,11 @@ where
     I: ComplexConjugationTransformable,
 {
     /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self) -> &mut Self {
-        self.origins.iter_mut().for_each(|origin| {
-            origin.transform_cc_mut();
-        });
-        self
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        Err(TransformationError(
+            "Transforming an orbit basis by an explicit complex conjugation is not supported."
+                .to_string(),
+        ))
     }
 }
 
@@ -94,7 +91,7 @@ where
 // ---------------------
 impl<'g, G, I> SymmetryTransformable for OrbitBasis<'g, G, I>
 where
-    G: GroupProperties + Clone,
+    G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
     I: SymmetryTransformable,
     OrbitBasis<'g, G, I>: TimeReversalTransformable,
 {
@@ -117,6 +114,57 @@ where
             ))
         }
     }
+
+    // --------------------------
+    // Overriden provided methods
+    // --------------------------
+    fn sym_transform_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        if let Some(prefactor) = self.prefactor.as_mut() {
+            *prefactor = symop * prefactor.clone();
+        } else {
+            self.prefactor = Some(symop.clone());
+        }
+        Ok(self)
+    }
+
+    fn sym_transform_spatial_with_spintimerev_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        if let Some(prefactor) = self.prefactor.as_mut() {
+            *prefactor = symop * prefactor.clone();
+        } else {
+            self.prefactor = Some(symop.clone());
+        }
+        Ok(self)
+    }
+
+    fn sym_transform_spin_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        if let Some(prefactor) = self.prefactor.as_mut() {
+            *prefactor = symop * prefactor.clone();
+        } else {
+            self.prefactor = Some(symop.clone());
+        }
+        Ok(self)
+    }
+
+    fn sym_transform_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        if let Some(prefactor) = self.prefactor.as_mut() {
+            *prefactor = symop * prefactor.clone();
+        } else {
+            self.prefactor = Some(symop.clone());
+        }
+        Ok(self)
+    }
 }
 
 // ~~~~~~~~~~~
@@ -134,7 +182,7 @@ where
         &mut self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error> {
+    ) -> Result<&mut Self, TransformationError> {
         self.elements
             .iter_mut()
             .map(|origin| origin.transform_spatial_mut(rmat, perm))
@@ -171,11 +219,11 @@ where
     I: ComplexConjugationTransformable,
 {
     /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self) -> &mut Self {
-        self.elements.iter_mut().for_each(|origin| {
-            origin.transform_cc_mut();
-        });
-        self
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        for origin in self.elements.iter_mut() {
+            origin.transform_cc_mut()?;
+        }
+        Ok(self)
     }
 }
 

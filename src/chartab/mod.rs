@@ -9,6 +9,7 @@ use std::ops::Mul;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
+use num::Float;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
 use rayon::prelude::*;
@@ -595,10 +596,14 @@ where
                 } else if approx::relative_ne!(
                     c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
+                    let ndigits = (-thresh_f64.log10())
+                        .ceil()
+                        .to_usize()
+                        .expect("Unable to convert the number of digits to `usize`.");
                     Err(
                         DecompositionError(
                             format!(
-                                "Non-integer coefficient: {:.3e}",
+                                "Non-integer coefficient: {:.ndigits$e}",
                                 c.re
                             )
                         )
@@ -1088,10 +1093,14 @@ where
                 } else if approx::relative_ne!(
                     c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
+                    let ndigits = (-thresh_f64.log10())
+                        .ceil()
+                        .to_usize()
+                        .expect("Unable to convert the number of digits to `usize`.");
                     Err(
                         DecompositionError(
                             format!(
-                                "Non-integer coefficient: {:.3e}",
+                                "Non-integer coefficient: {:.ndigits$e}",
                                 c.re
                             )
                         )
