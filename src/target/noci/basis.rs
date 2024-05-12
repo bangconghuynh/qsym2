@@ -1,11 +1,14 @@
 //! Basis for non-orthogonal configuration interaction of Slater determinants.
 
+use std::collections::VecDeque;
+
 use anyhow;
 use derive_builder::Builder;
 use itertools::structs::Product;
 use itertools::Itertools;
 
 use crate::group::GroupProperties;
+use crate::symmetry::symmetry_element::SymmetryOperation;
 
 #[path = "basis_transformation.rs"]
 mod basis_transformation;
@@ -57,9 +60,16 @@ where
     /// basis.
     group: &'g G,
 
-    /// Additional operator acting on the entire orbit basis.
+    /// Additional operators acting on the entire orbit basis (right-most operator acts first). Each
+    /// operator has an associated action that defines how it operatres on the elements in the
+    /// orbit basis.
     #[builder(default = "None")]
-    prefactor: Option<G::GroupElement>,
+    prefactors: Option<
+        VecDeque<(
+            G::GroupElement,
+            fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+        )>,
+    >,
 
     /// A function defining the action of each group element on the origin.
     action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
@@ -85,9 +95,18 @@ where
         self.group
     }
 
-    /// Additional operator acting on the entire orbit basis.
-    pub fn prefactor(&self) -> Option<&G::GroupElement> {
-        self.prefactor.as_ref()
+    /// Additional operators acting on the entire orbit basis (right-most operator acts first). Each
+    /// operator has an associated action that defines how it operatres on the elements in the
+    /// orbit basis.
+    pub fn prefactors(
+        &self,
+    ) -> Option<
+        &VecDeque<(
+            G::GroupElement,
+            fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+        )>,
+    > {
+        self.prefactors.as_ref()
     }
 }
 
@@ -104,7 +123,7 @@ where
 
     fn iter(&self) -> Self::BasisIter {
         OrbitBasisIterator::new(
-            self.prefactor.clone(),
+            self.prefactors.clone(),
             self.group,
             self.origins.clone(),
             self.action,
@@ -112,8 +131,13 @@ where
     }
 
     fn first(&self) -> Option<I> {
-        if let Some(prefactor) = self.prefactor.as_ref() {
-            (self.action)(prefactor, self.origins.get(0)?).ok()
+        if let Some(prefactors) = self.prefactors.as_ref() {
+            prefactors
+                .iter()
+                .rev()
+                .try_fold(self.origins.get(0)?.clone(), |acc, (symop, action)| {
+                    (action)(symop, &acc).ok()
+                })
         } else {
             self.origins.get(0).cloned()
         }
@@ -126,7 +150,12 @@ pub struct OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
-    prefactor: Option<G::GroupElement>,
+    prefactors: Option<
+        VecDeque<(
+            G::GroupElement,
+            fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+        )>,
+    >,
 
     /// A mutable iterator over the Cartesian product between the group elements and the origins.
     group_origin_iter: Product<
@@ -155,13 +184,18 @@ where
     ///
     /// An orbit basis iterator.
     fn new(
-        prefactor: Option<G::GroupElement>,
+        prefactors: Option<
+            VecDeque<(
+                G::GroupElement,
+                fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+            )>,
+        >,
         group: &G,
         origins: Vec<I>,
         action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
     ) -> Self {
         Self {
-            prefactor,
+            prefactors,
             group_origin_iter: group
                 .elements()
                 .clone()
@@ -180,12 +214,21 @@ where
     type Item = Result<I, anyhow::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(prefactor) = self.prefactor.as_ref() {
-            let group_action_result = self
-                .group_origin_iter
-                .next()
-                .map(|(op, origin)| (self.action)(&op, &origin))?;
-            Some((self.action)(prefactor, group_action_result.as_ref().ok()?))
+        if let Some(prefactors) = self.prefactors.as_ref() {
+            // let group_action_result = self
+            //     .group_origin_iter
+            //     .next()
+            //     .map(|(op, origin)| (self.action)(&op, &origin))?;
+            // Some((self.action)(prefactor, group_action_result.as_ref().ok()?))
+            self.group_origin_iter.next().and_then(|(op, origin)| {
+                prefactors
+                    .iter()
+                    .rev()
+                    .try_fold((self.action)(&op, &origin), |acc_res, (symop, action)| {
+                        acc_res.map(|acc| (action)(symop, &acc))
+                    })
+                    .ok()
+            })
         } else {
             self.group_origin_iter
                 .next()

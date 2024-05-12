@@ -1,8 +1,9 @@
 //! Implementation of symmetry transformations for bases for non-orthogonal configuration
 //! interaction of Slater determinants.
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
+use anyhow::format_err;
 use ndarray::Array2;
 use num_complex::Complex;
 
@@ -122,10 +123,21 @@ where
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        if let Some(prefactor) = self.prefactor.as_mut() {
-            *prefactor = symop * prefactor.clone();
+        if let Some(prefactors) = self.prefactors.as_mut() {
+            prefactors.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spatial(g)
+                    .map_err(|err| format_err!(err))
+            }));
         } else {
-            self.prefactor = Some(symop.clone());
+            let mut v = VecDeque::<(
+                G::GroupElement,
+                fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+            )>::new();
+            v.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spatial(g)
+                    .map_err(|err| format_err!(err))
+            }));
+            self.prefactors = Some(v);
         }
         Ok(self)
     }
@@ -134,10 +146,21 @@ where
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        if let Some(prefactor) = self.prefactor.as_mut() {
-            *prefactor = symop * prefactor.clone();
+        if let Some(prefactors) = self.prefactors.as_mut() {
+            prefactors.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spatial_with_spintimerev(g)
+                    .map_err(|err| format_err!(err))
+            }));
         } else {
-            self.prefactor = Some(symop.clone());
+            let mut v = VecDeque::<(
+                G::GroupElement,
+                fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+            )>::new();
+            v.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spatial_with_spintimerev(g)
+                    .map_err(|err| format_err!(err))
+            }));
+            self.prefactors = Some(v);
         }
         Ok(self)
     }
@@ -146,10 +169,19 @@ where
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        if let Some(prefactor) = self.prefactor.as_mut() {
-            *prefactor = symop * prefactor.clone();
+        if let Some(prefactors) = self.prefactors.as_mut() {
+            prefactors.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spin(g).map_err(|err| format_err!(err))
+            }));
         } else {
-            self.prefactor = Some(symop.clone());
+            let mut v = VecDeque::<(
+                G::GroupElement,
+                fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+            )>::new();
+            v.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spin(g).map_err(|err| format_err!(err))
+            }));
+            self.prefactors = Some(v);
         }
         Ok(self)
     }
@@ -158,10 +190,21 @@ where
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        if let Some(prefactor) = self.prefactor.as_mut() {
-            *prefactor = symop * prefactor.clone();
+        if let Some(prefactors) = self.prefactors.as_mut() {
+            prefactors.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spin_spatial(g)
+                    .map_err(|err| format_err!(err))
+            }));
         } else {
-            self.prefactor = Some(symop.clone());
+            let mut v = VecDeque::<(
+                G::GroupElement,
+                fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
+            )>::new();
+            v.push_front((symop.clone(), |g, item| {
+                item.sym_transform_spin_spatial(g)
+                    .map_err(|err| format_err!(err))
+            }));
+            self.prefactors = Some(v);
         }
         Ok(self)
     }
