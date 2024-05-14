@@ -8,7 +8,6 @@ use itertools::structs::Product;
 use itertools::Itertools;
 
 use crate::group::GroupProperties;
-use crate::symmetry::symmetry_element::SymmetryOperation;
 
 #[path = "basis_transformation.rs"]
 mod basis_transformation;

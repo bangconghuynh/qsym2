@@ -478,7 +478,8 @@ where
     /// are expressed.
     ///
     /// This function is particularly optimised for multi-determinantal wavefunctions constructed
-    /// from orbits of Slater determinants.
+    /// from orbits of origin Slater determinants such that the multi-determinantal wavefunctions
+    /// are never explicitly transformed by group operations.
     ///
     /// # Arguments
     ///
