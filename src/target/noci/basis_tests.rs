@@ -4,23 +4,17 @@ use ndarray::array;
 
 use num_complex::Complex64;
 
-use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
-use crate::chartab::chartab_symbols::DecomposedSymbol;
-use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
-use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
+use crate::symmetry::symmetry_transformation::SymmetryTransformable;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{Basis, OrbitBasis};
-use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
-use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[test]
 fn test_orbit_basis_transformation_h2o_cs() {
@@ -39,8 +33,6 @@ fn test_orbit_basis_transformation_h2o_cs() {
     let bao_h2o = BasisAngularOrder::new(&[batm_o0, batm_h0, batm_h1]);
     let mol_h2o =
         Molecule::from_atoms(&[atm_o0.clone(), atm_h0.clone(), atm_h1.clone()], 1e-7).recentre();
-
-    // let sao_spatial = Array2::<Complex64>::eye(3);
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
@@ -70,7 +62,7 @@ fn test_orbit_basis_transformation_h2o_cs() {
     let oalpha = array![1.0];
     let obeta = array![1.0];
     let det = SlaterDeterminant::<Complex64>::builder()
-        .coefficients(&[calpha, cbeta])
+        .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
         .bao(&bao_h2o)
         .mol(&mol_h2o)
@@ -150,5 +142,32 @@ fn test_orbit_basis_transformation_h2o_cs() {
     assert_eq!(
         orbit_basis_u_cs_grey_elements[1].coefficients()[1],
         -theta_orbit_basis_u_cs_grey_elements[3].coefficients()[1].clone()
+    );
+
+    let k_theta_orbit_basis_u_cs_grey = orbit_basis_u_cs_grey
+        .sym_transform_spatial_with_spintimerev(group_u_cs_grey.get_index(2).as_ref().unwrap())
+        .and_then(|orbit| {
+            orbit.sym_transform_spatial(group_u_cs_grey.get_index(2).as_ref().unwrap())
+        })
+        .unwrap();
+    let k_theta_orbit_basis_u_cs_grey_elements = k_theta_orbit_basis_u_cs_grey
+        .iter()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(
+        k_theta_orbit_basis_u_cs_grey_elements[0].coefficients()[0],
+        -cbeta.clone(),
+    );
+    assert_eq!(
+        k_theta_orbit_basis_u_cs_grey_elements[0].coefficients()[1],
+        calpha.clone(),
+    );
+    assert_eq!(
+        k_theta_orbit_basis_u_cs_grey_elements[2].coefficients()[0],
+        -calpha.map(|v| v.conj()),
+    );
+    assert_eq!(
+        k_theta_orbit_basis_u_cs_grey_elements[2].coefficients()[1],
+        -cbeta.map(|v| v.conj()),
     );
 }
