@@ -14,6 +14,8 @@ QSym² is a program for **Q**uantum **Sym**bolic **Sym**metry analysis of quantu
 for the following targets:
 - Slater determinants,
 - molecular orbitals,
+- multi-determinantal wavefunctions obtained via non-orthogonal configuration interaction,
+- real-space functions defined on a grid,
 - electron densities, and
 - vibrational coordinates.
 
