@@ -103,12 +103,12 @@ pub trait SpecialSymmetryTransformation {
     // Time-reversal part
     // ==================
 
-    /// Checks if the symmetry operation is antiunitary.
+    /// Checks if the symmetry operation contains time reversal.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if the symmetry oppperation is antiunitary.
-    fn is_antiunitary(&self) -> bool;
+    /// A boolean indicating if the symmetry oppperation contains time reversal.
+    fn contains_time_reversal(&self) -> bool;
 
     // ==========================
     // Overall - provided methods
@@ -121,7 +121,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation is the identity.
     fn is_identity(&self) -> bool {
-        self.is_spatial_identity() && !self.is_antiunitary() && !self.is_su2_class_1()
+        self.is_spatial_identity() && !self.contains_time_reversal() && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is a pure time-reversal in $`\mathsf{O}(3)`$, `θ`, or
@@ -131,7 +131,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation is a pure time-reversal.
     fn is_time_reversal(&self) -> bool {
-        self.is_spatial_identity() && self.is_antiunitary() && !self.is_su2_class_1()
+        self.is_spatial_identity() && self.contains_time_reversal() && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is an inversion in $`\mathsf{O}(3)`$, `i`, but not in
@@ -141,7 +141,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation is an inversion in $`\mathsf{O}(3)`$.
     fn is_inversion(&self) -> bool {
-        self.is_spatial_inversion() && !self.is_antiunitary() && !self.is_su2()
+        self.is_spatial_inversion() && !self.contains_time_reversal() && !self.is_su2()
     }
 
     /// Checks if the symmetry operation is a reflection in $`\mathsf{O}(3)`$, `σ`, but not in
@@ -151,7 +151,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation is a reflection in $`\mathsf{O}(3)`$.
     fn is_reflection(&self) -> bool {
-        self.is_spatial_reflection() && !self.is_antiunitary() && !self.is_su2()
+        self.is_spatial_reflection() && !self.contains_time_reversal() && !self.is_su2()
     }
 }
 
@@ -303,75 +303,66 @@ impl SymmetryOperation {
                 -1.0 - thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [-1, +1]."
             );
-            let (axis, order, power, su2_grp) = if approx::abs_diff_eq!(
-                scalar_part,
-                1.0,
-                epsilon = thresh,
-            ) {
-                // Zero-degree rotation, i.e. identity or inversion, class 0
-                (Vector3::z(), 1u32, 1u32, SU2_0)
-            } else if approx::abs_diff_eq!(
-                scalar_part,
-                -1.0,
-                epsilon = thresh,
-            ) {
-                // 360-degree rotation, i.e. identity or inversion, class 1
-                (Vector3::z(), 1u32, 1u32, SU2_1)
-            } else if approx::abs_diff_eq!(
-                scalar_part,
-                0.0,
-                epsilon = thresh,
-            ) {
-                // 180-degree rotation, i.e. binary rotation or reflection. Whether the resultant
-                // operation is in class 0 or class 1 depends on whether the vector part is in the
-                // positive hemisphere or negative hemisphere.
-                let positive_axis = poshem
-                    .as_ref()
-                    .cloned()
-                    .unwrap_or_default()
-                    .get_positive_pole(&vector_part, thresh);
-                (
-                    positive_axis,
-                    2u32,
-                    1u32,
-                    if poshem
+            let (axis, order, power, su2_grp) =
+                if approx::abs_diff_eq!(scalar_part, 1.0, epsilon = thresh,) {
+                    // Zero-degree rotation, i.e. identity or inversion, class 0
+                    (Vector3::z(), 1u32, 1u32, SU2_0)
+                } else if approx::abs_diff_eq!(scalar_part, -1.0, epsilon = thresh,) {
+                    // 360-degree rotation, i.e. identity or inversion, class 1
+                    (Vector3::z(), 1u32, 1u32, SU2_1)
+                } else if approx::abs_diff_eq!(scalar_part, 0.0, epsilon = thresh,) {
+                    // 180-degree rotation, i.e. binary rotation or reflection. Whether the resultant
+                    // operation is in class 0 or class 1 depends on whether the vector part is in the
+                    // positive hemisphere or negative hemisphere.
+                    let positive_axis = poshem
                         .as_ref()
                         .cloned()
                         .unwrap_or_default()
-                        .check_positive_pole(&vector_part, thresh)
-                    {
-                        SU2_0
-                    } else {
-                        SU2_1
-                    },
-                )
-            } else {
-                // scalar_part != 0, 1, or -1
-                let (standardised_scalar_part, standardised_vector_part, su2_grp) =
-                    if scalar_part > 0.0 {
-                        (scalar_part, vector_part, SU2_0)
-                    } else {
-                        (-scalar_part, -vector_part, SU2_1)
-                    };
-                let half_proper_angle = standardised_scalar_part.acos();
-                let proper_angle = 2.0 * half_proper_angle;
-                let axis = standardised_vector_part / half_proper_angle.sin();
-                let proper_fraction =
-                    geometry::get_proper_fraction(proper_angle, thresh, max_trial_power)
-                        .unwrap_or_else(|| {
-                            panic!("No proper fraction could be found for angle `{proper_angle}`.")
-                        });
-                (
-                    axis,
-                    *proper_fraction.denom().unwrap_or_else(|| {
-                        panic!("Unable to extract the denominator of `{proper_fraction}`.")
-                    }),
-                    *proper_fraction.numer().unwrap_or_else(|| {
-                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
-                    }),
-                    su2_grp,
-                )
-            };
+                        .get_positive_pole(&vector_part, thresh);
+                    (
+                        positive_axis,
+                        2u32,
+                        1u32,
+                        if poshem
+                            .as_ref()
+                            .cloned()
+                            .unwrap_or_default()
+                            .check_positive_pole(&vector_part, thresh)
+                        {
+                            SU2_0
+                        } else {
+                            SU2_1
+                        },
+                    )
+                } else {
+                    // scalar_part != 0, 1, or -1
+                    let (standardised_scalar_part, standardised_vector_part, su2_grp) =
+                        if scalar_part > 0.0 {
+                            (scalar_part, vector_part, SU2_0)
+                        } else {
+                            (-scalar_part, -vector_part, SU2_1)
+                        };
+                    let half_proper_angle = standardised_scalar_part.acos();
+                    let proper_angle = 2.0 * half_proper_angle;
+                    let axis = standardised_vector_part / half_proper_angle.sin();
+                    let proper_fraction =
+                        geometry::get_proper_fraction(proper_angle, thresh, max_trial_power)
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "No proper fraction could be found for angle `{proper_angle}`."
+                                )
+                            });
+                    (
+                        axis,
+                        *proper_fraction.denom().unwrap_or_else(|| {
+                            panic!("Unable to extract the denominator of `{proper_fraction}`.")
+                        }),
+                        *proper_fraction.numer().unwrap_or_else(|| {
+                            panic!("Unable to extract the numerator of `{proper_fraction}`.")
+                        }),
+                        su2_grp,
+                    )
+                };
             SymmetryElement::builder()
                 .threshold(thresh)
                 .proper_order(ElementOrder::Int(order))
@@ -393,11 +384,8 @@ impl SymmetryOperation {
                 -thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [0, +1] when only SO(3) rotations are considered."
             );
-            let (axis, order, power) = if approx::abs_diff_eq!(
-                scalar_part,
-                1.0,
-                epsilon = thresh,
-            ) {
+            let (axis, order, power) = if approx::abs_diff_eq!(scalar_part, 1.0, epsilon = thresh,)
+            {
                 // Zero-degree rotation, i.e. identity or inversion
                 (Vector3::z(), 1u32, 1i32)
             } else {
@@ -788,7 +776,7 @@ impl SymmetryOperation {
     /// The equivalent symmetry element $`E`$.
     pub fn to_symmetry_element(&self) -> SymmetryElement {
         let kind = if self.is_proper() {
-            let tr = self.is_antiunitary();
+            let tr = self.contains_time_reversal();
             if tr {
                 TRROT
             } else {
@@ -981,7 +969,7 @@ impl FiniteOrder for SymmetryOperation {
             .denom()
             .expect("Unable to extract the denominator.");
         let spatial_order =
-            if (self.is_proper() && !self.is_antiunitary()) || denom.rem_euclid(2) == 0 {
+            if (self.is_proper() && !self.contains_time_reversal()) || denom.rem_euclid(2) == 0 {
                 denom
             } else {
                 2 * denom
@@ -1138,7 +1126,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     /// # Returns
     ///
     /// A boolean indicating if the symmetry oppperation is antiunitary.
-    fn is_antiunitary(&self) -> bool {
+    fn contains_time_reversal(&self) -> bool {
         self.generating_element.contains_time_reversal() && self.power.rem_euclid(2) == 1
     }
 
@@ -1314,7 +1302,7 @@ impl PartialEq for SymmetryOperation {
             return false;
         }
 
-        if self.is_antiunitary() != other.is_antiunitary() {
+        if self.contains_time_reversal() != other.contains_time_reversal() {
             return false;
         }
 
@@ -1407,7 +1395,7 @@ impl Hash for SymmetryOperation {
         // Special general operations
         // ==========================
         c_self.is_proper().hash(state);
-        c_self.is_antiunitary().hash(state);
+        c_self.contains_time_reversal().hash(state);
         c_self.is_su2().hash(state);
         c_self.is_su2_class_1().hash(state);
 
@@ -1473,10 +1461,10 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         let proper = self.is_proper() == rhs.is_proper();
 
         // Does the resulting operation contain a time reversal?
-        let tr = self.is_antiunitary() != rhs.is_antiunitary();
+        let tr = self.contains_time_reversal() != rhs.contains_time_reversal();
 
         // Does the resulting operation pick up a quaternion sign change due to θ^2?
-        let tr2 = self.is_antiunitary() && rhs.is_antiunitary();
+        let tr2 = self.contains_time_reversal() && rhs.contains_time_reversal();
 
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
@@ -1583,7 +1571,7 @@ where
         } else {
             rhs.improper_rotate(angle, &axis, &IMINV)
         };
-        if self.is_antiunitary() {
+        if self.contains_time_reversal() {
             t_mol.reverse_time_mut();
         }
         rhs.get_perm_of(&t_mol)
@@ -1616,7 +1604,7 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
             || op.generating_element.kind == TRSIG
         {
             op.clone()
-        } else if op.is_antiunitary() {
+        } else if op.contains_time_reversal() {
             op.convert_to_improper_kind(&TRSIG)
         } else {
             op.convert_to_improper_kind(&SIG)
@@ -1653,7 +1641,7 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
             );
 
         (
-            c_op.is_antiunitary(),
+            c_op.contains_time_reversal(),
             !c_op.is_proper(),
             !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
             c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),

@@ -296,8 +296,8 @@ impl TryFrom<&Symmetry> for PySymmetry {
                                         .iter()
                                         .cloned()
                                         .collect::<Vec<_>>()
-                                        .to_pyarray(py)
-                                        .to_owned()
+                                        .to_pyarray_bound(py)
+                                        .unbind()
                                 })
                             })
                             .collect::<Vec<_>>();
@@ -328,8 +328,8 @@ impl TryFrom<&Symmetry> for PySymmetry {
                                         .iter()
                                         .cloned()
                                         .collect::<Vec<_>>()
-                                        .to_pyarray(py)
-                                        .to_owned()
+                                        .to_pyarray_bound(py)
+                                        .unbind()
                                 })
                             })
                             .collect::<Vec<_>>();

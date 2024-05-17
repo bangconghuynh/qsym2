@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2};
+use numpy::{PyArray1, PyArray2, ToPyArray, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -65,6 +65,7 @@ pub struct PySlaterDeterminantReal {
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
     ///
     /// Python type: `bool`.
+    #[pyo3(get)]
     complex_symmetric: bool,
 
     /// The real coefficients for the molecular orbitals of this determinant.
@@ -80,6 +81,7 @@ pub struct PySlaterDeterminantReal {
     /// The threshold for comparisons.
     ///
     /// Python type: `float`.
+    #[pyo3(get)]
     threshold: f64,
 
     /// The optional real molecular orbital energies.
@@ -90,6 +92,7 @@ pub struct PySlaterDeterminantReal {
     /// The optional real determinantal energy.
     ///
     /// Python type: `Optional[float]`.
+    #[pyo3(get)]
     energy: Option<f64>,
 }
 
@@ -112,13 +115,13 @@ impl PySlaterDeterminantReal {
     /// `Optional[list[numpy.1darray[float]]]`.
     /// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
     #[new]
-    fn new(
+    pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
-        coefficients: Vec<&PyArray2<f64>>,
-        occupations: Vec<&PyArray1<f64>>,
+        coefficients: Vec<Bound<'_, PyArray2<f64>>>,
+        occupations: Vec<Bound<'_, PyArray1<f64>>>,
         threshold: f64,
-        mo_energies: Option<Vec<&PyArray1<f64>>>,
+        mo_energies: Option<Vec<Bound<'_, PyArray1<f64>>>>,
         energy: Option<f64>,
     ) -> Self {
         let det = Self {
@@ -143,6 +146,24 @@ impl PySlaterDeterminantReal {
         };
         det
     }
+
+    #[getter]
+    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
+        Ok(self
+            .occupations
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
+
+    #[getter]
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<f64>>>> {
+        Ok(self
+            .coefficients
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
 }
 
 impl PySlaterDeterminantReal {
@@ -162,7 +183,7 @@ impl PySlaterDeterminantReal {
     /// # Errors
     ///
     /// Errors if the [`SlaterDeterminant`] fails to build.
-    fn to_qsym2<'b, 'a: 'b>(
+    pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
@@ -209,11 +230,13 @@ pub struct PySlaterDeterminantComplex {
     /// The spin constraint applied to the coefficients of the determinant.
     ///
     /// Python type: `PySpinConstraint`.
+    #[pyo3(get)]
     spin_constraint: PySpinConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
     ///
     /// Python type: `bool`.
+    #[pyo3(get)]
     complex_symmetric: bool,
 
     /// The complex coefficients for the molecular orbitals of this determinant.
@@ -229,6 +252,7 @@ pub struct PySlaterDeterminantComplex {
     /// The threshold for comparisons.
     ///
     /// Python type: `float`.
+    #[pyo3(get)]
     threshold: f64,
 
     /// The optional complex molecular orbital energies.
@@ -239,6 +263,7 @@ pub struct PySlaterDeterminantComplex {
     /// The optional complex determinantal energy.
     ///
     /// Python type: `Optional[complex]`.
+    #[pyo3(get)]
     energy: Option<C128>,
 }
 
@@ -261,13 +286,13 @@ impl PySlaterDeterminantComplex {
     /// `Optional[list[numpy.1darray[complex]]]`.
     /// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
     #[new]
-    fn new(
+    pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
-        coefficients: Vec<&PyArray2<C128>>,
-        occupations: Vec<&PyArray1<f64>>,
+        coefficients: Vec<Bound<'_, PyArray2<C128>>>,
+        occupations: Vec<Bound<'_, PyArray1<f64>>>,
         threshold: f64,
-        mo_energies: Option<Vec<&PyArray1<C128>>>,
+        mo_energies: Option<Vec<Bound<'_, PyArray1<C128>>>>,
         energy: Option<C128>,
     ) -> Self {
         let det = Self {
@@ -292,6 +317,24 @@ impl PySlaterDeterminantComplex {
         };
         det
     }
+
+    #[getter]
+    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
+        Ok(self
+            .occupations
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
+
+    #[getter]
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<C128>>>> {
+        Ok(self
+            .coefficients
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
 }
 
 impl PySlaterDeterminantComplex {
@@ -311,7 +354,7 @@ impl PySlaterDeterminantComplex {
     /// # Errors
     ///
     /// Errors if the [`SlaterDeterminant`] fails to build.
-    fn to_qsym2<'b, 'a: 'b>(
+    pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
@@ -367,6 +410,26 @@ pub enum PySlaterDeterminant {
 /// representation analysis. Python type: `str`.
 /// * `pydet` - A Python-exposed Slater determinant whose coefficients are of type `float64` or
 /// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
+/// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
+/// Python type: `PyBasisAngularOrder`.
+/// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
+/// integral. Python type: `float`.
+/// * `linear_independence_threshold` - The threshold for determining the linear independence
+/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
+/// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
+/// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
+/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
+/// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
+/// group is to be used for representation analysis instead. Python type: `bool`.
+/// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
+/// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
+/// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
+/// transformations to be performed on the origin determinant to generate the orbit. If this
+/// contains spin transformation, the determinant will be augmented to generalised spin constraint
+/// automatically. Python type: `SymmetryTransformationKind`.
+/// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
+/// overlap eigenvalues with the specified `linear_independence_threshold`.
+/// Python type: `EigenvalueComparisonMode`.
 /// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `sao_spatial_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
@@ -378,23 +441,6 @@ pub enum PySlaterDeterminant {
 /// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
 /// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
 /// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
-/// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
-/// integral. Python type: `float`.
-/// * `linear_independence_threshold` - The threshold for determining the linear independence
-/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
-/// * `use_magnetic_group` - A boolean indicating if any magnetic group present should be used for
-/// representation analysis. Otherwise, the unitary group will be used. Python type: `bool`.
-/// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead. Python type: `bool`.
-/// * `use_corepresentation` - A boolean indicating if corepresentations of magnetic groups are to
-/// be used for representation analysis instead of unitary representations. Python type: `bool`.
-/// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin determinant to generate the orbit. If this
-/// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically. Python type: `SymmetryTransformationKind`.
-/// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
-/// overlap eigenvalues with the specified `linear_independence_threshold`.
-/// Python type: `EigenvalueComparisonMode`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
 /// * `analyse_mo_mirror_parities` - A boolean indicating if the mirror parities of individual
@@ -425,6 +471,7 @@ pub enum PySlaterDeterminant {
     linear_independence_threshold,
     use_magnetic_group,
     use_double_group,
+    use_cayley_table,
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
     sao_spatial,
@@ -450,6 +497,7 @@ pub fn rep_analyse_slater_determinant(
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
+    use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     sao_spatial: PyArray2RC,
@@ -482,10 +530,12 @@ pub fn rep_analyse_slater_determinant(
     let bao = pybao
         .to_qsym2(mol)
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let augment_to_generalised = matches!(
-        symmetry_transformation_kind,
-        SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial
-    );
+    let augment_to_generalised = match symmetry_transformation_kind {
+        SymmetryTransformationKind::SpatialWithSpinTimeReversal
+        | SymmetryTransformationKind::Spin
+        | SymmetryTransformationKind::SpinSpatial => true,
+        SymmetryTransformationKind::Spatial => false,
+    };
     let afa_params = AngularFunctionRepAnalysisParams::builder()
         .integrality_threshold(angular_function_integrality_threshold)
         .linear_independence_threshold(angular_function_linear_independence_threshold)
@@ -497,6 +547,7 @@ pub fn rep_analyse_slater_determinant(
         .linear_independence_threshold(linear_independence_threshold)
         .use_magnetic_group(use_magnetic_group.clone())
         .use_double_group(use_double_group)
+        .use_cayley_table(use_cayley_table)
         .symmetry_transformation_kind(symmetry_transformation_kind)
         .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
         .analyse_mo_symmetries(analyse_mo_symmetries)
@@ -674,7 +725,9 @@ pub fn rep_analyse_slater_determinant(
             });
             let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
                 // sao_spatial_4c_h must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_h_r) => Some(pysao4c_h_r.to_owned_array().mapv(Complex::from)),
+                PyArray4RC::Real(pysao4c_h_r) => {
+                    Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
+                }
                 PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
             });
             match &use_magnetic_group {
@@ -689,7 +742,7 @@ pub fn rep_analyse_slater_determinant(
                     .sao_spatial(&sao_spatial_c)
                     .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_h_c.as_ref())
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -710,7 +763,7 @@ pub fn rep_analyse_slater_determinant(
                     .sao_spatial(&sao_spatial_c)
                     .sao_spatial_h(sao_spatial_h_c.as_ref())
                     .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_h_c.as_ref())
+                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;

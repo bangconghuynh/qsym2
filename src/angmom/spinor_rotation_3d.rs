@@ -20,7 +20,7 @@ mod spinor_rotation_3d_tests;
 // ================
 
 /// Enumerated type to manage spin constraints and spin space information.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpinConstraint {
     /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
     /// The associated value is the number of spin spaces.

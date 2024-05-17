@@ -29,13 +29,16 @@ where
         &mut self,
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error> {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)?
+    ) -> Result<&mut Self, TransformationError> {
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
+            .map_err(|err| TransformationError(err.to_string()))?
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))
             .collect();
         let pbao = if let Some(p) = perm {
-            self.bao.permute(p)?
+            self.bao
+                .permute(p)
+                .map_err(|err| TransformationError(err.to_string()))?
         } else {
             self.bao.clone()
         };
@@ -488,12 +491,12 @@ where
     T: ComplexFloat + Lapack,
 {
     /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self) -> &mut Self {
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
         self.coefficients
             .iter_mut()
             .for_each(|coeff| coeff.mapv_inplace(|x| x.conj()));
         self.complex_conjugated = !self.complex_conjugated;
-        self
+        Ok(self)
     }
 }
 
@@ -511,7 +514,8 @@ impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T> where
 impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T>
 where
     T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    SlaterDeterminant<'a, T>:
+        SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,

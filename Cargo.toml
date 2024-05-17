@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
@@ -37,14 +37,14 @@ num-complex = "0.4.3"
 num-modular = "0.6.1"
 num-ord = "0.1.0"
 num-traits = "0.2.15"
-numpy = { version = "0.20.0", optional = true }
+numpy = { version = "0.21.0", optional = true }
 ordered-float = "4.2.0"
 periodic_table = "0.5.0"
 phf = { version = "0.11.2", features = ["macros"] }
 proptest = "1.2.0"
 primes = "0.3.0"
-pyo3 = { version = "0.20.3", features = ["extension-module", "num-complex", "hashbrown"], optional = true }
-pyo3-log = { version = "0.9.0", optional = true }
+pyo3 = { version = "0.21.2", features = ["extension-module", "num-complex", "hashbrown"], optional = true }
+pyo3-log = { version = "0.10.0", optional = true }
 rand = "0.8.5"
 rayon = "1.7.0"
 regex = "1.8.4"
@@ -55,7 +55,7 @@ serial_test = "3.0.0"
 cargo-upgrades = "2.0.0"
 
 [dev-dependencies]
-env_logger = "0.11.2"
+env_logger = "0.11.3"
 
 [features]
 intel-mkl-static = ["ndarray-linalg/intel-mkl-static"]
@@ -65,8 +65,9 @@ netlib-system = ["ndarray-linalg/netlib-system"]
 openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 python = ["dep:numpy", "dep:pyo3", "dep:pyo3-log"]
-qchem = ["dep:hdf5", "dep:hdf5-sys"]
 integrals = ["dep:reqwest"]
+qchem = ["dep:hdf5", "dep:hdf5-sys"]
+sandbox = []
 
 standard = ["openblas-static", "qchem"]
 full = ["standard", "integrals"]

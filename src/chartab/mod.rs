@@ -138,7 +138,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `characters` - A hashmap of characters for conjugacy classes.
+    /// * `characters` - A slice of characters for conjugacy classes.
+    /// * `thresh` - Threshold for determining non-zero imaginary parts of multiplicities.
     ///
     /// # Returns
     ///
@@ -534,7 +535,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `characters` - A hashmap of characters for conjugacy classes.
+    /// * `characters` - A slice of characters for conjugacy classes.
+    /// * `thresh` - Threshold for determining non-zero imaginary parts of multiplicities.
     ///
     /// # Returns
     ///
@@ -593,10 +595,14 @@ where
                 } else if approx::relative_ne!(
                     c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
+                    let ndigits = (-thresh_f64.log10())
+                        .ceil()
+                        .to_usize()
+                        .expect("Unable to convert the number of digits to `usize`.");
                     Err(
                         DecompositionError(
                             format!(
-                                "Non-integer coefficient: {:.3e}",
+                                "Non-integer coefficient: {:.ndigits$e}",
                                 c.re
                             )
                         )
@@ -1020,7 +1026,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `characters` - A hashmap of characters for conjugacy classes.
+    /// * `characters` - A slice of characters for conjugacy classes.
+    /// * `thresh` - Threshold for determining non-zero imaginary parts of multiplicities.
     ///
     /// # Returns
     ///
@@ -1085,10 +1092,14 @@ where
                 } else if approx::relative_ne!(
                     c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
+                    let ndigits = (-thresh_f64.log10())
+                        .ceil()
+                        .to_usize()
+                        .expect("Unable to convert the number of digits to `usize`.");
                     Err(
                         DecompositionError(
                             format!(
-                                "Non-integer coefficient: {:.3e}",
+                                "Non-integer coefficient: {:.ndigits$e}",
                                 c.re
                             )
                         )

@@ -68,6 +68,12 @@ where
         };
         Ok(ov)
     }
+
+    /// Returns the mathematical definition of the overlap between two axial vectors.
+    fn overlap_definition(&self) -> String {
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}v_1|v_2⟩ = [{k}v_1]† g v_2    where g is an optional metric")
+    }
 }
 
 // =========================
@@ -213,19 +219,24 @@ where
             self.group,
             self.origin,
             match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spatially on the origin orbital")
+                SymmetryTransformationKind::Spatial => |op, axvec| {
+                    axvec.sym_transform_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin axial vector")
                     })
                 },
-                SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-wise on the origin orbital")
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, axvec| {
+                    axvec.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with potentially direction-reversing time reversal) on the origin axial vector")
                     })
                 },
-                SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-spatially on the origin orbital",)
+                SymmetryTransformationKind::Spin => |op, axvec| {
+                    axvec.sym_transform_spin(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin axial vector")
+                    })
+                },
+                SymmetryTransformationKind::SpinSpatial => |op, axvec| {
+                    axvec.sym_transform_spin_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin axial vector")
                     })
                 },
             },
@@ -265,16 +276,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric() {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 

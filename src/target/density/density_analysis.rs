@@ -192,6 +192,12 @@ where
             }
         }
     }
+
+    /// Returns the mathematical definition of the overlap between two densities.
+    fn overlap_definition(&self) -> String {
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}ρ_1|ρ_2⟩ = ∫ [{k}ρ_1(r)]* ρ_2(r) dr")
+    }
 }
 
 // ====================
@@ -342,6 +348,11 @@ where
                         format!("Unable to apply `{op}` spatially on the origin density")
                     })
                 },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time-reversal) on the origin density")
+                    })
+                },
                 SymmetryTransformationKind::Spin => |op, det| {
                     det.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin density")
@@ -391,16 +402,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 
@@ -411,8 +426,6 @@ where
     fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
         &self.eigenvalue_comparison_mode
     }
-
-    /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
 
     /// Reduces the representation or corepresentation spanned by the densities in the orbit to
     /// a direct sum of the irreducible representations or corepresentations of the generating

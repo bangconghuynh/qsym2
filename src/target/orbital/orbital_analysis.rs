@@ -122,6 +122,12 @@ where
         };
         Ok(ov)
     }
+
+    /// Returns the mathematical definition of the overlap between two orbitals.
+    fn overlap_definition(&self) -> String {
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}ψ_1|ψ_2⟩ = ∫ [{k}ψ_1(x)]* ψ_2(x) dx")
+    }
 }
 
 // =============================
@@ -315,6 +321,11 @@ where
                         format!("Unable to apply `{op}` spatially on the origin orbital")
                     })
                 },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, orb| {
+                    orb.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin orbital")
+                    })
+                },
                 SymmetryTransformationKind::Spin => |op, orb| {
                     orb.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin orbital")
@@ -363,16 +374,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 
@@ -408,12 +423,14 @@ where
         // A single electron; validity depends on group and orbit type
         let (valid_symmetry, err_str) = match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => (true, String::new()),
-                SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal
+                    | SymmetryTransformationKind::Spin
+                    | SymmetryTransformationKind::SpinSpatial => {
                     match self.group().group_type() {
                         GroupType::Ordinary(_) => (true, String::new()),
                         GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                             (!self.group().unitary_represented(),
-                            "Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital.".to_string())
+                            "Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital where spin is treated explicitly.".to_string())
                         }
                     }
                 }
@@ -456,7 +473,10 @@ where
 /// each orbit.
 /// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
 /// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
-/// origin determinant.
+/// * `eigenvalue_comparison_mode` - The mode of comparing the overlap eigenvalues to the specified
+/// `linear_independence_threshold`.
+/// * `use_cayley_table` - A boolean indicating if the Cayley table of the group, if available,
+/// should be used to speed up the computation of the orbit overlap matrix.
 ///
 /// # Returns
 ///
@@ -474,6 +494,7 @@ pub fn generate_det_mo_orbits<'a, G, T>(
     linear_independence_threshold: <T as ComplexFloat>::Real,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    use_cayley_table: bool,
 ) -> Result<
     (
         SlaterDeterminantSymmetryOrbit<'a, G, T>,
@@ -533,7 +554,7 @@ where
     let sao = metric;
     let sao_h = metric_h.unwrap_or(sao);
 
-    if let Some(ctb) = group.cayley_table() {
+    if let (Some(ctb), true) = (group.cayley_table(), use_cayley_table) {
         log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
         let mut det_smatw0 = Array1::<T>::zeros(order);
         let mut mo_smatw0ss = mo_orbitss
@@ -559,11 +580,6 @@ where
                 let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
                 let nonzero_occ_0 = occ0.iter().positions(|&occ| occ > thresh).collect_vec();
 
-                // let all_mo_w0_ov_mat = if det.complex_symmetric() {
-                //     cw.t().dot(metric).dot(c0)
-                // } else {
-                //     cw.t().mapv(|x| x.conj()).dot(metric).dot(c0)
-                // };
                 let all_mo_w0_ov_mat = if det.complex_symmetric() {
                     match (det_w.complex_conjugated(), det_0.complex_conjugated()) {
                         (false, false) => cw.t().dot(sao_h).dot(c0),
@@ -622,22 +638,19 @@ where
                 ))?;
             let jinv_i = ctb[(jinv, i)];
 
-            mo_smatw0ss
-                .iter()
-                .enumerate()
-                .for_each(|(ispin, mo_smatw0s)| {
-                    mo_smatw0s.iter().enumerate().for_each(|(imo, mo_smat_w0)| {
-                        mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
-                            .norm_preserving_scalar_map(jinv)(
-                            mo_smat_w0[jinv_i]
-                        );
-                    });
-                });
+            for (ispin, mo_smatw0s) in mo_smatw0ss.iter().enumerate() {
+                for (imo, mo_smat_w0) in mo_smatw0s.iter().enumerate() {
+                    mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
+                        .norm_preserving_scalar_map(jinv)?(
+                        mo_smat_w0[jinv_i]
+                    )
+                }
+            }
 
-            det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)(det_smatw0[jinv_i]);
+            det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)?(det_smatw0[jinv_i]);
         }
     } else {
-        log::debug!("Cayley table not available. Overlap matrix will be constructed without group-closure speed-up.");
+        log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");
         let indexed_dets = det_orbit
             .iter()
             .map(|det_res| det_res.map_err(|err| err.to_string()))

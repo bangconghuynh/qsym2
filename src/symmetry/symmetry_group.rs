@@ -190,7 +190,7 @@ pub trait SymmetryGroupProperties:
         self.elements()
             .clone()
             .into_iter()
-            .all(|op| !op.is_antiunitary())
+            .all(|op| !op.contains_time_reversal())
     }
 
     /// Returns `true` if all elements in this group are in $`\mathsf{SU}'(2)`$ or `false` if they
@@ -625,7 +625,7 @@ impl SymmetryGroupProperties
             deduce_principal_classes(
                 &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| {
-                    cc.is_proper() && !cc.is_antiunitary()
+                    cc.is_proper() && !cc.contains_time_reversal()
                 }),
                 None,
             )
@@ -636,7 +636,7 @@ impl SymmetryGroupProperties
             deduce_principal_classes(
                 &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| {
-                    cc.is_proper() && !cc.is_antiunitary()
+                    cc.is_proper() && !cc.contains_time_reversal()
                 }),
                 None,
             )
@@ -647,17 +647,17 @@ impl SymmetryGroupProperties
             deduce_principal_classes(
                 &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| {
-                    cc.is_proper() && !cc.is_antiunitary()
+                    cc.is_proper() && !cc.contains_time_reversal()
                 }),
                 None,
             )
-        } else if !self.elements().iter().all(|op| !op.is_antiunitary()) {
+        } else if !self.elements().iter().all(|op| !op.contains_time_reversal()) {
             log::debug!(
                 "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
             );
             deduce_principal_classes(
                 &class_symbols,
-                Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| !cc.is_antiunitary()),
+                Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| !cc.contains_time_reversal()),
                 None,
             )
         } else {
@@ -746,7 +746,7 @@ impl SymmetryGroupProperties
         ensure!(
             sorted_operations
                 .iter()
-                .any(SpecialSymmetryTransformation::is_antiunitary),
+                .any(SpecialSymmetryTransformation::contains_time_reversal),
             "A magnetic-represented group is requested, but no antiunitary operations can be found. \
             Ensure that time reversal is considered during symmetry-group detection."
         );
@@ -755,7 +755,7 @@ impl SymmetryGroupProperties
         let unitary_operations = sorted_operations
             .iter()
             .filter_map(|op| {
-                if op.is_antiunitary() {
+                if op.contains_time_reversal() {
                     None
                 } else {
                     Some(op.clone())
@@ -867,7 +867,7 @@ impl SymmetryGroupProperties
         let unitary_su2_operations = su2_operations
             .iter()
             .filter_map(|op| {
-                if op.is_antiunitary() {
+                if op.contains_time_reversal() {
                     None
                 } else {
                     Some(op.clone())

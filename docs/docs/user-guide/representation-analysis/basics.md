@@ -445,11 +445,9 @@ These traits are described below.
 
 4. [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html)
 
-    This trait determines how the target behaves under the antiunitary action of time reversal.
-    If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is either
+    This trait determines how the target behaves under the antiunitary action of time reversal and is bound by the [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) trait to enforce the antiunitarity.
 
-    - a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation if spin transformation is taken into account, or
-    - a complex conjugation if only spatial transformation is taken into account.
+    If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation.
 
 5. [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html)
 
@@ -458,6 +456,7 @@ These traits are described below.
     The possible types of transformations defined by this trait are:
 
     - spatial only,
+    - spatial only but with spin-including time reversal,
     - spin only,
     - both spin and spatial.
 
@@ -478,6 +477,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     1. :fontawesome-solid-users: This is just an example analysis target. The choices for symmetry transformation kinds can be specified in any analysis target.
     2. :fontawesome-solid-users: The possible options are:
         - `Spatial`: spatial transformation only,
+        - `SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `Spin`: spin transformation only,
         - `SpinSpatial`: coupled spin and spatial transformations.
 
@@ -498,6 +498,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for symmetry transformation kinds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
 

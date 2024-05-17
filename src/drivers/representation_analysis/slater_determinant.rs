@@ -15,7 +15,10 @@ use num_traits::Float;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, RepAnalysis};
+use crate::analysis::{
+    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
+    RepAnalysis,
+};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -104,6 +107,12 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[builder(default = "false")]
     #[serde(default)]
     pub use_double_group: bool,
+
+    /// Boolean indicating if the Cayley table of the group, if available, should be used to speed
+    /// up the computation of orbit overlap matrices.
+    #[builder(default = "true")]
+    #[serde(default = "default_true")]
+    pub use_cayley_table: bool,
 
     /// The kind of symmetry transformation to be applied on the reference determinant to generate
     /// the orbit for symmetry analysis.
@@ -206,6 +215,11 @@ where
             f,
             "Use double group for analysis: {}",
             nice_bool(self.use_double_group)
+        )?;
+        writeln!(
+            f,
+            "Use Cayley table for orbit overlap matrices: {}",
+            nice_bool(self.use_cayley_table)
         )?;
         if let Some(finite_order) = self.infinite_order_to_finite {
             writeln!(f, "Infinite order to finite: {finite_order}")?;
@@ -664,6 +678,7 @@ where
             }
 
             writeln!(f, "{}", "┈".repeat(table_width))?;
+            writeln!(f)?;
         }
 
         Ok(())
@@ -943,6 +958,20 @@ where
             doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
             analyse_fn_ [ analyse_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
+            calc_projections_ [
+                log_subtitle("Slater determinant projection decompositions");
+                qsym2_output!("");
+                qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                qsym2_output!("    {}", det_orbit.origin().overlap_definition());
+                qsym2_output!("");
+                det_orbit
+                    .projections_to_string(
+                        &det_orbit.calc_projection_compositions()?,
+                        params.integrality_threshold,
+                    )
+                    .log_output_display();
+                qsym2_output!("");
+            ]
         ]
     }
     duplicate!{
@@ -953,6 +982,7 @@ where
             doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
             analyse_fn_ [ analyse_corepresentation ]
             construct_group_ [ self.construct_magnetic_group()? ]
+            calc_projections_ [ ]
         ]
     }
 )]
@@ -981,6 +1011,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 params.linear_independence_threshold,
                 params.symmetry_transformation_kind.clone(),
                 params.eigenvalue_comparison_mode.clone(),
+                params.use_cayley_table,
             )?;
             det_orbit.calc_xmat(false)?;
             if params.write_overlap_eigenvalues {
@@ -996,6 +1027,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
             }
 
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
+
+            { calc_projections_ }
 
             let mo_symmetries = mo_orbitss
                 .iter_mut()
@@ -1109,7 +1142,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                 .build()?;
             let det_symmetry = det_orbit
-                .calc_smat(Some(&sao), sao_h.as_ref())
+                .calc_smat(Some(&sao), sao_h.as_ref(), params.use_cayley_table)
                 .and_then(|det_orb| det_orb.normalise_smat())
                 .map_err(|err| err.to_string())
                 .and_then(|det_orb| {
@@ -1127,6 +1160,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
                 });
+
+            { calc_projections_ }
+
             (det_symmetry, None, None, None)
         };
 
@@ -1151,7 +1187,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 )
                                 .build()?;
                             den_orbit
-                                .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)?
+                                .calc_smat(
+                                    self.sao_spatial_4c,
+                                    self.sao_spatial_4c_h,
+                                    params.use_cayley_table,
+                                )?
                                 .normalise_smat()?
                                 .calc_xmat(false)?;
                             den_orbit.analyse_rep().map_err(|err| format_err!(err))
@@ -1192,7 +1232,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 )
                                 .build()?;
                             total_den_orbit
-                                .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)?
+                                .calc_smat(
+                                    self.sao_spatial_4c,
+                                    self.sao_spatial_4c_h,
+                                    params.use_cayley_table,
+                                )?
                                 .calc_xmat(false)?;
                             total_den_orbit
                                 .analyse_rep()
@@ -1223,7 +1267,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                         )
                                         .build()?;
                                     den_ij_orbit
-                                        .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)?
+                                        .calc_smat(
+                                            self.sao_spatial_4c,
+                                            self.sao_spatial_4c_h,
+                                            params.use_cayley_table,
+                                        )?
                                         .calc_xmat(false)?;
                                     den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
                                 };
@@ -1266,7 +1314,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .ok()?;
                                 log::debug!("Computing overlap matrix for an MO density orbit...");
                                 mo_den_orbit
-                                    .calc_smat(self.sao_spatial_4c, self.sao_spatial_4c_h)
+                                    .calc_smat(
+                                        self.sao_spatial_4c,
+                                        self.sao_spatial_4c_h,
+                                        params.use_cayley_table,
+                                    )
                                     .ok()?
                                     .normalise_smat()
                                     .ok()?

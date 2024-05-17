@@ -1,4 +1,4 @@
-//! Driver for symmetry analysis via representation and corepresentation theories.
+//! Drivers for symmetry analysis via representation and corepresentation theories.
 
 use std::fmt;
 
@@ -12,6 +12,7 @@ use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 
 pub mod angular_function;
 pub mod density;
+pub mod multideterminant;
 pub mod slater_determinant;
 pub mod vibrational_coordinate;
 
@@ -87,7 +88,7 @@ fn log_bao(bao: &BasisAngularOrder) {
 /// # Arguments
 ///
 /// * `group` - A group for which a conjugacy class transversal should be logged nicely.
-fn log_cc_transversal<G>(group: &G)
+pub(crate) fn log_cc_transversal<G>(group: &G)
 where
     G: ClassPropertiesSummary,
     G::GroupElement: fmt::Display,
@@ -142,6 +143,8 @@ macro_rules! fn_construct_unitary_group {
                     }
                     CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
                 }
+                qsym2_output!("");
+                qsym2_output!("The symbol `◈` indicates the principal class of the group.");
                 qsym2_output!("");
                 "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
                 `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
@@ -203,6 +206,8 @@ macro_rules! fn_construct_magnetic_group {
                     CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
                 }
                 qsym2_output!("");
+                qsym2_output!("The symbol `◈` indicates the principal class of the group.");
+                qsym2_output!("");
                 "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
                 of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
                 Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
@@ -223,5 +228,5 @@ macro_rules! fn_construct_magnetic_group {
     }
 }
 
-pub(crate) use fn_construct_unitary_group;
 pub(crate) use fn_construct_magnetic_group;
+pub(crate) use fn_construct_unitary_group;

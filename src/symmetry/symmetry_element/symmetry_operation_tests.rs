@@ -6771,7 +6771,7 @@ fn test_symmetry_operation_time_reversal() {
         .build()
         .unwrap();
     assert_eq!(tc2x.order(), 2);
-    assert!(tc2x.is_antiunitary());
+    assert!(tc2x.contains_time_reversal());
     assert!((&tc2x * &tc2x).is_identity());
 
     let c2x_element = SymmetryElement::builder()
@@ -6788,11 +6788,11 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
-    assert!(!c2x.is_antiunitary());
+    assert!(!c2x.contains_time_reversal());
 
     let t = &tc2x * &c2x;
     assert_eq!(t.order(), 2);
-    assert!(t.is_antiunitary());
+    assert!(t.contains_time_reversal());
     assert!(!t.is_identity());
     assert!(t.is_time_reversal());
     assert!((&t * &t).is_identity());
@@ -6834,8 +6834,8 @@ fn test_symmetry_operation_time_reversal() {
     assert_eq!(&c2y * &t, tc2y);
     assert_eq!(&t * &tc2y, c2y);
     assert_eq!(&tc2y * &t, c2y);
-    assert!(!(&tc2y * &tc2x).is_antiunitary());
-    assert!((&c2y * &tc2x).is_antiunitary());
+    assert!(!(&tc2y * &tc2x).contains_time_reversal());
+    assert!((&c2y * &tc2x).contains_time_reversal());
     assert!(!(&c2y * &tc2x).is_time_reversal());
 
     let sd1_element = SymmetryElement::builder()
@@ -6854,7 +6854,7 @@ fn test_symmetry_operation_time_reversal() {
         .build()
         .unwrap();
     assert_eq!(sd1.order(), 2);
-    assert!(!sd1.is_antiunitary());
+    assert!(!sd1.contains_time_reversal());
 
     let tsd1_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -6872,7 +6872,7 @@ fn test_symmetry_operation_time_reversal() {
         .build()
         .unwrap();
     assert_eq!(tsd1.order(), 2);
-    assert!(tsd1.is_antiunitary());
+    assert!(tsd1.contains_time_reversal());
     assert!(!tsd1.is_inversion());
     assert!(!tsd1.is_identity());
     assert!((&tsd1 * &sd1).is_time_reversal());
@@ -7030,8 +7030,8 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(ts5.order(), 10);
-    assert!((&ts5).pow(1).is_antiunitary());
-    assert!(!(&ts5).pow(2).is_antiunitary());
+    assert!((&ts5).pow(1).contains_time_reversal());
+    assert!(!(&ts5).pow(2).contains_time_reversal());
     assert!(!(&ts5).pow(5).is_time_reversal());
 
     let tc5_element = SymmetryElement::builder()
@@ -7050,7 +7050,7 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(tc5.order(), 10);
-    assert!((&tc5).pow(1).is_antiunitary());
+    assert!((&tc5).pow(1).contains_time_reversal());
     assert!((&tc5).pow(5).is_time_reversal());
 }
 

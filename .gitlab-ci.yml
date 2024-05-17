@@ -4,12 +4,6 @@ default:
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
-cache:
-  key: $CI_COMMIT_REF_SLUG
-  paths:
-    - cargo/
-    - target/
-
 stages:
   - Build
   - Unit Tests
@@ -24,7 +18,7 @@ check:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo check --release --verbose --features full --color always
+    - cargo check --release --verbose --features full,sandbox --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
@@ -39,7 +33,7 @@ unit_tests:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo test -r --features full -- --include-ignored
+    - cargo test -r --features full,sandbox -- --include-ignored
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
@@ -57,7 +51,7 @@ tarpaulin:
     - apt-get install gfortran build-essential cmake -y
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features full --color always
+    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
@@ -144,7 +138,7 @@ pages:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo doc --no-deps --features full,python
+    - cargo doc --no-deps --features full,python,sandbox
     - mv target/doc public/api
     - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/api/index.html
   needs:

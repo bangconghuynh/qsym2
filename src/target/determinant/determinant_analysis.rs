@@ -19,23 +19,20 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
+use crate::analysis::{
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+    Overlap, RepAnalysis,
+};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
-use crate::io::format::{log_subtitle, qsym2_output};
+use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
-use crate::{
-    analysis::{
-        fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-        Overlap, RepAnalysis,
-    },
-    io::format::QSym2Output,
-};
 
 // =======
 // Overlap
@@ -153,6 +150,12 @@ where
             }
             SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => Ok(ov),
         }
+    }
+
+    /// Returns the mathematical definition of the overlap between two Slater determinants.
+    fn overlap_definition(&self) -> String {
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}Ψ_1|Ψ_2⟩ = ∫ [{k}Ψ_1(x^Ne)]* Ψ_2(x^Ne) dx^Ne")
     }
 }
 
@@ -304,6 +307,11 @@ where
                         format!("Unable to apply `{op}` spatially on the origin determinant")
                     })
                 },
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin determinant")
+                    })
+                },
                 SymmetryTransformationKind::Spin => |op, det| {
                     det.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin determinant")
@@ -354,16 +362,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .is_antiunitary()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 
@@ -416,12 +428,14 @@ where
                 // Odd number of electrons; validity depends on group and orbit type
                 match self.symmetry_transformation_kind {
                     SymmetryTransformationKind::Spatial => (true, String::new()),
-                    SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
+                    SymmetryTransformationKind::SpatialWithSpinTimeReversal
+                        | SymmetryTransformationKind::Spin
+                        | SymmetryTransformationKind::SpinSpatial => {
                         match self.group().group_type() {
                             GroupType::Ordinary(_) => (true, String::new()),
                             GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                                 (!self.group().unitary_represented(),
-                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems.".to_string())
+                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems where spin is treated explicitly.".to_string())
                             }
                         }
                     }

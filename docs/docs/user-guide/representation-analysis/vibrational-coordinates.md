@@ -64,10 +64,11 @@ More methods might become possible in the future. The parameter specifications f
               # Analysis options
               use_magnetic_group: null #(8)!
               use_double_group: false #(9)!
-              symmetry_transformation_kind: Spatial #(10)!
-              infinite_order_to_finite: null #(11)!
+              use_cayley_table: true #(10)!
+              symmetry_transformation_kind: Spatial #(11)!
+              infinite_order_to_finite: null #(12)!
               # Other options
-              write_character_table: Symbolic #(12)!
+              write_character_table: Symbolic #(13)!
         ```
 
         1. :fontawesome-solid-users: This specifies a vibrational coordinate collection analysis target.
@@ -97,20 +98,23 @@ More methods might become possible in the future. The parameter specifications f
             - `true`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
         </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
         </br></br>:material-cog-sync-outline: Default: `false`.
-        10. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+        10. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
+        </br></br>:material-cog-sync-outline: Default: `true`.
+        11. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
         The possible options are:
             - `Spatial`: spatial transformation only,
+            - `SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
             - `Spin`: spin transformation only,
             - `SpinSpatial`: coupled spin and spatial transformations.
         </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
         </br></br>However, as vibrational coordinates are spinless quantities, spin transformations have no effects.
         </br></br>:material-cog-sync-outline: Default: `Spatial`.
-        11. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+        12. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
             - `null`: do not restrict infinite-order symmetry elements to finite order,
             - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
         </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
         </br></br>:material-cog-sync-outline: Default: `null`.
-        12. :fontawesome-solid-users: This indicates if the character table of the prevailing symmetry group is to be printed in the output.
+        13. :fontawesome-solid-users: This indicates if the character table of the prevailing symmetry group is to be printed in the output.
         The possible options are:
             - `null`: do not print character tables,
             - `Symbolic`: print character tables symbolically,
@@ -158,10 +162,11 @@ More methods might become possible in the future. The parameter specifications f
         # Analysis options
         use_magnetic_group=None, #(14)!
         use_double_group=False, #(15)!
-        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(16)!
-        infinite_order_to_finite=None, #(17)!
+        use_cayley_table=True, #(16)!
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(17)!
+        infinite_order_to_finite=None, #(18)!
         # Other options
-        write_character_table=True, #(18)!
+        write_character_table=True, #(19)!
     )
     ```
 
@@ -195,17 +200,20 @@ More methods might become possible in the future. The parameter specifications f
         - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
     </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
-    16. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+    16. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
+    </br></br>:material-cog-sync-outline: Default: `True`.
+    17. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
     </br></br>However, as vibrational coordinates are spinless quantities, spin transformations have no effects.
-    17. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+    18. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
         - `None`: do not restrict infinite-order symmetry elements to finite order,
         - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
-    18. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
-    </li></br>:material-cog-sync-outline: Default: `True`.
+    19. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
+    </br></br>:material-cog-sync-outline: Default: `True`.

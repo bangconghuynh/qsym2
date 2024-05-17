@@ -29,8 +29,10 @@ These basis functions are typically Gaussian atomic orbitals, and most, if not a
 It is therefore more convenient to retrieve the atomic-orbital overlap matrix $\mathbfit{S}_{\mathcal{H}_{1}}$ (also written $\mathbfit{S}_{\mathrm{AO}}$) (and its complex-symmetric version, $\bar{\mathbfit{S}}_{\mathrm{AO}}$, whenever necessary), from quantum-chemistry packages whenever possible.
 The ways in which $\mathbfit{S}_{\mathrm{AO}}$ can be read in by QSym² will be described below.
 
-Note that Q-Chem HDF5 archive files do store $\mathbfit{S}_{\mathrm{AO}}$, but the ordering of the atomic-orbital basis functions used to define this matrix (lexicographic order for Cartesian functions) is inconsistent with that used to define the molecular orbital coefficients (Q-Chem order for Cartesian functions).
-Hence, QSym² recomputes this matrix from the basis set information also stored in HDF5 archive files to ensure that the basis function ordering is consistent.
+!!! warning "$\mathbfit{S}_{\mathrm{AO}}$ from Q-Chem HDF5 archives"
+
+    Note that Q-Chem HDF5 archive files do store $\mathbfit{S}_{\mathrm{AO}}$, but the ordering of the atomic-orbital basis functions used to define this matrix (lexicographic order for Cartesian functions) is inconsistent with that used to define the molecular orbital coefficients (Q-Chem order for Cartesian functions).
+    Hence, QSym² recomputes this matrix from the basis set information also stored in HDF5 archive files to ensure that the basis function ordering is consistent.
 
 ### Atomic-orbital basis angular order
 
@@ -44,7 +46,7 @@ Whenever possible, QSym² will attempt to construct the basis angular order info
 
     - Reading in Q-Chem HDF5 archive files requires the [`qchem` feature](../../getting-started/prerequisites.md/#rust-features).
     - Using the Python API requires the [`python` feature](../../getting-started/prerequisites.md/#rust-features).
-    - Performing representation analysis for Slater determinants, molecular orbitals, and electron densities requires the [`integrals` feature](../../getting-started/prerequisites.md/#rust-features).
+    - Performing representation analysis for Slater determinants, molecular orbitals, and electron densities that are retrieved from Q-Chem HDF5 archive files requires the [`integrals` feature](../../getting-started/prerequisites.md/#rust-features) to recompute $\mathbfit{S}_{\mathrm{AO}}$ (see [#Basis overlap matrix](#basis-overlap-matrix)).
 
 
 At the moment, QSym² offers three main ways to perform symmetry analysis for Slater determinants. They are:
@@ -70,14 +72,15 @@ More methods might become possible in the future. The parameter specifications f
               # Analysis options
               use_magnetic_group: null #(8)!
               use_double_group: false #(9)!
-              symmetry_transformation_kind: Spatial #(10)!
-              infinite_order_to_finite: null #(11)!
+              use_cayley_table: true #(10)!
+              symmetry_transformation_kind: Spatial #(11)!
+              infinite_order_to_finite: null #(12)!
               # Other options
-              write_character_table: Symbolic #(12)!
-              write_overlap_eigenvalues: true #(13)!
-              analyse_mo_symmetries: true #(14)!
-              analyse_mo_mirror_parities: false #(15)!
-              analyse_density_symmetries: false #(16)!
+              write_character_table: Symbolic #(13)!
+              write_overlap_eigenvalues: true #(14)!
+              analyse_mo_symmetries: true #(15)!
+              analyse_mo_mirror_parities: false #(16)!
+              analyse_density_symmetries: false #(17)!
         ```
 
         1. :fontawesome-solid-users: This specifies a Slater determinant analysis target.
@@ -108,31 +111,34 @@ More methods might become possible in the future. The parameter specifications f
             - `true`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
         </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
         </br></br>:material-cog-sync-outline: Default: `false`.
-        10. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+        10. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
+        </br></br>:material-cog-sync-outline: Default: `true`.
+        11. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
         The possible options are:
             - `Spatial`: spatial transformation only,
+            - `SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
             - `Spin`: spin transformation only,
             - `SpinSpatial`: coupled spin and spatial transformations.
         </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
         </br></br>:material-cog-sync-outline: Default: `Spatial`.
-        11. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+        12. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
             - `null`: do not restrict infinite-order symmetry elements to finite order,
             - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
         </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
         </br></br>:material-cog-sync-outline: Default: `null`.
-        12. :fontawesome-solid-users: This indicates if the character table of the prevailing symmetry group is to be printed in the output.
+        13. :fontawesome-solid-users: This indicates if the character table of the prevailing symmetry group is to be printed in the output.
         The possible options are:
             - `null`: do not print character tables,
             - `Symbolic`: print character tables symbolically,
             - `Numerical`: print character tables numerically.
         </li></br>:material-cog-sync-outline: Default: `Symbolic`.
-        13. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
+        14. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
         </br></br>:material-cog-sync-outline: Default: `true`.
-        14. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
+        15. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
         </br></br>:material-cog-sync-outline: Default: `true`.
-        15. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
+        16. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
         </br></br>:material-cog-sync-outline: Default: `false`.
-        16. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `true`, then MO density symmetries are also analysed.
+        17. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `true`, then MO density symmetries are also analysed.
         </br></br>:material-cog-sync-outline: Default: `false`.
 
     === "Source: binary files"
@@ -236,7 +242,7 @@ More methods might become possible in the future. The parameter specifications f
     rep_analyse_slater_determinant( #(16)!
         # Data
         inp_sym="mol", #(17)!
-        pydet=pydet, #(17)!
+        pydet=pydet, #(18)!
         pybao=pybao, #(19)!
         sao_spatial=sao_spatial, #(20)!
         sao_spatial_h=None, #(21)!
@@ -249,14 +255,15 @@ More methods might become possible in the future. The parameter specifications f
         # Analysis options
         use_magnetic_group=None, #(27)!
         use_double_group=False, #(28)!
-        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(29)!
-        infinite_order_to_finite=None, #(30)!
+        use_cayley_table=True, #(29)!
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(30)!
+        infinite_order_to_finite=None, #(31)!
         # Other options
-        write_character_table=True, #(31)!
-        write_overlap_eigenvalues=True, #(35)!
-        analyse_mo_symmetries=True, #(36)!
-        analyse_mo_mirror_parities=False, #(37)!
-        analyse_density_symmetries=False, #(38)!
+        write_character_table=True, #(32)!
+        write_overlap_eigenvalues=True, #(33)!
+        analyse_mo_symmetries=True, #(34)!
+        analyse_mo_mirror_parities=False, #(35)!
+        analyse_density_symmetries=False, #(36)!
     )
     ```
 
@@ -272,7 +279,7 @@ More methods might become possible in the future. The parameter specifications f
         - `PySpinConstraint.Restricted`: this specifies the *restricted* spin constraint where spatial molecular orbitals are identical across both spin spaces,
         - `PySpinConstraint.Unrestricted`: this specifies the *unrestricted* spin constraint where spatial molecular orbitals can be different across the two spin spaces,
         - `PySpinConstraint.Generalised`: this specifies the *generalised* spin constraint where each spin-orbital is now expressed in a spin-spatial direct product basis.
-    10. :fontawesome-solid-users: This specifies whether the Slater determinant is to be considered with respect to a Hilbert space where the otherwise sesquilinear inner product has been replaced by a bilinear form.
+    10. :fontawesome-solid-users: This specifies whether the Slater determinant is to be symmetry-analysed using the bilinear inner product instead of the conventional sesquilinear inner product.
     11. :fontawesome-solid-users: This specifies the coefficient matrices constituting this Slater determinant. Each matrix in this list is for one spin space.
     12. :fontawesome-solid-users: This specifies the occupation numbers for the specified molecular orbitals. Each vector in this list is for one spin space.
     13. :fontawesome-solid-users: This specifies a threshold for comparing Slater determinants. This is of no consequence for symmetry analysis.
@@ -309,24 +316,27 @@ More methods might become possible in the future. The parameter specifications f
         - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
     </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
-    29. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+    29. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
+    </br></br>:material-cog-sync-outline: Default: `True`.
+    30. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
+        - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
-    30. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+    31. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
         - `None`: do not restrict infinite-order symmetry elements to finite order,
         - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
-    31. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
-    </li></br>:material-cog-sync-outline: Default: `True`.
-    35. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
+    32. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    36. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
+    33. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the Slater determinant orbit should be printed out.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    37. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
+    34. :fontawesome-solid-users: This boolean indicates if the constituting molecular orbitals (MOs) are also symmetry-analysed.
+    </br></br>:material-cog-sync-outline: Default: `True`.
+    35. :fontawesome-solid-users: This boolean indicates if MO mirror parities (*i.e.* parities w.r.t. any mirror planes present in the system) are to be analysed alongside MO symmetries.
     </br></br>:material-cog-sync-outline: Default: `False`.
-    38. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
+    36. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
     </br></br>:material-cog-sync-outline: Default: `False`.

@@ -1,6 +1,6 @@
 //! Python bindings for QSym² atomic-orbital integral evaluations.
 
-use anyhow::{self, bail, ensure};
+use anyhow::{self, bail, ensure, format_err};
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
 #[cfg(feature = "integrals")]
@@ -190,6 +190,21 @@ impl From<PySpinConstraint> for SpinConstraint {
             PySpinConstraint::Restricted => SpinConstraint::Restricted(2),
             PySpinConstraint::Unrestricted => SpinConstraint::Unrestricted(2, false),
             PySpinConstraint::Generalised => SpinConstraint::Generalised(2, false),
+        }
+    }
+}
+
+impl TryFrom<SpinConstraint> for PySpinConstraint {
+    type Error = anyhow::Error;
+
+    fn try_from(sc: SpinConstraint) -> Result<Self, Self::Error> {
+        match sc {
+            SpinConstraint::Restricted(2) => Ok(PySpinConstraint::Restricted),
+            SpinConstraint::Unrestricted(2, false) => Ok(PySpinConstraint::Unrestricted),
+            SpinConstraint::Generalised(2, false) => Ok(PySpinConstraint::Generalised),
+            _ => Err(format_err!(
+                "`PySpinConstraint` can only support two spin spaces."
+            )),
         }
     }
 }
@@ -418,7 +433,7 @@ fn create_basis_shell(
 pub fn calc_overlap_2c_real<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray2<f64>> {
+) -> PyResult<Bound<'py, PyArray2<f64>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -442,7 +457,7 @@ pub fn calc_overlap_2c_real<'py>(
             .pop()
             .expect("Unable to retrieve the two-centre overlap matrix.")
     });
-    let pysao_2c = sao_2c.into_pyarray(py);
+    let pysao_2c = sao_2c.into_pyarray_bound(py);
     Ok(pysao_2c)
 }
 
@@ -464,7 +479,7 @@ pub fn calc_overlap_2c_complex<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
     complex_symmetric: bool,
-) -> PyResult<&'py PyArray2<Complex<f64>>> {
+) -> PyResult<Bound<'py, PyArray2<Complex<f64>>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -488,7 +503,7 @@ pub fn calc_overlap_2c_complex<'py>(
             .pop()
             .expect("Unable to retrieve the two-centre overlap matrix.")
     });
-    let pysao_2c = sao_2c.into_pyarray(py);
+    let pysao_2c = sao_2c.into_pyarray_bound(py);
     Ok(pysao_2c)
 }
 
@@ -511,7 +526,7 @@ pub fn calc_overlap_2c_complex<'py>(
 pub fn calc_overlap_4c_real<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray4<f64>> {
+) -> PyResult<Bound<'py, PyArray4<f64>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -535,7 +550,7 @@ pub fn calc_overlap_4c_real<'py>(
             .pop()
             .expect("Unable to retrieve the four-centre overlap tensor.")
     });
-    let pysao_4c = sao_4c.into_pyarray(py);
+    let pysao_4c = sao_4c.into_pyarray_bound(py);
     Ok(pysao_4c)
 }
 
@@ -557,7 +572,7 @@ pub fn calc_overlap_4c_complex<'py>(
     py: Python<'py>,
     basis_set: Vec<Vec<PyBasisShellContraction>>,
     complex_symmetric: bool,
-) -> PyResult<&'py PyArray4<Complex<f64>>> {
+) -> PyResult<Bound<'py, PyArray4<Complex<f64>>>> {
     let bscs = BasisSet::new(
         basis_set
             .into_iter()
@@ -581,6 +596,6 @@ pub fn calc_overlap_4c_complex<'py>(
             .pop()
             .expect("Unable to retrieve the four-centre overlap tensor.")
     });
-    let pysao_4c = sao_4c.into_pyarray(py);
+    let pysao_4c = sao_4c.into_pyarray_bound(py);
     Ok(pysao_4c)
 }
