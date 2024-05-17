@@ -30,7 +30,7 @@ QSym² is able to provide symmetry assignments for multi-determinantal wavefunct
         \mathcal{B} = \{ \Psi^w_{\mathrm{SD}} \}.
     $$
 
-The time complexity for the symmetry analysis of multi-determinantal wavefunctions based on an eager basis is $O(\lvert \mathcal{G} \rvert \times \lvert \mathcal{B} \rvert^2)$. However, if an orbit basis is used instead, then this time complexity is drastically reduced to $O(\lvert \mathcal{G} \rvert \times \lvert O \rvert^2)$ in QSym² thanks to its utilisation of group closure.
+The time complexity for the symmetry analysis of multi-determinantal wavefunctions based on an eager basis is $O(\lvert \mathcal{G} \rvert \times \lvert \mathcal{B} \rvert^2)$. However, if an orbit basis is used instead, then this time complexity is drastically reduced to $O(\lvert \mathcal{G} \rvert \times \lvert O \rvert^2)$ in QSym² thanks to its utilisation of group closure, which avoids having to explicitly perform symmetry transformation on multi-determinantal wavefunctions during the orbit generation for symmetry analysis.
 
 
 ## Requirements
