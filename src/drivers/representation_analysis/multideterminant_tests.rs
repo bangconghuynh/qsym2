@@ -27,7 +27,7 @@ use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[test]
 fn test_drivers_multideterminant_analysis_bh3() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ----
     // Data
     // ----

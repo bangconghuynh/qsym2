@@ -8,7 +8,6 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::auxiliary::geometry::Transform;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{

@@ -51,11 +51,6 @@ where
         _: &Array2<Complex<f64>>,
     ) -> Result<&mut Self, TransformationError> {
         Err(TransformationError("Transforming an orbit basis by an arbitrary spin transformation matrix is not supported.".to_string()))
-        // self.origins
-        //     .iter_mut()
-        //     .map(|origin| origin.transform_spin_mut(dmat))
-        //     .collect::<Result<Vec<_>, _>>()?;
-        // Ok(self)
     }
 }
 
