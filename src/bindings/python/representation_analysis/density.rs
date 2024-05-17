@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array2, Array4};
 use num_complex::Complex;
-use numpy::PyArray2;
+use numpy::{PyArray2, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -79,7 +79,11 @@ impl PyDensityReal {
     /// Python type: `numpy.2darray[float]`.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
     #[new]
-    fn new(complex_symmetric: bool, density_matrix: &PyArray2<f64>, threshold: f64) -> Self {
+    fn new(
+        complex_symmetric: bool,
+        density_matrix: Bound<'_, PyArray2<f64>>,
+        threshold: f64,
+    ) -> Self {
         let det = Self {
             complex_symmetric,
             density_matrix: density_matrix.to_owned_array(),
@@ -164,7 +168,11 @@ impl PyDensityComplex {
     /// Python type: `numpy.2darray[complex]`.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
     #[new]
-    fn new(complex_symmetric: bool, density_matrix: &PyArray2<C128>, threshold: f64) -> Self {
+    fn new(
+        complex_symmetric: bool,
+        density_matrix: Bound<'_, PyArray2<C128>>,
+        threshold: f64,
+    ) -> Self {
         let det = Self {
             complex_symmetric,
             density_matrix: density_matrix.to_owned_array(),

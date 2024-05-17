@@ -29,8 +29,10 @@ These basis functions are typically Gaussian atomic orbitals, and most, if not a
 It is therefore more convenient to retrieve the atomic-orbital overlap matrix $\mathbfit{S}_{\mathcal{H}_{1}}$ (also written $\mathbfit{S}_{\mathrm{AO}}$) (and its complex-symmetric version, $\bar{\mathbfit{S}}_{\mathrm{AO}}$, whenever necessary), from quantum-chemistry packages whenever possible.
 The ways in which $\mathbfit{S}_{\mathrm{AO}}$ can be read in by QSym² will be described below.
 
-Note that Q-Chem HDF5 archive files do store $\mathbfit{S}_{\mathrm{AO}}$, but the ordering of the atomic-orbital basis functions used to define this matrix (lexicographic order for Cartesian functions) is inconsistent with that used to define the molecular orbital coefficients (Q-Chem order for Cartesian functions).
-Hence, QSym² recomputes this matrix from the basis set information also stored in HDF5 archive files to ensure that the basis function ordering is consistent.
+!!! warning "$\mathbfit{S}_{\mathrm{AO}}$ from Q-Chem HDF5 archives"
+
+    Note that Q-Chem HDF5 archive files do store $\mathbfit{S}_{\mathrm{AO}}$, but the ordering of the atomic-orbital basis functions used to define this matrix (lexicographic order for Cartesian functions) is inconsistent with that used to define the molecular orbital coefficients (Q-Chem order for Cartesian functions).
+    Hence, QSym² recomputes this matrix from the basis set information also stored in HDF5 archive files to ensure that the basis function ordering is consistent.
 
 ### Atomic-orbital basis angular order
 
@@ -44,7 +46,7 @@ Whenever possible, QSym² will attempt to construct the basis angular order info
 
     - Reading in Q-Chem HDF5 archive files requires the [`qchem` feature](../../getting-started/prerequisites.md/#rust-features).
     - Using the Python API requires the [`python` feature](../../getting-started/prerequisites.md/#rust-features).
-    - Performing representation analysis for Slater determinants, molecular orbitals, and electron densities requires the [`integrals` feature](../../getting-started/prerequisites.md/#rust-features).
+    - Performing representation analysis for Slater determinants, molecular orbitals, and electron densities that are retrieved from Q-Chem HDF5 archive files requires the [`integrals` feature](../../getting-started/prerequisites.md/#rust-features) to recompute $\mathbfit{S}_{\mathrm{AO}}$ (see [#Basis overlap matrix](#basis-overlap-matrix)).
 
 
 At the moment, QSym² offers three main ways to perform symmetry analysis for Slater determinants. They are:
@@ -240,7 +242,7 @@ More methods might become possible in the future. The parameter specifications f
     rep_analyse_slater_determinant( #(16)!
         # Data
         inp_sym="mol", #(17)!
-        pydet=pydet, #(17)!
+        pydet=pydet, #(18)!
         pybao=pybao, #(19)!
         sao_spatial=sao_spatial, #(20)!
         sao_spatial_h=None, #(21)!
@@ -277,7 +279,7 @@ More methods might become possible in the future. The parameter specifications f
         - `PySpinConstraint.Restricted`: this specifies the *restricted* spin constraint where spatial molecular orbitals are identical across both spin spaces,
         - `PySpinConstraint.Unrestricted`: this specifies the *unrestricted* spin constraint where spatial molecular orbitals can be different across the two spin spaces,
         - `PySpinConstraint.Generalised`: this specifies the *generalised* spin constraint where each spin-orbital is now expressed in a spin-spatial direct product basis.
-    10. :fontawesome-solid-users: This specifies whether the Slater determinant is to be considered with respect to a Hilbert space where the otherwise sesquilinear inner product has been replaced by a bilinear form.
+    10. :fontawesome-solid-users: This specifies whether the Slater determinant is to be symmetry-analysed using the bilinear inner product instead of the conventional sesquilinear inner product.
     11. :fontawesome-solid-users: This specifies the coefficient matrices constituting this Slater determinant. Each matrix in this list is for one spin space.
     12. :fontawesome-solid-users: This specifies the occupation numbers for the specified molecular orbitals. Each vector in this list is for one spin space.
     13. :fontawesome-solid-users: This specifies a threshold for comparing Slater determinants. This is of no consequence for symmetry analysis.

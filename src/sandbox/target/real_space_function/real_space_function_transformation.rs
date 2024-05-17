@@ -27,7 +27,7 @@ where
         &mut self,
         rmat: &Array2<f64>,
         _: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error> {
+    ) -> Result<&mut Self, TransformationError> {
         let rmat = rmat.select(Axis(0), &[2, 0, 1]).select(Axis(1), &[2, 0, 1]);
         let rmatinv = rmat.t();
         let grid_array = Array2::from_shape_vec(
@@ -36,7 +36,8 @@ where
                 .iter()
                 .flat_map(|pt| pt.iter().cloned())
                 .collect_vec(),
-        )?;
+        )
+        .map_err(|err| TransformationError(err.to_string()))?;
         let rmatinv_grid_array = rmatinv.dot(&grid_array);
         let rmatinv_grid_points = rmatinv_grid_array
             .columns()
@@ -78,9 +79,9 @@ where
     T: ComplexFloat + Lapack,
     F: Clone + Fn(&Point3<f64>) -> T,
 {
-    fn transform_cc_mut(&mut self) -> &mut Self {
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
         self.complex_conjugated = !self.complex_conjugated;
-        self
+        Ok(self)
     }
 }
 

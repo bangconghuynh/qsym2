@@ -678,6 +678,7 @@ where
             }
 
             writeln!(f, "{}", "┈".repeat(table_width))?;
+            writeln!(f)?;
         }
 
         Ok(())

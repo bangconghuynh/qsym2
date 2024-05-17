@@ -595,10 +595,14 @@ where
                 } else if approx::relative_ne!(
                     c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
+                    let ndigits = (-thresh_f64.log10())
+                        .ceil()
+                        .to_usize()
+                        .expect("Unable to convert the number of digits to `usize`.");
                     Err(
                         DecompositionError(
                             format!(
-                                "Non-integer coefficient: {:.3e}",
+                                "Non-integer coefficient: {:.ndigits$e}",
                                 c.re
                             )
                         )
@@ -1088,10 +1092,14 @@ where
                 } else if approx::relative_ne!(
                     c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
+                    let ndigits = (-thresh_f64.log10())
+                        .ceil()
+                        .to_usize()
+                        .expect("Unable to convert the number of digits to `usize`.");
                     Err(
                         DecompositionError(
                             format!(
-                                "Non-integer coefficient: {:.3e}",
+                                "Non-integer coefficient: {:.ndigits$e}",
                                 c.re
                             )
                         )

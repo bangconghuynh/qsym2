@@ -26,7 +26,7 @@ where
         &mut self,
         rmat: &Array2<f64>,
         _perm: Option<&Permutation<usize>>,
-    ) -> Result<&mut Self, anyhow::Error> {
+    ) -> Result<&mut Self, TransformationError> {
         // rmat is in (y, z, x) order. We must first reorder into (x, y, z) order.
         let rmat_xyz = rmat.select(Axis(0), &[2, 0, 1]).select(Axis(1), &[2, 0, 1]);
         let det = rmat_xyz
@@ -65,9 +65,9 @@ impl<T> ComplexConjugationTransformable for AxialVector3<T>
 where
     T: ComplexFloat + Lapack,
 {
-    fn transform_cc_mut(&mut self) -> &mut Self {
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
         self.components = self.components.map(|x| x.conj());
-        self
+        Ok(self)
     }
 }
 
@@ -83,7 +83,7 @@ where
     /// or inverted based on its time-parity. The components of the vector are also
     /// complex-conjugated to respect the antiunitarity of time reversal.
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        self.transform_cc_mut();
+        self.transform_cc_mut()?;
         match self.time_parity {
             TimeParity::Even => {}
             TimeParity::Odd => self.components = -self.components,

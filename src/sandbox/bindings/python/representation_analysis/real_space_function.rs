@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use duplicate::duplicate_item;
 use nalgebra::Point3;
 use num::Complex;
-use numpy::{PyArray1, PyArray2};
+use numpy::{PyArray1, PyArray2, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 use pyo3::types::PyFunction;
@@ -122,8 +122,8 @@ pub fn rep_analyse_real_space_function_(
     use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
-    grid_points: &PyArray2<f64>,
-    weight: &PyArray1<dtype_>,
+    grid_points: Bound<'_, PyArray2<f64>>,
+    weight: Bound<'_, PyArray1<dtype_>>,
     write_overlap_eigenvalues: bool,
     write_character_table: bool,
     infinite_order_to_finite: Option<u32>,
@@ -183,14 +183,11 @@ pub fn rep_analyse_real_space_function_(
     let real_space_function = RealSpaceFunction::<dtype_, _>::builder()
         .function(|pt| {
             Python::with_gil(|py_inner| {
-                let res = function
-                    .call1(py_inner, (pt.x, pt.y, pt.z))
-                    .expect(
-                        "Unable to apply the real-space function on the specified coordinates.",
-                    );
-                res.extract::<dtype_>(py_inner).expect(
-                    "Unable to extract the result from the real-space function call.",
-                )
+                let res = function.call1(py_inner, (pt.x, pt.y, pt.z)).expect(
+                    "Unable to apply the real-space function on the specified coordinates.",
+                );
+                res.extract::<dtype_>(py_inner)
+                    .expect("Unable to extract the result from the real-space function call.")
             })
         })
         .grid_points(grid_points)

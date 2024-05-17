@@ -450,8 +450,8 @@ fn test_density_transformation_c2_complex_timerev() {
     // `den_a` and `den_b` have no knowledge of spins, because they are spatial densities. Hence,
     // time-reversal simply causes complex conjugation on them. However, `detgen` has a spin
     // structure, and time reversal brings about spin flip.
-    assert_eq!(tden_a_tr, den_a.transform_cc());
-    assert_eq!(tden_b_tr, den_b.transform_cc());
+    assert_eq!(tden_a_tr, den_a.transform_cc().unwrap());
+    assert_eq!(tden_b_tr, den_b.transform_cc().unwrap());
     assert_close_l2!(
         tden_b_tr.density_matrix(),
         &tdgen_tr_ref.slice(s![0..6, 0..6]),

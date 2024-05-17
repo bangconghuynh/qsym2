@@ -125,7 +125,8 @@ where
 
     /// Returns the mathematical definition of the overlap between two orbitals.
     fn overlap_definition(&self) -> String {
-        "⟨ι ψ_1|ψ_2⟩ = ∫ [ι ψ_1(x)]* ψ_2(x) dx".to_string()
+        let k = if self.complex_symmetric() { "κ " } else { "" };
+        format!("⟨{k}ψ_1|ψ_2⟩ = ∫ [{k}ψ_1(x)]* ψ_2(x) dx")
     }
 }
 
@@ -373,16 +374,20 @@ where
             .expect("Orbit overlap orthogonalisation matrix not found.")
     }
 
-    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
-        if self
-            .group
-            .get_index(i)
-            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-            .contains_time_reversal()
-        {
-            ComplexFloat::conj
+    fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
+        if self.origin.complex_symmetric {
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
         } else {
-            |x| x
+            if self
+                .group
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+                .contains_time_reversal()
+            {
+                Ok(ComplexFloat::conj)
+            } else {
+                Ok(|x| x)
+            }
         }
     }
 
@@ -633,19 +638,16 @@ where
                 ))?;
             let jinv_i = ctb[(jinv, i)];
 
-            mo_smatw0ss
-                .iter()
-                .enumerate()
-                .for_each(|(ispin, mo_smatw0s)| {
-                    mo_smatw0s.iter().enumerate().for_each(|(imo, mo_smat_w0)| {
-                        mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
-                            .norm_preserving_scalar_map(jinv)(
-                            mo_smat_w0[jinv_i]
-                        );
-                    });
-                });
+            for (ispin, mo_smatw0s) in mo_smatw0ss.iter().enumerate() {
+                for (imo, mo_smat_w0) in mo_smatw0s.iter().enumerate() {
+                    mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
+                        .norm_preserving_scalar_map(jinv)?(
+                        mo_smat_w0[jinv_i]
+                    )
+                }
+            }
 
-            det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)(det_smatw0[jinv_i]);
+            det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)?(det_smatw0[jinv_i]);
         }
     } else {
         log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");

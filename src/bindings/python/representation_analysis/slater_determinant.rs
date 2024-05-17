@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2};
+use numpy::{PyArray1, PyArray2, ToPyArray, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -65,6 +65,7 @@ pub struct PySlaterDeterminantReal {
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
     ///
     /// Python type: `bool`.
+    #[pyo3(get)]
     complex_symmetric: bool,
 
     /// The real coefficients for the molecular orbitals of this determinant.
@@ -80,6 +81,7 @@ pub struct PySlaterDeterminantReal {
     /// The threshold for comparisons.
     ///
     /// Python type: `float`.
+    #[pyo3(get)]
     threshold: f64,
 
     /// The optional real molecular orbital energies.
@@ -90,6 +92,7 @@ pub struct PySlaterDeterminantReal {
     /// The optional real determinantal energy.
     ///
     /// Python type: `Optional[float]`.
+    #[pyo3(get)]
     energy: Option<f64>,
 }
 
@@ -112,13 +115,13 @@ impl PySlaterDeterminantReal {
     /// `Optional[list[numpy.1darray[float]]]`.
     /// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
     #[new]
-    fn new(
+    pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
-        coefficients: Vec<&PyArray2<f64>>,
-        occupations: Vec<&PyArray1<f64>>,
+        coefficients: Vec<Bound<'_, PyArray2<f64>>>,
+        occupations: Vec<Bound<'_, PyArray1<f64>>>,
         threshold: f64,
-        mo_energies: Option<Vec<&PyArray1<f64>>>,
+        mo_energies: Option<Vec<Bound<'_, PyArray1<f64>>>>,
         energy: Option<f64>,
     ) -> Self {
         let det = Self {
@@ -143,6 +146,24 @@ impl PySlaterDeterminantReal {
         };
         det
     }
+
+    #[getter]
+    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
+        Ok(self
+            .occupations
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
+
+    #[getter]
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<f64>>>> {
+        Ok(self
+            .coefficients
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
 }
 
 impl PySlaterDeterminantReal {
@@ -162,7 +183,7 @@ impl PySlaterDeterminantReal {
     /// # Errors
     ///
     /// Errors if the [`SlaterDeterminant`] fails to build.
-    fn to_qsym2<'b, 'a: 'b>(
+    pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
@@ -209,11 +230,13 @@ pub struct PySlaterDeterminantComplex {
     /// The spin constraint applied to the coefficients of the determinant.
     ///
     /// Python type: `PySpinConstraint`.
+    #[pyo3(get)]
     spin_constraint: PySpinConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
     ///
     /// Python type: `bool`.
+    #[pyo3(get)]
     complex_symmetric: bool,
 
     /// The complex coefficients for the molecular orbitals of this determinant.
@@ -229,6 +252,7 @@ pub struct PySlaterDeterminantComplex {
     /// The threshold for comparisons.
     ///
     /// Python type: `float`.
+    #[pyo3(get)]
     threshold: f64,
 
     /// The optional complex molecular orbital energies.
@@ -239,6 +263,7 @@ pub struct PySlaterDeterminantComplex {
     /// The optional complex determinantal energy.
     ///
     /// Python type: `Optional[complex]`.
+    #[pyo3(get)]
     energy: Option<C128>,
 }
 
@@ -261,13 +286,13 @@ impl PySlaterDeterminantComplex {
     /// `Optional[list[numpy.1darray[complex]]]`.
     /// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
     #[new]
-    fn new(
+    pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
-        coefficients: Vec<&PyArray2<C128>>,
-        occupations: Vec<&PyArray1<f64>>,
+        coefficients: Vec<Bound<'_, PyArray2<C128>>>,
+        occupations: Vec<Bound<'_, PyArray1<f64>>>,
         threshold: f64,
-        mo_energies: Option<Vec<&PyArray1<C128>>>,
+        mo_energies: Option<Vec<Bound<'_, PyArray1<C128>>>>,
         energy: Option<C128>,
     ) -> Self {
         let det = Self {
@@ -292,6 +317,24 @@ impl PySlaterDeterminantComplex {
         };
         det
     }
+
+    #[getter]
+    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
+        Ok(self
+            .occupations
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
+
+    #[getter]
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<C128>>>> {
+        Ok(self
+            .coefficients
+            .iter()
+            .map(|occ| occ.to_pyarray_bound(py))
+            .collect::<Vec<_>>())
+    }
 }
 
 impl PySlaterDeterminantComplex {
@@ -311,7 +354,7 @@ impl PySlaterDeterminantComplex {
     /// # Errors
     ///
     /// Errors if the [`SlaterDeterminant`] fails to build.
-    fn to_qsym2<'b, 'a: 'b>(
+    pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,

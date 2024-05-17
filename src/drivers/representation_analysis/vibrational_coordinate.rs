@@ -402,6 +402,7 @@ where
                     + vib_eig_below_length
             )
         )?;
+        writeln!(f)?;
 
         Ok(())
     }
