@@ -230,6 +230,8 @@ Examples of symmetry analysis performed by QSym² for several Q-Chem calculation
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
 - Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals,
+- multi-determinantal wavefunctions obtained via non-orthogonal configuration interaction,
+- real-space functions defined on a grid,
 - vibrational coordinates, and
 - one-electron densities
 
