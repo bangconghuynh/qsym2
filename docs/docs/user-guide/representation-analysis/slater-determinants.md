@@ -242,7 +242,7 @@ More methods might become possible in the future. The parameter specifications f
     rep_analyse_slater_determinant( #(16)!
         # Data
         inp_sym="mol", #(17)!
-        pydet=pydet, #(17)!
+        pydet=pydet, #(18)!
         pybao=pybao, #(19)!
         sao_spatial=sao_spatial, #(20)!
         sao_spatial_h=None, #(21)!
@@ -279,7 +279,7 @@ More methods might become possible in the future. The parameter specifications f
         - `PySpinConstraint.Restricted`: this specifies the *restricted* spin constraint where spatial molecular orbitals are identical across both spin spaces,
         - `PySpinConstraint.Unrestricted`: this specifies the *unrestricted* spin constraint where spatial molecular orbitals can be different across the two spin spaces,
         - `PySpinConstraint.Generalised`: this specifies the *generalised* spin constraint where each spin-orbital is now expressed in a spin-spatial direct product basis.
-    10. :fontawesome-solid-users: This specifies whether the Slater determinant is to be considered with respect to a Hilbert space where the otherwise sesquilinear inner product has been replaced by a bilinear form.
+    10. :fontawesome-solid-users: This specifies whether the Slater determinant is to be symmetry-analysed using the bilinear inner product instead of the conventional sesquilinear inner product.
     11. :fontawesome-solid-users: This specifies the coefficient matrices constituting this Slater determinant. Each matrix in this list is for one spin space.
     12. :fontawesome-solid-users: This specifies the occupation numbers for the specified molecular orbitals. Each vector in this list is for one spin space.
     13. :fontawesome-solid-users: This specifies a threshold for comparing Slater determinants. This is of no consequence for symmetry analysis.
