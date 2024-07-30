@@ -1088,26 +1088,52 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
             // Construct the driver
-            let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
-                MagneticRepresentedSymmetryGroup,
-                f64,
-                _,
-            >::builder()
-            .parameters(&mda_params)
-            .angular_function_parameters(&afa_params)
-            .multidets(multidets.iter().collect::<Vec<_>>())
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_h(None) // Real SAO.
-            .symmetry_group(&pd_res)
-            .build()
-            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            match &use_magnetic_group {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                        MagneticRepresentedSymmetryGroup,
+                        f64,
+                        _,
+                    >::builder()
+                    .parameters(&mda_params)
+                    .angular_function_parameters(&afa_params)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
+                    .sao_spatial(&sao_spatial)
+                    .sao_spatial_h(None) // Real SAO.
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-            // Run the driver
-            py.allow_threads(|| {
-                mda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-            })?
+                    // Run the driver
+                    py.allow_threads(|| {
+                        mda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
+                }
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                        UnitaryRepresentedSymmetryGroup,
+                        f64,
+                        _,
+                    >::builder()
+                    .parameters(&mda_params)
+                    .angular_function_parameters(&afa_params)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
+                    .sao_spatial(&sao_spatial)
+                    .sao_spatial_h(None) // Real SAO.
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Run the driver
+                    py.allow_threads(|| {
+                        mda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
+                }
+            }
         }
         (_, _, _, _) => {
             // Complex numeric data type
@@ -1186,26 +1212,52 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
             // Construct the driver
-            let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
-                MagneticRepresentedSymmetryGroup,
-                C128,
-                _,
-            >::builder()
-            .parameters(&mda_params)
-            .angular_function_parameters(&afa_params)
-            .multidets(multidets.iter().collect::<Vec<_>>())
-            .sao_spatial(&sao_spatial_c)
-            .sao_spatial_h(sao_spatial_h_c.as_ref())
-            .symmetry_group(&pd_res)
-            .build()
-            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            match &use_magnetic_group {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                        MagneticRepresentedSymmetryGroup,
+                        C128,
+                        _,
+                    >::builder()
+                    .parameters(&mda_params)
+                    .angular_function_parameters(&afa_params)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
+                    .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_h(sao_spatial_h_c.as_ref())
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-            // Run the driver
-            py.allow_threads(|| {
-                mda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-            })?
+                    // Run the driver
+                    py.allow_threads(|| {
+                        mda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
+                }
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                        UnitaryRepresentedSymmetryGroup,
+                        C128,
+                        _,
+                    >::builder()
+                    .parameters(&mda_params)
+                    .angular_function_parameters(&afa_params)
+                    .multidets(multidets.iter().collect::<Vec<_>>())
+                    .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_h(sao_spatial_h_c.as_ref())
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                    // Run the driver
+                    py.allow_threads(|| {
+                        mda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
+                }
+            }
         }
     }
     Ok(())
