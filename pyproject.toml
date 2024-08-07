@@ -15,7 +15,7 @@ features = ["openblas-static", "integrals", "python"]
 
 [tool.cibuildwheel]
 build = "*"
-skip = ["pp*", "cp36*", "*i686"]
+skip = ["pp*", "cp36*", "cp313*", "*i686"]
 test-skip = ""
 
 archs = ["auto"]
