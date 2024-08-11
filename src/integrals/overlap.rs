@@ -259,7 +259,7 @@ macro_rules! impl_shell_tuple_overlap {
                     // Initial term begins.
                     // ~~~~~~~~~~~~~~~~~~~~
                     if tuple_index == 0 {
-                        debug_assert!(remaining_tuples.remove(&(l_tuple, n_tuple)));
+                        debug_assert!(remaining_tuples.shift_remove(&(l_tuple, n_tuple)));
 
                         // pre_zg = sqrt(pi / zg)
                         // zg is primitive-combination-specific.
@@ -358,7 +358,7 @@ macro_rules! impl_shell_tuple_overlap {
                             });
                             new_n_tuple
                         };
-                        if !remaining_tuples.remove(&(l_tuple, next_n_tuple)) {
+                        if !remaining_tuples.shift_remove(&(l_tuple, next_n_tuple)) {
                             continue
                         }
 
@@ -492,7 +492,7 @@ macro_rules! impl_shell_tuple_overlap {
                             });
                             new_l_tuple
                         };
-                        if !remaining_tuples.remove(&(next_l_tuple, n_tuple)) {
+                        if !remaining_tuples.shift_remove(&(next_l_tuple, n_tuple)) {
                             continue
                         }
 
