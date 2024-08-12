@@ -27,7 +27,7 @@ use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContra
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 #[cfg(feature = "qchem")]
-use crate::io::format::{log_title, qsym2_output};
+use crate::io::format::{log_title, qsym2_output, QSym2Output};
 
 lazy_static! {
     static ref SP_PATH_RE: Regex =
@@ -133,7 +133,7 @@ impl PyBasisAngularOrder {
 
     #[cfg(feature = "qchem")]
     #[classmethod]
-    fn from_qchem_archive(cls: &Bound<'_, PyType>, filename: &str) -> PyResult<Vec<Self>> {
+    fn from_qchem_archive(_cls: &Bound<'_, PyType>, filename: &str) -> PyResult<Vec<Self>> {
         use hdf5;
         use indexmap::IndexMap;
         use num::ToPrimitive;
@@ -158,14 +158,12 @@ impl PyBasisAngularOrder {
 
         let elements = periodic_table::periodic_table();
 
+        log_title(&format!(
+            "Basis angular order extraction from Q-Chem HDF5 archive files",
+        ));
         let pybaos = sp_paths
             .iter()
             .map(|sp_path| {
-                log_title(&format!(
-                    "Basis angular order information for {}",
-                    sp_path.clone()
-                ));
-                qsym2_output!("");
                 let sp_group = f
                     .group(sp_path)
                     .map_err(|err| PyValueError::new_err(err.to_string()))?;
@@ -273,6 +271,28 @@ impl PyBasisAngularOrder {
                 pybao
             })
             .collect::<Result<Vec<_>, _>>();
+
+        let idx_width = sp_paths.len().ilog10().to_usize().unwrap_or(4).max(4) + 1;
+        let sp_path_width = sp_paths
+            .iter()
+            .map(|sp_path| sp_path.chars().count())
+            .max()
+            .unwrap_or(10)
+            .max(10);
+        let table_width = idx_width + sp_path_width + 4;
+        qsym2_output!("");
+        "Each single-point calculation has associated with it a `PyBasisAngularOrder` object.\n\
+        The table below shows the `PyBasisAngularOrder` index in the generated list and the\n\
+        corresponding single-point calculation.".log_output_display();
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!(" {:<idx_width$}  {:<}", "Index", "Q-Chem job");
+        qsym2_output!("{}", "┈".repeat(table_width));
+        sp_paths.iter().enumerate().for_each(|(i, sp_path)| {
+            qsym2_output!(" {:<idx_width$}  {:<}", i, sp_path);
+        });
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!("");
+
         pybaos
     }
 }
