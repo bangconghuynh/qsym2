@@ -172,6 +172,11 @@ impl PureOrder {
         });
         2 * lpure + 1
     }
+
+    /// Returns the $`m`$ value with a specified index in this shell.
+    pub fn get_m_with_index(&self, i: usize) -> Option<i32> {
+        self.mls.get(i).cloned()
+    }
 }
 
 impl fmt::Display for PureOrder {
@@ -445,6 +450,11 @@ impl CartOrder {
             )
         });
         ((lcart + 1) * (lcart + 2)).div_euclid(2)
+    }
+
+    /// Returns the Cartesian component with a specified index in this shell.
+    pub fn get_cart_tuple_with_index(&self, i: usize) -> Option<(u32, u32, u32)> {
+        self.cart_tuples.get(i).cloned()
     }
 }
 
