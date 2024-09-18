@@ -309,6 +309,47 @@ where
     fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T> {
         SlaterDeterminantRepAnalysisResultBuilder::default()
     }
+
+    /// Returns the group used for the representation analysis.
+    pub fn group(&self) -> &G {
+        &self.group
+    }
+
+    /// Returns the determinant symmetry obtained from the analysis result.
+    pub fn determinant_symmetry(
+        &self,
+    ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
+        &self.determinant_symmetry
+    }
+
+    /// Returns the deduced symmetries of the molecular orbitals constituting the determinant, if required.
+    pub fn mo_symmetries(
+        &self,
+    ) -> &Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>> {
+        &self.mo_symmetries
+    }
+
+    /// Returns the deduced symmetries of the various densities constructible from the determinant,
+    /// if required. In each tuple, the first element gives a description of the density corresponding
+    /// to the symmetry result.
+    pub fn determinant_density_symmetries(
+        &self,
+    ) -> &Option<
+        Vec<(
+            String,
+            Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
+        )>,
+    > {
+        &self.determinant_density_symmetries
+    }
+
+    /// Returns the deduced symmetries of the total densities of the molecular orbitals constituting
+    /// the determinant, if required.
+    pub fn mo_density_symmetries(
+        &self,
+    ) -> &Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>> {
+        &self.mo_density_symmetries
+    }
 }
 
 impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisResult<'a, G, T>
@@ -697,21 +738,6 @@ where
     }
 }
 
-impl<'a, G, T> SlaterDeterminantRepAnalysisResult<'a, G, T>
-where
-    G: SymmetryGroupProperties + Clone,
-    G::CharTab: SubspaceDecomposable<T>,
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
-{
-    /// Returns the determinant symmetry obtained from the analysis result.
-    pub fn determinant_symmetry(
-        &self,
-    ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
-        &self.determinant_symmetry
-    }
-}
-
 // ------
 // Driver
 // ------
@@ -1028,7 +1054,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
 
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
 
-            { calc_projections_ }
+            {
+                calc_projections_
+            }
 
             let mo_symmetries = mo_orbitss
                 .iter_mut()
@@ -1161,7 +1189,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     det_orb.analyse_rep().map_err(|err| err.to_string())
                 });
 
-            { calc_projections_ }
+            {
+                calc_projections_
+            }
 
             (det_symmetry, None, None, None)
         };
