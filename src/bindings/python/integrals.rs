@@ -1,18 +1,23 @@
 //! Python bindings for QSym² atomic-orbital integral evaluations.
 
 use anyhow::{self, bail, ensure, format_err};
+use lazy_static::lazy_static;
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
 #[cfg(feature = "integrals")]
 use numpy::{IntoPyArray, PyArray2, PyArray4};
+use periodic_table;
 #[cfg(feature = "integrals")]
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyType;
+#[cfg(feature = "qchem")]
+use regex::Regex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::angmom::ANGMOM_INDICES;
+use crate::angmom::{ANGMOM_INDICES, ANGMOM_LABELS};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
@@ -21,6 +26,14 @@ use crate::basis::ao::{
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
+#[cfg(feature = "qchem")]
+use crate::io::format::{log_title, qsym2_output, QSym2Output};
+
+#[cfg(feature = "qchem")]
+lazy_static! {
+    static ref SP_PATH_RE: Regex =
+        Regex::new(r"(.*sp)\\energy_function$").expect("Regex pattern invalid.");
+}
 
 /// Python-exposed enumerated type to handle the union type `bool | list[int]` in Python.
 #[derive(Clone, FromPyObject)]
@@ -117,6 +130,184 @@ impl PyBasisAngularOrder {
     #[new]
     fn new(basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>) -> Self {
         Self { basis_atoms }
+    }
+
+    /// Extracts basis angular order information from a Q-Chem HDF5 archive file.
+    ///
+    /// # Arguments
+    ///
+    /// * `filename` - A path to a Q-Chem HDF5 archive file. Python type: `str`.
+    ///
+    /// # Returns
+    ///
+    /// A sequence of `PyBasisAngularOrder` objects, one for each Q-Chem calculation found in the
+    /// HDF5 archive file. Python type: `list[PyBasisAngularOrder]`.
+    ///
+    /// A summary showing how the `PyBasisAngularOrder` objects map onto the Q-Chem calculations in
+    /// the HDF5 archive file is also logged at the `INFO` level.
+    #[cfg(feature = "qchem")]
+    #[classmethod]
+    fn from_qchem_archive(_cls: &Bound<'_, PyType>, filename: &str) -> PyResult<Vec<Self>> {
+        use hdf5;
+        use indexmap::IndexMap;
+        use num::ToPrimitive;
+
+        let f = hdf5::File::open(filename).map_err(|err| PyValueError::new_err(err.to_string()))?;
+        let mut sp_paths = f
+            .group(".counters")
+            .map_err(|err| PyValueError::new_err(err.to_string()))?
+            .member_names()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?
+            .iter()
+            .filter_map(|path| {
+                if SP_PATH_RE.is_match(path) {
+                    let path = path.replace("\\", "/");
+                    Some(path.replace("/energy_function", ""))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        sp_paths.sort_by(|path_a, path_b| numeric_sort::cmp(path_a, path_b));
+
+        let elements = periodic_table::periodic_table();
+
+        log_title(&format!(
+            "Basis angular order extraction from Q-Chem HDF5 archive files",
+        ));
+        let pybaos = sp_paths
+            .iter()
+            .map(|sp_path| {
+                let sp_group = f
+                    .group(sp_path)
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?;
+                let shell_types = sp_group
+                    .dataset("aobasis/shell_types")
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?
+                    .read_1d::<i32>()
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?;
+                let shell_to_atom_map = sp_group
+                    .dataset("aobasis/shell_to_atom_map")
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?
+                    .read_1d::<usize>()
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?
+                    .iter()
+                    .zip(shell_types.iter())
+                    .flat_map(|(&idx, shell_type)| {
+                        if *shell_type == -1 {
+                            vec![idx, idx]
+                        } else {
+                            vec![idx]
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                let nuclei = sp_group
+                    .dataset("structure/nuclei")
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?
+                    .read_1d::<usize>()
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?;
+
+                let mut basis_atoms_map: IndexMap<usize, Vec<(String, bool, PyShellOrder)>> =
+                    IndexMap::new();
+                shell_types.iter().zip(shell_to_atom_map.iter()).for_each(
+                    |(shell_type, atom_idx)| {
+                        if *shell_type == 0 {
+                            // S shell
+                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                                "S".to_string(),
+                                true,
+                                PyShellOrder::CartOrder(Some(CartOrder::qchem(0).cart_tuples)),
+                            ));
+                        } else if *shell_type == 1 {
+                            // P shell
+                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                                "P".to_string(),
+                                true,
+                                PyShellOrder::CartOrder(Some(CartOrder::qchem(1).cart_tuples)),
+                            ));
+                        } else if *shell_type == -1 {
+                            // SP shell
+                            basis_atoms_map
+                                .entry(*atom_idx)
+                                .or_insert(vec![])
+                                .extend_from_slice(&[
+                                    (
+                                        "S".to_string(),
+                                        true,
+                                        PyShellOrder::CartOrder(Some(
+                                            CartOrder::qchem(0).cart_tuples,
+                                        )),
+                                    ),
+                                    (
+                                        "P".to_string(),
+                                        true,
+                                        PyShellOrder::CartOrder(Some(
+                                            CartOrder::qchem(1).cart_tuples,
+                                        )),
+                                    ),
+                                ]);
+                        } else if *shell_type < 0 {
+                            // Cartesian D shell or higher
+                            let l = shell_type.unsigned_abs();
+                            let l_usize = l
+                                .to_usize()
+                                .unwrap_or_else(|| panic!("Unable to convert the angular momentum value `|{shell_type}|` to `usize`."));
+                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                                ANGMOM_LABELS[l_usize].to_string(),
+                                true,
+                                PyShellOrder::CartOrder(Some(CartOrder::qchem(l).cart_tuples)),
+                            ));
+                        } else {
+                            // Pure D shell or higher
+                            let l = shell_type.unsigned_abs();
+                            let l_usize = l
+                                .to_usize()
+                                .unwrap_or_else(|| panic!("Unable to convert the angular momentum value `|{shell_type}|` to `usize`."));
+                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                                ANGMOM_LABELS[l_usize].to_string(),
+                                false,
+                                PyShellOrder::PureOrder(PyPureOrder::Standard(true)),
+                            ));
+                        }
+                    },
+                );
+                let pybao = basis_atoms_map
+                    .into_iter()
+                    .map(|(atom_idx, v)| {
+                        let element = elements
+                            .get(nuclei[atom_idx])
+                            .map(|el| el.symbol.to_string())
+                            .ok_or_else(|| PyValueError::new_err(format!("Unable to identify an element for atom index `{atom_idx}`.")))?;
+                        Ok((element, v))
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(|basis_atoms| Self::new(basis_atoms));
+                pybao
+            })
+            .collect::<Result<Vec<_>, _>>();
+
+        let idx_width = sp_paths.len().ilog10().to_usize().unwrap_or(4).max(4) + 1;
+        let sp_path_width = sp_paths
+            .iter()
+            .map(|sp_path| sp_path.chars().count())
+            .max()
+            .unwrap_or(10)
+            .max(10);
+        let table_width = idx_width + sp_path_width + 4;
+        qsym2_output!("");
+        "Each single-point calculation has associated with it a `PyBasisAngularOrder` object.\n\
+        The table below shows the `PyBasisAngularOrder` index in the generated list and the\n\
+        corresponding single-point calculation.".log_output_display();
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!(" {:<idx_width$}  {:<}", "Index", "Q-Chem job");
+        qsym2_output!("{}", "┈".repeat(table_width));
+        sp_paths.iter().enumerate().for_each(|(i, sp_path)| {
+            qsym2_output!(" {:<idx_width$}  {:<}", i, sp_path);
+        });
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!("");
+
+        pybaos
     }
 }
 

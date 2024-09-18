@@ -338,7 +338,7 @@ impl Character {
                 })
                 .copied();
             if let Some(nur) = nur_option {
-                let res = urs.remove(nur);
+                let res = urs.shift_remove(nur);
                 debug_assert!(res);
                 let ur_mult = self
                     .terms

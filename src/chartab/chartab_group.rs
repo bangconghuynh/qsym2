@@ -820,7 +820,7 @@ where
                         unitary_chartab.array().row(*irrep_idx).to_vec() == irrep_conj_chars
                     })
                     .unwrap_or_else(|| panic!("Conjugate irrep for {irrep} not found."));
-                assert!(remaining_irreps.remove(conj_irrep));
+                assert!(remaining_irreps.shift_remove(conj_irrep));
 
                 log::debug!("  The Wigner-conjugate irrep of {irrep} is {conj_irrep}.");
                 log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type (c) with intertwining number 2.");

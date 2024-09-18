@@ -239,7 +239,7 @@ More methods might become possible in the future. The parameter specifications f
         energy=-1.30, #(15)!
     )
 
-    rep_analyse_slater_determinant( #(16)!
+    sda_res = rep_analyse_slater_determinant( #(16)!
         # Data
         inp_sym="mol", #(17)!
         pydet=pydet, #(18)!
@@ -264,7 +264,7 @@ More methods might become possible in the future. The parameter specifications f
         analyse_mo_symmetries=True, #(34)!
         analyse_mo_mirror_parities=False, #(35)!
         analyse_density_symmetries=False, #(36)!
-    )
+    ) #(37)!
     ```
 
     1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison. See [Basics/Thresholds/Linear independence threshold/#Comparison mode](basics.md/#comparison-mode) for further information.
@@ -340,3 +340,4 @@ More methods might become possible in the future. The parameter specifications f
     </br></br>:material-cog-sync-outline: Default: `False`.
     36. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
     </br></br>:material-cog-sync-outline: Default: `False`.
+    37. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`rep_analyse_slater_determinant`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/fn.rep_analyse_slater_determinant.html) function returns a single [`PySlaterDeterminantRepAnalysisResult`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantRepAnalysisResult.html) object containing the Python-exposed results of the representation analysis.

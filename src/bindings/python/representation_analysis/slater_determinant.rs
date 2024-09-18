@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2, ToPyArray, PyArrayMethods};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -23,6 +23,7 @@ use crate::drivers::representation_analysis::{
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
+use crate::group::GroupProperties;
 use crate::io::format::qsym2_output;
 use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_group::{
@@ -36,6 +37,10 @@ type C128 = Complex<f64>;
 // ==================
 // Struct definitions
 // ==================
+
+// ------------------
+// Slater determinant
+// ------------------
 
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
@@ -378,6 +383,38 @@ impl PySlaterDeterminantComplex {
     }
 }
 
+// --------------------------------------------
+// Slater determinant symmetry analysis results
+// --------------------------------------------
+
+/// Python-exposed structure storing the results of Slater determinant representation analysis.
+#[pyclass]
+#[derive(Clone)]
+pub struct PySlaterDeterminantRepAnalysisResult {
+    /// The group used for the representation analysis.
+    #[pyo3(get)]
+    group: String,
+
+    /// The deduced overall symmetry of the determinant.
+    #[pyo3(get)]
+    determinant_symmetry: Option<String>,
+
+    /// The deduced symmetries of the molecular orbitals constituting the determinant, if required.
+    #[pyo3(get)]
+    mo_symmetries: Option<Vec<Vec<Option<String>>>>,
+
+    /// The deduced symmetries of the various densities constructible from the determinant, if
+    /// required. In each tuple, the first element gives a description of the density corresponding
+    /// to the symmetry result.
+    #[pyo3(get)]
+    determinant_density_symmetries: Option<Vec<(String, Option<String>)>>,
+
+    /// The deduced symmetries of the total densities of the molecular orbitals constituting the
+    /// determinant, if required.
+    #[pyo3(get)]
+    mo_density_symmetries: Option<Vec<Vec<Option<String>>>>,
+}
+
 // ================
 // Enum definitions
 // ================
@@ -462,6 +499,11 @@ pub enum PySlaterDeterminant {
 /// analysis of angular functions. Python type: `float`.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis. Python type: `int`.
+///
+/// # Returns
+///
+/// A Python-exposed [`PySlaterDeterminantRepAnalysisResult`] structure containing the results of the
+/// representation analysis. Python type: `PySlaterDeterminantRepAnalysisResult`.
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
@@ -513,7 +555,7 @@ pub fn rep_analyse_slater_determinant(
     angular_function_integrality_threshold: f64,
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
-) -> PyResult<()> {
+) -> PyResult<PySlaterDeterminantRepAnalysisResult> {
     let pd_res: SymmetryGroupDetectionResult =
         read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
             .map_err(|err| PyIOError::new_err(err.to_string()))?;
@@ -562,7 +604,7 @@ pub fn rep_analyse_slater_determinant(
         .infinite_order_to_finite(infinite_order_to_finite)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    match (&pydet, &sao_spatial) {
+    let pysda_res: PySlaterDeterminantRepAnalysisResult = match (&pydet, &sao_spatial) {
         (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Real(pysao_r)) => {
             let sao_spatial = pysao_r.to_owned_array();
             let sao_spatial_4c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
@@ -600,7 +642,65 @@ pub fn rep_analyse_slater_determinant(
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+                    let sda_res = sda_driver
+                        .result()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    PySlaterDeterminantRepAnalysisResult {
+                        group: sda_res.group().name().clone(),
+                        determinant_symmetry: sda_res
+                            .determinant_symmetry()
+                            .as_ref()
+                            .ok()
+                            .map(|sym| sym.to_string()),
+                        mo_symmetries: sda_res.mo_symmetries().as_ref().map(|mo_symss| {
+                            mo_symss
+                                .iter()
+                                .map(|mo_syms| {
+                                    mo_syms
+                                        .iter()
+                                        .map(|mo_sym_opt| {
+                                            mo_sym_opt.as_ref().map(|mo_sym| mo_sym.to_string())
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        determinant_density_symmetries: sda_res
+                            .determinant_density_symmetries()
+                            .as_ref()
+                            .map(|den_syms| {
+                                den_syms
+                                    .iter()
+                                    .map(|(den_name, den_sym_res)| {
+                                        (
+                                            den_name.clone(),
+                                            den_sym_res
+                                                .as_ref()
+                                                .ok()
+                                                .map(|den_sym| den_sym.to_string()),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                        mo_density_symmetries: sda_res.mo_density_symmetries().as_ref().map(
+                            |mo_den_symss| {
+                                mo_den_symss
+                                    .iter()
+                                    .map(|mo_den_syms| {
+                                        mo_den_syms
+                                            .iter()
+                                            .map(|mo_den_sym_opt| {
+                                                mo_den_sym_opt
+                                                    .as_ref()
+                                                    .map(|mo_den_sym| mo_den_sym.to_string())
+                                            })
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        ),
+                    }
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -621,9 +721,67 @@ pub fn rep_analyse_slater_determinant(
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+                    let sda_res = sda_driver
+                        .result()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    PySlaterDeterminantRepAnalysisResult {
+                        group: sda_res.group().name().clone(),
+                        determinant_symmetry: sda_res
+                            .determinant_symmetry()
+                            .as_ref()
+                            .ok()
+                            .map(|sym| sym.to_string()),
+                        mo_symmetries: sda_res.mo_symmetries().as_ref().map(|mo_symss| {
+                            mo_symss
+                                .iter()
+                                .map(|mo_syms| {
+                                    mo_syms
+                                        .iter()
+                                        .map(|mo_sym_opt| {
+                                            mo_sym_opt.as_ref().map(|mo_sym| mo_sym.to_string())
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        determinant_density_symmetries: sda_res
+                            .determinant_density_symmetries()
+                            .as_ref()
+                            .map(|den_syms| {
+                                den_syms
+                                    .iter()
+                                    .map(|(den_name, den_sym_res)| {
+                                        (
+                                            den_name.clone(),
+                                            den_sym_res
+                                                .as_ref()
+                                                .ok()
+                                                .map(|den_sym| den_sym.to_string()),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                        mo_density_symmetries: sda_res.mo_density_symmetries().as_ref().map(
+                            |mo_den_symss| {
+                                mo_den_symss
+                                    .iter()
+                                    .map(|mo_den_syms| {
+                                        mo_den_syms
+                                            .iter()
+                                            .map(|mo_den_sym_opt| {
+                                                mo_den_sym_opt
+                                                    .as_ref()
+                                                    .map(|mo_den_sym| mo_den_sym.to_string())
+                                            })
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        ),
+                    }
                 }
-            };
+            }
         }
         (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Complex(pysao_c)) => {
             let det_r = if augment_to_generalised {
@@ -673,7 +831,65 @@ pub fn rep_analyse_slater_determinant(
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+                    let sda_res = sda_driver
+                        .result()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    PySlaterDeterminantRepAnalysisResult {
+                        group: sda_res.group().name().clone(),
+                        determinant_symmetry: sda_res
+                            .determinant_symmetry()
+                            .as_ref()
+                            .ok()
+                            .map(|sym| sym.to_string()),
+                        mo_symmetries: sda_res.mo_symmetries().as_ref().map(|mo_symss| {
+                            mo_symss
+                                .iter()
+                                .map(|mo_syms| {
+                                    mo_syms
+                                        .iter()
+                                        .map(|mo_sym_opt| {
+                                            mo_sym_opt.as_ref().map(|mo_sym| mo_sym.to_string())
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        determinant_density_symmetries: sda_res
+                            .determinant_density_symmetries()
+                            .as_ref()
+                            .map(|den_syms| {
+                                den_syms
+                                    .iter()
+                                    .map(|(den_name, den_sym_res)| {
+                                        (
+                                            den_name.clone(),
+                                            den_sym_res
+                                                .as_ref()
+                                                .ok()
+                                                .map(|den_sym| den_sym.to_string()),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                        mo_density_symmetries: sda_res.mo_density_symmetries().as_ref().map(
+                            |mo_den_symss| {
+                                mo_den_symss
+                                    .iter()
+                                    .map(|mo_den_syms| {
+                                        mo_den_syms
+                                            .iter()
+                                            .map(|mo_den_sym_opt| {
+                                                mo_den_sym_opt
+                                                    .as_ref()
+                                                    .map(|mo_den_sym| mo_den_sym.to_string())
+                                            })
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        ),
+                    }
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -694,9 +910,67 @@ pub fn rep_analyse_slater_determinant(
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+                    let sda_res = sda_driver
+                        .result()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    PySlaterDeterminantRepAnalysisResult {
+                        group: sda_res.group().name().clone(),
+                        determinant_symmetry: sda_res
+                            .determinant_symmetry()
+                            .as_ref()
+                            .ok()
+                            .map(|sym| sym.to_string()),
+                        mo_symmetries: sda_res.mo_symmetries().as_ref().map(|mo_symss| {
+                            mo_symss
+                                .iter()
+                                .map(|mo_syms| {
+                                    mo_syms
+                                        .iter()
+                                        .map(|mo_sym_opt| {
+                                            mo_sym_opt.as_ref().map(|mo_sym| mo_sym.to_string())
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        determinant_density_symmetries: sda_res
+                            .determinant_density_symmetries()
+                            .as_ref()
+                            .map(|den_syms| {
+                                den_syms
+                                    .iter()
+                                    .map(|(den_name, den_sym_res)| {
+                                        (
+                                            den_name.clone(),
+                                            den_sym_res
+                                                .as_ref()
+                                                .ok()
+                                                .map(|den_sym| den_sym.to_string()),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                        mo_density_symmetries: sda_res.mo_density_symmetries().as_ref().map(
+                            |mo_den_symss| {
+                                mo_den_symss
+                                    .iter()
+                                    .map(|mo_den_syms| {
+                                        mo_den_syms
+                                            .iter()
+                                            .map(|mo_den_sym_opt| {
+                                                mo_den_sym_opt
+                                                    .as_ref()
+                                                    .map(|mo_den_sym| mo_den_sym.to_string())
+                                            })
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        ),
+                    }
                 }
-            };
+            }
         }
         (PySlaterDeterminant::Complex(pydet_c), _) => {
             let det_c = if augment_to_generalised {
@@ -750,7 +1024,65 @@ pub fn rep_analyse_slater_determinant(
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+                    let sda_res = sda_driver
+                        .result()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    PySlaterDeterminantRepAnalysisResult {
+                        group: sda_res.group().name().clone(),
+                        determinant_symmetry: sda_res
+                            .determinant_symmetry()
+                            .as_ref()
+                            .ok()
+                            .map(|sym| sym.to_string()),
+                        mo_symmetries: sda_res.mo_symmetries().as_ref().map(|mo_symss| {
+                            mo_symss
+                                .iter()
+                                .map(|mo_syms| {
+                                    mo_syms
+                                        .iter()
+                                        .map(|mo_sym_opt| {
+                                            mo_sym_opt.as_ref().map(|mo_sym| mo_sym.to_string())
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        determinant_density_symmetries: sda_res
+                            .determinant_density_symmetries()
+                            .as_ref()
+                            .map(|den_syms| {
+                                den_syms
+                                    .iter()
+                                    .map(|(den_name, den_sym_res)| {
+                                        (
+                                            den_name.clone(),
+                                            den_sym_res
+                                                .as_ref()
+                                                .ok()
+                                                .map(|den_sym| den_sym.to_string()),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                        mo_density_symmetries: sda_res.mo_density_symmetries().as_ref().map(
+                            |mo_den_symss| {
+                                mo_den_symss
+                                    .iter()
+                                    .map(|mo_den_syms| {
+                                        mo_den_syms
+                                            .iter()
+                                            .map(|mo_den_sym_opt| {
+                                                mo_den_sym_opt
+                                                    .as_ref()
+                                                    .map(|mo_den_sym| mo_den_sym.to_string())
+                                            })
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        ),
+                    }
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -771,10 +1103,68 @@ pub fn rep_analyse_slater_determinant(
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+                    let sda_res = sda_driver
+                        .result()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    PySlaterDeterminantRepAnalysisResult {
+                        group: sda_res.group().name().clone(),
+                        determinant_symmetry: sda_res
+                            .determinant_symmetry()
+                            .as_ref()
+                            .ok()
+                            .map(|sym| sym.to_string()),
+                        mo_symmetries: sda_res.mo_symmetries().as_ref().map(|mo_symss| {
+                            mo_symss
+                                .iter()
+                                .map(|mo_syms| {
+                                    mo_syms
+                                        .iter()
+                                        .map(|mo_sym_opt| {
+                                            mo_sym_opt.as_ref().map(|mo_sym| mo_sym.to_string())
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        determinant_density_symmetries: sda_res
+                            .determinant_density_symmetries()
+                            .as_ref()
+                            .map(|den_syms| {
+                                den_syms
+                                    .iter()
+                                    .map(|(den_name, den_sym_res)| {
+                                        (
+                                            den_name.clone(),
+                                            den_sym_res
+                                                .as_ref()
+                                                .ok()
+                                                .map(|den_sym| den_sym.to_string()),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                        mo_density_symmetries: sda_res.mo_density_symmetries().as_ref().map(
+                            |mo_den_symss| {
+                                mo_den_symss
+                                    .iter()
+                                    .map(|mo_den_syms| {
+                                        mo_den_syms
+                                            .iter()
+                                            .map(|mo_den_sym_opt| {
+                                                mo_den_sym_opt
+                                                    .as_ref()
+                                                    .map(|mo_den_sym| mo_den_sym.to_string())
+                                            })
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        ),
+                    }
                 }
-            };
+            }
         }
-    }
-    Ok(())
+    };
+    Ok(pysda_res)
 }
