@@ -29,6 +29,7 @@ use crate::integrals::shell_tuple::build_shell_tuple_collection;
 #[cfg(feature = "qchem")]
 use crate::io::format::{log_title, qsym2_output, QSym2Output};
 
+#[cfg(feature = "qchem")]
 lazy_static! {
     static ref SP_PATH_RE: Regex =
         Regex::new(r"(.*sp)\\energy_function$").expect("Regex pattern invalid.");
