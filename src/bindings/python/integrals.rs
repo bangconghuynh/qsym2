@@ -132,6 +132,19 @@ impl PyBasisAngularOrder {
         Self { basis_atoms }
     }
 
+    /// Extracts basis angular order information from a Q-Chem HDF5 archive file.
+    ///
+    /// # Arguments
+    ///
+    /// * `filename` - A path to a Q-Chem HDF5 archive file. Python type: `str`.
+    ///
+    /// # Returns
+    ///
+    /// A sequence of `PyBasisAngularOrder` objects, one for each Q-Chem calculation found in the
+    /// HDF5 archive file. Python type: `list[PyBasisAngularOrder]`.
+    ///
+    /// A summary showing how the `PyBasisAngularOrder` objects map onto the Q-Chem calculations in
+    /// the HDF5 archive file is also logged at the `INFO` level.
     #[cfg(feature = "qchem")]
     #[classmethod]
     fn from_qchem_archive(_cls: &Bound<'_, PyType>, filename: &str) -> PyResult<Vec<Self>> {
