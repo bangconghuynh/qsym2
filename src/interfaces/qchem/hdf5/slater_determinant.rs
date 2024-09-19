@@ -70,7 +70,7 @@ lazy_static! {
 /// analysis for all discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5`
 /// file.
 #[derive(Clone, Builder)]
-pub(crate) struct QChemSlaterDeterminantH5Driver<'a, T>
+pub struct QChemSlaterDeterminantH5Driver<'a, T>
 where
     T: Clone,
 {
@@ -106,7 +106,7 @@ where
     T: Clone,
 {
     /// Returns a builder to construct a [`QChemSlaterDeterminantH5Driver`].
-    pub(crate) fn builder() -> QChemSlaterDeterminantH5DriverBuilder<'a, T> {
+    pub fn builder() -> QChemSlaterDeterminantH5DriverBuilder<'a, T> {
         QChemSlaterDeterminantH5DriverBuilder::default()
     }
 }
@@ -119,7 +119,7 @@ where
 // ''''''''''''''''''''''''''''''''''''''''''''''''
 impl<'a> QChemSlaterDeterminantH5Driver<'a, f64> {
     /// Performs analysis for all real-valued single-point determinants.
-    fn analyse(&mut self) -> Result<(), anyhow::Error> {
+    pub fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let f = hdf5::File::open(&self.filename)?;
         let mut sp_paths = f
             .group(".counters")?
@@ -322,7 +322,7 @@ impl<'a> QSym2Driver for QChemSlaterDeterminantH5Driver<'a, f64> {
 // ---------------
 
 /// Enumerated type to distinguish different kinds of molecular orbitals.
-enum OrbitalType {
+pub enum OrbitalType {
     /// Canonical molecular orbitals as obtained by diagonalising Fock matrices.
     Canonical,
 
@@ -337,7 +337,7 @@ enum OrbitalType {
 /// Driver to perform symmetry-group detection and representation analysis for a single-point
 /// calculation result in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
-struct QChemSlaterDeterminantH5SinglePointDriver<'a, G, T>
+pub struct QChemSlaterDeterminantH5SinglePointDriver<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -380,7 +380,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
-    fn energy_function_index(&mut self, idx: &str) -> &mut Self {
+    pub fn energy_function_index(&mut self, idx: &str) -> &mut Self {
         self.energy_function_index = Some(idx.to_string());
         self
     }
@@ -394,12 +394,12 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`QChemSlaterDeterminantH5SinglePointDriver`].
-    pub(crate) fn builder() -> QChemSlaterDeterminantH5SinglePointDriverBuilder<'a, G, T> {
+    pub fn builder() -> QChemSlaterDeterminantH5SinglePointDriverBuilder<'a, G, T> {
         QChemSlaterDeterminantH5SinglePointDriverBuilder::default()
     }
 
     /// Extracts the molecular structure from the single-point H5 group.
-    fn extract_molecule(&self) -> Result<Molecule, anyhow::Error> {
+    pub fn extract_molecule(&self) -> Result<Molecule, anyhow::Error> {
         let emap = ElementMap::new();
         let coordss = self
             .sp_group
@@ -432,7 +432,7 @@ where
     }
 
     /// Extracts the basis angular order information from the single-point H5 group.
-    fn extract_bao(&self, mol: &'a Molecule) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
+    pub fn extract_bao(&self, mol: &'a Molecule) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
         let shell_types = self
             .sp_group
             .dataset("aobasis/shell_types")?
@@ -510,7 +510,7 @@ where
     /// functions. This is inconsistent with the conventional Q-Chem ordering used for molecular
     /// orbital coefficients. See [`Self::recompute_sao`] for a way to get the atomic-orbital
     /// overlap matrix with the consistent Cartesian ordering.
-    fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
+    pub fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
         self.sp_group
             .dataset("aobasis/overlap_matrix")?
             .read_2d::<T>()
@@ -518,7 +518,7 @@ where
     }
 
     /// Extracts the full basis set information from the single-point H5 group.
-    fn extract_basis_set(&self, mol: &'a Molecule) -> Result<BasisSet<f64, f64>, anyhow::Error> {
+    pub fn extract_basis_set(&self, mol: &'a Molecule) -> Result<BasisSet<f64, f64>, anyhow::Error> {
         let shell_types = self
             .sp_group
             .dataset("aobasis/shell_types")?
@@ -814,7 +814,7 @@ where
     /// # Returns
     ///
     /// The extracted Slater determinant.
-    fn extract_determinant(
+    pub fn extract_determinant(
         &self,
         mol: &'a Molecule,
         bao: &'a BasisAngularOrder,
@@ -960,7 +960,7 @@ where
 )]
 impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
     #[doc = doc_]
-    fn analyse(&mut self) -> Result<(), anyhow::Error> {
+    pub fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let mol = self.extract_molecule()
             .with_context(|| "Unable to extract the molecule from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")?;
         log::debug!("Performing symmetry-group detection...");
