@@ -56,12 +56,12 @@ impl PureOrderBuilder {
 }
 
 impl PureOrder {
-    /// Returns a builder to construct a new `PureOrder` structure.
+    /// Returns a builder to construct a new [`PureOrder`] structure.
     fn builder() -> PureOrderBuilder {
         PureOrderBuilder::default()
     }
 
-    /// Constructs a new `PureOrder` structure from its constituting $`m_l`$ values.
+    /// Constructs a new [`PureOrder`] structure from its constituting $`m_l`$ values.
     pub fn new(mls: &[i32]) -> Result<Self, anyhow::Error> {
         let lpure = mls
             .iter()
@@ -77,7 +77,7 @@ impl PureOrder {
         Ok(pure_order)
     }
 
-    /// Constructs a new `PureOrder` structure for a specified rank with increasing-$`m`$ order.
+    /// Constructs a new [`PureOrder`] structure for a specified rank with increasing-$`m`$ order.
     ///
     /// # Arguments
     ///
@@ -85,7 +85,7 @@ impl PureOrder {
     ///
     /// # Returns
     ///
-    /// A `PureOrder` struct for a specified rank with increasing-$`m`$ order.
+    /// A [`PureOrder`] struct for a specified rank with increasing-$`m`$ order.
     #[must_use]
     pub fn increasingm(lpure: u32) -> Self {
         let lpure_i32 = i32::try_from(lpure).expect("`lpure` cannot be converted to `i32`.");
@@ -97,7 +97,7 @@ impl PureOrder {
             .expect("Unable to construct a `PureOrder` structure with increasing-m order.")
     }
 
-    /// Constructs a new `PureOrder` structure for a specified rank with decreasing-$`m`$ order.
+    /// Constructs a new [`PureOrder`] structure for a specified rank with decreasing-$`m`$ order.
     ///
     /// # Arguments
     ///
@@ -105,7 +105,7 @@ impl PureOrder {
     ///
     /// # Returns
     ///
-    /// A `PureOrder` struct for a specified rank with decreasing-$`m`$ order.
+    /// A [`PureOrder`] struct for a specified rank with decreasing-$`m`$ order.
     #[must_use]
     pub fn decreasingm(lpure: u32) -> Self {
         let lpure_i32 = i32::try_from(lpure).expect("`lpure` cannot be converted to `i32`.");
@@ -117,7 +117,7 @@ impl PureOrder {
             .expect("Unable to construct a `PureOrder` structure with decreasing-m order.")
     }
 
-    /// Constructs a new `PureOrder` structure for a specified rank with Molden order.
+    /// Constructs a new [`PureOrder`] structure for a specified rank with Molden order.
     ///
     /// # Arguments
     ///
@@ -125,7 +125,7 @@ impl PureOrder {
     ///
     /// # Returns
     ///
-    /// A `PureOrder` struct for a specified rank with Molden order.
+    /// A [`PureOrder`] struct for a specified rank with Molden order.
     #[must_use]
     pub fn molden(lpure: u32) -> Self {
         let lpure_i32 = i32::try_from(lpure).expect("`lpure` cannot be converted to `i32`.");
@@ -145,11 +145,11 @@ impl PureOrder {
             .expect("Unable to construct a `PureOrder` structure with Molden order.")
     }
 
-    /// Verifies if this `PureOrder` struct is valid.
+    /// Verifies if this [`PureOrder`] struct is valid.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if this `PureOrder` struct is valid.
+    /// A boolean indicating if this [`PureOrder`] struct is valid.
     #[must_use]
     pub fn verify(&self) -> bool {
         let mls_set = self.mls.iter().collect::<HashSet<_>>();
@@ -262,12 +262,12 @@ impl CartOrderBuilder {
 }
 
 impl CartOrder {
-    /// Returns a builder to construct a new `CartOrder` structure.
+    /// Returns a builder to construct a new [`CartOrder`] structure.
     fn builder() -> CartOrderBuilder {
         CartOrderBuilder::default()
     }
 
-    /// Constructs a new `CartOrder` structure from its constituting tuples, each of which contains
+    /// Constructs a new [`CartOrder`] structure from its constituting tuples, each of which contains
     /// the $`x`$, $`y`$, and $`z`$ exponents for one Cartesian term.
     ///
     /// # Errors
@@ -288,7 +288,7 @@ impl CartOrder {
         Ok(cart_order)
     }
 
-    /// Constructs a new `CartOrder` structure for a specified rank with lexicographic order.
+    /// Constructs a new [`CartOrder`] structure for a specified rank with lexicographic order.
     ///
     /// # Arguments
     ///
@@ -296,7 +296,7 @@ impl CartOrder {
     ///
     /// # Returns
     ///
-    /// A `CartOrder` struct for a specified rank with lexicographic order.
+    /// A [`CartOrder`] struct for a specified rank with lexicographic order.
     #[must_use]
     pub fn lex(lcart: u32) -> Self {
         let mut cart_tuples =
@@ -313,7 +313,7 @@ impl CartOrder {
             .expect("Unable to construct a `CartOrder` structure with lexicographic order.")
     }
 
-    /// Constructs a new `CartOrder` structure for a specified rank with Molden order.
+    /// Constructs a new [`CartOrder`] structure for a specified rank with Molden order.
     ///
     /// # Arguments
     ///
@@ -321,7 +321,7 @@ impl CartOrder {
     ///
     /// # Returns
     ///
-    /// A `CartOrder` struct for a specified rank with Q-Chem order.
+    /// A [`CartOrder`] struct for a specified rank with Q-Chem order.
     ///
     /// # Panics
     ///
@@ -378,7 +378,7 @@ impl CartOrder {
             .expect("Unable to construct a `CartOrder` structure with Molden order.")
     }
 
-    /// Constructs a new `CartOrder` structure for a specified rank with Q-Chem order.
+    /// Constructs a new [`CartOrder`] structure for a specified rank with Q-Chem order.
     ///
     /// # Arguments
     ///
@@ -386,7 +386,7 @@ impl CartOrder {
     ///
     /// # Returns
     ///
-    /// A `CartOrder` struct for a specified rank with Q-Chem order.
+    /// A [`CartOrder`] struct for a specified rank with Q-Chem order.
     #[must_use]
     pub fn qchem(lcart: u32) -> Self {
         let cart_tuples: Vec<(u32, u32, u32)> = if lcart > 0 {
@@ -421,11 +421,11 @@ impl CartOrder {
             .expect("Unable to construct a `CartOrder` structure with Q-Chem order.")
     }
 
-    /// Verifies if this `CartOrder` struct is valid.
+    /// Verifies if this [`CartOrder`] struct is valid.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if this `CartOrder` struct is valid.
+    /// A boolean indicating if this [`CartOrder`] struct is valid.
     #[must_use]
     pub fn verify(&self) -> bool {
         let cart_tuples_set = self.cart_tuples.iter().collect::<HashSet<_>>();
@@ -900,11 +900,11 @@ impl<'a> BasisAngularOrder<'a> {
 impl<'a> PermutableCollection for BasisAngularOrder<'a> {
     type Rank = usize;
 
-    /// Determines the permutation of `BasisAtom`s to map `self` to `other`.
+    /// Determines the permutation of [`BasisAtom`]s to map `self` to `other`.
     ///
     /// # Arguments
     ///
-    /// * `other` - Another `BasisAngularOrder` to be compared with `self`.
+    /// * `other` - Another [`BasisAngularOrder`] to be compared with `self`.
     ///
     /// # Returns
     ///
