@@ -77,7 +77,7 @@ cibuildwheel-linux:
     - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
   script:
     - curl -sSL https://get.docker.com/ | sh
-    - python -m pip install cibuildwheel>=2.13.1
+    - python -m pip install cibuildwheel<2.21.0
     - cibuildwheel --platform linux --output-dir wheelhouse
     - tar -czvf qsym2-$TAG-wheels.tar.gz wheelhouse/*
   artifacts:
