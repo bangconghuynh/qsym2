@@ -437,6 +437,7 @@ macro_rules! impl_shell_tuple {
 /// * `$shell` - A tuple `(shell, cc)` where `shell` is a [`BasisShellContraction`] and `cc` a
 /// boolean indicating if the shell is complex-conjugated.
 /// * `$ty` - The data type for the overlap values from this shell tuple.
+#[macro_export]
 macro_rules! build_shell_tuple {
     ( $($shell:expr),+; $ty:ty ) => {
         {
@@ -645,7 +646,7 @@ impl_shell_tuple![RANK_3, <s1, s2, s3>];
 impl_shell_tuple![RANK_4, <s1, s2, s3, s4>];
 impl_shell_tuple![RANK_5, <s1, s2, s3, s4, s5>];
 
-pub use {build_shell_tuple, build_shell_tuple_collection};
+pub(crate) use {build_shell_tuple, build_shell_tuple_collection};
 
 #[cfg(test)]
 #[path = "shell_tuple_tests.rs"]
