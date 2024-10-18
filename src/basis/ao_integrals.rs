@@ -167,22 +167,22 @@ pub struct BasisShellContraction<E, C> {
 
 impl<E, C> BasisShellContraction<E, C> {
     /// The basis function ordering information of this shell.
-    pub(crate) fn basis_shell(&self) -> &BasisShell {
+    pub fn basis_shell(&self) -> &BasisShell {
         &self.basis_shell
     }
 
     /// The plane-wave $`\mathbf{k}`$ vector in the exponent.
-    pub(crate) fn k(&self) -> Option<&Vector3<f64>> {
+    pub fn k(&self) -> Option<&Vector3<f64>> {
         self.k.as_ref()
     }
 
     /// The Cartesian origin $`\mathbf{R}`$ of this shell.
-    pub(crate) fn cart_origin(&self) -> &Point3<f64> {
+    pub fn cart_origin(&self) -> &Point3<f64> {
         &self.cart_origin
     }
 
     /// The number of primitive Gaussians in this shell.
-    pub(crate) fn contraction_length(&self) -> usize {
+    pub fn contraction_length(&self) -> usize {
         self.contraction.contraction_length()
     }
 
@@ -202,7 +202,7 @@ impl<E, C> BasisShellContraction<E, C> {
     ///
     /// * `b` - The magnetic field vector $`\mathbf{B}`$.
     /// * `g` - The gauge origin $`\mathbf{G}`$.
-    pub(crate) fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
+    pub fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
         let k = 0.5 * b.cross(&(self.cart_origin.coords - g.coords));
         self.k = Some(k);
         self
@@ -213,7 +213,7 @@ impl BasisShellContraction<f64, f64> {
     /// Computes the self-overlap ($`\mathcal{l}_2`$-norm) of this shell and divides in-place the
     /// contraction coefficients by ther square root of this, so that the functions in the shell
     /// are always normalised.
-    pub(crate) fn renormalise(&mut self) -> &mut Self {
+    pub fn renormalise(&mut self) -> &mut Self {
         let c_self = self.clone();
         let st = crate::integrals::shell_tuple::build_shell_tuple![
             (&c_self, true), (&c_self, false); f64
@@ -253,7 +253,7 @@ impl BasisShellContraction<f64, f64> {
     /// # Returns
     ///
     /// A vector of vectors of [`Self`].
-    pub(crate) fn from_bse(
+    pub fn from_bse(
         mol: &Molecule,
         basis_name: &str,
         cart: bool,
