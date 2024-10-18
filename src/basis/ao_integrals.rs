@@ -33,8 +33,15 @@ pub struct GaussianContraction<E, C> {
 
 impl<E, C> GaussianContraction<E, C> {
     /// The number of primitive Gaussians in this contraction.
-    pub(crate) fn contraction_length(&self) -> usize {
+    pub fn contraction_length(&self) -> usize {
         self.primitives.len()
+    }
+
+    /// Constituent primitives in the contraction. Each primitive has the form
+    /// $`c\exp\left[-\alpha\lvert \mathbf{r} - \mathbf{R} \rvert^2\right]`$ is characterised by a
+    /// tuple of its exponent $`\alpha`$ and coefficient $`c`$, respectively.
+    pub fn primitives(&self) -> &Vec<(E, C)> {
+        &self.primitives
     }
 }
 
@@ -169,6 +176,11 @@ impl<E, C> BasisShellContraction<E, C> {
     /// The basis function ordering information of this shell.
     pub fn basis_shell(&self) -> &BasisShell {
         &self.basis_shell
+    }
+
+    /// The Gaussian primitives in the contraction of this shell.
+    pub fn contraction(&self) -> &GaussianContraction<E, C> {
+        &self.contraction
     }
 
     /// The plane-wave $`\mathbf{k}`$ vector in the exponent.
