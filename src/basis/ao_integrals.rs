@@ -5,6 +5,7 @@ use std::ops::Index;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
+use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use rayon::prelude::*;
 use reqwest;
@@ -377,6 +378,12 @@ pub struct BasisSet<E, C> {
 }
 
 impl<E, C> BasisSet<E, C> {
+    /// Returns a reference to the vector of vectors containing basis information for the atoms in
+    /// this molecule. Each inner vector is for one atom.
+    pub fn basis_atoms(&self) -> &Vec<Vec<BasisShellContraction<E, C>>> {
+        &self.basis_atoms
+    }
+
     /// Creates a new [`BasisSet`] structure from a vector of vectors of basis shells.
     ///
     /// # Arguments
@@ -458,7 +465,9 @@ impl<E, C> BasisSet<E, C> {
 
     /// The number of basis functions in the basis set.
     pub(crate) fn n_funcs(&self) -> usize {
-        self.all_shells().map(|shell| shell.basis_shell.n_funcs()).sum::<usize>()
+        self.all_shells()
+            .map(|shell| shell.basis_shell.n_funcs())
+            .sum::<usize>()
     }
 
     /// Sorts the shells in each atom by their angular momenta.
