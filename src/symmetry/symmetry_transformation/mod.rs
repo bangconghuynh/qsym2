@@ -547,7 +547,7 @@ where
 ///
 /// A vector of spherical-harmonic rotation matrices, one for each shells in `bao`. Non-standard
 /// orderings of functions in shells are taken into account.
-pub(crate) fn assemble_sh_rotation_3d_matrices(
+pub fn assemble_sh_rotation_3d_matrices(
     bao: &BasisAngularOrder,
     rmat: &Array2<f64>,
     perm: Option<&Permutation<usize>>,
