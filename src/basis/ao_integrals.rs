@@ -393,7 +393,7 @@ impl<E, C> BasisSet<E, C> {
     /// # Returns
     ///
     /// A new [`BasisSet`] structure.
-    pub(crate) fn new(batms: Vec<Vec<BasisShellContraction<E, C>>>) -> Self {
+    pub fn new(batms: Vec<Vec<BasisShellContraction<E, C>>>) -> Self {
         let atom_boundaries = batms
             .iter()
             .scan(0, |acc, batm| {
@@ -448,7 +448,7 @@ impl<E, C> BasisSet<E, C> {
     ///
     /// * `b` - The magnetic field vector $`\mathbf{B}`$.
     /// * `g` - The gauge origin $`\mathbf{G}`$.
-    pub(crate) fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
+    pub fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
         self.all_shells_mut().for_each(|shell| {
             shell.apply_magnetic_field(b, g);
         });
@@ -456,7 +456,7 @@ impl<E, C> BasisSet<E, C> {
     }
 
     /// The number of shells in the basis set.
-    pub(crate) fn n_shells(&self) -> usize {
+    pub fn n_shells(&self) -> usize {
         self.basis_atoms
             .iter()
             .map(|batm| batm.len())
@@ -464,14 +464,14 @@ impl<E, C> BasisSet<E, C> {
     }
 
     /// The number of basis functions in the basis set.
-    pub(crate) fn n_funcs(&self) -> usize {
+    pub fn n_funcs(&self) -> usize {
         self.all_shells()
             .map(|shell| shell.basis_shell.n_funcs())
             .sum::<usize>()
     }
 
     /// Sorts the shells in each atom by their angular momenta.
-    pub(crate) fn sort_by_angular_momentum(&mut self) -> &mut Self {
+    pub fn sort_by_angular_momentum(&mut self) -> &mut Self {
         self.basis_atoms
             .iter_mut()
             .for_each(|batm| batm.sort_by_key(|bsc| bsc.basis_shell.l));
@@ -479,17 +479,17 @@ impl<E, C> BasisSet<E, C> {
     }
 
     /// Returns the function shell boundaries.
-    pub(crate) fn shell_boundaries(&self) -> &Vec<(usize, usize)> {
+    pub fn shell_boundaries(&self) -> &Vec<(usize, usize)> {
         &self.shell_boundaries
     }
 
     /// Returns an iterator over all shells in the basis set.
-    pub(crate) fn all_shells(&self) -> impl Iterator<Item = &BasisShellContraction<E, C>> {
+    pub fn all_shells(&self) -> impl Iterator<Item = &BasisShellContraction<E, C>> {
         self.basis_atoms.iter().flatten()
     }
 
     /// Returns a mutable iterator over all shells in the basis set.
-    pub(crate) fn all_shells_mut(
+    pub fn all_shells_mut(
         &mut self,
     ) -> impl Iterator<Item = &mut BasisShellContraction<E, C>> {
         self.basis_atoms.iter_mut().flatten()
@@ -523,7 +523,7 @@ impl BasisSet<f64, f64> {
     /// # Returns
     ///
     /// A [`BasisSet`] structure.
-    pub(crate) fn from_bse(
+    pub fn from_bse(
         mol: &Molecule,
         basis_name: &str,
         cart: bool,
