@@ -105,7 +105,7 @@ impl PyVibrationalCoordinateCollectionReal {
     fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
-    ) -> Result<VibrationalCoordinateCollection<f64>, anyhow::Error> {
+    ) -> Result<VibrationalCoordinateCollection<'b, f64>, anyhow::Error> {
         let vibs = VibrationalCoordinateCollection::<f64>::builder()
             .mol(mol)
             .coefficients(self.coefficients.clone())
@@ -189,7 +189,7 @@ impl PyVibrationalCoordinateCollectionComplex {
     fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
-    ) -> Result<VibrationalCoordinateCollection<C128>, anyhow::Error> {
+    ) -> Result<VibrationalCoordinateCollection<'b, C128>, anyhow::Error> {
         let vibs = VibrationalCoordinateCollection::<C128>::builder()
             .mol(mol)
             .coefficients(self.coefficients.clone())

@@ -297,7 +297,8 @@ impl PyBasisAngularOrder {
         qsym2_output!("");
         "Each single-point calculation has associated with it a `PyBasisAngularOrder` object.\n\
         The table below shows the `PyBasisAngularOrder` index in the generated list and the\n\
-        corresponding single-point calculation.".log_output_display();
+        corresponding single-point calculation."
+            .log_output_display();
         qsym2_output!("{}", "┈".repeat(table_width));
         qsym2_output!(" {:<idx_width$}  {:<}", "Index", "Q-Chem job");
         qsym2_output!("{}", "┈".repeat(table_width));
@@ -330,7 +331,7 @@ impl PyBasisAngularOrder {
     pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
-    ) -> Result<BasisAngularOrder, anyhow::Error> {
+    ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
             "The number of basis atoms does not match the number of ordinary atoms."
@@ -373,6 +374,12 @@ pub enum PySpinConstraint {
     /// Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$
     /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
     Generalised,
+
+    /// Variant for relativistic generalised spin constraint. Only two spin spaces arranged in
+    /// decreasing-$`m`$ order and grouped by relativistic components
+    /// (*i.e.* $`(\alpha^{\mathrm{L}}, \beta^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{S}})`$)
+    /// are exposed.
+    RelativisticGeneralised,
 }
 
 impl From<PySpinConstraint> for SpinConstraint {
@@ -381,6 +388,9 @@ impl From<PySpinConstraint> for SpinConstraint {
             PySpinConstraint::Restricted => SpinConstraint::Restricted(2),
             PySpinConstraint::Unrestricted => SpinConstraint::Unrestricted(2, false),
             PySpinConstraint::Generalised => SpinConstraint::Generalised(2, false),
+            PySpinConstraint::RelativisticGeneralised => {
+                SpinConstraint::RelativisticGeneralised(2, false, true)
+            }
         }
     }
 }
@@ -393,8 +403,9 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
             SpinConstraint::Restricted(2) => Ok(PySpinConstraint::Restricted),
             SpinConstraint::Unrestricted(2, false) => Ok(PySpinConstraint::Unrestricted),
             SpinConstraint::Generalised(2, false) => Ok(PySpinConstraint::Generalised),
+            SpinConstraint::RelativisticGeneralised(2, false, true) => Ok(PySpinConstraint::RelativisticGeneralised),
             _ => Err(format_err!(
-                "`PySpinConstraint` can only support two spin spaces."
+                "`PySpinConstraint` can only support two spin spaces in restricted, unrestricted, generalised, or relativistic generalised constraints."
             )),
         }
     }
