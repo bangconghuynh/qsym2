@@ -148,7 +148,9 @@ where
             SpinConstraint::Restricted(n_spin_spaces) => {
                 Ok(ComplexFloat::powi(ov, n_spin_spaces.into()))
             }
-            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => Ok(ov),
+            SpinConstraint::Unrestricted(_, _)
+            | SpinConstraint::Generalised(_, _)
+            | SpinConstraint::RelativisticGeneralised(_, _, _) => Ok(ov),
         }
     }
 
