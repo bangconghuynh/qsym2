@@ -36,10 +36,22 @@ pub enum SpinConstraint {
     /// different, and no spin collinearity is imposed. The associated values are the number of spin
     /// spaces and a boolean indicating if the spin spaces are arranged in increasing $`m`$ order.
     Generalised(u16, bool),
+
+    /// Variant for relativistic spin constraint: the spatial parts of different spin spaces are
+    /// different, and no spin collinearity is imposed. A relativistic wavefunction consists of two
+    /// components (typically referred to as 'large' and 'small'). The associated values give the
+    /// number of generalised spin spaces in each relativistic component, a boolean indicating if
+    /// the spin spaces are arranged in increasing $`m`$ order, and a boolean indicating if spin
+    /// spaces are grouped according to relativistic components (*e.g.*
+    /// $`\alpha^{\mathrm{L}}, \beta^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{S}}`$ for
+    /// `true`), or according to spin values (*e.g.*
+    /// $`\alpha^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{L}}, \beta^{\mathrm{S}}`$ for
+    /// `false`).
+    RelativisticGeneralised(u16, bool, bool),
 }
 
 impl SpinConstraint {
-    /// Returns the total number of units of consideration.
+    /// Returns the total number of 'units' of consideration.
     ///
     /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
     pub fn nunits(&self) -> u16 {
@@ -47,6 +59,7 @@ impl SpinConstraint {
             Self::Restricted(nspins) => *nspins,
             Self::Unrestricted(nspins, _) => *nspins,
             Self::Generalised(_, _) => 1,
+            Self::RelativisticGeneralised(_, _, _) => 1,
         }
     }
 
@@ -58,6 +71,7 @@ impl SpinConstraint {
             Self::Restricted(_) => 1,
             Self::Unrestricted(_, _) => 1,
             Self::Generalised(nspins, _) => *nspins,
+            Self::RelativisticGeneralised(nspins, _, _) => *nspins,
         }
     }
 
@@ -67,6 +81,7 @@ impl SpinConstraint {
             Self::Restricted(nspins) => *nspins,
             Self::Unrestricted(nspins, _) => *nspins,
             Self::Generalised(nspins, _) => *nspins,
+            Self::RelativisticGeneralised(nspins, _, _) => 2 * nspins,
         }
     }
 }
@@ -100,6 +115,22 @@ impl fmt::Display for SpinConstraint {
                     "increasing"
                 } else {
                     "decreasing"
+                }
+            ),
+            Self::RelativisticGeneralised(nspins, increasingm, groupedbyrelcomp) => write!(
+                f,
+                "Relativistic Generalised ({} spin {} per relativistic component, {} m, {})",
+                nspins,
+                if *nspins == 1 { "space" } else { "spaces" },
+                if *increasingm {
+                    "increasing"
+                } else {
+                    "decreasing"
+                },
+                if *groupedbyrelcomp {
+                    "grouped by relativistic components"
+                } else {
+                    "grouped by spin values"
                 }
             ),
         }
