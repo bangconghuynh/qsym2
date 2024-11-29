@@ -605,6 +605,20 @@ where
                 });
                 sao_g
             }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                let nspins_usize = usize::from(nspins);
+                let nspatial = self.sao_spatial.nrows();
+                let mut sao_rg =
+                    Array2::zeros((2 * nspins_usize * nspatial, 2 * nspins_usize * nspatial));
+                (0..2 * nspins_usize).for_each(|ispin| {
+                    let start = ispin * nspatial;
+                    let end = (ispin + 1) * nspatial;
+                    sao_rg
+                        .slice_mut(s![start..end, start..end])
+                        .assign(self.sao_spatial);
+                });
+                sao_rg
+            }
         };
 
         let sao_h = self
@@ -626,6 +640,20 @@ where
                             .assign(sao_spatial_h);
                     });
                     sao_g
+                }
+                SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                    let nspins_usize = usize::from(nspins);
+                    let nspatial = sao_spatial_h.nrows();
+                    let mut sao_rg =
+                        Array2::zeros((2 * nspins_usize * nspatial, 2 * nspins_usize * nspatial));
+                    (0..2 * nspins_usize).for_each(|irelspin| {
+                        let start = irelspin * nspatial;
+                        let end = (irelspin + 1) * nspatial;
+                        sao_rg
+                            .slice_mut(s![start..end, start..end])
+                            .assign(sao_spatial_h);
+                    });
+                    sao_rg
                 }
             });
 
