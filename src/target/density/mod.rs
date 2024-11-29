@@ -91,6 +91,17 @@ where
                     Ok(())
                 }
             }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                if densities.len() != usize::from(2 * nspins) {
+                    Err(format!(
+                        "{} densities expected in relativistic generalised spin constraint, but {} found.",
+                        2 * nspins,
+                        densities.len()
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
         }
     }
 }
@@ -183,6 +194,17 @@ where
                     Ok(())
                 }
             }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                if densities.len() != usize::from(2 * nspins) {
+                    Err(format!(
+                        "{} densities expected in relativistic generalised spin constraint, but {} found.",
+                        2 * nspins,
+                        densities.len()
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
         }
     }
 }
@@ -198,7 +220,7 @@ where
     }
 }
 
-/// Structure to manage particle spatial densities.
+/// Structure to manage particle *spatial* densities.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Density<'a, T>
