@@ -623,7 +623,9 @@ where
                 SpinConstraint::Restricted(n_spin_spaces) => {
                     ComplexFloat::powi(w0_ov, (*n_spin_spaces).into())
                 }
-                SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => w0_ov,
+                SpinConstraint::Unrestricted(_, _)
+                | SpinConstraint::Generalised(_, _)
+                | SpinConstraint::RelativisticGeneralised(_, _, _) => w0_ov,
             };
             det_smatw0[w] = w0_ov;
         }
@@ -640,10 +642,8 @@ where
 
             for (ispin, mo_smatw0s) in mo_smatw0ss.iter().enumerate() {
                 for (imo, mo_smat_w0) in mo_smatw0s.iter().enumerate() {
-                    mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
-                        .norm_preserving_scalar_map(jinv)?(
-                        mo_smat_w0[jinv_i]
-                    )
+                    mo_smatss[ispin][imo][(i, j)] =
+                        mo_orbitss[ispin][imo].norm_preserving_scalar_map(jinv)?(mo_smat_w0[jinv_i])
                 }
             }
 
@@ -727,7 +727,9 @@ where
                 SpinConstraint::Restricted(n_spin_spaces) => {
                     ComplexFloat::powi(wx_ov, (*n_spin_spaces).into())
                 }
-                SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => wx_ov,
+                SpinConstraint::Unrestricted(_, _)
+                | SpinConstraint::Generalised(_, _)
+                | SpinConstraint::RelativisticGeneralised(_, _, _) => wx_ov,
             };
             det_smat[(*w, *x)] = wx_ov;
         }

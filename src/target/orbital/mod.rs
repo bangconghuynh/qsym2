@@ -90,13 +90,18 @@ where
             .as_ref()
             .ok_or("No spin constraint found.".to_string())?
         {
-            SpinConstraint::Restricted(n) | SpinConstraint::Unrestricted(n, _) => {
-                spin_index < usize::from(*n) && coefficients.shape()[0] == nbas
+            SpinConstraint::Restricted(nspins) | SpinConstraint::Unrestricted(nspins, _) => {
+                spin_index < usize::from(*nspins) && coefficients.shape()[0] == nbas
             }
             SpinConstraint::Generalised(nspins, _) => {
                 spin_index == 0
                     && coefficients.shape()[0].rem_euclid(nbas) == 0
                     && coefficients.shape()[0].div_euclid(nbas) == usize::from(*nspins)
+            }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                spin_index == 0
+                    && coefficients.shape()[0].rem_euclid(nbas) == 0
+                    && coefficients.shape()[0].div_euclid(nbas) == usize::from(2 * nspins)
             }
         };
         if !spincons {
@@ -173,7 +178,8 @@ where
                     .build()
                     .expect("Unable to construct a generalised molecular orbital.")
             }
-            SpinConstraint::Generalised(_, _) => self.clone(),
+            SpinConstraint::Generalised(_, _)
+            | SpinConstraint::RelativisticGeneralised(_, _, _) => self.clone(),
         }
     }
 
@@ -212,45 +218,32 @@ where
 impl<'a> MolecularOrbital<'a, f64> {
     /// Constructs the total density of the molecular orbital.
     pub fn to_total_density(&'a self) -> Result<Density<'a, f64>, anyhow::Error> {
-        match self.spin_constraint {
+        let denmat = match self.spin_constraint {
             SpinConstraint::Restricted(nspins) => {
-                let denmat = f64::from(nspins) * einsum(
-                    "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.view()]
-                )
-                .expect("Unable to construct a density matrix from the coefficient matrix.")
-                .into_dimensionality::<Ix2>()
-                .expect("Unable to convert the resultant density matrix to two dimensions.");
-                Density::<f64>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
+                let denmat = f64::from(nspins)
+                    * einsum(
+                        "m,n->mn",
+                        &[&self.coefficients.view(), &self.coefficients.view()],
+                    )
+                    .expect("Unable to construct a density matrix from the coefficient matrix.")
+                    .into_dimensionality::<Ix2>()
+                    .expect("Unable to convert the resultant density matrix to two dimensions.");
+                denmat
             }
             SpinConstraint::Unrestricted(_, _) => {
                 let denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.view()]
+                    &[&self.coefficients.view(), &self.coefficients.view()],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                Density::<f64>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
+                denmat
             }
             SpinConstraint::Generalised(nspins, _) => {
                 let full_denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.view()]
+                    &[&self.coefficients.view(), &self.coefficients.view()],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -258,20 +251,44 @@ impl<'a> MolecularOrbital<'a, f64> {
                 let nspatial = self.bao().n_funcs();
                 let denmat = (0..usize::from(nspins)).fold(
                     Array2::<f64>::zeros((nspatial, nspatial)),
-                    |acc, ispin| acc + full_denmat.slice(s![
-                        ispin*nspatial..(ispin+1)*nspatial, ispin*nspatial..(ispin+1)*nspatial
-                    ])
+                    |acc, ispin| {
+                        acc + full_denmat.slice(s![
+                            ispin * nspatial..(ispin + 1) * nspatial,
+                            ispin * nspatial..(ispin + 1) * nspatial
+                        ])
+                    },
                 );
-                Density::<f64>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
+                denmat
             }
-        }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                let full_denmat = einsum(
+                    "m,n->mn",
+                    &[&self.coefficients.view(), &self.coefficients.view()],
+                )
+                .expect("Unable to construct a density matrix from the coefficient matrix.")
+                .into_dimensionality::<Ix2>()
+                .expect("Unable to convert the resultant density matrix to two dimensions.");
+                let nspatial = self.bao().n_funcs();
+                let denmat = (0..usize::from(2 * nspins)).fold(
+                    Array2::<f64>::zeros((nspatial, nspatial)),
+                    |acc, irelspin| {
+                        acc + full_denmat.slice(s![
+                            irelspin * nspatial..(irelspin + 1) * nspatial,
+                            irelspin * nspatial..(irelspin + 1) * nspatial
+                        ])
+                    },
+                );
+                denmat
+            }
+        };
+        Density::<f64>::builder()
+            .density_matrix(denmat)
+            .bao(self.bao())
+            .mol(self.mol())
+            .complex_symmetric(self.complex_symmetric())
+            .threshold(self.threshold())
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 
@@ -282,47 +299,42 @@ where
 {
     /// Constructs the total density of the molecular orbital.
     pub fn to_total_density(&'a self) -> Result<Density<'a, Complex<T>>, anyhow::Error> {
-        match self.spin_constraint {
+        let denmat = match self.spin_constraint {
             SpinConstraint::Restricted(nspins) => {
                 let nspins_t = Complex::<T>::from(<T as From<u16>>::from(nspins));
                 let denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.map(Complex::conj).view()]
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.")
                 .map(|x| x * nspins_t);
-                Density::<Complex<T>>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
+                denmat
             }
             SpinConstraint::Unrestricted(_, _) => {
                 let denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.map(Complex::conj).view()]
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                Density::<Complex<T>>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
+                denmat
             }
             SpinConstraint::Generalised(nspins, _) => {
                 let full_denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.map(Complex::conj).view()]
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -330,20 +342,47 @@ where
                 let nspatial = self.bao().n_funcs();
                 let denmat = (0..usize::from(nspins)).fold(
                     Array2::<Complex<T>>::zeros((nspatial, nspatial)),
-                    |acc, ispin| acc + full_denmat.slice(s![
-                        ispin*nspatial..(ispin+1)*nspatial, ispin*nspatial..(ispin+1)*nspatial
-                    ])
+                    |acc, ispin| {
+                        acc + full_denmat.slice(s![
+                            ispin * nspatial..(ispin + 1) * nspatial,
+                            ispin * nspatial..(ispin + 1) * nspatial
+                        ])
+                    },
                 );
-                Density::<Complex<T>>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
+                denmat
             }
-        }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                let full_denmat = einsum(
+                    "m,n->mn",
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
+                )
+                .expect("Unable to construct a density matrix from the coefficient matrix.")
+                .into_dimensionality::<Ix2>()
+                .expect("Unable to convert the resultant density matrix to two dimensions.");
+                let nspatial = self.bao().n_funcs();
+                let denmat = (0..usize::from(2 * nspins)).fold(
+                    Array2::<Complex<T>>::zeros((nspatial, nspatial)),
+                    |acc, irelspin| {
+                        acc + full_denmat.slice(s![
+                            irelspin * nspatial..(irelspin + 1) * nspatial,
+                            irelspin * nspatial..(irelspin + 1) * nspatial
+                        ])
+                    },
+                );
+                denmat
+            }
+        };
+        Density::<Complex<T>>::builder()
+            .density_matrix(denmat)
+            .bao(self.bao())
+            .mol(self.mol())
+            .complex_symmetric(self.complex_symmetric())
+            .threshold(self.threshold())
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 
