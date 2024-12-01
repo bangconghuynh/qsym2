@@ -18,11 +18,106 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{CharacterTable, DecompositionError, SubspaceDecomposable};
 use crate::group::{class::ClassProperties, GroupProperties};
 use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
+
+// ======
+// Metric
+// ======
+
+/// Enumerated type to handle various choices for the specification of the metric matrices.
+#[derive(Clone)]
+pub(crate) enum Metric<'a, T, D: Dimension> {
+    /// The full (w.r.t. the pertinent spin constraint) atomic-orbital overlap matrix of the
+    /// underlying basis set used to describe the determinant. The first associated value contains
+    /// the Hermitian overlap matrix, and the second one contains the optional complex-symmetric
+    /// overlap matrix.
+    Full(&'a Array<T, D>, Option<&'a Array<T, D>>),
+
+    /// The atomic-orbital spatial overlap matrix of the underlying basis set used to describe the
+    /// determinant. The first associated value contains the Hermitian overlap matrix, and the
+    /// second one contains the optional complex-symmetric overlap matrix.
+    Spatial(&'a Array<T, D>, Option<&'a Array<T, D>>),
+}
+
+impl<'a, T, D: Dimension> Metric<'a, T, D> {
+    /// Validates the correctness of the specified metric matrices against a spin constraint and a
+    /// number of spatial atomic orbitals.
+    pub(crate) fn validate(&self, spincons: &SpinConstraint, nspatial: usize) -> Result<(), anyhow::Error> {
+        match self {
+            Metric::Full(metric_full, metric_h_full_opt) => match spincons {
+                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                    if metric_h_full_opt
+                        .map(|metric_h_full| metric_h_full.shape().iter().all(|s| *s == nspatial))
+                        .unwrap_or(true)
+                        && metric_full.shape().iter().all(|s| *s == nspatial)
+                    {
+                        Ok(())
+                    } else {
+                        Err(format_err!("Unexpected dimensions of full restricted or unrestricted metric matrix/matrices."))
+                    }
+                }
+                SpinConstraint::Generalised(nspins, _) => {
+                    if metric_h_full_opt
+                        .map(|metric_h_full| {
+                            metric_h_full
+                                .shape()
+                                .iter()
+                                .all(|s| *s == usize::from(*nspins) * nspatial)
+                        })
+                        .unwrap_or(true)
+                        && metric_full
+                            .shape()
+                            .iter()
+                            .all(|s| *s == usize::from(*nspins) * nspatial)
+                    {
+                        Ok(())
+                    } else {
+                        Err(format_err!(
+                            "Unexpected dimensions of full generalised metric matrix/matrices."
+                        ))
+                    }
+                }
+                SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                    if metric_h_full_opt
+                        .map(|metric_h_full| {
+                            metric_h_full
+                                .shape()
+                                .iter()
+                                .all(|s| *s == 2 * usize::from(*nspins) * nspatial)
+                        })
+                        .unwrap_or(true)
+                        && metric_full
+                            .shape()
+                            .iter()
+                            .all(|s| *s == 2 * usize::from(*nspins) * nspatial)
+                    {
+                        Ok(())
+                    } else {
+                        Err(format_err!(
+                            "Unexpected dimensions of full relativistic generalised metric matrix/matrices."
+                        ))
+                    }
+                }
+            },
+            Metric::Spatial(metric_spatial, metric_h_spatial_opt) => {
+                if metric_h_spatial_opt
+                    .map(|metric_h_spatial| metric_h_spatial.shape().iter().all(|s| *s == nspatial))
+                    .unwrap_or(true)
+                    && metric_spatial.shape().iter().all(|s| *s == nspatial)
+                {
+                    Ok(())
+                } else {
+                    Err(format_err!("Unexpected dimensions of full restricted or unrestricted metric matrix/matrices."))
+                }
+            }
+        }
+    }
+}
 
 // =======
 // Overlap
