@@ -8,7 +8,7 @@ use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use ndarray::{s, Array2, Array4};
+use ndarray::{s, Array2, Ix2, Ix4};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
@@ -16,8 +16,8 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{
-    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
-    RepAnalysis,
+    log_overlap_eigenvalues, EigenvalueComparisonMode, Metric, Orbit, Overlap,
+    ProjectionDecomposition, RepAnalysis,
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -33,7 +33,7 @@ use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+    log_subtitle, nice_bool, qsym2_error, qsym2_output, write_subtitle, write_title, QSym2Output,
 };
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
@@ -766,27 +766,18 @@ where
     /// Slater determinant.
     symmetry_group: &'a SymmetryGroupDetectionResult,
 
-    /// The atomic-orbital spatial overlap matrix of the underlying basis set used to describe the
-    /// determinant.
-    sao_spatial: &'a Array2<T>,
+    /// The atomic-orbital overlap matrix of the underlying basis set used to describe the
+    /// determinant. If antiunitary symmetry operations are involved, the complex-symmetric version
+    /// is also required, which will be assumed to be the same as the Hermitian version if none is
+    /// provided.
+    sao_2c: Metric<'a, T, Ix2>,
 
-    /// The complex-symmetric atomic-orbital spatial overlap matrix of the underlying basis set used
-    /// to describe the determinant. This is required if antiunitary symmetry operations are
-    /// involved. If none is provided, this will be assumed to be the same as [`Self::sao_spatial`].
+    /// The atomic-orbital four-centre overlap matrix of the underlying basis set used to describe
+    /// the determinant. This is only required for density symmetry analysis. If antiunitary
+    /// symmetry operations are involved, the complex-symmetric version is also required, which
+    /// will be assumed to be the same as the Hermitian version if none is provided.
     #[builder(default = "None")]
-    sao_spatial_h: Option<&'a Array2<T>>,
-
-    /// The atomic-orbital four-centre spatial overlap matrix of the underlying basis set used to
-    /// describe the determinant. This is only required for density symmetry analysis.
-    #[builder(default = "None")]
-    sao_spatial_4c: Option<&'a Array4<T>>,
-
-    /// The complex-symmetric atomic-orbital four-centre spatial overlap matrix of the underlying
-    /// basis set used to describe the determinant. This is only required for density symmetry
-    /// analysis. This is required if antiunitary symmetry operations are involved. If none is
-    /// provided, this will be assumed to be the same as [`Self::sao_spatial_4c`], if any.
-    #[builder(default = "None")]
-    sao_spatial_4c_h: Option<&'a Array4<T>>,
+    sao_4c: Option<Metric<'a, T, Ix4>>,
 
     /// The control parameters for symmetry analysis of angular functions.
     angular_function_parameters: &'a AngularFunctionRepAnalysisParams,
@@ -812,35 +803,10 @@ where
             .symmetry_group
             .ok_or("No symmetry group information found.".to_string())?;
 
-        let sao_spatial = self
-            .sao_spatial
-            .ok_or("No spatial SAO matrix found.".to_string())?;
-
-        if let Some(sao_spatial_h) = self.sao_spatial_h.flatten() {
-            if sao_spatial_h.shape() != sao_spatial.shape() {
-                return Err(
-                    "Mismatched shapes between `sao_spatial` and `sao_spatial_h`.".to_string(),
-                );
-            }
-        }
-
-        match (
-            self.sao_spatial_4c.flatten(),
-            self.sao_spatial_4c_h.flatten(),
-        ) {
-            (Some(sao_spatial_4c), Some(sao_spatial_4c_h)) => {
-                if sao_spatial_4c_h.shape() != sao_spatial_4c.shape() {
-                    return Err(
-                        "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`."
-                            .to_string(),
-                    );
-                }
-            }
-            (None, Some(_)) => {
-                return Err("`sao_spatial_4c_h` is provided without `sao_spatial_4c`.".to_string());
-            }
-            _ => {}
-        }
+        let sao_2c = self
+            .sao_2c
+            .as_ref()
+            .ok_or("No two-centre SAO matrices found.".to_string())?;
 
         let det = self
             .determinant
@@ -855,6 +821,16 @@ where
             &sym_res.unitary_symmetry
         };
 
+        sao_2c
+            .validate(det.spin_constraint(), det.bao().n_funcs())
+            .map_err(|err| err.to_string())?;
+
+        if let Some(Some(sao_4c)) = self.sao_4c.as_ref() {
+            sao_4c
+                .validate(det.spin_constraint(), det.bao().n_funcs())
+                .map_err(|err| err.to_string())?;
+        }
+
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
             Err(
                 format!(
@@ -863,10 +839,6 @@ where
                     sym.group_name.as_ref().expect("No symmetry group name found.")
                 )
             )
-        } else if det.bao().n_funcs() != sao_spatial.nrows()
-            || det.bao().n_funcs() != sao_spatial.ncols()
-        {
-            Err("The dimensions of the spatial SAO matrix do not match the number of spatial AO basis functions.".to_string())
         } else {
             Ok(())
         }
@@ -892,81 +864,89 @@ where
         SlaterDeterminantRepAnalysisDriverBuilder::default()
     }
 
-    /// Constructs the appropriate atomic-orbital overlap matrix based on the spin constraint of
-    /// the determinant.
+    /// Constructs the appropriate Hermitian and complex-symmetric (if available) atomic-orbital
+    /// overlap matrices based on the spin constraint of the determinant.
     fn construct_sao(&self) -> Result<(Array2<T>, Option<Array2<T>>), anyhow::Error> {
-        let sao = match self.determinant.spin_constraint() {
-            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                self.sao_spatial.clone()
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                let nspins_usize = usize::from(*nspins);
-                let nspatial = self.sao_spatial.nrows();
-                let mut sao_g = Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
-                (0..nspins_usize).for_each(|ispin| {
-                    let start = ispin * nspatial;
-                    let end = (ispin + 1) * nspatial;
-                    sao_g
-                        .slice_mut(s![start..end, start..end])
-                        .assign(self.sao_spatial);
-                });
-                sao_g
-            }
-            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
-                let nspins_usize = usize::from(*nspins);
-                let nspatial = self.sao_spatial.nrows();
-                let mut sao_rg =
-                    Array2::zeros((2 * nspins_usize * nspatial, 2 * nspins_usize * nspatial));
-                (0..2 * nspins_usize).for_each(|irelspin| {
-                    let start = irelspin * nspatial;
-                    let end = (irelspin + 1) * nspatial;
-                    sao_rg
-                        .slice_mut(s![start..end, start..end])
-                        .assign(self.sao_spatial);
-                });
-                sao_rg
-            }
-        };
-
-        let sao_h =
-            self.sao_spatial_h
-                .map(|sao_spatial_h| match self.determinant.spin_constraint() {
+        match self.sao_2c {
+            Metric::Full(sao_2c, sao_2c_h_opt) => Ok((sao_2c.clone(), sao_2c_h_opt.cloned())),
+            Metric::Spatial(sao_2c_spatial, sao_2c_spatial_h_opt) => {
+                let sao_2c = match self.determinant.spin_constraint() {
                     SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                        sao_spatial_h.clone()
+                        sao_2c_spatial.clone()
                     }
                     SpinConstraint::Generalised(nspins, _) => {
                         let nspins_usize = usize::from(*nspins);
-                        let nspatial = sao_spatial_h.nrows();
-                        let mut sao_g =
+                        let nspatial = sao_2c_spatial.nrows();
+                        let mut sao_2c_g =
                             Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
                         (0..nspins_usize).for_each(|ispin| {
                             let start = ispin * nspatial;
                             let end = (ispin + 1) * nspatial;
-                            sao_g
+                            sao_2c_g
                                 .slice_mut(s![start..end, start..end])
-                                .assign(sao_spatial_h);
+                                .assign(sao_2c_spatial);
                         });
-                        sao_g
+                        sao_2c_g
                     }
                     SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
                         let nspins_usize = usize::from(*nspins);
-                        let nspatial = sao_spatial_h.nrows();
-                        let mut sao_rg = Array2::zeros((
+                        let nspatial = sao_2c_spatial.nrows();
+                        let mut sao_2c_rg = Array2::zeros((
                             2 * nspins_usize * nspatial,
                             2 * nspins_usize * nspatial,
                         ));
-                        (0..2 * nspins_usize).for_each(|ispin| {
-                            let start = ispin * nspatial;
-                            let end = (ispin + 1) * nspatial;
-                            sao_rg
+                        (0..2 * nspins_usize).for_each(|irelspin| {
+                            let start = irelspin * nspatial;
+                            let end = (irelspin + 1) * nspatial;
+                            sao_2c_rg
                                 .slice_mut(s![start..end, start..end])
-                                .assign(sao_spatial_h);
+                                .assign(sao_2c_spatial);
                         });
-                        sao_rg
+                        sao_2c_rg
+                    }
+                };
+
+                let sao_2c_h_opt = sao_2c_spatial_h_opt.map(|sao_2c_spatial_h| {
+                    match self.determinant.spin_constraint() {
+                        SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                            sao_2c_spatial_h.clone()
+                        }
+                        SpinConstraint::Generalised(nspins, _) => {
+                            let nspins_usize = usize::from(*nspins);
+                            let nspatial = sao_2c_spatial_h.nrows();
+                            let mut sao_2c_g =
+                                Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
+                            (0..nspins_usize).for_each(|ispin| {
+                                let start = ispin * nspatial;
+                                let end = (ispin + 1) * nspatial;
+                                sao_2c_g
+                                    .slice_mut(s![start..end, start..end])
+                                    .assign(sao_2c_spatial_h);
+                            });
+                            sao_2c_g
+                        }
+                        SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                            let nspins_usize = usize::from(*nspins);
+                            let nspatial = sao_2c_spatial_h.nrows();
+                            let mut sao_2c_rg = Array2::zeros((
+                                2 * nspins_usize * nspatial,
+                                2 * nspins_usize * nspatial,
+                            ));
+                            (0..2 * nspins_usize).for_each(|ispin| {
+                                let start = ispin * nspatial;
+                                let end = (ispin + 1) * nspatial;
+                                sao_2c_rg
+                                    .slice_mut(s![start..end, start..end])
+                                    .assign(sao_2c_spatial_h);
+                            });
+                            sao_2c_rg
+                        }
                     }
                 });
 
-        Ok((sao, sao_h))
+                Ok((sao_2c, sao_2c_h_opt))
+            }
+        }
     }
 }
 
@@ -1229,6 +1209,19 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
 
         // Density and orbital density symmetries
         let (den_symmetries, mo_den_symmetries) = if params.analyse_density_symmetries {
+            let (sao_spatial_4c, sao_spatial_4c_h) = match self.sao_4c {
+                Some(Metric::Spatial(sao_spatial_4c, sao_spatial_4c_h_opt)) => {
+                    (Some(sao_spatial_4c), sao_spatial_4c_h_opt)
+                }
+                Some(Metric::Full(_, _)) => {
+                    qsym2_error!("Spatial AO overlap matrices required for density symmetry analysis, but full AO overlap matrices specified instead.");
+                    (None, None)
+                }
+                None => {
+                    qsym2_error!("Spatial AO overlap matrices required for density symmetry analysis, but none specified.");
+                    (None, None)
+                }
+            };
             let den_syms = self.determinant.to_densities().map(|densities| {
                 let mut spin_den_syms = match self.determinant.spin_constraint() {
                     SpinConstraint::Restricted(_)
@@ -1254,8 +1247,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .build()?;
                                 den_orbit
                                     .calc_smat(
-                                        self.sao_spatial_4c,
-                                        self.sao_spatial_4c_h,
+                                        sao_spatial_4c,
+                                        sao_spatial_4c_h,
                                         params.use_cayley_table,
                                     )?
                                     .normalise_smat()?
@@ -1293,8 +1286,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .build()?;
                                 den_orbit
                                     .calc_smat(
-                                        self.sao_spatial_4c,
-                                        self.sao_spatial_4c_h,
+                                        sao_spatial_4c,
+                                        sao_spatial_4c_h,
                                         params.use_cayley_table,
                                     )?
                                     .normalise_smat()?
@@ -1341,8 +1334,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .build()?;
                             total_den_orbit
                                 .calc_smat(
-                                    self.sao_spatial_4c,
-                                    self.sao_spatial_4c_h,
+                                    sao_spatial_4c,
+                                    sao_spatial_4c_h,
                                     params.use_cayley_table,
                                 )?
                                 .calc_xmat(false)?;
@@ -1383,8 +1376,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .build()?;
                                 den_ij_orbit
                                     .calc_smat(
-                                        self.sao_spatial_4c,
-                                        self.sao_spatial_4c_h,
+                                        sao_spatial_4c,
+                                        sao_spatial_4c_h,
                                         params.use_cayley_table,
                                     )?
                                     .calc_xmat(false)?;
@@ -1430,8 +1423,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .build()?;
                                 den_ij_orbit
                                     .calc_smat(
-                                        self.sao_spatial_4c,
-                                        self.sao_spatial_4c_h,
+                                        sao_spatial_4c,
+                                        sao_spatial_4c_h,
                                         params.use_cayley_table,
                                     )?
                                     .calc_xmat(false)?;
@@ -1476,8 +1469,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 log::debug!("Computing overlap matrix for an MO density orbit...");
                                 mo_den_orbit
                                     .calc_smat(
-                                        self.sao_spatial_4c,
-                                        self.sao_spatial_4c_h,
+                                        sao_spatial_4c,
+                                        sao_spatial_4c_h,
                                         params.use_cayley_table,
                                     )
                                     .ok()?
