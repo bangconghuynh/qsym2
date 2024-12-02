@@ -8,6 +8,7 @@ use derive_builder::Builder;
 use ndarray::{Array1, Array2, Array4, ShapeBuilder};
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Metric;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
@@ -41,11 +42,14 @@ pub struct BinariesSlaterDeterminantSource {
     /// Path to an XYZ file containing the molecular geometry.
     pub xyz: PathBuf,
 
-    /// Path to a binary file containing the two-centre atomic-orbital spatial overlap matrix.
+    /// Path to a binary file containing the two-centre atomic-orbital overlap matrix. The
+    /// dimensions of the matrix will be used to determine whether this is a *spatial* matrix or a
+    /// *full* matrix.
     pub sao: PathBuf,
 
-    /// Optional path to a binary file containing the four-centre atomic-orbital spatial overlap
-    /// matrix. This is only required for density symmetry analysis.
+    /// Optional path to a binary file containing the four-centre atomic-orbital overlap matrix.
+    /// This is only required for density symmetry analysis. The dimensions of the matrix will be
+    /// used to determine whether this is a *spatial* matrix or a *full* matrix.
     #[builder(default = "None")]
     pub sao_4c: Option<PathBuf>,
 
@@ -135,7 +139,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
         let mol = &pd_res.pre_symmetry.recentred_molecule;
         let bao = self.bao.to_basis_angular_order(mol)
             .with_context(|| "Unable to digest the input basis angular order information when handling custom Slater determinant source")?;
-        let n_spatial = bao.n_funcs();
+        let nspatial = bao.n_funcs();
 
         let sao_v = match self.byte_order {
             ByteOrder::LittleEndian => {
@@ -151,18 +155,106 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                     })?.collect::<Vec<_>>()
             }
         };
-        let sao = match self.matrix_order {
-            MatrixOrder::RowMajor => Array2::from_shape_vec((n_spatial, n_spatial), sao_v)
+        let sao_2c_arr = match self.matrix_order {
+            MatrixOrder::RowMajor => {
+                if sao_v.len() == nspatial.pow(2) {
+                    Array2::from_shape_vec((nspatial, nspatial), sao_v)
+                    .with_context(|| {
+                        format!("Unable to construct an AO overlap matrix with dimensions {nspatial} × {nspatial} from the read-in row-major binary file when handling custom Slater determinant source")
+                    }).map_err(|err| format_err!(err))
+                } else if sao_v.len() == (2 * nspatial).pow(2) {
+                    Array2::from_shape_vec((2 * nspatial, 2 * nspatial), sao_v)
+                    .with_context(|| {
+                        format!("Unable to construct an AO overlap matrix with dimensions {} × {} from the read-in row-major binary file when handling custom Slater determinant source", 2 * nspatial, 2 * nspatial)
+                    }).map_err(|err| format_err!(err))
+                } else if sao_v.len() == (4 * nspatial).pow(2) {
+                    Array2::from_shape_vec((4 * nspatial, 4 * nspatial), sao_v)
+                    .with_context(|| {
+                        format!("Unable to construct an AO overlap matrix with dimensions {} × {} from the read-in row-major binary file when handling custom Slater determinant source", 4 * nspatial, 4 * nspatial)
+                    }).map_err(|err| format_err!(err))
+                } else {
+                    Err(format_err!("Invalid dimensions of read-in SAO matrix.")).with_context(|| "Unable to construct an AO overlap matrix from the read-in row-major binary file when handling custom Slater determinant source")
+                }
+            }
+            MatrixOrder::ColMajor => {
+                if sao_v.len() == nspatial.pow(2) {
+                    Array2::from_shape_vec((nspatial, nspatial).f(), sao_v)
                 .with_context(|| {
-                    "Unable to construct an AO overlap matrix from the read-in row-major binary file when handling custom Slater determinant source"
-                })?,
-            MatrixOrder::ColMajor => Array2::from_shape_vec((n_spatial, n_spatial).f(), sao_v)
+                    format!("Unable to construct an AO overlap matrix with dimensions {nspatial} × {nspatial} from the read-in column-major binary file when handling custom Slater determinant source")
+                }).map_err(|err| format_err!(err))
+                } else if sao_v.len() == (2 * nspatial).pow(2) {
+                    Array2::from_shape_vec((2 * nspatial, 2 * nspatial).f(), sao_v)
                 .with_context(|| {
-                    "Unable to construct an AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source"
-                })?,
-        };
+                    format!("Unable to construct an AO overlap matrix with dimensions {} × {} from the read-in column-major binary file when handling custom Slater determinant source", 2 * nspatial, 2 * nspatial)
+                }).map_err(|err| format_err!(err))
+                } else if sao_v.len() == (4 * nspatial).pow(2) {
+                    Array2::from_shape_vec((4 * nspatial, 4 * nspatial).f(), sao_v)
+                    .with_context(|| {
+                        format!("Unable to construct an AO overlap matrix with dimensions {} × {} from the read-in column-major binary file when handling custom Slater determinant source", 4 * nspatial, 4 * nspatial)
+                    }).map_err(|err| format_err!(err))
+                } else {
+                    Err(format_err!("Invalid dimensions of read-in SAO matrix.")).with_context(|| "Unable to construct an AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source")
+                }
+            }
+        }?;
 
-        let sao_4c = if let Some(sao_4c_path) = self.sao_4c.as_ref() {
+        let sao_2c = match self.spin_constraint {
+            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                    Ok(Metric::Spatial(&sao_2c_arr, None))
+                } else {
+                    Err(format_err!(
+                        "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                        sao_2c_arr.nrows(),
+                        sao_2c_arr.ncols(),
+                        if nspatial == 1 {"function"} else {"functions"},
+                        self.spin_constraint
+                    ))
+                }
+            }
+            SpinConstraint::Generalised(nspins, _) => {
+                if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                    Ok(Metric::Spatial(&sao_2c_arr, None))
+                } else if sao_2c_arr.shape()
+                    == &[
+                        usize::from(nspins) * nspatial,
+                        usize::from(nspins) * nspatial,
+                    ]
+                {
+                    Ok(Metric::Full(&sao_2c_arr, None))
+                } else {
+                    Err(format_err!(
+                        "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                        sao_2c_arr.nrows(),
+                        sao_2c_arr.ncols(),
+                        if nspatial == 1 {"function"} else {"functions"},
+                        self.spin_constraint
+                    ))
+                }
+            }
+            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                    Ok(Metric::Spatial(&sao_2c_arr, None))
+                } else if sao_2c_arr.shape()
+                    == &[
+                        2 * usize::from(nspins) * nspatial,
+                        2 * usize::from(nspins) * nspatial,
+                    ]
+                {
+                    Ok(Metric::Full(&sao_2c_arr, None))
+                } else {
+                    Err(format_err!(
+                        "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                        sao_2c_arr.nrows(),
+                        sao_2c_arr.ncols(),
+                        if nspatial == 1 {"function"} else {"functions"},
+                        self.spin_constraint
+                    ))
+                }
+            }
+        }?;
+
+        let sao_4c_arr_opt = if let Some(sao_4c_path) = self.sao_4c.as_ref() {
             let sao_4c_v = match self.byte_order {
                 ByteOrder::LittleEndian => {
                     NumericReader::<_, LittleEndian, f64>::from_file(sao_4c_path)
@@ -178,11 +270,11 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 }
             };
             let sao_4c = match self.matrix_order {
-                MatrixOrder::RowMajor => Array4::from_shape_vec((n_spatial, n_spatial, n_spatial, n_spatial), sao_4c_v)
+                MatrixOrder::RowMajor => Array4::from_shape_vec((nspatial, nspatial, nspatial, nspatial), sao_4c_v)
                     .with_context(|| {
                         "Unable to construct a four-centre AO overlap matrix from the read-in row-major binary file when handling custom Slater determinant source"
                     })?,
-                MatrixOrder::ColMajor => Array4::from_shape_vec((n_spatial, n_spatial, n_spatial, n_spatial).f(), sao_4c_v)
+                MatrixOrder::ColMajor => Array4::from_shape_vec((nspatial, nspatial, nspatial, nspatial).f(), sao_4c_v)
                     .with_context(|| {
                         "Unable to construct a four-centre AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source"
                     })?,
@@ -191,6 +283,10 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
         } else {
             None
         };
+
+        let sao_4c = sao_4c_arr_opt
+            .as_ref()
+            .map(|sao_4c_arr| Metric::Spatial(sao_4c_arr, None));
 
         let cs_v = match self.byte_order {
             ByteOrder::LittleEndian => self
@@ -220,8 +316,8 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
             MatrixOrder::RowMajor => cs_v
                 .into_iter()
                 .map(|c_v| {
-                    let nmo = c_v.len().div_euclid(n_spatial);
-                    Array2::from_shape_vec((n_spatial, nmo), c_v)
+                    let nmo = c_v.len().div_euclid(nspatial);
+                    Array2::from_shape_vec((nspatial, nmo), c_v)
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .with_context(|| {
@@ -231,8 +327,8 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
             MatrixOrder::ColMajor => cs_v
                 .into_iter()
                 .map(|c_v| {
-                    let nmo = c_v.len().div_euclid(n_spatial);
-                    Array2::from_shape_vec((n_spatial, nmo).f(), c_v)
+                    let nmo = c_v.len().div_euclid(nspatial);
+                    Array2::from_shape_vec((nspatial, nmo).f(), c_v)
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .with_context(|| {
@@ -289,8 +385,8 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 .parameters(sda_params)
                 .angular_function_parameters(afa_params)
                 .determinant(&det)
-                .sao_spatial(&sao)
-                .sao_spatial_4c(sao_4c.as_ref())
+                .sao_2c(sao_2c)
+                .sao_4c(sao_4c)
                 .symmetry_group(&pd_res)
                 .build()
                 .with_context(|| {
@@ -328,8 +424,8 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 .parameters(sda_params)
                 .angular_function_parameters(afa_params)
                 .determinant(&det)
-                .sao_spatial(&sao)
-                .sao_spatial_4c(sao_4c.as_ref())
+                .sao_2c(sao_2c)
+                .sao_4c(sao_4c)
                 .symmetry_group(&pd_res)
                 .build()
                 .with_context(|| {
