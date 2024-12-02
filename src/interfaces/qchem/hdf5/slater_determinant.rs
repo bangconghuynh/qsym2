@@ -12,7 +12,7 @@ use hdf5::{self, H5Type};
 use lazy_static::lazy_static;
 use log;
 use nalgebra::Point3;
-use ndarray::{s, Array1, Array2, Array4, Axis, Ix3};
+use ndarray::{s, Array1, Array2, Array4, Axis, Ix3, Ix4};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use num_traits::{One, ToPrimitive, Zero};
@@ -20,6 +20,7 @@ use numeric_sort;
 use periodic_table::periodic_table;
 use regex::Regex;
 
+use crate::analysis::Metric;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
@@ -995,9 +996,10 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
 
         let rep = || {
             log::debug!("Extracting AO basis information for representation analysis...");
-            let sao = self.recompute_sao()
+            let sao_arr = self.recompute_sao()
                 .with_context(|| "Unable to extract the SAO matrix from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
+            let sao_2c = Metric::Spatial(&sao_arr, None);
             let bao = self.extract_bao(recentred_mol)
                 .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
@@ -1009,7 +1011,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
             log::debug!("Extracting AO basis information for representation analysis... Done.");
 
             #[cfg(feature = "integrals")]
-            let sao_4c: Option<Array4<f64>> = basis_set_opt.map(|basis_set| {
+            let sao_4c_arr_opt: Option<Array4<f64>> = basis_set_opt.map(|basis_set| {
                 log::debug!("Computing four-centre overlap integrals for density symmetry analysis...");
                 let stc = build_shell_tuple_collection![
                     <s1, s2, s3, s4>;
@@ -1023,9 +1025,11 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                 log::debug!("Computing four-centre overlap integrals for density symmetry analysis... Done.");
                 sao_4c
             });
+            #[cfg(feature = "integrals")]
+            let sao_4c_opt = sao_4c_arr_opt.as_ref().map(|sao_4c_arr| Metric::Spatial(sao_4c_arr, None));
 
             #[cfg(not(feature = "integrals"))]
-            let sao_4c: Option<Array4<f64>> = None;
+            let sao_4c_opt: Option<Metric<f64, Ix4>> = None;
 
             log::debug!(
                 "Extracting canonical determinant information for representation analysis..."
@@ -1049,8 +1053,8 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .parameters(self.rep_analysis_parameters)
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&det)
-                    .sao_spatial(&sao)
-                    .sao_spatial_4c(sao_4c.as_ref())
+                    .sao_2c(sao_2c.clone())
+                    .sao_4c(sao_4c_opt.clone())
                     .symmetry_group(&pd_res)
                     .build()
                     .with_context(|| "Unable to construct a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
@@ -1081,8 +1085,8 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .parameters(self.rep_analysis_parameters)
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&loc_det)
-                    .sao_spatial(&sao)
-                    .sao_spatial_4c(sao_4c.as_ref())
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()?;
                     log_micsec_begin("Localised orbital representation analysis");
