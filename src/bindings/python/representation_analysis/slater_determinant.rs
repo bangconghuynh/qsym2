@@ -9,7 +9,8 @@ use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
-use crate::analysis::EigenvalueComparisonMode;
+use crate::analysis::{EigenvalueComparisonMode, Metric};
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
@@ -467,17 +468,22 @@ pub enum PySlaterDeterminant {
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
 /// Python type: `EigenvalueComparisonMode`.
-/// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
-/// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
-/// * `sao_spatial_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
-/// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
-/// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
-/// * `sao_spatial_4c` - The optional atomic-orbital four-centre overlap matrix whose elements are
-/// of type `float64` or `complex128`.
+/// * `sao_2c` - The two-centre atomic-orbital overlap matrix whose elements are of type `float64`
+/// or `complex128`. The dimensions of this matrix will be used to determine whether this is *full*
+/// or *spatial*. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
+/// * `sao_2c_h` - The optional two-centr complex-symmetric atomic-orbital overlap matrix whose
+/// elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
+/// operations are involved. The dimensions of this matrix will be used to determine whether this is
+/// *full* or *spatial*. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
+/// * `sao_4c` - The optional spatial four-centre atomic-orbital overlap matrix whose elements are
+/// of type `float64` or `complex128`. This is required for any density symmetry analysis. The
+/// dimensions of this matrix will be used to verify that it is *spatial*.
 /// Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
-/// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
-/// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
-/// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
+/// * `sao_4c_h` - The optional spatial complex-symmetric four-centre atomic-orbital overlap matrix
+/// whose elements are of type `float64` or `complex128`. This is required for density symmetry
+/// analysis if antiunitary symmetry operations are involved. The dimensions of this matrix will be
+/// used to verify that it is *spatial*.
+/// Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
 /// * `analyse_mo_mirror_parities` - A boolean indicating if the mirror parities of individual
@@ -516,10 +522,10 @@ pub enum PySlaterDeterminant {
     use_cayley_table,
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
-    sao_spatial,
-    sao_spatial_h=None,
-    sao_spatial_4c=None,
-    sao_spatial_4c_h=None,
+    sao_2c,
+    sao_2c_h=None,
+    sao_4c=None,
+    sao_4c_h=None,
     analyse_mo_symmetries=true,
     analyse_mo_mirror_parities=false,
     analyse_density_symmetries=false,
@@ -542,10 +548,10 @@ pub fn rep_analyse_slater_determinant(
     use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
-    sao_spatial: PyArray2RC,
-    sao_spatial_h: Option<PyArray2RC>,
-    sao_spatial_4c: Option<PyArray4RC>,
-    sao_spatial_4c_h: Option<PyArray4RC>,
+    sao_2c: PyArray2RC,
+    sao_2c_h: Option<PyArray2RC>,
+    sao_4c: Option<PyArray4RC>,
+    sao_4c_h: Option<PyArray4RC>,
     analyse_mo_symmetries: bool,
     analyse_mo_mirror_parities: bool,
     analyse_density_symmetries: bool,
@@ -604,14 +610,10 @@ pub fn rep_analyse_slater_determinant(
         .infinite_order_to_finite(infinite_order_to_finite)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let pysda_res: PySlaterDeterminantRepAnalysisResult = match (&pydet, &sao_spatial) {
+
+    let pysda_res: PySlaterDeterminantRepAnalysisResult = match (&pydet, &sao_2c) {
         (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Real(pysao_r)) => {
-            let sao_spatial = pysao_r.to_owned_array();
-            let sao_spatial_4c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
-                // sao_spatial_4c must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array()),
-                PyArray4RC::Complex(_) => None,
-            });
+            // Case 1: both real
             let det_r = if augment_to_generalised {
                 pydet_r
                     .to_qsym2(&bao, mol)
@@ -622,6 +624,88 @@ pub fn rep_analyse_slater_determinant(
                     .to_qsym2(&bao, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
+
+            let nspatial = det_r.bao().n_funcs();
+            let sao_2c_arr = pysao_r.to_owned_array();
+            let sao_2c = match det_r.spin_constraint() {
+                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, None))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_r.spin_constraint()
+                        )))
+                    }
+                }
+                SpinConstraint::Generalised(nspins, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, None))
+                    } else if sao_2c_arr.shape()
+                        == &[
+                            usize::from(*nspins) * nspatial,
+                            usize::from(*nspins) * nspatial,
+                        ]
+                    {
+                        Ok(Metric::Full(&sao_2c_arr, None))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_r.spin_constraint()
+                        )))
+                    }
+                }
+                SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, None))
+                    } else if sao_2c_arr.shape()
+                        == &[
+                            2 * usize::from(*nspins) * nspatial,
+                            2 * usize::from(*nspins) * nspatial,
+                        ]
+                    {
+                        Ok(Metric::Full(&sao_2c_arr, None))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_r.spin_constraint()
+                        )))
+                    }
+                }
+            }?;
+
+            let sao_4c_arr_opt = sao_4c
+                .map(|pysao4c| match pysao4c {
+                    PyArray4RC::Real(pysao4c_r) => Ok(pysao4c_r.to_owned_array()),
+                    PyArray4RC::Complex(_) => Err(PyRuntimeError::new_err(
+                        "`sao_4c` is complex, whereas `sao_2c` is real.".to_string(),
+                    )),
+                })
+                .transpose()?;
+            let sao_4c_opt = sao_4c_arr_opt.as_ref().map(|sao_4c_arr| {
+                if sao_4c_arr.shape() == &[nspatial, nspatial, nspatial, nspatial] {
+                    Ok(Metric::Spatial(sao_4c_arr, None))
+                } else {
+                    Err(PyRuntimeError::new_err(format!(
+                        "Unexpected dimensions for `sao_4c`: {} × {} × {} × {} for {nspatial} spatial basis {}.",
+                        sao_4c_arr.shape()[0],
+                        sao_4c_arr.shape()[1],
+                        sao_4c_arr.shape()[2],
+                        sao_4c_arr.shape()[3],
+                        if nspatial == 1 {"function"} else {"functions"},
+                    )))
+                }
+            }).transpose()?;
+
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -631,10 +715,8 @@ pub fn rep_analyse_slater_determinant(
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_r)
-                    .sao_spatial(&sao_spatial)
-                    .sao_spatial_h(None) // Real SAO.
-                    .sao_spatial_4c(sao_spatial_4c.as_ref())
-                    .sao_spatial_4c_h(None) // Real SAO.
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -710,10 +792,8 @@ pub fn rep_analyse_slater_determinant(
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_r)
-                    .sao_spatial(&sao_spatial)
-                    .sao_spatial_h(None) // Real SAO.
-                    .sao_spatial_4c(sao_spatial_4c.as_ref())
-                    .sao_spatial_4c_h(None) // Real SAO.
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -784,6 +864,7 @@ pub fn rep_analyse_slater_determinant(
             }
         }
         (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Complex(pysao_c)) => {
+            // Case 2: real determinant, complex metric
             let det_r = if augment_to_generalised {
                 pydet_r
                     .to_qsym2(&bao, mol)
@@ -795,22 +876,152 @@ pub fn rep_analyse_slater_determinant(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
             let det_c: SlaterDeterminant<C128> = det_r.into();
-            let sao_spatial_c = pysao_c.to_owned_array();
-            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
-                // sao_spatial_h must have the same reality as sao_spatial.
-                PyArray2RC::Real(_) => None,
-                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+
+            let nspatial = det_c.bao().n_funcs();
+            let sao_2c_arr = pysao_c.to_owned_array();
+            let sao_2c_h_arr_opt = sao_2c_h
+                .map(|pysao_h| match pysao_h {
+                    PyArray2RC::Real(pysao_h_r) => pysao_h_r.to_owned_array().mapv(Complex::from),
+                    PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
+                })
+                .map(|sao_2c_h_arr| {
+                    if sao_2c_h_arr.shape() == sao_2c_arr.shape() {
+                        Ok(sao_2c_h_arr)
+                    } else {
+                        Err(PyRuntimeError::new_err(
+                            "`sao_2c_h` dimensions do not match those of `sao_2c`.".to_string(),
+                        ))
+                    }
+                })
+                .transpose()?;
+            let sao_2c = match det_c.spin_constraint() {
+                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_c.spin_constraint()
+                        )))
+                    }
+                }
+                SpinConstraint::Generalised(nspins, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, None))
+                    } else if sao_2c_arr.shape()
+                        == &[
+                            usize::from(*nspins) * nspatial,
+                            usize::from(*nspins) * nspatial,
+                        ]
+                    {
+                        Ok(Metric::Full(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_c.spin_constraint()
+                        )))
+                    }
+                }
+                SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else if sao_2c_arr.shape()
+                        == &[
+                            2 * usize::from(*nspins) * nspatial,
+                            2 * usize::from(*nspins) * nspatial,
+                        ]
+                    {
+                        Ok(Metric::Full(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_c.spin_constraint()
+                        )))
+                    }
+                }
+            }?;
+
+            let sao_4c_arr_opt = sao_4c.map(|pysao4c| match pysao4c {
+                PyArray4RC::Real(pysao4c_r) => pysao4c_r.to_owned_array().mapv(Complex::from),
+                PyArray4RC::Complex(pysao4c_c) => pysao4c_c.to_owned_array(),
             });
-            let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
-                // sao_spatial_4c must have the same reality as sao_spatial.
-                PyArray4RC::Real(_) => None,
-                PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
-            });
-            let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
-                // sao_spatial_4c_h must have the same reality as sao_spatial.
-                PyArray4RC::Real(_) => None,
-                PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
-            });
+            let sao_4c_h_arr_opt = sao_4c_h
+                .map(|pysao_h| match pysao_h {
+                    PyArray4RC::Real(pysao_h_r) => {
+                        if let Some(sao_4c_arr) = sao_4c_arr_opt.as_ref() {
+                            let sao_4c_h_arr = pysao_h_r.to_owned_array().mapv(Complex::from);
+                            if sao_4c_h_arr.shape() == sao_4c_arr.shape() {
+                                Ok(sao_4c_h_arr)
+                            } else {
+                                Err(PyRuntimeError::new_err(
+                                    "`sao_4c_h` dimensions do not match those of `sao_4c`."
+                                        .to_string(),
+                                ))
+                            }
+                        } else {
+                            Err(PyRuntimeError::new_err(
+                                "`sao_4c_h` specified without `sao_4c`.".to_string(),
+                            ))
+                        }
+                    }
+                    PyArray4RC::Complex(pysao_h_c) => {
+                        if let Some(sao_4c_arr) = sao_4c_arr_opt.as_ref() {
+                            let sao_4c_h_arr = pysao_h_c.to_owned_array();
+                            if sao_4c_h_arr.shape() == sao_4c_arr.shape() {
+                                Ok(sao_4c_h_arr)
+                            } else {
+                                Err(PyRuntimeError::new_err(
+                                    "`sao_4c_h` dimensions do not match those of `sao_4c`."
+                                        .to_string(),
+                                ))
+                            }
+                        } else {
+                            Err(PyRuntimeError::new_err(
+                                "`sao_4c_h` specified without `sao_4c`.".to_string(),
+                            ))
+                        }
+                    }
+                })
+                .transpose()?;
+            let sao_4c_opt = sao_4c_arr_opt.as_ref().map(|sao_4c_arr| {if sao_4c_arr.shape() == &[nspatial, nspatial, nspatial, nspatial] {
+                Ok(Metric::Spatial(sao_4c_arr, sao_4c_h_arr_opt.as_ref()))
+            } else {
+                Err(format_err!(
+                    "Unexpected dimensions for `sao_4c`: {} × {} × {} × {} for {nspatial} spatial basis {}.",
+                    sao_4c_arr.shape()[0],
+                    sao_4c_arr.shape()[1],
+                    sao_4c_arr.shape()[2],
+                    sao_4c_arr.shape()[3],
+                    if nspatial == 1 {"function"} else {"functions"},
+                ))
+            }.map_err(|err| PyRuntimeError::new_err(err.to_string()))}).transpose()?;
+
+            // let sao_spatial_c = pysao_c.to_owned_array();
+            // let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
+            //     // sao_spatial_h must have the same reality as sao_spatial.
+            //     PyArray2RC::Real(_) => None,
+            //     PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+            // });
+            // let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
+            //     // sao_spatial_4c must have the same reality as sao_spatial.
+            //     PyArray4RC::Real(_) => None,
+            //     PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+            // });
+            // let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
+            //     // sao_spatial_4c_h must have the same reality as sao_spatial.
+            //     PyArray4RC::Real(_) => None,
+            //     PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
+            // });
+
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -820,10 +1031,8 @@ pub fn rep_analyse_slater_determinant(
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -899,10 +1108,8 @@ pub fn rep_analyse_slater_determinant(
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -973,6 +1180,7 @@ pub fn rep_analyse_slater_determinant(
             }
         }
         (PySlaterDeterminant::Complex(pydet_c), _) => {
+            // Case 3: complex determinant, real or complex metric
             let det_c = if augment_to_generalised {
                 pydet_c
                     .to_qsym2(&bao, mol)
@@ -983,27 +1191,161 @@ pub fn rep_analyse_slater_determinant(
                     .to_qsym2(&bao, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
-            let sao_spatial_c = match sao_spatial {
+
+            let nspatial = det_c.bao().n_funcs();
+
+            let sao_2c_arr = match sao_2c {
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
-            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
-                // sao_spatial_h must have the same reality as sao_spatial.
-                PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
-                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
-            });
-            let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
-                // sao_spatial_4c must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
-                PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
-            });
-            let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
-                // sao_spatial_4c_h must have the same reality as sao_spatial.
-                PyArray4RC::Real(pysao4c_h_r) => {
-                    Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
+            let sao_2c_h_arr_opt = sao_2c_h
+                .map(|pysao_h| match pysao_h {
+                    PyArray2RC::Real(pysao_h_r) => pysao_h_r.to_owned_array().mapv(Complex::from),
+                    PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
+                })
+                .map(|sao_2c_h_arr| {
+                    if sao_2c_h_arr.shape() == sao_2c_arr.shape() {
+                        Ok(sao_2c_h_arr)
+                    } else {
+                        Err(PyRuntimeError::new_err(
+                            "`sao_2c_h` dimensions do not match those of `sao_2c`.".to_string(),
+                        ))
+                    }
+                })
+                .transpose()?;
+            let sao_2c = match det_c.spin_constraint() {
+                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_c.spin_constraint()
+                        )))
+                    }
                 }
-                PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
+                SpinConstraint::Generalised(nspins, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, None))
+                    } else if sao_2c_arr.shape()
+                        == &[
+                            usize::from(*nspins) * nspatial,
+                            usize::from(*nspins) * nspatial,
+                        ]
+                    {
+                        Ok(Metric::Full(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_c.spin_constraint()
+                        )))
+                    }
+                }
+                SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+                    if sao_2c_arr.shape() == &[nspatial, nspatial] {
+                        Ok(Metric::Spatial(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else if sao_2c_arr.shape()
+                        == &[
+                            2 * usize::from(*nspins) * nspatial,
+                            2 * usize::from(*nspins) * nspatial,
+                        ]
+                    {
+                        Ok(Metric::Full(&sao_2c_arr, sao_2c_h_arr_opt.as_ref()))
+                    } else {
+                        Err(PyRuntimeError::new_err(format!(
+                            "Unexpected dimensions for `sao_2c`: {} × {} for {nspatial} spatial basis {} in spin constraint {}.",
+                            sao_2c_arr.nrows(),
+                            sao_2c_arr.ncols(),
+                            if nspatial == 1 {"function"} else {"functions"},
+                            det_c.spin_constraint()
+                        )))
+                    }
+                }
+            }?;
+
+            let sao_4c_arr_opt = sao_4c.map(|pysao4c| match pysao4c {
+                PyArray4RC::Real(pysao4c_r) => pysao4c_r.to_owned_array().mapv(Complex::from),
+                PyArray4RC::Complex(pysao4c_c) => pysao4c_c.to_owned_array(),
             });
+            let sao_4c_h_arr_opt = sao_4c_h
+                .map(|pysao_h| match pysao_h {
+                    PyArray4RC::Real(pysao_h_r) => {
+                        if let Some(sao_4c_arr) = sao_4c_arr_opt.as_ref() {
+                            let sao_4c_h_arr = pysao_h_r.to_owned_array().mapv(Complex::from);
+                            if sao_4c_h_arr.shape() == sao_4c_arr.shape() {
+                                Ok(sao_4c_h_arr)
+                            } else {
+                                Err(PyRuntimeError::new_err(
+                                    "`sao_4c_h` dimensions do not match those of `sao_4c`."
+                                        .to_string(),
+                                ))
+                            }
+                        } else {
+                            Err(PyRuntimeError::new_err(
+                                "`sao_4c_h` specified without `sao_4c`.".to_string(),
+                            ))
+                        }
+                    }
+                    PyArray4RC::Complex(pysao_h_c) => {
+                        if let Some(sao_4c_arr) = sao_4c_arr_opt.as_ref() {
+                            let sao_4c_h_arr = pysao_h_c.to_owned_array();
+                            if sao_4c_h_arr.shape() == sao_4c_arr.shape() {
+                                Ok(sao_4c_h_arr)
+                            } else {
+                                Err(PyRuntimeError::new_err(
+                                    "`sao_4c_h` dimensions do not match those of `sao_4c`."
+                                        .to_string(),
+                                ))
+                            }
+                        } else {
+                            Err(PyRuntimeError::new_err(
+                                "`sao_4c_h` specified without `sao_4c`.".to_string(),
+                            ))
+                        }
+                    }
+                })
+                .transpose()?;
+            let sao_4c_opt = sao_4c_arr_opt.as_ref().map(|sao_4c_arr| {if sao_4c_arr.shape() == &[nspatial, nspatial, nspatial, nspatial] {
+                Ok(Metric::Spatial(sao_4c_arr, sao_4c_h_arr_opt.as_ref()))
+            } else {
+                Err(format_err!(
+                    "Unexpected dimensions for `sao_4c`: {} × {} × {} × {} for {nspatial} spatial basis {}.",
+                    sao_4c_arr.shape()[0],
+                    sao_4c_arr.shape()[1],
+                    sao_4c_arr.shape()[2],
+                    sao_4c_arr.shape()[3],
+                    if nspatial == 1 {"function"} else {"functions"},
+                ))
+            }.map_err(|err| PyRuntimeError::new_err(err.to_string()))}).transpose()?;
+
+            // let sao_spatial_c = match sao_spatial {
+            //     PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
+            //     PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
+            // };
+            // let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
+            //     // sao_spatial_h must have the same reality as sao_spatial.
+            //     PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
+            //     PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+            // });
+            // let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
+            //     // sao_spatial_4c must have the same reality as sao_spatial.
+            //     PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
+            //     PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+            // });
+            // let sao_spatial_4c_h_c = sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
+            //     // sao_spatial_4c_h must have the same reality as sao_spatial.
+            //     PyArray4RC::Real(pysao4c_h_r) => {
+            //         Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
+            //     }
+            //     PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
+            // });
+
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -1013,10 +1355,8 @@ pub fn rep_analyse_slater_determinant(
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -1092,10 +1432,8 @@ pub fn rep_analyse_slater_determinant(
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
-                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
-                    .sao_spatial_4c_h(sao_spatial_4c_h_c.as_ref())
+                    .sao_2c(sao_2c)
+                    .sao_4c(sao_4c_opt)
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
