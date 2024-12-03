@@ -37,17 +37,24 @@ pub enum SpinConstraint {
     /// spaces and a boolean indicating if the spin spaces are arranged in increasing $`m`$ order.
     Generalised(u16, bool),
 
-    /// Variant for relativistic spin constraint: the spatial parts of different spin spaces are
-    /// different, and no spin collinearity is imposed. A relativistic wavefunction consists of two
-    /// components (typically referred to as 'large' and 'small'). The associated values give the
-    /// number of generalised spin spaces in each relativistic component, a boolean indicating if
-    /// the spin spaces are arranged in increasing $`m`$ order, and a boolean indicating if spin
-    /// spaces are grouped according to relativistic components (*e.g.*
-    /// $`\alpha^{\mathrm{L}}, \beta^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{S}}`$ for
-    /// `true`), or according to spin values (*e.g.*
-    /// $`\alpha^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{L}}, \beta^{\mathrm{S}}`$ for
-    /// `false`).
-    RelativisticGeneralised(u16, bool, bool),
+    // /// Variant for relativistic spin constraint: the spatial parts of different spin spaces are
+    // /// different, and no spin collinearity is imposed. A relativistic wavefunction consists of two
+    // /// components (typically referred to as 'large' and 'small'). The associated values give the
+    // /// number of generalised spin spaces in each relativistic component, a boolean indicating if
+    // /// the spin spaces are arranged in increasing $`m`$ order, and a boolean indicating if spin
+    // /// spaces are grouped according to relativistic components (*e.g.*
+    // /// $`\alpha^{\mathrm{L}}, \beta^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{S}}`$ for
+    // /// `true`), or according to spin values (*e.g.*
+    // /// $`\alpha^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{L}}, \beta^{\mathrm{S}}`$ for
+    // /// `false`).
+    // RelativisticGeneralised(u16, bool, bool),
+
+    /// Variant for relativistic spinor: there is no separation between *spatial* and *spin* parts
+    /// as the two are inherently coupled together (each atomic orbital is a spin--orbit-coupled
+    /// spinor). The full basis set comprises two relativistic components typically referred to as
+    /// *large* and *small*. The associated boolean indicates if the spin spaces are arranged in
+    /// increasing $`m`$ order.
+    RelativisticSpinor(bool),
 }
 
 impl SpinConstraint {
@@ -59,7 +66,8 @@ impl SpinConstraint {
             Self::Restricted(nspins) => *nspins,
             Self::Unrestricted(nspins, _) => *nspins,
             Self::Generalised(_, _) => 1,
-            Self::RelativisticGeneralised(_, _, _) => 1,
+            // Self::RelativisticGeneralised(_, _, _) => 1,
+            Self::RelativisticSpinor(_) => 1,
         }
     }
 
@@ -71,7 +79,10 @@ impl SpinConstraint {
             Self::Restricted(_) => 1,
             Self::Unrestricted(_, _) => 1,
             Self::Generalised(nspins, _) => *nspins,
-            Self::RelativisticGeneralised(nspins, _, _) => *nspins,
+            // Self::RelativisticGeneralised(nspins, _, _) => *nspins,
+            // Formally, the entire relativistic spinor unit has two spin components coupled with
+            // spatial degrees of freedom.
+            Self::RelativisticSpinor(_) => 2,
         }
     }
 
@@ -81,7 +92,10 @@ impl SpinConstraint {
             Self::Restricted(nspins) => *nspins,
             Self::Unrestricted(nspins, _) => *nspins,
             Self::Generalised(nspins, _) => *nspins,
-            Self::RelativisticGeneralised(nspins, _, _) => 2 * nspins,
+            // Self::RelativisticGeneralised(nspins, _, _) => 2 * nspins,
+            // Formally, the entire relativistic spinor unit has two spin components coupled with
+            // spatial degrees of freedom.
+            Self::RelativisticSpinor(_) => 2,
         }
     }
 }
@@ -117,20 +131,29 @@ impl fmt::Display for SpinConstraint {
                     "decreasing"
                 }
             ),
-            Self::RelativisticGeneralised(nspins, increasingm, groupedbyrelcomp) => write!(
+            // Self::RelativisticGeneralised(nspins, increasingm, groupedbyrelcomp) => write!(
+            //     f,
+            //     "Relativistic Generalised ({} spin {} per relativistic component, {} m, {})",
+            //     nspins,
+            //     if *nspins == 1 { "space" } else { "spaces" },
+            //     if *increasingm {
+            //         "increasing"
+            //     } else {
+            //         "decreasing"
+            //     },
+            //     if *groupedbyrelcomp {
+            //         "grouped by relativistic components"
+            //     } else {
+            //         "grouped by spin values"
+            //     }
+            // ),
+            Self::RelativisticSpinor(increasingm) => write!(
                 f,
-                "Relativistic Generalised ({} spin {} per relativistic component, {} m, {})",
-                nspins,
-                if *nspins == 1 { "space" } else { "spaces" },
+                "Relativistic Spinor ({} m)",
                 if *increasingm {
                     "increasing"
                 } else {
                     "decreasing"
-                },
-                if *groupedbyrelcomp {
-                    "grouped by relativistic components"
-                } else {
-                    "grouped by spin values"
                 }
             ),
         }
