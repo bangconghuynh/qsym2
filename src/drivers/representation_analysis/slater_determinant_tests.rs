@@ -14,6 +14,7 @@ use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
+#[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;

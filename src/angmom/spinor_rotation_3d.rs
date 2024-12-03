@@ -11,6 +11,8 @@ use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
+use crate::auxiliary::geometry::normalise_rotation_angle;
+
 #[cfg(test)]
 #[path = "spinor_rotation_3d_tests.rs"]
 mod spinor_rotation_3d_tests;
@@ -267,13 +269,13 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
 
 /// Returns an element in the Wigner rotation matrix for an integral or half-integral
 /// $`j`$, defined by
-///
 /// ```math
 /// \hat{R}(\alpha, \beta, \gamma) \ket{jm}
-/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\alpha, \beta, \gamma).
+/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\alpha, \beta, \gamma)
 /// ```
+/// where $`-\pi \le \alpha \le \pi`$, $`0 \le \beta \le \pi`$, $`-\pi \le \gamma \le \pi`$.
 ///
-/// The explicit expression for the elements of $`\mathbf{D}^{(1/2)}(\alpha, \beta, \gamma)`$
+/// The explicit expression for the elements of $`\mathbf{D}^{(j)}(\alpha, \beta, \gamma)`$
 /// is given in Professor Anthony Stone's graduate lecture notes on Angular Momentum at the
 /// University of Cambridge in 2006.
 ///
@@ -425,13 +427,12 @@ pub fn dmat_euler_gen_element(
 
 /// Returns the Wigner rotation matrix in the Euler-angle parametrisation for any integral or
 /// half-integral $`j`$ whose elements are defined by
-///
 /// ```math
 /// \hat{R}(\alpha, \beta, \gamma) \ket{jm}
-/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\alpha, \beta, \gamma).
+/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\alpha, \beta, \gamma)
 /// ```
-///
-/// and given in [`dmat_euler_gen_element`].
+/// and given in [`dmat_euler_gen_element`], where $`-\pi \le \alpha \le \pi`$,
+/// $`0 \le \beta \le \pi`$, $`-\pi \le \gamma \le \pi`$.
 ///
 /// # Arguments
 ///
@@ -490,13 +491,13 @@ pub fn dmat_euler_gen(
 ///
 /// The matrix $`\mathbf{D}^{(j)}(\phi\hat{\mathbf{n}})`$.
 #[must_use]
-pub fn dmat_angleaxis_gen(
+pub fn dmat_angleaxis_gen_double(
     twoj: u32,
     angle: f64,
     axis: Vector3<f64>,
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
-    let euler_angles = angleaxis_to_euler(angle, axis);
+    let euler_angles = angleaxis_to_euler_double(angle, axis);
     dmat_euler_gen(twoj, euler_angles, increasingm)
 }
 
@@ -533,7 +534,7 @@ pub fn dmat_angleaxis_gen(
 ///
 /// The tuple containing the Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following the
 /// Whitaker convention.
-fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
+fn angleaxis_to_euler_double(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
     let normalised_axis = axis.normalize();
     let nx = normalised_axis.x;
     let ny = normalised_axis.y;
@@ -610,6 +611,132 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
             } else {
                 gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
             };
+
+            (0.0, gamma)
+        };
+
+    (alpha, beta, gamma)
+}
+
+/// Returns the Wigner rotation matrix in the angle-axis parametrisation for any integral or
+/// half-integral $`j`$  whose elements are defined by
+///
+/// ```math
+/// \hat{R}(\phi\hat{\mathbf{n}}) \ket{jm}
+/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\phi\hat{\mathbf{n}}),
+/// ```
+///
+/// where the angle of rotation is ensured to be in the range $`[-\pi, \pi]`$. In other words, for
+/// half-odd-integer $`j`$, this function only returns Wigner rotation matrices corresponding to
+/// three-dimensional rotations connected to the identity via a homotopy path of class 0.
+///
+/// # Arguments
+///
+/// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
+/// $`j`$ is half-integral.
+/// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// anticlockwise rotation when looking down `axis`.
+/// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
+/// normalised.
+/// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
+/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///
+/// # Returns
+///
+/// The matrix $`\mathbf{D}^{(j)}(\phi\hat{\mathbf{n}})`$.
+#[must_use]
+pub fn dmat_angleaxis_gen_single(
+    twoj: u32,
+    angle: f64,
+    axis: Vector3<f64>,
+    increasingm: bool,
+) -> Array2<Complex<f64>> {
+    let euler_angles = angleaxis_to_euler_single(angle, axis, 1e-14);
+    dmat_euler_gen(twoj, euler_angles, increasingm)
+}
+
+/// Converts an angle and axis of rotation to Euler angles using the equations in Section
+/// (**3**-5.4) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+/// Publications, Inc., 2005) such that
+///
+/// ```math
+/// -\pi \le \alpha \le \pi, \quad
+/// 0 \le \beta \le \pi, \quad
+/// -\pi \le \gamma \le \pi.
+/// ```
+///
+/// When $`\beta = 0`$, only the sum $`\alpha+\gamma`$ is determined. Likewise, when
+/// $`\beta = \pi`$, only the difference $`\alpha-\gamma`$ is determined. We thus set
+/// $`\alpha = 0`$ in these cases and solve for $`\gamma`$ without changing the nature of the
+/// results.
+///
+/// # Arguments
+///
+/// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// anticlockwise rotation when looking down `axis`.
+/// * `axis` - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
+/// vector will be normalised.
+///
+/// # Returns
+///
+/// The tuple containing the Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following the
+/// Whitaker convention.
+fn angleaxis_to_euler_single(angle: f64, axis: Vector3<f64>, thresh: f64) -> (f64, f64, f64) {
+    let normalised_axis = axis.normalize();
+    let nx = normalised_axis.x;
+    let ny = normalised_axis.y;
+    let nz = normalised_axis.z;
+
+    let (normalised_angle, _) = normalise_rotation_angle(angle, thresh);
+
+    let cosbeta = 1.0 - 2.0 * (nx.powi(2) + ny.powi(2)) * (normalised_angle / 2.0).sin().powi(2);
+    let cosbeta = if cosbeta.abs() > 1.0 {
+        // Numerical errors can cause cosbeta to be outside [-1, 1].
+        approx::assert_relative_eq!(cosbeta.abs(), 1.0, epsilon = thresh, max_relative = thresh);
+        cosbeta.round()
+    } else {
+        cosbeta
+    };
+
+    // 0 <= beta <= pi.
+    let beta = cosbeta.acos();
+
+    let (alpha, gamma) =
+        if approx::relative_ne!(cosbeta.abs(), 1.0, epsilon = thresh, max_relative = thresh) {
+            // cosbeta != 1 or -1, beta != 0 or pi
+            // alpha and gamma are given by Equations (**3**-5.4) to (**3**-5.10)
+            // in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover Publications,
+            // Inc., 2005).
+            let num_alpha = -nx * normalised_angle.sin()
+                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2);
+            let den_alpha = ny * normalised_angle.sin()
+                + 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2);
+            // -pi <= alpha <= pi
+            let alpha = num_alpha.atan2(den_alpha);
+
+            let num_gamma = nx * normalised_angle.sin()
+                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2);
+            let den_gamma = ny * normalised_angle.sin()
+                - 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2);
+            // -pi <= gamma <= pi
+            let gamma = num_gamma.atan2(den_gamma);
+
+            (alpha, gamma)
+        } else if approx::relative_eq!(cosbeta, 1.0, epsilon = thresh, max_relative = thresh) {
+            // cosbeta == 1, beta == 0
+            // cos(0.5(alpha+gamma)) = cos(0.5phi)
+            // We set alpha == 0 by convention.
+            // We then set gamma = phi.
+            (0.0, normalised_angle)
+        } else {
+            // cosbeta == -1, beta == pi
+            // sin(0.5phi) must be non-zero, otherwise cosbeta == 1, a contradiction.
+            // sin(0.5(alpha-gamma)) = -nx*sin(0.5phi)
+            // cos(0.5(alpha-gamma)) = +ny*sin(0.5phi)
+            // We set alpha == 0 by convention.
+            // gamma then lies in [-pi, pi].
+            let gamma = 2.0 * nx.atan2(ny);
 
             (0.0, gamma)
         };

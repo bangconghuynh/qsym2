@@ -5,7 +5,7 @@ use num::{Complex, Zero};
 use proptest::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::{
-    dmat_angleaxis, dmat_angleaxis_gen, dmat_euler, dmat_euler_gen,
+    dmat_angleaxis, dmat_angleaxis_gen_double, dmat_angleaxis_gen_single, dmat_euler, dmat_euler_gen,
 };
 
 type C128 = Complex<f64>;
@@ -191,7 +191,7 @@ proptest! {
 
 proptest! {
     #[test]
-    fn test_spinor_rotation_3d_dmat_angleaxis_gen(
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_double(
         nx in (-1000000.0..1000000.0f64),
         ny in (-1000000.0..1000000.0f64),
         nz in (-1000000.0..1000000.0f64),
@@ -208,8 +208,8 @@ proptest! {
         );
 
         // j = 0
-        let d1a = dmat_angleaxis_gen(0, angle, Vector3::new(nx, ny, nz), false);
-        let d1b = dmat_angleaxis_gen(
+        let d1a = dmat_angleaxis_gen_double(0, angle, Vector3::new(nx, ny, nz), false);
+        let d1b = dmat_angleaxis_gen_double(
             0, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
         );
         approx::assert_relative_eq!(
@@ -220,11 +220,11 @@ proptest! {
         );
 
         // j = 1/2
-        let d2a = dmat_angleaxis_gen(1, angle, Vector3::new(nx, ny, nz), false);
-        let d2b = dmat_angleaxis_gen(
+        let d2a = dmat_angleaxis_gen_double(1, angle, Vector3::new(nx, ny, nz), false);
+        let d2b = dmat_angleaxis_gen_double(
             1, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
         );
-        let d2c = dmat_angleaxis_gen(
+        let d2c = dmat_angleaxis_gen_double(
             1, angle + 4.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
         );
         approx::assert_relative_eq!(
@@ -241,8 +241,8 @@ proptest! {
         );
 
         // j = 1
-        let d3a = dmat_angleaxis_gen(2, angle, Vector3::new(nx, ny, nz), false);
-        let d3b = dmat_angleaxis_gen(
+        let d3a = dmat_angleaxis_gen_double(2, angle, Vector3::new(nx, ny, nz), false);
+        let d3b = dmat_angleaxis_gen_double(
             2, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
         );
         approx::assert_relative_eq!(
@@ -254,40 +254,9 @@ proptest! {
     }
 }
 
-// #[test]
-// fn test_spinor_rotation_3d_dmat_angleaxis_gen_specific(
-// ) {
-//     let twoj = 41;
-//     let nx = -247755.58689892257;
-//     let ny = 481666.3016768107;
-//     let nz = -540446.2253841391;
-//     // let angle = 71183.70960151847;
-//     let angle = 71.18370960151833;
-
-//     let da = dmat_angleaxis_gen(twoj, angle, Vector3::new(nx, ny, nz), false);
-//     let db = dmat_angleaxis_gen(
-//         twoj, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
-//     );
-//     if twoj % 2 == 0 {
-//         approx::assert_relative_eq!(
-//             (da - db).map(|x| x.norm_sqr()).sum().sqrt(),
-//             0.0,
-//             epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
-//             max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
-//         );
-//     } else {
-//         approx::assert_relative_eq!(
-//             (da + db).map(|x| x.norm_sqr()).sum().sqrt(),
-//             0.0,
-//             epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
-//             max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
-//         );
-//     }
-// }
-
 proptest! {
     #[test]
-    fn test_spinor_rotation_3d_dmat_angleaxis_gen_arbitrary(
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_double_arbitrary(
         twoj in (0..47u32),
         nx in (-1000000.0..1000000.0f64),
         ny in (-1000000.0..1000000.0f64),
@@ -304,8 +273,8 @@ proptest! {
                 max_relative = 1e-14
             )
         );
-        let da = dmat_angleaxis_gen(twoj, angle, Vector3::new(nx, ny, nz), false);
-        let db = dmat_angleaxis_gen(
+        let da = dmat_angleaxis_gen_double(twoj, angle, Vector3::new(nx, ny, nz), false);
+        let db = dmat_angleaxis_gen_double(
             twoj, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
         );
         if twoj % 2 == 0 {
@@ -323,5 +292,124 @@ proptest! {
                 max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
             );
         }
+    }
+}
+
+proptest! {
+    #[test]
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_single(
+        nx in (-1000000.0..1000000.0f64),
+        ny in (-1000000.0..1000000.0f64),
+        nz in (-1000000.0..1000000.0f64),
+        angle in (-1000000.0..1000000.0f64)
+    ) {
+        let mag = (nx.powi(2) + ny.powi(2) + nz.powi(2)).sqrt();
+        prop_assume!(
+            approx::relative_ne!(
+                mag,
+                0.0,
+                epsilon = 1e-14,
+                max_relative = 1e-14
+            )
+        );
+
+        // j = 0
+        let d1a = dmat_angleaxis_gen_single(0, angle, Vector3::new(nx, ny, nz), false);
+        let d1b = dmat_angleaxis_gen_single(
+            0, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        approx::assert_relative_eq!(
+            (&d1a - &d1b).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
+        );
+
+        // j = 1/2
+        let d2a = dmat_angleaxis_gen_single(1, angle, Vector3::new(nx, ny, nz), false);
+        let d2b = dmat_angleaxis_gen_single(
+            1, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        let d2c = dmat_angleaxis_gen_single(
+            1, angle + 4.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        approx::assert_relative_eq!(
+            (&d2a - &d2b).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
+        );
+        approx::assert_relative_eq!(
+            (&d2a - &d2c).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
+        );
+
+        // j = 1
+        let d3a = dmat_angleaxis_gen_single(2, angle, Vector3::new(nx, ny, nz), false);
+        let d3b = dmat_angleaxis_gen_single(
+            2, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        approx::assert_relative_eq!(
+            (&d3a - &d3b).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
+        );
+
+        // j = 3/2
+        let d4a = dmat_angleaxis_gen_single(3, angle, Vector3::new(nx, ny, nz), false);
+        let d4b = dmat_angleaxis_gen_single(
+            3, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        let d4c = dmat_angleaxis_gen_single(
+            3, angle + 4.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        approx::assert_relative_eq!(
+            (&d4a - &d4b).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
+        );
+        approx::assert_relative_eq!(
+            (&d4a - &d4c).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
+        );
+
+    }
+}
+
+proptest! {
+    #[test]
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_arbitrary(
+        twoj in (0..47u32),
+        nx in (-1000000.0..1000000.0f64),
+        ny in (-1000000.0..1000000.0f64),
+        nz in (-1000000.0..1000000.0f64),
+        angle in (-10000.0..10000.0f64)
+    ) {
+        // proptest begins to fail for twoj from 47 and up.
+        let mag = (nx.powi(2) + ny.powi(2) + nz.powi(2)).sqrt();
+        prop_assume!(
+            approx::relative_ne!(
+                mag,
+                0.0,
+                epsilon = 1e-14,
+                max_relative = 1e-14
+            )
+        );
+        let da = dmat_angleaxis_gen_single(twoj, angle, Vector3::new(nx, ny, nz), false);
+        let db = dmat_angleaxis_gen_single(
+            twoj, angle + 2.0 * std::f64::consts::PI, Vector3::new(nx, ny, nz), false
+        );
+        approx::assert_relative_eq!(
+            (da - db).map(|x| x.norm_sqr()).sum().sqrt(),
+            0.0,
+            epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
+            max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
+        );
     }
 }
