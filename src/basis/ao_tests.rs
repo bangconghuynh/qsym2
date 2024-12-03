@@ -230,6 +230,11 @@ fn test_ao_basis_pureorder() {
 }
 
 #[test]
+fn test_ao_basis_spinororder() {
+    todo!()
+}
+
+#[test]
 fn test_ao_basis_basisshell() {
     let bs0_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bs0_c = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
