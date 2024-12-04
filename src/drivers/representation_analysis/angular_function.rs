@@ -126,6 +126,7 @@ where
                             sh_cart2rl_mat(l, l, cartorder, true, &PureOrder::increasingm(l));
                         cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
                     }
+                    ShellOrder::Spinor(_) => panic!("Spinor symmetry analysis is not yet implemented."),
                 };
 
                 let mo_symmetries = SlaterDeterminant::<f64>::builder()
@@ -165,6 +166,7 @@ where
                 match shell_order {
                     ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
                     ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
+                    ShellOrder::Spinor(_) => panic!("Spinor symmetry analysis is not yet implemented."),
                 }
             });
             acc

@@ -48,13 +48,12 @@ pub enum SpinConstraint {
     // /// $`\alpha^{\mathrm{L}}, \alpha^{\mathrm{S}}, \beta^{\mathrm{L}}, \beta^{\mathrm{S}}`$ for
     // /// `false`).
     // RelativisticGeneralised(u16, bool, bool),
-
-    /// Variant for relativistic spinor: there is no separation between *spatial* and *spin* parts
-    /// as the two are inherently coupled together (each atomic orbital is a spin--orbit-coupled
-    /// spinor). The full basis set comprises two relativistic components typically referred to as
-    /// *large* and *small*. The associated boolean indicates if the spin spaces are arranged in
-    /// increasing $`m`$ order.
-    RelativisticSpinor(bool),
+    /// Variant for relativistic spin--orbit-coupled constraint: there is no separation between
+    /// *spatial* and *spin* parts as the two are inherently coupled together (each atomic orbital
+    /// is a spin--orbit-coupled function). The full basis set comprises two relativistic components
+    /// typically referred to as *large* and *small*. The associated boolean indicates if the spin
+    /// spaces in each shell are arranged in increasing $`m`$ order.
+    RelativisticSOC(bool),
 }
 
 impl SpinConstraint {
@@ -67,35 +66,31 @@ impl SpinConstraint {
             Self::Unrestricted(nspins, _) => *nspins,
             Self::Generalised(_, _) => 1,
             // Self::RelativisticGeneralised(_, _, _) => 1,
-            Self::RelativisticSpinor(_) => 1,
+            Self::RelativisticSOC(_) => 1,
         }
     }
 
-    /// Returns the number of spin spaces per 'unit' of consideration.
+    /// Returns the number of spin spaces per 'unit' of consideration, if well-defined.
     ///
     /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
-    pub fn nspins_per_unit(&self) -> u16 {
+    pub fn nspins_per_unit(&self) -> Option<u16> {
         match self {
-            Self::Restricted(_) => 1,
-            Self::Unrestricted(_, _) => 1,
-            Self::Generalised(nspins, _) => *nspins,
+            Self::Restricted(_) => Some(1),
+            Self::Unrestricted(_, _) => Some(1),
+            Self::Generalised(nspins, _) => Some(*nspins),
             // Self::RelativisticGeneralised(nspins, _, _) => *nspins,
-            // Formally, the entire relativistic spinor unit has two spin components coupled with
-            // spatial degrees of freedom.
-            Self::RelativisticSpinor(_) => 2,
+            Self::RelativisticSOC(_) => None,
         }
     }
 
-    /// Returns the total number of spin spaces.
-    pub fn nspins(&self) -> u16 {
+    /// Returns the total number of spin spaces, if well-defined.
+    pub fn nspins(&self) -> Option<u16> {
         match self {
-            Self::Restricted(nspins) => *nspins,
-            Self::Unrestricted(nspins, _) => *nspins,
-            Self::Generalised(nspins, _) => *nspins,
+            Self::Restricted(nspins) => Some(*nspins),
+            Self::Unrestricted(nspins, _) => Some(*nspins),
+            Self::Generalised(nspins, _) => Some(*nspins),
             // Self::RelativisticGeneralised(nspins, _, _) => 2 * nspins,
-            // Formally, the entire relativistic spinor unit has two spin components coupled with
-            // spatial degrees of freedom.
-            Self::RelativisticSpinor(_) => 2,
+            Self::RelativisticSOC(_) => None,
         }
     }
 }
@@ -147,9 +142,9 @@ impl fmt::Display for SpinConstraint {
             //         "grouped by spin values"
             //     }
             // ),
-            Self::RelativisticSpinor(increasingm) => write!(
+            Self::RelativisticSOC(increasingm) => write!(
                 f,
-                "Relativistic Spinor ({} m)",
+                "Relativistic spin--orbit-coupled ({} m)",
                 if *increasingm {
                     "increasing"
                 } else {

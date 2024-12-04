@@ -535,6 +535,7 @@ macro_rules! build_shell_tuple {
                             true,
                             &po
                         )),
+                        ShellOrder::Spinor(_) => None,
                     }
                 ),+])
                 .zs([$(

@@ -592,13 +592,13 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
             });
             let po_il = PureOrder::increasingm(shl.l);
             match &shl.shell_order {
-                ShellOrder::Pure(pureorder) => {
+                ShellOrder::Pure(pure_order) => {
                     // Spherical functions.
                     let rl = rls[l].clone();
-                    if *pureorder != po_il {
+                    if *pure_order != po_il {
                         // `rl` is in increasing-m order by default. See the function `rlmat` for
                         // the origin of this order.
-                        let perm = pureorder
+                        let perm = pure_order
                             .get_perm_of(&po_il)
                             .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
                         rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
@@ -655,6 +655,20 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                         rl
                     }
                 }
+                // ShellOrder::Spinor(spinor_order) => {
+                //     // Spherical functions.
+                //     let rl = rls[l].clone();
+                //     if *pure_order != po_il {
+                //         // `rl` is in increasing-m order by default. See the function `rlmat` for
+                //         // the origin of this order.
+                //         let perm = pure_order
+                //             .get_perm_of(&po_il)
+                //             .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
+                //         rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
+                //     } else {
+                //         rl
+                //     }
+                // }
             }
         })
         .collect::<Vec<Array2<f64>>>();
