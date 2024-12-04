@@ -11,7 +11,7 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
+    assemble_spatial_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
     DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
     SymmetryTransformable, TimeReversalTransformable, TransformationError,
 };
@@ -30,7 +30,7 @@ where
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
     ) -> Result<&mut Self, TransformationError> {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
+        let tmats: Vec<Array2<T>> = assemble_spatial_sh_rotation_3d_matrices(self.bao, rmat, perm)
             .map_err(|err| TransformationError(err.to_string()))?
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))

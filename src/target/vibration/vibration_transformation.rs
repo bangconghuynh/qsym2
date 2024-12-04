@@ -9,9 +9,9 @@ use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, Shel
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
-    TimeReversalTransformable, TransformationError,
+    assemble_spatial_sh_rotation_3d_matrices, permute_array_by_atoms,
+    ComplexConjugationTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
+    SymmetryTransformable, TimeReversalTransformable, TransformationError,
 };
 use crate::target::vibration::VibrationalCoordinate;
 
@@ -29,7 +29,7 @@ where
         perm: Option<&Permutation<usize>>,
     ) -> Result<&mut Self, TransformationError> {
         let vib_bao = construct_vibration_bao(self.mol);
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&vib_bao, rmat, perm)
+        let tmats: Vec<Array2<T>> = assemble_spatial_sh_rotation_3d_matrices(&vib_bao, rmat, perm)
             .map_err(|err| TransformationError(err.to_string()))?
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))
