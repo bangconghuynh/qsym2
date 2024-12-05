@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::fmt;
 
+use anyhow::format_err;
 use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
@@ -582,7 +583,7 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
         .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, PureOrder::increasingm))
         .collect();
 
-    let rmats = pbao.basis_shells()
+    let rmats_res = pbao.basis_shells()
         .map(|shl| {
             let l = usize::try_from(shl.l).unwrap_or_else(|_| {
                 panic!(
@@ -601,9 +602,9 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                         let perm = pureorder
                             .get_perm_of(&po_il)
                             .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
-                        rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
+                        Ok(rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
                     } else {
-                        rl
+                        Ok(rl)
                     }
                 }
                 ShellOrder::Cart(cart_order) => {
@@ -649,14 +650,15 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                             .unwrap_or_else(
                                 || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
                             );
-                        rl.select(Axis(0), perm.image())
-                            .select(Axis(1), perm.image())
+                        Ok(rl.select(Axis(0), perm.image())
+                            .select(Axis(1), perm.image()))
                     } else {
-                        rl
+                        Ok(rl)
                     }
                 }
+                ShellOrder::Spinor(_) => Err(format_err!("Spinor shells cannot have transformation matrices with spherical-harmonic bases."))
             }
         })
-        .collect::<Vec<Array2<f64>>>();
-    Ok(rmats)
+        .collect::<Result<Vec<Array2<f64>>, _>>();
+    rmats_res
 }

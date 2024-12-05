@@ -116,11 +116,11 @@ where
                     &mol.atoms[0],
                     &[BasisShell::new(l, shell_order.clone())],
                 )]);
-                let n_spatial = bao.n_funcs();
-                let cs = vec![Array2::<f64>::eye(n_spatial)];
-                let occs = vec![Array1::<f64>::ones(n_spatial)];
+                let nbas = bao.n_funcs();
+                let cs = vec![Array2::<f64>::eye(nbas)];
+                let occs = vec![Array1::<f64>::ones(nbas)];
                 let sao = match shell_order {
-                    ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
+                    ShellOrder::Pure(_) | ShellOrder::Spinor(_) => Array2::<f64>::eye(bao.n_funcs()),
                     ShellOrder::Cart(cartorder) => {
                         let cart2rl =
                             sh_cart2rl_mat(l, l, cartorder, true, &PureOrder::increasingm(l));
@@ -165,6 +165,7 @@ where
                 match shell_order {
                     ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
                     ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
+                    ShellOrder::Spinor(_) => todo!(),
                 }
             });
             acc

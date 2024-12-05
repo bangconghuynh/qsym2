@@ -527,7 +527,7 @@ macro_rules! build_shell_tuple {
                 ),+])
                 .rl2carts([$(
                     match &$shell.0.basis_shell().shell_order {
-                        ShellOrder::Cart(_) => None,
+                        ShellOrder::Cart(_) | ShellOrder::Spinor(_) => None,
                         ShellOrder::Pure(po) => Some(sh_rl2cart_mat(
                             po.lpure,
                             po.lpure,

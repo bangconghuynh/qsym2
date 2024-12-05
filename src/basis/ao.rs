@@ -550,18 +550,27 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 // SpinorOrder
 // ~~~~~~~~~~~
 
-/// Structure to contain information about the ordering of spinor Gaussians of a certain rank.
+/// Structure to contain information about the ordering of spinors of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct SpinorOrder {
+    /// The angular momentum (times two) of the spinor Gaussians. This must be an odd integer.
+    #[builder(setter(custom))]
+    pub two_j: u32,
+
     /// A sequence of $`2m_j`$ values giving the ordering of the spinor Gaussians.
     #[builder(setter(custom))]
     two_mjs: Vec<i32>,
-
-    /// The angular momentum (times two) of the spinor Gaussians.
-    pub two_j: u32,
 }
 
 impl SpinorOrderBuilder {
+    fn two_j(&mut self, two_j: u32) -> &mut Self {
+        if two_j.rem_euclid(2) != 1 {
+            panic!("`two_j` must be odd.")
+        }
+        self.two_j = Some(two_j);
+        self
+    }
+
     fn two_mjs(&mut self, two_mjs: &[i32]) -> &mut Self {
         let two_j = self.two_j.expect("`two_j` has not been set.");
         assert!(
