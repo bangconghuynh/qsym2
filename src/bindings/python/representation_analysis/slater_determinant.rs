@@ -192,7 +192,7 @@ impl PySlaterDeterminantReal {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<SlaterDeterminant<f64>, anyhow::Error> {
+    ) -> Result<SlaterDeterminant<'b, f64>, anyhow::Error> {
         let det = SlaterDeterminant::<f64>::builder()
             .spin_constraint(self.spin_constraint.clone().into())
             .bao(bao)
@@ -363,7 +363,7 @@ impl PySlaterDeterminantComplex {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<SlaterDeterminant<C128>, anyhow::Error> {
+    ) -> Result<SlaterDeterminant<'b, C128>, anyhow::Error> {
         let det = SlaterDeterminant::<C128>::builder()
             .spin_constraint(self.spin_constraint.clone().into())
             .bao(bao)
