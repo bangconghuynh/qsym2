@@ -11,9 +11,10 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
-    assemble_spatial_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
-    SymmetryTransformable, TimeReversalTransformable, TransformationError,
+    assemble_spatial_sh_rotation_3d_matrices, permute_array_by_atoms,
+    ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
+    SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
+    TransformationError,
 };
 use crate::target::determinant::SlaterDeterminant;
 
@@ -64,7 +65,7 @@ where
                         Axis(0),
                         &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
                     )
-                    .expect("Unable to concatenate the transformed rows for the various shells.")
+                    .map_err(|err| TransformationError(format!("Unable to concatenate the transformed rows for the various shells: {err}")))
                 }
                 SpinConstraint::Generalised(nspins, _) => {
                     let nspatial = self.bao.n_funcs();
@@ -96,8 +97,8 @@ where
                             Axis(0),
                             &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
                         )
-                        .expect("Unable to concatenate the transformed rows for the various shells.")
-                    }).collect::<Vec<_>>();
+                        .map_err(|err| TransformationError(format!("Unable to concatenate the transformed rows for the various shells: {err}")))
+                    }).collect::<Result<Vec<_>, _>>()?;
 
                     // Concatenate spin blocks.
                     concatenate(
@@ -107,53 +108,16 @@ where
                             .map(|t_p_spin_block| t_p_spin_block.view())
                             .collect::<Vec<_>>(),
                     )
-                    .expect("Unable to concatenate the transformed spin blocks.")
+                    .map_err(|err| TransformationError(format!("Unable to concatenate the transformed spin blocks: {err}")))
                 }
-                SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
-                    let nspatial = self.bao.n_funcs();
-                    let t_p_spin_blocks = (0..2 * nspins).map(|irelspin| {
-                        // Extract spin block irelspin.
-                        let spin_start = usize::from(irelspin) * nspatial;
-                        let spin_end = (usize::from(irelspin) + 1) * nspatial;
-                        let spin_block = old_coeff.slice(s![spin_start..spin_end, ..]).to_owned();
-
-                        // Permute within spin block irelspin.
-                        let p_spin_block = if let Some(p) = perm {
-                            permute_array_by_atoms(&spin_block, p, &[Axis(0)], self.bao)
-                        } else {
-                            spin_block
-                        };
-
-                        // Transform within spin block irelspin.
-                        let t_p_blocks = pbao
-                            .shell_boundary_indices()
-                            .into_iter()
-                            .zip(tmats.iter())
-                            .map(|((shl_start, shl_end), tmat)| {
-                                tmat.dot(&p_spin_block.slice(s![shl_start..shl_end, ..]))
-                            })
-                            .collect::<Vec<_>>();
-
-                        // Concatenate blocks for various shells within spin block irelspin.
-                        concatenate(
-                            Axis(0),
-                            &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
-                        )
-                        .expect("Unable to concatenate the transformed rows for the various shells.")
-                    }).collect::<Vec<_>>();
-
-                    // Concatenate spin blocks.
-                    concatenate(
-                        Axis(0),
-                        &t_p_spin_blocks
-                            .iter()
-                            .map(|t_p_spin_block| t_p_spin_block.view())
-                            .collect::<Vec<_>>(),
-                    )
-                    .expect("Unable to concatenate the transformed spin blocks.")
+                SpinConstraint::RelativisticSOC(_) => {
+                    Err(TransformationError(
+                        "Impossible to transform only spatial degrees of freedom in a relativistic spin--orbit-coupled determinant."
+                            .to_string(),
+                    ))
                 }
             })
-            .collect::<Vec<Array2<T>>>();
+            .collect::<Result<Vec<Array2<T>>, _>>()?;
         self.coefficients = new_coefficients;
         Ok(self)
     }
@@ -306,152 +270,44 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
                 }
                 SpinConstraint::Generalised(nspins, increasingm) => {
                     if nspins != 2 {
-                        return Err(TransformationError(
+                        Err(TransformationError(
                             "Only two-component spinor transformations are supported for now."
                                 .to_string(),
-                        ));
+                        ))
+                    } else {
+                        let nspatial = self.bao.n_funcs();
+                        let new_coefficients = self
+                            .coefficients
+                            .iter()
+                            .map(|old_coeff| {
+                                if !increasingm {
+                                    let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                                    let b_coeff =
+                                        old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                                    let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
+                                    let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
+                                    concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()])
+                                        .expect("Unable to concatenate the transformed spin blocks.")
+                                } else {
+                                    let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                                    let a_coeff =
+                                        old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                                    let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
+                                    let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
+                                    concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()])
+                                        .expect("Unable to concatenate the transformed spin blocks.")
+                                }
+                            })
+                            .collect::<Vec<Array2<f64>>>();
+                        self.coefficients = new_coefficients;
+                        Ok(self)
                     }
-
-                    let nspatial = self.bao.n_funcs();
-                    let new_coefficients = self
-                        .coefficients
-                        .iter()
-                        .map(|old_coeff| {
-                            if !increasingm {
-                                let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                                let b_coeff =
-                                    old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                                let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                                let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                                concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()])
-                                    .expect("Unable to concatenate the transformed spin blocks.")
-                            } else {
-                                let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                                let a_coeff =
-                                    old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                                let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                                let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                                concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()])
-                                    .expect("Unable to concatenate the transformed spin blocks.")
-                            }
-                        })
-                        .collect::<Vec<Array2<f64>>>();
-                    self.coefficients = new_coefficients;
-                    Ok(self)
                 }
-                SpinConstraint::RelativisticGeneralised(nspins, increasingm, groupedbyrelcomp) => {
-                    if nspins != 2 {
-                        return Err(TransformationError(
-                            "Only two-component spinor transformations are supported for now."
-                                .to_string(),
-                        ));
-                    }
-
-                    let nspatial = self.bao.n_funcs();
-                    let new_coefficients = self
-                        .coefficients
-                        .iter()
-                        .map(|old_coeff| {
-                            let new_coeff_vec = match (increasingm, groupedbyrelcomp) {
-                                (true, true) => (0..2)
-                                    .flat_map(|irel| {
-                                        let b_start = irel * (2 * nspatial);
-                                        let b_end = irel * (2 * nspatial) + nspatial;
-                                        let a_start = irel * (2 * nspatial) + nspatial;
-                                        let a_end = irel * (2 * nspatial) + 2 * nspatial;
-                                        let b_coeff =
-                                            old_coeff.slice(s![b_start..b_end, ..]).to_owned();
-                                        let a_coeff =
-                                            old_coeff.slice(s![a_start..a_end, ..]).to_owned();
-                                        let t_a_coeff =
-                                            &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                                        let t_b_coeff =
-                                            &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                                        [t_b_coeff, t_a_coeff]
-                                    })
-                                    .collect::<Vec<_>>(),
-                                (false, true) => (0..2)
-                                    .flat_map(|irel| {
-                                        let a_start = irel * (2 * nspatial);
-                                        let a_end = irel * (2 * nspatial) + nspatial;
-                                        let b_start = irel * (2 * nspatial) + nspatial;
-                                        let b_end = irel * (2 * nspatial) + 2 * nspatial;
-                                        let a_coeff =
-                                            old_coeff.slice(s![a_start..a_end, ..]).to_owned();
-                                        let b_coeff =
-                                            old_coeff.slice(s![b_start..b_end, ..]).to_owned();
-                                        let t_a_coeff =
-                                            &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                                        let t_b_coeff =
-                                            &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                                        [t_a_coeff, t_b_coeff]
-                                    })
-                                    .collect::<Vec<_>>(),
-                                (true, false) => {
-                                    let b0_start = 0;
-                                    let b0_end = nspatial;
-                                    let b1_start = nspatial;
-                                    let b1_end = 2 * nspatial;
-                                    let a0_start = 2 * nspatial;
-                                    let a0_end = 3 * nspatial;
-                                    let a1_start = 3 * nspatial;
-                                    let a1_end = 4 * nspatial;
-                                    let b0_coeff =
-                                        old_coeff.slice(s![b0_start..b0_end, ..]).to_owned();
-                                    let a0_coeff =
-                                        old_coeff.slice(s![a0_start..a0_end, ..]).to_owned();
-                                    let t_a0_coeff =
-                                        &a0_coeff * rdmat[[0, 0]] + &b0_coeff * rdmat[[0, 1]];
-                                    let t_b0_coeff =
-                                        &a0_coeff * rdmat[[1, 0]] + &b0_coeff * rdmat[[1, 1]];
-                                    let b1_coeff =
-                                        old_coeff.slice(s![b1_start..b1_end, ..]).to_owned();
-                                    let a1_coeff =
-                                        old_coeff.slice(s![a1_start..a1_end, ..]).to_owned();
-                                    let t_a1_coeff =
-                                        &a1_coeff * rdmat[[0, 0]] + &b1_coeff * rdmat[[0, 1]];
-                                    let t_b1_coeff =
-                                        &a1_coeff * rdmat[[1, 0]] + &b1_coeff * rdmat[[1, 1]];
-                                    vec![t_b0_coeff, t_b1_coeff, t_a0_coeff, t_a1_coeff]
-                                }
-                                (false, false) => {
-                                    let a0_start = 0;
-                                    let a0_end = nspatial;
-                                    let a1_start = nspatial;
-                                    let a1_end = 2 * nspatial;
-                                    let b0_start = 2 * nspatial;
-                                    let b0_end = 3 * nspatial;
-                                    let b1_start = 3 * nspatial;
-                                    let b1_end = 4 * nspatial;
-                                    let a0_coeff =
-                                        old_coeff.slice(s![a0_start..a0_end, ..]).to_owned();
-                                    let b0_coeff =
-                                        old_coeff.slice(s![b0_start..b0_end, ..]).to_owned();
-                                    let t_a0_coeff =
-                                        &a0_coeff * rdmat[[0, 0]] + &b0_coeff * rdmat[[0, 1]];
-                                    let t_b0_coeff =
-                                        &a0_coeff * rdmat[[1, 0]] + &b0_coeff * rdmat[[1, 1]];
-                                    let a1_coeff =
-                                        old_coeff.slice(s![a1_start..a1_end, ..]).to_owned();
-                                    let b1_coeff =
-                                        old_coeff.slice(s![b1_start..b1_end, ..]).to_owned();
-                                    let t_a1_coeff =
-                                        &a1_coeff * rdmat[[0, 0]] + &b1_coeff * rdmat[[0, 1]];
-                                    let t_b1_coeff =
-                                        &a1_coeff * rdmat[[1, 0]] + &b1_coeff * rdmat[[1, 1]];
-                                    vec![t_a0_coeff, t_a1_coeff, t_b0_coeff, t_b1_coeff]
-                                }
-                            };
-                            let new_coeff_arr_view =
-                                new_coeff_vec.iter().map(|c| c.view()).collect::<Vec<_>>();
-                            let new_coeff = concatenate(Axis(0), &new_coeff_arr_view).expect(
-                                "Unable to concatenate the transformed relativistic spin blocks.",
-                            );
-                            new_coeff
-                        })
-                        .collect::<Vec<_>>();
-                    self.coefficients = new_coefficients;
-                    Ok(self)
+                SpinConstraint::RelativisticSOC(_) => {
+                    Err(TransformationError(
+                        "Impossible to transform only spin degrees of freedom in a relativistic spin--orbit-coupled determinant."
+                            .to_string(),
+                    ))
                 }
             }
         }
@@ -604,150 +460,44 @@ where
             }
             SpinConstraint::Generalised(nspins, increasingm) => {
                 if nspins != 2 {
-                    panic!("Only two-component spinor transformations are supported for now.");
+                    Err(TransformationError(
+                        "Only two-component spinor transformations are supported for now.".to_string()
+                    ))
+                } else {
+                    let nspatial = self.bao.n_funcs();
+
+                    let new_coefficients = self
+                        .coefficients
+                        .iter()
+                        .map(|old_coeff| {
+                            if increasingm {
+                                let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                                let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                                let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                                let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                                concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
+                                    "Unable to concatenate the transformed rows for the various shells.",
+                                )
+                            } else {
+                                let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                                let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                                let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                                let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                                concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
+                                    "Unable to concatenate the transformed rows for the various shells.",
+                                )
+                            }
+                        })
+                        .collect::<Vec<Array2<Complex<T>>>>();
+                    self.coefficients = new_coefficients;
+                    Ok(self)
                 }
-
-                let nspatial = self.bao.n_funcs();
-
-                let new_coefficients = self
-                    .coefficients
-                    .iter()
-                    .map(|old_coeff| {
-                        if increasingm {
-                            let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                            let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                            concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
-                                "Unable to concatenate the transformed rows for the various shells.",
-                            )
-                        } else {
-                            let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                            let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                            concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
-                                "Unable to concatenate the transformed rows for the various shells.",
-                            )
-                        }
-                    })
-                    .collect::<Vec<Array2<Complex<T>>>>();
-                self.coefficients = new_coefficients;
-                Ok(self)
             }
-            SpinConstraint::RelativisticGeneralised(nspins, increasingm, groupedbyrelcomp) => {
-                if nspins != 2 {
-                    return Err(TransformationError(
-                        "Only two-component spinor transformations are supported for now."
-                            .to_string(),
-                    ));
-                }
-
-                let nspatial = self.bao.n_funcs();
-                let new_coefficients = self
-                    .coefficients
-                    .iter()
-                    .map(|old_coeff| {
-                        let new_coeff_vec = match (increasingm, groupedbyrelcomp) {
-                            (true, true) => (0..2)
-                                .flat_map(|irel| {
-                                    let b_start = irel * (2 * nspatial);
-                                    let b_end = irel * (2 * nspatial) + nspatial;
-                                    let a_start = irel * (2 * nspatial) + nspatial;
-                                    let a_end = irel * (2 * nspatial) + 2 * nspatial;
-                                    let b_coeff =
-                                        old_coeff.slice(s![b_start..b_end, ..]).to_owned();
-                                    let a_coeff =
-                                        old_coeff.slice(s![a_start..a_end, ..]).to_owned();
-                                    let t_a_coeff =
-                                        &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                                    let t_b_coeff =
-                                        &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                                    [t_b_coeff, t_a_coeff]
-                                })
-                                .collect::<Vec<_>>(),
-                            (false, true) => (0..2)
-                                .flat_map(|irel| {
-                                    let a_start = irel * (2 * nspatial);
-                                    let a_end = irel * (2 * nspatial) + nspatial;
-                                    let b_start = irel * (2 * nspatial) + nspatial;
-                                    let b_end = irel * (2 * nspatial) + 2 * nspatial;
-                                    let a_coeff =
-                                        old_coeff.slice(s![a_start..a_end, ..]).to_owned();
-                                    let b_coeff =
-                                        old_coeff.slice(s![b_start..b_end, ..]).to_owned();
-                                    let t_a_coeff =
-                                        &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                                    let t_b_coeff =
-                                        &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                                    [t_a_coeff, t_b_coeff]
-                                })
-                                .collect::<Vec<_>>(),
-                            (true, false) => {
-                                let b0_start = 0;
-                                let b0_end = nspatial;
-                                let b1_start = nspatial;
-                                let b1_end = 2 * nspatial;
-                                let a0_start = 2 * nspatial;
-                                let a0_end = 3 * nspatial;
-                                let a1_start = 3 * nspatial;
-                                let a1_end = 4 * nspatial;
-                                let b0_coeff =
-                                    old_coeff.slice(s![b0_start..b0_end, ..]).to_owned();
-                                let a0_coeff =
-                                    old_coeff.slice(s![a0_start..a0_end, ..]).to_owned();
-                                let t_a0_coeff =
-                                    &a0_coeff * dmat[[0, 0]] + &b0_coeff * dmat[[0, 1]];
-                                let t_b0_coeff =
-                                    &a0_coeff * dmat[[1, 0]] + &b0_coeff * dmat[[1, 1]];
-                                let b1_coeff =
-                                    old_coeff.slice(s![b1_start..b1_end, ..]).to_owned();
-                                let a1_coeff =
-                                    old_coeff.slice(s![a1_start..a1_end, ..]).to_owned();
-                                let t_a1_coeff =
-                                    &a1_coeff * dmat[[0, 0]] + &b1_coeff * dmat[[0, 1]];
-                                let t_b1_coeff =
-                                    &a1_coeff * dmat[[1, 0]] + &b1_coeff * dmat[[1, 1]];
-                                vec![t_b0_coeff, t_b1_coeff, t_a0_coeff, t_a1_coeff]
-                            }
-                            (false, false) => {
-                                let a0_start = 0;
-                                let a0_end = nspatial;
-                                let a1_start = nspatial;
-                                let a1_end = 2 * nspatial;
-                                let b0_start = 2 * nspatial;
-                                let b0_end = 3 * nspatial;
-                                let b1_start = 3 * nspatial;
-                                let b1_end = 4 * nspatial;
-                                let a0_coeff =
-                                    old_coeff.slice(s![a0_start..a0_end, ..]).to_owned();
-                                let b0_coeff =
-                                    old_coeff.slice(s![b0_start..b0_end, ..]).to_owned();
-                                let t_a0_coeff =
-                                    &a0_coeff * dmat[[0, 0]] + &b0_coeff * dmat[[0, 1]];
-                                let t_b0_coeff =
-                                    &a0_coeff * dmat[[1, 0]] + &b0_coeff * dmat[[1, 1]];
-                                let a1_coeff =
-                                    old_coeff.slice(s![a1_start..a1_end, ..]).to_owned();
-                                let b1_coeff =
-                                    old_coeff.slice(s![b1_start..b1_end, ..]).to_owned();
-                                let t_a1_coeff =
-                                    &a1_coeff * dmat[[0, 0]] + &b1_coeff * dmat[[0, 1]];
-                                let t_b1_coeff =
-                                    &a1_coeff * dmat[[1, 0]] + &b1_coeff * dmat[[1, 1]];
-                                vec![t_a0_coeff, t_a1_coeff, t_b0_coeff, t_b1_coeff]
-                            }
-                        };
-                        let new_coeff_arr_view =
-                            new_coeff_vec.iter().map(|c| c.view()).collect::<Vec<_>>();
-                        let new_coeff = concatenate(Axis(0), &new_coeff_arr_view).expect(
-                            "Unable to concatenate the transformed relativistic spin blocks.",
-                        );
-                        new_coeff
-                    })
-                    .collect::<Vec<_>>();
-                self.coefficients = new_coefficients;
-                Ok(self)
+            SpinConstraint::RelativisticSOC(_) => {
+                Err(TransformationError(
+                    "Impossible to transform only spin degrees of freedom in a relativistic spin--orbit-coupled determinant."
+                        .to_string(),
+                ))
             }
         }
     }

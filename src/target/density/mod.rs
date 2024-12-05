@@ -91,11 +91,10 @@ where
                     Ok(())
                 }
             }
-            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
-                if densities.len() != usize::from(2 * nspins) {
+            SpinConstraint::RelativisticSOC(_) => {
+                if densities.len() != 1 {
                     Err(format!(
-                        "{} densities expected in relativistic generalised spin constraint, but {} found.",
-                        2 * nspins,
+                        "2 densities expected in relativistic spin--orbit-coupled spin constraint (one for up-spins, one for down-spins), but {} found.",
                         densities.len()
                     ))
                 } else {
@@ -194,11 +193,10 @@ where
                     Ok(())
                 }
             }
-            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
-                if densities.len() != usize::from(2 * nspins) {
+            SpinConstraint::RelativisticSOC(_) => {
+                if densities.len() != 1 {
                     Err(format!(
-                        "{} densities expected in relativistic generalised spin constraint, but {} found.",
-                        2 * nspins,
+                        "2 densities expected in relativistic spin--orbit-coupled spin constraint (one for up-spins, one for down-spins), but {} found.",
                         densities.len()
                     ))
                 } else {

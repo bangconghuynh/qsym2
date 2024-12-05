@@ -52,9 +52,10 @@ pub enum SpinConstraint {
     // RelativisticGeneralised(u16, bool, bool),
     /// Variant for relativistic spin--orbit-coupled constraint: there is no separation between
     /// *spatial* and *spin* parts as the two are inherently coupled together (each atomic orbital
-    /// is a spin--orbit-coupled function). The full basis set comprises two relativistic components
-    /// typically referred to as *large* and *small*. The associated boolean indicates if the spin
-    /// spaces in each shell are arranged in increasing $`m`$ order.
+    /// is a spin--orbit-coupled $`j`$-adapted function). The full basis set comprises two
+    /// relativistic components typically referred to as *large* and *small*. The associated boolean
+    /// indicates if the $`\ket{j, m_j}`$ functions in each shell are arranged in increasing $`m_j`$
+    /// order.
     RelativisticSOC(bool),
 }
 

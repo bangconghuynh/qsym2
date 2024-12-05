@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::fmt;
 
+use anyhow::format_err;
 use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
-use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
+use crate::angmom::spinor_rotation_3d::{dmat_angleaxis, dmat_angleaxis_gen_single};
 use crate::basis::ao::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder};
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
@@ -159,6 +160,41 @@ pub trait SpinUnitaryTransformable: Clone {
     }
 }
 
+// /// Trait for spin--spatial-coupled unitary transformations.
+// pub trait SpinSpatialCoupledUnitaryTransformable: Clone {
+//     // ----------------
+//     // Required methods
+//     // ----------------
+//     /// Performs a spin--spatial-coupled transformation in-place.
+//     ///
+//     /// # Arguments
+//     ///
+//     /// * `angle` - The angle .
+//     fn transform_spin_spatial_coupled_mut(
+//         &mut self,
+//         dmat: &Array2<Complex<f64>>,
+//     ) -> Result<&mut Self, TransformationError>;
+//
+//     // ----------------
+//     // Provided methods
+//     // ----------------
+//     /// Performs a spin transformation and returns the transformed result.
+//     ///
+//     /// # Arguments
+//     ///
+//     /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
+//     /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
+//     ///
+//     /// # Returns
+//     ///
+//     /// The transformed result.
+//     fn transform_spin(&self, dmat: &Array2<Complex<f64>>) -> Result<Self, TransformationError> {
+//         let mut tself = self.clone();
+//         tself.transform_spin_mut(dmat)?;
+//         Ok(tself)
+//     }
+// }
+
 /// Trait for complex-conjugation transformations.
 pub trait ComplexConjugationTransformable: Clone {
     // ----------------
@@ -209,32 +245,7 @@ pub trait TimeReversalTransformable: ComplexConjugationTransformable {
     }
 }
 
-// ----------------------
-// Blanket implementation
-// ----------------------
-
-/// Marker trait indicating that the implementing type should get the blanket implementation for
-/// [`TimeReversalTransformable`].
-pub trait DefaultTimeReversalTransformable {}
-
-impl<T> TimeReversalTransformable for T
-where
-    T: DefaultTimeReversalTransformable
-        + SpinUnitaryTransformable
-        + ComplexConjugationTransformable,
-{
-    /// Performs a time-reversal transformation in-place.
-    ///
-    /// The default implementation of the time-reversal transformation for any type that implements
-    /// [`SpinUnitaryTransformable`] and [`ComplexConjugationTransformable`] is a spin rotation by
-    /// $`\pi`$ about the space-fixed $`y`$-axis followed by a complex conjugation.
-    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
-        self.transform_spin_mut(&dmat_y)?.transform_cc_mut()
-    }
-}
-
-/// Trait for transformations using [`SymmetryOperation`].
+/// Trait for uncoupled spin and spatial transformations using [`SymmetryOperation`].
 pub trait SymmetryTransformable:
     SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable
 {
@@ -468,6 +479,90 @@ pub trait SymmetryTransformable:
     }
 }
 
+/// Trait for coupled spin and spatial transformations using [`SymmetryOperation`].
+pub trait SOCSymmetryTransformable: Clone {
+    // ----------------
+    // Required methods
+    // ----------------
+    /// Determines the permutation of sites (*e.g.* atoms in molecules) due to the action of a
+    /// symmetry operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The resultant site permutation under the action of `symop`, or an error if no such
+    /// permutation can be found.
+    fn sym_permute_sites_spatial(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Permutation<usize>, TransformationError>;
+
+    /// Performs a coupled spin--spatial transformation according to a specified symmetry operation
+    /// in-place.
+    ///
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin--spatial-coupled transformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    fn sym_transform_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError>;
+
+    // ----------------
+    // Provided methods
+    // ----------------
+    /// Performs a coupled spin-spatial transformation according to a specified symmetry operation
+    /// and returns the transformed result.
+    ///
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The transformed result.
+    fn sym_transform_spin_spatial(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Self, TransformationError> {
+        let mut tself = self.clone();
+        tself.sym_transform_spin_spatial_mut(symop)?;
+        Ok(tself)
+    }
+}
+
+// ----------------------
+// Blanket implementation
+// ----------------------
+
+/// Marker trait indicating that the implementing type should get the blanket implementation for
+/// [`TimeReversalTransformable`].
+pub trait DefaultTimeReversalTransformable {}
+
+impl<T> TimeReversalTransformable for T
+where
+    T: DefaultTimeReversalTransformable
+        + SpinUnitaryTransformable
+        + ComplexConjugationTransformable,
+{
+    /// Performs a time-reversal transformation in-place.
+    ///
+    /// The default implementation of the time-reversal transformation for any type that implements
+    /// [`SpinUnitaryTransformable`] and [`ComplexConjugationTransformable`] is a spin rotation by
+    /// $`\pi`$ about the space-fixed $`y`$-axis followed by a complex conjugation.
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
+        self.transform_spin_mut(&dmat_y)?.transform_cc_mut()
+    }
+}
+
 // =========
 // Functions
 // =========
@@ -533,7 +628,7 @@ where
     r
 }
 
-/// Assembles spherical-harmonic rotation matrices for all shells.
+/// Assembles spatial spherical-harmonic rotation matrices for all shells.
 ///
 /// # Arguments
 ///
@@ -547,7 +642,7 @@ where
 ///
 /// A vector of spherical-harmonic rotation matrices, one for each shells in `bao`. Non-standard
 /// orderings of functions in shells are taken into account.
-pub(crate) fn assemble_sh_rotation_3d_matrices(
+pub(crate) fn assemble_spatial_sh_rotation_3d_matrices(
     bao: &BasisAngularOrder,
     rmat: &Array2<f64>,
     perm: Option<&Permutation<usize>>,
@@ -584,12 +679,7 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
 
     let rmats = pbao.basis_shells()
         .map(|shl| {
-            let l = usize::try_from(shl.l).unwrap_or_else(|_| {
-                panic!(
-                    "Unable to convert the angular momentum order `{}` to `usize`.",
-                    shl.l
-                );
-            });
+            let l = usize::try_from(shl.l)?;
             let po_il = PureOrder::increasingm(shl.l);
             match &shl.shell_order {
                 ShellOrder::Pure(pure_order) => {
@@ -600,10 +690,10 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                         // the origin of this order.
                         let perm = pure_order
                             .get_perm_of(&po_il)
-                            .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
-                        rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
+                            .ok_or(format_err!("Unable to obtain the permutation that maps `pure_order` to the increasing order."))?;
+                        Ok(rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
                     } else {
-                        rl
+                        Ok(rl)
                     }
                 }
                 ShellOrder::Cart(cart_order) => {
@@ -646,31 +736,20 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                         // according to π.
                         let perm = lex_cart_order
                             .get_perm_of(cart_order)
-                            .unwrap_or_else(
-                                || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
-                            );
-                        rl.select(Axis(0), perm.image())
-                            .select(Axis(1), perm.image())
+                            .ok_or_else(
+                                || format_err!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
+                            )?;
+                        Ok(rl.select(Axis(0), perm.image())
+                            .select(Axis(1), perm.image()))
                     } else {
-                        rl
+                        Ok(rl)
                     }
                 }
-                // ShellOrder::Spinor(spinor_order) => {
-                //     // Spherical functions.
-                //     let rl = rls[l].clone();
-                //     if *pure_order != po_il {
-                //         // `rl` is in increasing-m order by default. See the function `rlmat` for
-                //         // the origin of this order.
-                //         let perm = pure_order
-                //             .get_perm_of(&po_il)
-                //             .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
-                //         rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
-                //     } else {
-                //         rl
-                //     }
-                // }
+                ShellOrder::Spinor(_) => {
+                    Err(format_err!("This function `assemble_spatial_sh_rotation_3d_matrices` is not applicable to spinor shells."))
+                }
             }
         })
-        .collect::<Vec<Array2<f64>>>();
+        .collect::<Result<Vec<Array2<f64>>, _>>()?;
     Ok(rmats)
 }

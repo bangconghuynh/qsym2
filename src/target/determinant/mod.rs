@@ -115,10 +115,11 @@ where
                     && coefficients[0].shape()[0].rem_euclid(nbas) == 0
                     && coefficients[0].shape()[0].div_euclid(nbas) == usize::from(*nspins)
             }
-            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+            SpinConstraint::RelativisticSOC(_) => {
+                // nbas counts the number of j-adapted basis functions.
                 coefficients.len() == 1
                     && coefficients[0].shape()[0].rem_euclid(nbas) == 0
-                    && coefficients[0].shape()[0].div_euclid(nbas) == usize::from(2 * nspins)
+                    && coefficients[0].shape()[0].div_euclid(nbas) == 2 // large and small comps
             }
         };
         if !spincons {
@@ -136,7 +137,7 @@ where
         {
             SpinConstraint::Restricted(_)
             | SpinConstraint::Generalised(_, _)
-            | SpinConstraint::RelativisticGeneralised(_, _, _) => {
+            | SpinConstraint::RelativisticSOC(_) => {
                 occupations.len() == 1 && occupations[0].shape()[0] == coefficients[0].shape()[1]
             }
             SpinConstraint::Unrestricted(nspins, _) => {
@@ -240,7 +241,7 @@ where
             }
             SpinConstraint::Unrestricted(_, _)
             | SpinConstraint::Generalised(_, _)
-            | SpinConstraint::RelativisticGeneralised(_, _, _) => self
+            | SpinConstraint::RelativisticSOC(_) => self
                 .occupations
                 .iter()
                 .map(|occ| occ.iter().copied().sum())
@@ -255,7 +256,7 @@ where
     ///
     /// The equivalent Slater determinant with the coefficients encoded in the generalised spin
     /// constraint.
-    pub fn to_generalised(&self) -> Self {
+    pub fn to_generalised(&self) -> Result<Self, anyhow::Error> {
         match self.spin_constraint {
             SpinConstraint::Restricted(n) => {
                 log::debug!(
@@ -297,7 +298,9 @@ where
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
                     .build()
-                    .expect("Unable to spin-generalise a `SlaterDeterminant`.")
+                    .map_err(|err| {
+                        format_err!("Unable to spin-generalise a `SlaterDeterminant`: {err}")
+                    })
             }
             SpinConstraint::Unrestricted(n, increasingm) => {
                 log::debug!(
@@ -345,10 +348,14 @@ where
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
                     .build()
-                    .expect("Unable to spin-generalise a `SlaterDeterminant`.")
+                    .map_err(|err| {
+                        format_err!("Unable to spin-generalise a `SlaterDeterminant`: {err}")
+                    })
             }
-            SpinConstraint::Generalised(_, _)
-            | SpinConstraint::RelativisticGeneralised(_, _, _) => self.clone(),
+            SpinConstraint::Generalised(_, _) => Ok(self.clone()),
+            SpinConstraint::RelativisticSOC(_) => Err(format_err!(
+                "Impossible to spin-generalise a relativistic spin--orbit-coupled `SlaterDeterminant`."
+            )),
         }
     }
 
@@ -442,7 +449,7 @@ impl<'a> SlaterDeterminant<'a, f64> {
                         .build()
                 }).collect::<Result<Vec<_>, _>>()?
             }
-            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+            SpinConstraint::RelativisticSOC(_) => {
                 let denmat = einsum(
                     "i,mi,ni->mn",
                     &[&self.occupations[0].view(), &self.coefficients[0].view(), &self.coefficients[0].view()]
@@ -450,13 +457,13 @@ impl<'a> SlaterDeterminant<'a, f64> {
                 .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao.n_funcs();
-                (0..usize::from(2 * nspins)).map(|irelspin| {
-                    let irelspin_denmat = denmat.slice(
-                        s![irelspin*nspatial..(irelspin + 1)*nspatial, irelspin*nspatial..(irelspin + 1)*nspatial]
+                let n2c = self.bao.n_funcs();
+                (0..2).map(|irel| {
+                    let irel_denmat = denmat.slice(
+                        s![irel*n2c..(irel + 1)*n2c, irel*n2c..(irel + 1)*n2c]
                     ).to_owned();
                     Density::<f64>::builder()
-                        .density_matrix(irelspin_denmat)
+                        .density_matrix(irel_denmat)
                         .bao(self.bao())
                         .mol(self.mol())
                         .complex_symmetric(self.complex_symmetric())
@@ -541,7 +548,7 @@ where
                         .build()
                 }).collect::<Result<Vec<_>, _>>()?
             }
-            SpinConstraint::RelativisticGeneralised(nspins, _, _) => {
+            SpinConstraint::RelativisticSOC(_) => {
                 let denmat = einsum(
                     "i,mi,ni->mn",
                     &[
@@ -553,13 +560,13 @@ where
                 .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao.n_funcs();
-                (0..usize::from(2 * nspins)).map(|irelspin| {
-                    let irelspin_denmat = denmat.slice(
-                        s![irelspin*nspatial..(irelspin + 1)*nspatial, irelspin*nspatial..(irelspin + 1)*nspatial]
+                let n2c = self.bao.n_funcs();
+                (0..2).map(|irel| {
+                    let irel_denmat = denmat.slice(
+                        s![irel*n2c..(irel + 1)*n2c, irel*n2c..(irel + 1)*n2c]
                     ).to_owned();
                     Density::<Complex<T>>::builder()
-                        .density_matrix(irelspin_denmat)
+                        .density_matrix(irel_denmat)
                         .bao(self.bao())
                         .mol(self.mol())
                         .complex_symmetric(self.complex_symmetric())
