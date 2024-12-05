@@ -9,10 +9,12 @@ use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
+use num::Complex;
 use num_traits::{Inv, Pow, Zero};
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 
+use crate::angmom::spinor_rotation_3d::dmat_angleaxis_gen_single;
 use crate::auxiliary::geometry::{
     self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
 };
@@ -907,6 +909,29 @@ impl SymmetryOperation {
         }
     }
 
+    /// Returns the representation matrix for this symmetry operation in a $`j`$-adapted basis.
+    ///
+    /// This representation matrix is in the basis of $`\ket{j, m_j}`$.
+    #[must_use]
+    pub fn get_wigner_matrix(&self, two_j: u32, increasingm: bool) -> Array2<Complex<f64>> {
+        todo!("Test");
+        let spinor_basis = two_j.rem_euclid(2) == 1;
+        let dmat_rotation = {
+            let angle = self.calc_pole_angle();
+            let axis = self.calc_pole().coords;
+            if spinor_basis && self.is_su2_class_1() {
+                -dmat_angleaxis_gen_single(two_j, angle, axis, increasingm)
+            } else {
+                dmat_angleaxis_gen_single(two_j, angle, axis, increasingm)
+            }
+        };
+        if self.contains_time_reversal() {
+            dmat_angleaxis_gen_single(two_j, std::f64::consts::PI, Vector3::y(), increasingm).dot(&dmat_rotation)
+        } else {
+            dmat_rotation
+        }
+    }
+
     /// Convert the proper rotation of the current operation to one in hopotopy class 0 of
     /// $`\mathsf{SU}(2)`$.
     ///
@@ -1144,8 +1169,8 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         self.generating_element.rotation_group.is_su2()
     }
 
-    /// Checks if the proper rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
-    /// connected to the identity via a homotopy path of class 1.
+    /// Checks if the proper rotation part of the symmetry operation (in the inversion convention)
+    /// is in $`\mathsf{SU}(2)`$ and connected to the identity via a homotopy path of class 1.
     ///
     /// # Returns
     ///
