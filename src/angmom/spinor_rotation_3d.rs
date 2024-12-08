@@ -18,10 +18,38 @@ use crate::auxiliary::geometry::normalise_rotation_angle;
 mod spinor_rotation_3d_tests;
 
 // ================
+// Trait definition
+// ================
+
+pub trait StructureConstraint {
+    /// The total number of coefficient matrices expected in this constraint.
+    fn n_coefficient_matrices(&self) -> usize;
+
+    /// The number of isostructural components explicitly specified by each coefficient matrix. The
+    /// basis functions described by any accompanying basis angular order information will pertain to any
+    /// one of the isostructural components.
+    fn n_explicit_comps_per_coefficient_matrix(&self) -> usize;
+
+    /// The number of isostructural components implicitly specified by each coefficient matrix.
+    fn n_implicit_comps_per_coefficient_matrix(&self) -> usize;
+
+    /// The total number of isostructural components given by the product of
+    /// [`Self::n_coefficient_matrices`] and [`Self::n_implicit_comps_per_coefficient_matrix`].
+    fn n_comps(&self) -> usize {
+        self.n_coefficient_matrices() * self.n_implicit_comps_per_coefficient_matrix()
+    }
+}
+
+// ================
 // Enum definitions
 // ================
 
-/// Enumerated type to manage spin constraints and spin space information.
+// --------------
+// SpinConstraint
+// --------------
+
+/// Enumerated type to manage spin constraints and spin space information for the conventional
+/// treatment of spin and spatial degrees of freedom in a decoupled manner.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpinConstraint {
     /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
@@ -40,38 +68,64 @@ pub enum SpinConstraint {
     Generalised(u16, bool),
 }
 
-impl SpinConstraint {
-    /// Returns the total number of units of consideration.
-    ///
-    /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
-    pub fn nunits(&self) -> u16 {
+impl StructureConstraint for SpinConstraint {
+    fn n_coefficient_matrices(&self) -> usize {
         match self {
-            Self::Restricted(nspins) => *nspins,
-            Self::Unrestricted(nspins, _) => *nspins,
-            Self::Generalised(_, _) => 1,
+            SpinConstraint::Restricted(_) => 1,
+            SpinConstraint::Unrestricted(nspins, _) => *nspins as usize,
+            SpinConstraint::Generalised(_, _) => 1,
         }
     }
 
-    /// Returns the number of spin spaces per 'unit' of consideration.
-    ///
-    /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
-    pub fn nspins_per_unit(&self) -> u16 {
+    fn n_explicit_comps_per_coefficient_matrix(&self) -> usize {
         match self {
-            Self::Restricted(_) => 1,
-            Self::Unrestricted(_, _) => 1,
-            Self::Generalised(nspins, _) => *nspins,
+            SpinConstraint::Restricted(_) => 1,
+            SpinConstraint::Unrestricted(_, _) => 1,
+            SpinConstraint::Generalised(nspins, _) => *nspins as usize,
         }
     }
 
-    /// Returns the total number of spin spaces.
-    pub fn nspins(&self) -> u16 {
+    fn n_implicit_comps_per_coefficient_matrix(&self) -> usize {
         match self {
-            Self::Restricted(nspins) => *nspins,
-            Self::Unrestricted(nspins, _) => *nspins,
-            Self::Generalised(nspins, _) => *nspins,
+            SpinConstraint::Restricted(nspins) => *nspins as usize,
+            SpinConstraint::Unrestricted(_, _) => 1,
+            SpinConstraint::Generalised(nspins, _) => *nspins as usize,
         }
     }
 }
+
+// impl SpinConstraint {
+//     /// Returns the total number of units of consideration.
+//     ///
+//     /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
+//     pub fn nunits(&self) -> u16 {
+//         match self {
+//             Self::Restricted(nspins) => *nspins,
+//             Self::Unrestricted(nspins, _) => *nspins,
+//             Self::Generalised(_, _) => 1,
+//         }
+//     }
+//
+//     /// Returns the number of spin spaces per 'unit' of consideration.
+//     ///
+//     /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
+//     pub fn nspins_per_unit(&self) -> u16 {
+//         match self {
+//             Self::Restricted(_) => 1,
+//             Self::Unrestricted(_, _) => 1,
+//             Self::Generalised(nspins, _) => *nspins,
+//         }
+//     }
+//
+//     /// Returns the total number of spin spaces.
+//     pub fn nspins(&self) -> u16 {
+//         match self {
+//             Self::Restricted(nspins) => *nspins,
+//             Self::Unrestricted(nspins, _) => *nspins,
+//             Self::Generalised(nspins, _) => *nspins,
+//         }
+//     }
+// }
 
 impl fmt::Display for SpinConstraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -98,6 +152,63 @@ impl fmt::Display for SpinConstraint {
                 "Generalised ({} spin {}, {} m)",
                 nspins,
                 if *nspins == 1 { "space" } else { "spaces" },
+                if *increasingm {
+                    "increasing"
+                } else {
+                    "decreasing"
+                }
+            ),
+        }
+    }
+}
+
+// ----------------
+// SpinOrbitCoupled
+// ----------------
+
+/// Enumerated type to manage spin--orbit-coupled layout in the coupled treatment of spin and
+/// spatial degrees of freedom.
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SpinOrbitCoupled {
+    /// Variant for $`j`$-adapted basis functions where each shell consists of $`\ket{j, m_j}`$
+    /// functions. The associated value specifies the total number of duplications of the
+    /// $`j`$-adapted basis (*e.g.* `2` in Dirac--Hartree--Fock), and the associated boolean
+    /// indicates if the $`m_j`$ components in each shell  are arranged in increasing order.
+    JAdapted(u16, bool),
+}
+
+impl StructureConstraint for SpinOrbitCoupled {
+    fn n_coefficient_matrices(&self) -> usize {
+        match self {
+            SpinOrbitCoupled::JAdapted(_, _) => 1,
+        }
+    }
+
+    fn n_explicit_comps_per_coefficient_matrix(&self) -> usize {
+        match self {
+            SpinOrbitCoupled::JAdapted(ncomps, _) => *ncomps as usize,
+        }
+    }
+
+    fn n_implicit_comps_per_coefficient_matrix(&self) -> usize {
+        match self {
+            SpinOrbitCoupled::JAdapted(ncomps, _) => *ncomps as usize,
+        }
+    }
+}
+
+impl fmt::Display for SpinOrbitCoupled {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::JAdapted(ncomps, increasingm) => write!(
+                f,
+                "Spin--orbit-coupled j-adapted ({} {}, {} m_j)",
+                ncomps,
+                if *ncomps == 1 {
+                    "component"
+                } else {
+                    "components"
+                },
                 if *increasingm {
                     "increasing"
                 } else {
