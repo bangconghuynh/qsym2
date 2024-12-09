@@ -428,7 +428,9 @@ impl<'a> SlaterDeterminant<'a, f64, SpinConstraint> {
     /// # Returns
     ///
     /// A vector of real densities, one for each spin space.
-    pub fn to_densities(&'a self) -> Result<DensitiesOwned<'a, f64>, anyhow::Error> {
+    pub fn to_densities(
+        &'a self,
+    ) -> Result<DensitiesOwned<'a, f64, SpinConstraint>, anyhow::Error> {
         let densities = match self.structure_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                 self.coefficients().iter().zip(self.occupations().iter()).map(|(c, o)| {
@@ -501,7 +503,9 @@ where
     /// # Returns
     ///
     /// A vector of complex densities, one for each spin space.
-    pub fn to_densities(&'a self) -> Result<DensitiesOwned<'a, Complex<T>>, anyhow::Error> {
+    pub fn to_densities(
+        &'a self,
+    ) -> Result<DensitiesOwned<'a, Complex<T>, SpinConstraint>, anyhow::Error> {
         let densities = match self.structure_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                 self.coefficients().iter().zip(self.occupations().iter()).map(|(c, o)| {

@@ -205,12 +205,12 @@ fn test_density_transformation_s4_sqpl() {
         [0.0], [-1.0], [0.0], [ 0.0], [0.0],
         [0.0], [-1.0], [0.0], [ 0.0], [0.0]
     ];
-    let det2 = SlaterDeterminant::<f64>::builder()
+    let det2 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha2, cbeta2])
         .occupations(&[array![1.0], array![0.8]])
         .bao(&bao_s4)
         .mol(&mol_s4)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()
@@ -327,12 +327,12 @@ fn test_density_transformation_b3_real_timerev() {
     let cgen = concatenate![Axis(0), calpha, cbeta];
     let ogen = array![1.0, 1.0];
 
-    let detgen = SlaterDeterminant::<f64>::builder()
+    let detgen = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[cgen])
         .occupations(&[ogen.clone()])
         .bao(&bao_b3)
         .mol(&mol_b3)
-        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()
@@ -427,12 +427,12 @@ fn test_density_transformation_c2_complex_timerev() {
     let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
     let ogen = array![1.0, 1.0, 1.0, 1.0];
 
-    let detgen = SlaterDeterminant::<C128>::builder()
+    let detgen = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[cgen])
         .occupations(&[ogen.clone()])
         .bao(&bao_c2)
         .mol(&mol_c2)
-        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()
@@ -529,17 +529,18 @@ fn test_density_transformation_h4_spin_spatial_rotation_composition() {
     let cbeta_gen = concatenate!(Axis(0), Array2::zeros((40, 2)), cbeta);
     let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
     let ogen = array![1.0, 1.0, 1.0, 1.0];
-    let detgen: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[cgen])
-        .occupations(&[ogen])
-        .bao(&bao_h4)
-        .mol(&mol_h4)
-        .spin_constraint(SpinConstraint::Generalised(2, false))
-        .complex_symmetric(false)
-        .threshold(1e-12)
-        .build()
-        .unwrap()
-        .into();
+    let detgen: SlaterDeterminant<C128, SpinConstraint> =
+        SlaterDeterminant::<f64, SpinConstraint>::builder()
+            .coefficients(&[cgen])
+            .occupations(&[ogen])
+            .bao(&bao_h4)
+            .mol(&mol_h4)
+            .structure_constraint(SpinConstraint::Generalised(2, false))
+            .complex_symmetric(false)
+            .threshold(1e-12)
+            .build()
+            .unwrap()
+            .into();
     let dengens = detgen.to_densities().unwrap();
     let dengen = &dengens[0];
 
@@ -653,12 +654,12 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
     ];
     let oalpha = array![1.0];
     let obeta = array![1.0];
-    let det_ru = SlaterDeterminant::<f64>::builder()
+    let det_ru = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
         .bao(&bao_s4)
         .mol(&mol_s4)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()
@@ -777,10 +778,8 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         orbit_ru_u_d4h_spatial_orbital_density_total
             .analyse_rep()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "||A|_(1g)| ⊕ ||B|_(2g)| ⊕ ||E|_(u)|"
-        )
-        .unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||B|_(2g)| ⊕ ||E|_(u)|")
+            .unwrap()
     );
 
     let mut orbit_ru_u_d4h_spatial_orbital_density_spin = DensitySymmetryOrbit::builder()
@@ -800,10 +799,8 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         orbit_ru_u_d4h_spatial_orbital_density_spin
             .analyse_rep()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "||A|_(2g)| ⊕ ||B|_(1g)| ⊕ ||E|_(u)|"
-        )
-        .unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(2g)| ⊕ ||B|_(1g)| ⊕ ||E|_(u)|")
+            .unwrap()
     );
 }
 
@@ -896,12 +893,12 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
     ];
     let oalpha = array![1.0];
     let obeta = array![1.0];
-    let det_ru = SlaterDeterminant::<f64>::builder()
+    let det_ru = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
         .bao(&bao_s4)
         .mol(&mol_s4)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()
@@ -912,7 +909,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
     let dentot_ru = dena_ru + denb_ru;
     let denspin_ru = dena_ru - denb_ru;
 
-    let det_cu: SlaterDeterminant<C128> = det_ru.clone().into();
+    let det_cu: SlaterDeterminant<C128, SpinConstraint> = det_ru.clone().into();
     let dens_cu = det_cu.to_densities().unwrap();
     let dena_cu = &dens_cu[0];
     let denb_cu = &dens_cu[1];

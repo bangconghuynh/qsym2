@@ -13,7 +13,7 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 
@@ -30,23 +30,25 @@ mod density_transformation;
 /// Wrapper structure to manage references to multiple densities of a single state.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct Densities<'a, T>
+pub struct Densities<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
-    /// The spin constraint associated with the multiple densities.
-    spin_constraint: SpinConstraint,
+    /// The structure constraint associated with the multiple densities.
+    structure_constraint: SC,
 
     /// A vector containing references to the multiple densities, one for each spin space.
     densities: Vec<&'a Density<'a, T>>,
 }
 
-impl<'a, T> Densities<'a, T>
+impl<'a, T, SC> Densities<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Returns a builder to construct a new `Densities`.
-    pub fn builder() -> DensitiesBuilder<'a, T> {
+    pub fn builder() -> DensitiesBuilder<'a, T, SC> {
         DensitiesBuilder::default()
     }
 
@@ -55,49 +57,44 @@ where
     }
 }
 
-impl<'a, T> DensitiesBuilder<'a, T>
+impl<'a, T, SC> DensitiesBuilder<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     fn validate(&self) -> Result<(), String> {
         let densities = self
             .densities
             .as_ref()
             .ok_or("No `densities` found.".to_string())?;
-        let spin_constraint = self
-            .spin_constraint
+        let structure_constraint = self
+            .structure_constraint
             .as_ref()
-            .ok_or("No spin constraint found.".to_string())?;
-        match spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                if densities.len() != 1 {
-                    Err(
-                        "Exactly one density is expected in restricted spin constraint."
-                            .to_string(),
-                    )
+            .ok_or("No structure constraint found.".to_string())?;
+        let num_dens = structure_constraint.n_coefficient_matrices()
+            * structure_constraint.n_explicit_comps_per_coefficient_matrix();
+        if densities.len() != num_dens {
+            Err(format!(
+                "{} {} expected in structure constraint {}, but {} found.",
+                num_dens,
+                structure_constraint,
+                if num_dens == 1 {
+                    "density"
                 } else {
-                    Ok(())
-                }
-            }
-            SpinConstraint::Unrestricted(nspins, _) | SpinConstraint::Generalised(nspins, _) => {
-                if densities.len() != usize::from(*nspins) {
-                    Err(format!(
-                        "{} {} expected in unrestricted or generalised spin constraint, but {} found.",
-                        nspins,
-                        if *nspins == 1 { "density" } else { "densities" },
-                        densities.len()
-                    ))
-                } else {
-                    Ok(())
-                }
-            }
+                    "densities"
+                },
+                densities.len()
+            ))
+        } else {
+            Ok(())
         }
     }
 }
 
-impl<'a, T> Index<usize> for Densities<'a, T>
+impl<'a, T, SC> Index<usize> for Densities<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     type Output = Density<'a, T>;
 
@@ -109,23 +106,25 @@ where
 /// Wrapper structure to manage multiple owned densities of a single state.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct DensitiesOwned<'a, T>
+pub struct DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
-    /// The spin constraint associated with the multiple densities.
-    spin_constraint: SpinConstraint,
+    /// The structure constraint associated with the multiple densities.
+    structure_constraint: SC,
 
     /// A vector containing the multiple densities, one for each spin space.
     densities: Vec<Density<'a, T>>,
 }
 
-impl<'a, T> DensitiesOwned<'a, T>
+impl<'a, T, SC> DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Returns a builder to construct a new `DensitiesOwned`.
-    pub fn builder() -> DensitiesOwnedBuilder<'a, T> {
+    pub fn builder() -> DensitiesOwnedBuilder<'a, T, SC> {
         DensitiesOwnedBuilder::default()
     }
 
@@ -134,62 +133,58 @@ where
     }
 }
 
-impl<'b, 'a: 'b, T> DensitiesOwned<'a, T>
+impl<'b, 'a: 'b, T, SC> DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
-    pub fn as_ref(&'a self) -> Densities<'b, T> {
+    pub fn as_ref(&'a self) -> Densities<'b, T, SC> {
         Densities::builder()
-            .spin_constraint(self.spin_constraint.clone())
+            .structure_constraint(self.structure_constraint.clone())
             .densities(self.iter().collect_vec())
             .build()
             .expect("Unable to convert `DensitiesOwned` to `Densities`.")
     }
 }
 
-impl<'a, T> DensitiesOwnedBuilder<'a, T>
+impl<'a, T, SC> DensitiesOwnedBuilder<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     fn validate(&self) -> Result<(), String> {
         let densities = self
             .densities
             .as_ref()
             .ok_or("No `densities` found.".to_string())?;
-        let spin_constraint = self
-            .spin_constraint
+        let structure_constraint = self
+            .structure_constraint
             .as_ref()
             .ok_or("No spin constraint found.".to_string())?;
-        match spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                if densities.len() != 1 {
-                    Err(
-                        "Exactly one density is expected in restricted spin constraint."
-                            .to_string(),
-                    )
+        let num_dens = structure_constraint.n_coefficient_matrices()
+            * structure_constraint.n_explicit_comps_per_coefficient_matrix();
+        if densities.len() != num_dens {
+            Err(format!(
+                "{} {} expected in structure constraint {}, but {} found.",
+                num_dens,
+                structure_constraint,
+                if num_dens == 1 {
+                    "density"
                 } else {
-                    Ok(())
-                }
-            }
-            SpinConstraint::Unrestricted(nspins, _) | SpinConstraint::Generalised(nspins, _) => {
-                if densities.len() != usize::from(*nspins) {
-                    Err(format!(
-                        "{} {} expected in unrestricted or generalised spin constraint, but {} found.",
-                        nspins,
-                        if *nspins == 1 { "density" } else { "densities" },
-                        densities.len()
-                    ))
-                } else {
-                    Ok(())
-                }
-            }
+                    "densities"
+                },
+                densities.len()
+            ))
+        } else {
+            Ok(())
         }
     }
 }
 
-impl<'a, T> Index<usize> for DensitiesOwned<'a, T>
+impl<'a, T, SC> Index<usize> for DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     type Output = Density<'a, T>;
 
@@ -198,7 +193,8 @@ where
     }
 }
 
-/// Structure to manage particle spatial densities.
+/// Structure to manage particle densities in the simplest basis specified by a basis angular order
+/// structure.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Density<'a, T>
