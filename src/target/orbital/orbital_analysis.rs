@@ -629,18 +629,25 @@ where
             })
             .fold(T::one(), |acc, x| acc * x);
 
-            let w0_ov = if det
+            ensure!(
+                det.structure_constraint()
+                    .n_implicit_comps_per_coefficient_matrix()
+                    .rem_euclid(
+                        det.structure_constraint()
+                            .n_explicit_comps_per_coefficient_matrix()
+                    )
+                    == 0
+            );
+            let implicit_factor = det
                 .structure_constraint()
                 .n_implicit_comps_per_coefficient_matrix()
-                > 1
-            {
-                ComplexFloat::powi(
-                    w0_ov,
+                .div_euclid(
                     det.structure_constraint()
-                        .n_implicit_comps_per_coefficient_matrix()
-                        .to_i32()
-                        .expect("Unable to convert the number of implicit components per coefficient matrix to `i32`."),
-                )
+                        .n_explicit_comps_per_coefficient_matrix(),
+                );
+            let w0_ov = if implicit_factor > 1 {
+                let p_i32 = i32::try_from(implicit_factor)?;
+                ComplexFloat::powi(w0_ov, p_i32)
             } else {
                 w0_ov
             };
@@ -740,32 +747,25 @@ where
             })
             .fold(T::one(), |acc, x| acc * x);
 
-            // let w0_ov = if det
-            //     .structure_constraint()
-            //     .n_implicit_comps_per_coefficient_matrix()
-            //     > 1
-            // {
-            //     ComplexFloat::powi(
-            //         w0_ov,
-            //         det.structure_constraint()
-            //             .n_implicit_comps_per_coefficient_matrix()
-            //             .to_i32().expect("Unable to convert the number of implicit components per coefficient matrix to `i32`."),
-            //     )
-            // } else {
-            //     w0_ov
-            // };
-            let wx_ov = if det
+            ensure!(
+                det.structure_constraint()
+                    .n_implicit_comps_per_coefficient_matrix()
+                    .rem_euclid(
+                        det.structure_constraint()
+                            .n_explicit_comps_per_coefficient_matrix()
+                    )
+                    == 0
+            );
+            let implicit_factor = det
                 .structure_constraint()
                 .n_implicit_comps_per_coefficient_matrix()
-                > 1
-            {
-                ComplexFloat::powi(
-                    wx_ov,
+                .div_euclid(
                     det.structure_constraint()
-                        .n_implicit_comps_per_coefficient_matrix()
-                        .to_i32()
-                        .expect("Unable to convert the number of implicit components per coefficient matrix to `i32`."),
-                )
+                        .n_explicit_comps_per_coefficient_matrix(),
+                );
+            let wx_ov = if implicit_factor > 1 {
+                let p_i32 = i32::try_from(implicit_factor)?;
+                ComplexFloat::powi(wx_ov, p_i32)
             } else {
                 wx_ov
             };
