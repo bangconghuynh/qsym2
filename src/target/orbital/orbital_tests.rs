@@ -126,12 +126,12 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     ];
     let oalpha = array![1.0, 1.0, 0.0, 0.0];
     let obeta = array![1.0, 0.0, 0.0];
-    let det_d3_cg: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
+    let det_d3_cg: SlaterDeterminant<C128, SpinConstraint> = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
         .bao(&bao_vf6)
         .mol(&mol_vf6)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()

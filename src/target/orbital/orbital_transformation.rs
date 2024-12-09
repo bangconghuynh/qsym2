@@ -7,7 +7,7 @@ use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
@@ -17,10 +17,14 @@ use crate::symmetry::symmetry_transformation::{
 };
 use crate::target::orbital::MolecularOrbital;
 
+// ======================================
+// Uncoupled spin and spatial coordinates
+// ======================================
+
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<'a, T> SpatialUnitaryTransformable for MolecularOrbital<'a, T>
+impl<'a, T> SpatialUnitaryTransformable for MolecularOrbital<'a, T, SpinConstraint>
 where
     T: ComplexFloat + LinalgScalar + ScalarOperand + Copy + Lapack,
     f64: Into<T>,
@@ -43,7 +47,7 @@ where
             self.bao.clone()
         };
         let old_coeff = &self.coefficients;
-        let new_coefficients = match self.spin_constraint {
+        let new_coefficients = match self.structure_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                 let p_coeff = if let Some(p) = perm {
                     permute_array_by_atoms(old_coeff, p, &[Axis(0)], self.bao)
@@ -127,7 +131,7 @@ where
 // For real orbitals
 // ~~~~~~~~~~~~~~~~~
 
-impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
+impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64, SpinConstraint> {
     fn transform_spin_mut(
         &mut self,
         dmat: &Array2<Complex<f64>>,
@@ -146,7 +150,7 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
             ))
         } else {
             let rdmat = cdmat.re.to_owned();
-            match self.spin_constraint {
+            match self.structure_constraint {
                 SpinConstraint::Restricted(_) => {
                     if approx::relative_eq!(
                         (&rdmat - Array2::<f64>::eye(2))
@@ -220,18 +224,18 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
                     ) {
                         // π-rotation about y-axis, effectively spin-flip
                         if increasingm {
-                            if self.spin_index == 0 {
-                                self.spin_index = 1;
+                            if self.component_index == 0 {
+                                self.component_index = 1;
                                 self.coefficients *= -1.0;
                             } else {
-                                assert_eq!(self.spin_index, 1);
-                                self.spin_index = 0;
+                                assert_eq!(self.component_index, 1);
+                                self.component_index = 0;
                             }
-                        } else if self.spin_index == 0 {
-                            self.spin_index = 1;
+                        } else if self.component_index == 0 {
+                            self.component_index = 1;
                         } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
+                            assert_eq!(self.component_index, 1);
+                            self.component_index = 0;
                             self.coefficients *= -1.0;
                         }
                         Ok(self)
@@ -243,19 +247,19 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
                     ) {
                         // 3π-rotation about y-axis, effectively negative spin-flip
                         if increasingm {
-                            if self.spin_index == 0 {
-                                self.spin_index = 1;
+                            if self.component_index == 0 {
+                                self.component_index = 1;
                             } else {
-                                assert_eq!(self.spin_index, 1);
-                                self.spin_index = 0;
+                                assert_eq!(self.component_index, 1);
+                                self.component_index = 0;
                                 self.coefficients *= -1.0;
                             }
-                        } else if self.spin_index == 0 {
-                            self.spin_index = 1;
+                        } else if self.component_index == 0 {
+                            self.component_index = 1;
                             self.coefficients *= -1.0;
                         } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
+                            assert_eq!(self.component_index, 1);
+                            self.component_index = 0;
                         }
                         Ok(self)
                     } else {
@@ -305,7 +309,7 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
 // For complex orbitals
 // ~~~~~~~~~~~~~~~~~~~~
 
-impl<'a, T> SpinUnitaryTransformable for MolecularOrbital<'a, Complex<T>>
+impl<'a, T> SpinUnitaryTransformable for MolecularOrbital<'a, Complex<T>, SpinConstraint>
 where
     T: Clone,
     Complex<T>: ComplexFloat<Real = T>
@@ -319,7 +323,7 @@ where
         &mut self,
         dmat: &Array2<Complex<f64>>,
     ) -> Result<&mut Self, TransformationError> {
-        match self.spin_constraint {
+        match self.structure_constraint {
             SpinConstraint::Restricted(_) => {
                 if approx::relative_eq!(
                     (dmat - Array2::<Complex<f64>>::eye(2))
@@ -396,18 +400,18 @@ where
                 ) {
                     // π-rotation about y-axis, effectively spin-flip
                     if increasingm {
-                        if self.spin_index == 0 {
-                            self.spin_index = 1;
+                        if self.component_index == 0 {
+                            self.component_index = 1;
                             self.coefficients.map_inplace(|x| *x = -*x);
                         } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
+                            assert_eq!(self.component_index, 1);
+                            self.component_index = 0;
                         }
-                    } else if self.spin_index == 0 {
-                        self.spin_index = 1;
+                    } else if self.component_index == 0 {
+                        self.component_index = 1;
                     } else {
-                        assert_eq!(self.spin_index, 1);
-                        self.spin_index = 0;
+                        assert_eq!(self.component_index, 1);
+                        self.component_index = 0;
                         self.coefficients.map_inplace(|x| *x = -*x);
                     }
                     Ok(self)
@@ -419,19 +423,19 @@ where
                 ) {
                     // 3π-rotation about y-axis, effectively negative spin-flip
                     if increasingm {
-                        if self.spin_index == 0 {
-                            self.spin_index = 1;
+                        if self.component_index == 0 {
+                            self.component_index = 1;
                         } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
+                            assert_eq!(self.component_index, 1);
+                            self.component_index = 0;
                             self.coefficients.map_inplace(|x| *x = -*x);
                         }
-                    } else if self.spin_index == 0 {
-                        self.spin_index = 1;
+                    } else if self.component_index == 0 {
+                        self.component_index = 1;
                         self.coefficients.map_inplace(|x| *x = -*x);
                     } else {
-                        assert_eq!(self.spin_index, 1);
-                        self.spin_index = 0;
+                        assert_eq!(self.component_index, 1);
+                        self.component_index = 0;
                     }
                     Ok(self)
                 } else {
@@ -474,36 +478,13 @@ where
     }
 }
 
-// -------------------------------
-// ComplexConjugationTransformable
-// -------------------------------
-
-impl<'a, T> ComplexConjugationTransformable for MolecularOrbital<'a, T>
-where
-    T: ComplexFloat + Lapack,
-{
-    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        self.coefficients.mapv_inplace(|x| x.conj());
-        self.complex_conjugated = !self.complex_conjugated;
-        Ok(self)
-    }
-}
-
-// --------------------------------
-// DefaultTimeReversalTransformable
-// --------------------------------
-impl<'a, T> DefaultTimeReversalTransformable for MolecularOrbital<'a, T> where
-    T: ComplexFloat + Lapack
-{
-}
-
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<'a, T> SymmetryTransformable for MolecularOrbital<'a, T>
+impl<'a, T> SymmetryTransformable for MolecularOrbital<'a, T, SpinConstraint>
 where
     T: ComplexFloat + Lapack,
-    MolecularOrbital<'a, T>:
+    MolecularOrbital<'a, T, SpinConstraint>:
         SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
@@ -515,5 +496,32 @@ where
             .ok_or(TransformationError(format!(
             "Unable to determine the atom permutation corresponding to the operation `{symop}`."
         )))
+    }
+}
+
+// --------------------------------
+// DefaultTimeReversalTransformable
+// --------------------------------
+impl<'a, T> DefaultTimeReversalTransformable for MolecularOrbital<'a, T, SpinConstraint> where
+    T: ComplexFloat + Lapack
+{
+}
+
+// =========================
+// All structure constraints
+// =========================
+
+// -------------------------------
+// ComplexConjugationTransformable
+// -------------------------------
+impl<'a, T, SC> ComplexConjugationTransformable for MolecularOrbital<'a, T, SC>
+where
+    T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone,
+{
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.coefficients.mapv_inplace(|x| x.conj());
+        self.complex_conjugated = !self.complex_conjugated;
+        Ok(self)
     }
 }

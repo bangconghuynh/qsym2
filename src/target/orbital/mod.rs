@@ -11,7 +11,7 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::target::density::Density;
@@ -30,16 +30,17 @@ mod orbital_transformation;
 /// Slater determinant.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct MolecularOrbital<'a, T>
+pub struct MolecularOrbital<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint,
 {
-    /// The spin constraint associated with the coefficients describing this molecular orbital.
-    spin_constraint: SpinConstraint,
+    /// The structure constraint associated with the coefficients describing this molecular orbital.
+    structure_constraint: SC,
 
-    /// If the spin constraint allows for multiple spin spaces, this gives the spin-space index of
+    /// If the structure constraint allows for multiple components, this gives the component index of
     /// this molecular orbital.
-    spin_index: usize,
+    component_index: usize,
 
     /// A boolean indicating if the orbital has been acted on by an antiunitary operation. This is
     /// so that the correct metric can be used during overlap evaluation.
@@ -68,9 +69,10 @@ where
     threshold: <T as ComplexFloat>::Real,
 }
 
-impl<'a, T> MolecularOrbitalBuilder<'a, T>
+impl<'a, T, SC> MolecularOrbitalBuilder<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint,
 {
     fn validate(&self) -> Result<(), String> {
         let bao = self
@@ -81,35 +83,36 @@ where
             .coefficients
             .as_ref()
             .ok_or("No coefficients found.".to_string())?;
-        let spin_index = self
-            .spin_index
-            .ok_or("No `spin_index` found.".to_string())?;
+        let component_index = self
+            .component_index
+            .ok_or("No `component_index` found.".to_string())?;
 
-        let spincons = match self
-            .spin_constraint
+        let structcons = self
+            .structure_constraint
             .as_ref()
-            .ok_or("No spin constraint found.".to_string())?
-        {
-            SpinConstraint::Restricted(n) | SpinConstraint::Unrestricted(n, _) => {
-                spin_index < usize::from(*n) && coefficients.shape()[0] == nbas
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                spin_index == 0
-                    && coefficients.shape()[0].rem_euclid(nbas) == 0
-                    && coefficients.shape()[0].div_euclid(nbas) == usize::from(*nspins)
+            .ok_or("No structure constraints found.".to_string())?;
+        let coefficients_shape_check = {
+            let nrows = nbas * structcons.n_explicit_comps_per_coefficient_matrix();
+            if !coefficients.shape()[0] == nrows {
+                log::error!(
+                    "Unexpected shapes of coefficient vector: {} {} expected, but {} found.",
+                    nrows,
+                    if nrows == 1 { "row" } else { "rows" },
+                    coefficients.shape()[0],
+                );
+                false
+            } else {
+                true
             }
         };
-        if !spincons {
-            log::error!("The coefficient vector fails to satisfy the specified spin constraint.");
-        }
 
         let mol = self.mol.ok_or("No molecule found.".to_string())?;
-        let natoms = mol.atoms.len() == bao.n_atoms();
-        if !natoms {
+        let natoms_check = mol.atoms.len() == bao.n_atoms();
+        if !natoms_check {
             log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
         }
 
-        if spincons && natoms {
+        if coefficients_shape_check && natoms_check {
             Ok(())
         } else {
             Err("Molecular orbital validation failed.".to_string())
@@ -117,74 +120,30 @@ where
     }
 }
 
-impl<'a, T> MolecularOrbital<'a, T>
+impl<'a, T, SC> MolecularOrbital<'a, T, SC>
 where
     T: ComplexFloat + Clone + Lapack,
+    SC: StructureConstraint + Clone,
 {
     /// Returns a builder to construct a new [`MolecularOrbital`].
-    pub fn builder() -> MolecularOrbitalBuilder<'a, T> {
+    pub fn builder() -> MolecularOrbitalBuilder<'a, T, SC> {
         MolecularOrbitalBuilder::default()
     }
+}
 
-    /// Augments the encoding of coefficients in this molecular orbital to that in the
-    /// corresponding generalised spin constraint.
-    ///
-    /// # Returns
-    ///
-    /// The equivalent molecular orbital with the coefficients encoded in the generalised spin
-    /// constraint.
-    pub fn to_generalised(&self) -> Self {
-        match self.spin_constraint {
-            SpinConstraint::Restricted(n) => {
-                let nbas = self.bao.n_funcs();
-
-                let cr = &self.coefficients;
-                let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
-                let start = nbas * self.spin_index;
-                let end = nbas * (self.spin_index + 1);
-                cg.slice_mut(s![start..end]).assign(cr);
-                Self::builder()
-                    .coefficients(cg)
-                    .bao(self.bao)
-                    .mol(self.mol)
-                    .spin_constraint(SpinConstraint::Generalised(n, false))
-                    .spin_index(0)
-                    .complex_symmetric(self.complex_symmetric)
-                    .threshold(self.threshold)
-                    .build()
-                    .expect("Unable to construct a generalised molecular orbital.")
-            }
-            SpinConstraint::Unrestricted(n, increasingm) => {
-                let nbas = self.bao.n_funcs();
-
-                let cr = &self.coefficients;
-                let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
-                let start = nbas * self.spin_index;
-                let end = nbas * (self.spin_index + 1);
-                cg.slice_mut(s![start..end]).assign(cr);
-                Self::builder()
-                    .coefficients(cg)
-                    .bao(self.bao)
-                    .mol(self.mol)
-                    .spin_constraint(SpinConstraint::Generalised(n, increasingm))
-                    .spin_index(0)
-                    .complex_symmetric(self.complex_symmetric)
-                    .threshold(self.threshold)
-                    .build()
-                    .expect("Unable to construct a generalised molecular orbital.")
-            }
-            SpinConstraint::Generalised(_, _) => self.clone(),
-        }
-    }
-
+impl<'a, T, SC> MolecularOrbital<'a, T, SC>
+where
+    T: ComplexFloat + Clone + Lapack,
+    SC: StructureConstraint,
+{
     /// Returns a shared reference to the coefficient array.
     pub fn coefficients(&self) -> &Array1<T> {
         &self.coefficients
     }
 
-    /// Returns a shared reference to the spin constraint.
-    pub fn spin_constraint(&self) -> &SpinConstraint {
-        &self.spin_constraint
+    /// Returns a shared reference to the structure constraint.
+    pub fn structure_constraint(&self) -> &SC {
+        &self.structure_constraint
     }
 
     /// Returns a shared reference to the [`BasisAngularOrder`] description of the basis in which
@@ -209,18 +168,75 @@ where
     }
 }
 
-impl<'a> MolecularOrbital<'a, f64> {
+impl<'a, T> MolecularOrbital<'a, T, SpinConstraint>
+where
+    T: ComplexFloat + Clone + Lapack,
+{
+    /// Augments the encoding of coefficients in this molecular orbital to that in the
+    /// corresponding generalised spin constraint.
+    ///
+    /// # Returns
+    ///
+    /// The equivalent molecular orbital with the coefficients encoded in the generalised spin
+    /// constraint.
+    pub fn to_generalised(&self) -> Self {
+        match self.structure_constraint {
+            SpinConstraint::Restricted(n) => {
+                let nbas = self.bao.n_funcs();
+
+                let cr = &self.coefficients;
+                let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
+                let start = nbas * self.component_index;
+                let end = nbas * (self.component_index + 1);
+                cg.slice_mut(s![start..end]).assign(cr);
+                Self::builder()
+                    .coefficients(cg)
+                    .bao(self.bao)
+                    .mol(self.mol)
+                    .structure_constraint(SpinConstraint::Generalised(n, false))
+                    .component_index(0)
+                    .complex_symmetric(self.complex_symmetric)
+                    .threshold(self.threshold)
+                    .build()
+                    .expect("Unable to construct a generalised molecular orbital.")
+            }
+            SpinConstraint::Unrestricted(n, increasingm) => {
+                let nbas = self.bao.n_funcs();
+
+                let cr = &self.coefficients;
+                let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
+                let start = nbas * self.component_index;
+                let end = nbas * (self.component_index + 1);
+                cg.slice_mut(s![start..end]).assign(cr);
+                Self::builder()
+                    .coefficients(cg)
+                    .bao(self.bao)
+                    .mol(self.mol)
+                    .structure_constraint(SpinConstraint::Generalised(n, increasingm))
+                    .component_index(0)
+                    .complex_symmetric(self.complex_symmetric)
+                    .threshold(self.threshold)
+                    .build()
+                    .expect("Unable to construct a generalised molecular orbital.")
+            }
+            SpinConstraint::Generalised(_, _) => self.clone(),
+        }
+    }
+}
+
+impl<'a> MolecularOrbital<'a, f64, SpinConstraint> {
     /// Constructs the total density of the molecular orbital.
     pub fn to_total_density(&'a self) -> Result<Density<'a, f64>, anyhow::Error> {
-        match self.spin_constraint {
+        match self.structure_constraint {
             SpinConstraint::Restricted(nspins) => {
-                let denmat = f64::from(nspins) * einsum(
-                    "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.view()]
-                )
-                .expect("Unable to construct a density matrix from the coefficient matrix.")
-                .into_dimensionality::<Ix2>()
-                .expect("Unable to convert the resultant density matrix to two dimensions.");
+                let denmat = f64::from(nspins)
+                    * einsum(
+                        "m,n->mn",
+                        &[&self.coefficients.view(), &self.coefficients.view()],
+                    )
+                    .expect("Unable to construct a density matrix from the coefficient matrix.")
+                    .into_dimensionality::<Ix2>()
+                    .expect("Unable to convert the resultant density matrix to two dimensions.");
                 Density::<f64>::builder()
                     .density_matrix(denmat)
                     .bao(self.bao())
@@ -233,7 +249,7 @@ impl<'a> MolecularOrbital<'a, f64> {
             SpinConstraint::Unrestricted(_, _) => {
                 let denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.view()]
+                    &[&self.coefficients.view(), &self.coefficients.view()],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -250,7 +266,7 @@ impl<'a> MolecularOrbital<'a, f64> {
             SpinConstraint::Generalised(nspins, _) => {
                 let full_denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.view()]
+                    &[&self.coefficients.view(), &self.coefficients.view()],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -258,9 +274,12 @@ impl<'a> MolecularOrbital<'a, f64> {
                 let nspatial = self.bao().n_funcs();
                 let denmat = (0..usize::from(nspins)).fold(
                     Array2::<f64>::zeros((nspatial, nspatial)),
-                    |acc, ispin| acc + full_denmat.slice(s![
-                        ispin*nspatial..(ispin+1)*nspatial, ispin*nspatial..(ispin+1)*nspatial
-                    ])
+                    |acc, ispin| {
+                        acc + full_denmat.slice(s![
+                            ispin * nspatial..(ispin + 1) * nspatial,
+                            ispin * nspatial..(ispin + 1) * nspatial
+                        ])
+                    },
                 );
                 Density::<f64>::builder()
                     .density_matrix(denmat)
@@ -275,19 +294,22 @@ impl<'a> MolecularOrbital<'a, f64> {
     }
 }
 
-impl<'a, T> MolecularOrbital<'a, Complex<T>>
+impl<'a, T> MolecularOrbital<'a, Complex<T>, SpinConstraint>
 where
     T: Float + FloatConst + Lapack + From<u16>,
     Complex<T>: Lapack,
 {
     /// Constructs the total density of the molecular orbital.
     pub fn to_total_density(&'a self) -> Result<Density<'a, Complex<T>>, anyhow::Error> {
-        match self.spin_constraint {
+        match self.structure_constraint {
             SpinConstraint::Restricted(nspins) => {
                 let nspins_t = Complex::<T>::from(<T as From<u16>>::from(nspins));
                 let denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.map(Complex::conj).view()]
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -305,7 +327,10 @@ where
             SpinConstraint::Unrestricted(_, _) => {
                 let denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.map(Complex::conj).view()]
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -322,7 +347,10 @@ where
             SpinConstraint::Generalised(nspins, _) => {
                 let full_denmat = einsum(
                     "m,n->mn",
-                    &[&self.coefficients.view(), &self.coefficients.map(Complex::conj).view()]
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
                 )
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
@@ -330,9 +358,12 @@ where
                 let nspatial = self.bao().n_funcs();
                 let denmat = (0..usize::from(nspins)).fold(
                     Array2::<Complex<T>>::zeros((nspatial, nspatial)),
-                    |acc, ispin| acc + full_denmat.slice(s![
-                        ispin*nspatial..(ispin+1)*nspatial, ispin*nspatial..(ispin+1)*nspatial
-                    ])
+                    |acc, ispin| {
+                        acc + full_denmat.slice(s![
+                            ispin * nspatial..(ispin + 1) * nspatial,
+                            ispin * nspatial..(ispin + 1) * nspatial
+                        ])
+                    },
                 );
                 Density::<Complex<T>>::builder()
                     .density_matrix(denmat)
@@ -354,18 +385,19 @@ where
 // ----
 // From
 // ----
-impl<'a, T> From<MolecularOrbital<'a, T>> for MolecularOrbital<'a, Complex<T>>
+impl<'a, T, SC> From<MolecularOrbital<'a, T, SC>> for MolecularOrbital<'a, Complex<T>, SC>
 where
     T: Float + FloatConst + Lapack,
     Complex<T>: Lapack,
+    SC: StructureConstraint + Clone,
 {
-    fn from(value: MolecularOrbital<'a, T>) -> Self {
-        MolecularOrbital::<'a, Complex<T>>::builder()
+    fn from(value: MolecularOrbital<'a, T, SC>) -> Self {
+        MolecularOrbital::<'a, Complex<T>, SC>::builder()
             .coefficients(value.coefficients.map(Complex::from))
             .bao(value.bao)
             .mol(value.mol)
-            .spin_constraint(value.spin_constraint)
-            .spin_index(value.spin_index)
+            .structure_constraint(value.structure_constraint)
+            .component_index(value.component_index)
             .complex_symmetric(value.complex_symmetric)
             .threshold(value.threshold)
             .build()
@@ -376,9 +408,10 @@ where
 // ---------
 // PartialEq
 // ---------
-impl<'a, T> PartialEq for MolecularOrbital<'a, T>
+impl<'a, T, SC> PartialEq for MolecularOrbital<'a, T, SC>
 where
     T: ComplexFloat<Real = f64> + Lapack,
+    SC: StructureConstraint + PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         let thresh = (self.threshold * other.threshold).sqrt();
@@ -391,8 +424,8 @@ where
             epsilon = thresh,
             max_relative = thresh,
         );
-        self.spin_constraint == other.spin_constraint
-            && self.spin_index == other.spin_index
+        self.structure_constraint == other.structure_constraint
+            && self.component_index == other.component_index
             && self.bao == other.bao
             && self.mol == other.mol
             && coefficients_eq
@@ -402,21 +435,27 @@ where
 // --
 // Eq
 // --
-impl<'a, T> Eq for MolecularOrbital<'a, T> where T: ComplexFloat<Real = f64> + Lapack {}
+impl<'a, T, SC> Eq for MolecularOrbital<'a, T, SC>
+where
+    T: ComplexFloat<Real = f64> + Lapack,
+    SC: StructureConstraint + Eq,
+{
+}
 
 // -----
 // Debug
 // -----
-impl<'a, T> fmt::Debug for MolecularOrbital<'a, T>
+impl<'a, T, SC> fmt::Debug for MolecularOrbital<'a, T, SC>
 where
     T: fmt::Debug + ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "MolecularOrbital[{:?} (spin index {}): coefficient array of length {}]",
-            self.spin_constraint,
-            self.spin_index,
+            self.structure_constraint,
+            self.component_index,
             self.coefficients.len()
         )?;
         Ok(())
@@ -426,16 +465,17 @@ where
 // -------
 // Display
 // -------
-impl<'a, T> fmt::Display for MolecularOrbital<'a, T>
+impl<'a, T, SC> fmt::Display for MolecularOrbital<'a, T, SC>
 where
     T: fmt::Display + ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "MolecularOrbital[{:?} (spin index {}): coefficient array of length {}]",
-            self.spin_constraint,
-            self.spin_index,
+            "MolecularOrbital[{} (spin index {}): coefficient array of length {}]",
+            self.structure_constraint,
+            self.component_index,
             self.coefficients.len()
         )?;
         Ok(())
