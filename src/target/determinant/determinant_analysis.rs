@@ -356,7 +356,7 @@ where
         + Mul<<T as ComplexFloat>::Real, Output = T>,
     <T as ComplexFloat>::Real: fmt::Debug
         + Zero
-        + From<usize>
+        + From<u16>
         + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,

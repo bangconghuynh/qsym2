@@ -11,6 +11,7 @@ use log;
 use ndarray::{s, Array1, Array2, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::types::Lapack;
+use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
@@ -294,11 +295,11 @@ where
     /// Returns the total number of electrons in the determinant.
     pub fn nelectrons(&self) -> <T as ComplexFloat>::Real
     where
-        <T as ComplexFloat>::Real: Sum + From<usize>,
+        <T as ComplexFloat>::Real: Sum + From<u16>,
     {
         <T as ComplexFloat>::Real::from(
             self.structure_constraint
-                .n_implicit_comps_per_coefficient_matrix(),
+                .n_implicit_comps_per_coefficient_matrix().to_u16().expect("Unable to convert the number of implicit components per coefficient matrix to `u16`."),
         ) * self
             .occupations
             .iter()
@@ -656,7 +657,7 @@ where
 impl<'a, T, SC> fmt::Debug for SlaterDeterminant<'a, T, SC>
 where
     T: fmt::Debug + ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: Sum + From<usize> + fmt::Debug,
+    <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Debug,
     SC: StructureConstraint + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -692,7 +693,7 @@ where
 impl<'a, T, SC> fmt::Display for SlaterDeterminant<'a, T, SC>
 where
     T: fmt::Display + ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: Sum + From<usize> + fmt::Display,
+    <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Display,
     SC: StructureConstraint + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
