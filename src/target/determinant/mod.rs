@@ -198,6 +198,46 @@ where
 impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Clone + Lapack,
+    SC: StructureConstraint + Clone,
+{
+    /// Extracts the molecular orbitals in this Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of the molecular orbitals constituting this Slater determinant. In the restricted
+    /// spin constraint, the identical molecular orbitals across different spin spaces are only
+    /// given once. Each molecular orbital does contain an index of the spin space it is in.
+    pub fn to_orbitals(&self) -> Vec<Vec<MolecularOrbital<'a, T, SC>>> {
+        self.coefficients
+            .iter()
+            .enumerate()
+            .map(|(spini, cs_spini)| {
+                cs_spini
+                    .columns()
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(i, c)| {
+                        MolecularOrbital::builder()
+                            .coefficients(c.to_owned())
+                            .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
+                            .bao(self.bao)
+                            .mol(self.mol)
+                            .structure_constraint(self.structure_constraint.clone())
+                            .component_index(spini)
+                            .complex_symmetric(self.complex_symmetric)
+                            .threshold(self.threshold)
+                            .build()
+                            .expect("Unable to construct a molecular orbital.")
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
+impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
+where
+    T: ComplexFloat + Clone + Lapack,
     SC: StructureConstraint,
 {
     /// Returns the complex-symmetric flag of the determinant.
@@ -249,40 +289,6 @@ where
     /// Returns the threshold with which determinants are compared.
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
-    }
-
-    /// Extracts the molecular orbitals in this Slater determinant.
-    ///
-    /// # Returns
-    ///
-    /// A vector of the molecular orbitals constituting this Slater determinant. In the restricted
-    /// spin constraint, the identical molecular orbitals across different spin spaces are only
-    /// given once. Each molecular orbital does contain an index of the spin space it is in.
-    pub fn to_orbitals(&self) -> Vec<Vec<MolecularOrbital<'a, T>>> {
-        self.coefficients
-            .iter()
-            .enumerate()
-            .map(|(spini, cs_spini)| {
-                cs_spini
-                    .columns()
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(i, c)| {
-                        MolecularOrbital::builder()
-                            .coefficients(c.to_owned())
-                            .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
-                            .bao(self.bao)
-                            .mol(self.mol)
-                            .structure_constraint(self.structure_constraint.clone())
-                            .spin_index(spini)
-                            .complex_symmetric(self.complex_symmetric)
-                            .threshold(self.threshold)
-                            .build()
-                            .expect("Unable to construct a molecular orbital.")
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>()
     }
 
     /// Returns the total number of electrons in the determinant.

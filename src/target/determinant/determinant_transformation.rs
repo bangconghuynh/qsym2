@@ -7,7 +7,7 @@ use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
@@ -17,10 +17,14 @@ use crate::symmetry::symmetry_transformation::{
 };
 use crate::target::determinant::SlaterDeterminant;
 
+// ======================================
+// Uncoupled spin and spatial coordinates
+// ======================================
+
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<'a, T> SpatialUnitaryTransformable for SlaterDeterminant<'a, T>
+impl<'a, T> SpatialUnitaryTransformable for SlaterDeterminant<'a, T, SpinConstraint>
 where
     T: ComplexFloat + LinalgScalar + ScalarOperand + Copy + Lapack,
     f64: Into<T>,
@@ -45,7 +49,7 @@ where
         let new_coefficients = self
             .coefficients
             .iter()
-            .map(|old_coeff| match self.spin_constraint {
+            .map(|old_coeff| match self.structure_constraint {
                 SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                     let p_coeff = if let Some(p) = perm {
                         permute_array_by_atoms(old_coeff, p, &[Axis(0)], self.bao)
@@ -124,7 +128,7 @@ where
 // For real determinants
 // ~~~~~~~~~~~~~~~~~~~~~
 
-impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
+impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64, SpinConstraint> {
     /// Performs a spin transformation in-place.
     ///
     /// # Arguments
@@ -149,7 +153,7 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
             ))
         } else {
             let rdmat = cdmat.re.to_owned();
-            match self.spin_constraint {
+            match self.structure_constraint {
                 SpinConstraint::Restricted(_) => {
                     if approx::relative_eq!(
                         (&rdmat - Array2::<f64>::eye(2))
@@ -305,7 +309,7 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
 // For complex determinants
 // ~~~~~~~~~~~~~~~~~~~~~~~~
 
-impl<'a, T> SpinUnitaryTransformable for SlaterDeterminant<'a, Complex<T>>
+impl<'a, T> SpinUnitaryTransformable for SlaterDeterminant<'a, Complex<T>, SpinConstraint>
 where
     T: Clone,
     Complex<T>: ComplexFloat<Real = T>
@@ -330,7 +334,7 @@ where
         &mut self,
         dmat: &Array2<Complex<f64>>,
     ) -> Result<&mut Self, TransformationError> {
-        match self.spin_constraint {
+        match self.structure_constraint {
             SpinConstraint::Restricted(_) => {
                 if approx::relative_eq!(
                     (dmat - Array2::<Complex<f64>>::eye(2))
@@ -482,39 +486,13 @@ where
     }
 }
 
-// -------------------------------
-// ComplexConjugationTransformable
-// -------------------------------
-
-impl<'a, T> ComplexConjugationTransformable for SlaterDeterminant<'a, T>
-where
-    T: ComplexFloat + Lapack,
-{
-    /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        self.coefficients
-            .iter_mut()
-            .for_each(|coeff| coeff.mapv_inplace(|x| x.conj()));
-        self.complex_conjugated = !self.complex_conjugated;
-        Ok(self)
-    }
-}
-
-// --------------------------------
-// DefaultTimeReversalTransformable
-// --------------------------------
-impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T> where
-    T: ComplexFloat + Lapack
-{
-}
-
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T>
+impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T, SpinConstraint>
 where
     T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T>:
+    SlaterDeterminant<'a, T, SpinConstraint>:
         SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
@@ -535,5 +513,36 @@ where
             .ok_or(TransformationError(format!(
             "Unable to determine the atom permutation corresponding to the operation `{symop}`.",
         )))
+    }
+}
+
+// --------------------------------
+// DefaultTimeReversalTransformable
+// --------------------------------
+impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T, SpinConstraint> where
+    T: ComplexFloat + Lapack
+{
+}
+
+// =========================
+// All structure constraints
+// =========================
+
+// -------------------------------
+// ComplexConjugationTransformable
+// -------------------------------
+
+impl<'a, T, SC> ComplexConjugationTransformable for SlaterDeterminant<'a, T, SC>
+where
+    T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone,
+{
+    /// Performs a complex conjugation in-place.
+    fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.coefficients
+            .iter_mut()
+            .for_each(|coeff| coeff.mapv_inplace(|x| x.conj()));
+        self.complex_conjugated = !self.complex_conjugated;
+        Ok(self)
     }
 }

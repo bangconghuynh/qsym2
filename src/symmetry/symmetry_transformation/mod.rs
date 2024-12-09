@@ -210,31 +210,6 @@ pub trait TimeReversalTransformable: ComplexConjugationTransformable {
     }
 }
 
-// ----------------------
-// Blanket implementation
-// ----------------------
-
-/// Marker trait indicating that the implementing type should get the blanket implementation for
-/// [`TimeReversalTransformable`].
-pub trait DefaultTimeReversalTransformable {}
-
-impl<T> TimeReversalTransformable for T
-where
-    T: DefaultTimeReversalTransformable
-        + SpinUnitaryTransformable
-        + ComplexConjugationTransformable,
-{
-    /// Performs a time-reversal transformation in-place.
-    ///
-    /// The default implementation of the time-reversal transformation for any type that implements
-    /// [`SpinUnitaryTransformable`] and [`ComplexConjugationTransformable`] is a spin rotation by
-    /// $`\pi`$ about the space-fixed $`y`$-axis followed by a complex conjugation.
-    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
-        self.transform_spin_mut(&dmat_y)?.transform_cc_mut()
-    }
-}
-
 /// Trait for transformations using [`SymmetryOperation`].
 pub trait SymmetryTransformable:
     SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable
@@ -468,6 +443,32 @@ pub trait SymmetryTransformable:
         Ok(tself)
     }
 }
+
+// ----------------------
+// Blanket implementation
+// ----------------------
+
+/// Marker trait indicating that the implementing type should get the blanket implementation for
+/// [`TimeReversalTransformable`].
+pub trait DefaultTimeReversalTransformable {}
+
+impl<T> TimeReversalTransformable for T
+where
+    T: DefaultTimeReversalTransformable
+        + SpinUnitaryTransformable
+        + ComplexConjugationTransformable,
+{
+    /// Performs a time-reversal transformation in-place.
+    ///
+    /// The default implementation of the time-reversal transformation for any type that implements
+    /// [`SpinUnitaryTransformable`] and [`ComplexConjugationTransformable`] is a spin rotation by
+    /// $`\pi`$ about the space-fixed $`y`$-axis followed by a complex conjugation.
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
+        self.transform_spin_mut(&dmat_y)?.transform_cc_mut()
+    }
+}
+
 
 // =========
 // Functions
