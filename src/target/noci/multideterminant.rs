@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 use std::fmt;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 use derive_builder::Builder;
@@ -10,7 +11,7 @@ use ndarray::Array1;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::target::determinant::SlaterDeterminant;
 
 use super::basis::Basis;
@@ -32,13 +33,17 @@ mod multideterminant_tests;
 /// Structure to manage multi-determinantal wavefunctions.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct MultiDeterminant<'a, T, B>
+pub struct MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     #[builder(setter(skip), default = "PhantomData")]
     _lifetime: PhantomData<&'a ()>,
+
+    #[builder(setter(skip), default = "PhantomData")]
+    _structure_constraint: PhantomData<SC>,
 
     /// A boolean indicating if inner products involving this wavefunction should be the
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
@@ -71,10 +76,11 @@ where
 // Struct implementations
 // ----------------------
 
-impl<'a, T, B> MultiDeterminantBuilder<'a, T, B>
+impl<'a, T, B, SC> MultiDeterminantBuilder<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn validate(&self) -> Result<(), String> {
         let basis = self.basis.as_ref().ok_or("No basis found.".to_string())?;
@@ -100,18 +106,18 @@ where
             log::error!("Inconsistent complex-symmetric flag across basis determinants.");
         }
 
-        let spincons = basis
+        let structcons_check = basis
             .iter()
-            .map(|det_res| det_res.map(|det| det.spin_constraint().clone()))
+            .map(|det_res| det_res.map(|det| det.structure_constraint().clone()))
             .collect::<Result<HashSet<_>, _>>()
             .map_err(|err| err.to_string())?
             .len()
             == 1;
-        if !spincons {
+        if !structcons_check {
             log::error!("Inconsistent spin constraints across basis determinants.");
         }
 
-        if nbasis && spincons && complex_symmetric {
+        if nbasis && structcons_check && complex_symmetric {
             Ok(())
         } else {
             Err("Multi-determinant wavefunction validation failed.".to_string())
@@ -137,27 +143,35 @@ where
     }
 }
 
-impl<'a, T, B> MultiDeterminant<'a, T, B>
+impl<'a, T, B, SC> MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     /// Returns a builder to construct a new [`MultiDeterminant`].
-    pub(crate) fn builder() -> MultiDeterminantBuilder<'a, T, B> {
+    pub(crate) fn builder() -> MultiDeterminantBuilder<'a, T, B, SC> {
         MultiDeterminantBuilder::default()
     }
 
-    /// Returns the spin constraint of the multi-determinantal wavefunction.
-    pub fn spin_constraint(&self) -> SpinConstraint {
+    /// Returns the structure constraint of the multi-determinantal wavefunction.
+    pub fn structure_constraint(&self) -> SC {
         self.basis
             .iter()
             .next()
             .expect("No basis determinant found.")
             .expect("No basis determinant found.")
-            .spin_constraint()
+            .structure_constraint()
             .clone()
     }
+}
 
+impl<'a, T, B, SC> MultiDeterminant<'a, T, B, SC>
+where
+    T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Hash + Eq,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+{
     /// Returns the complex-conjugated flag of the multi-determinantal wavefunction.
     pub fn complex_conjugated(&self) -> bool {
         self.complex_conjugated
@@ -189,10 +203,11 @@ where
 // -----
 // Debug
 // -----
-impl<'a, T, B> fmt::Debug for MultiDeterminant<'a, T, B>
+impl<'a, T, B, SC> fmt::Debug for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -207,10 +222,11 @@ where
 // -------
 // Display
 // -------
-impl<'a, T, B> fmt::Display for MultiDeterminant<'a, T, B>
+impl<'a, T, B, SC> fmt::Display for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
