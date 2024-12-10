@@ -19,7 +19,7 @@ use crate::analysis::{
     log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
     RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -556,9 +556,9 @@ where
             writeln!(f, "> Molecular orbital results")?;
             writeln!(
                 f,
-                "  Spin constraint: {}",
+                "  Structure constraint: {}",
                 self.determinant
-                    .spin_constraint()
+                    .structure_constraint()
                     .to_string()
                     .to_lowercase()
             )?;
@@ -749,7 +749,7 @@ where
 /// Driver structure for performing representation analysis on Slater determinants.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T>
+pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -760,7 +760,7 @@ where
     parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant to be analysed.
-    determinant: &'a SlaterDeterminant<'a, T>,
+    determinant: &'a SlaterDeterminant<'a, T, SC>,
 
     /// The result from symmetry-group detection on the underlying molecular structure of the
     /// Slater determinant.
