@@ -128,8 +128,8 @@ where
                     }
                 };
 
-                let mo_symmetries = SlaterDeterminant::<f64>::builder()
-                    .spin_constraint(SpinConstraint::Restricted(1))
+                let mo_symmetries = SlaterDeterminant::<f64, SpinConstraint>::builder()
+                    .structure_constraint(SpinConstraint::Restricted(1))
                     .bao(&bao)
                     .complex_symmetric(false)
                     .mol(&mol)
