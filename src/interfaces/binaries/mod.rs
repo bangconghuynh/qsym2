@@ -269,12 +269,12 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 })?,
         };
 
-        let det = SlaterDeterminant::<f64>::builder()
+        let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&cs)
             .occupations(&occs)
             .bao(&bao)
             .mol(mol)
-            .spin_constraint(self.spin_constraint.clone())
+            .structure_constraint(self.spin_constraint.clone())
             .complex_symmetric(false)
             .threshold(sda_params.linear_independence_threshold)
             .build()
@@ -285,6 +285,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                     MagneticRepresentedSymmetryGroup,
                     f64,
+                    SpinConstraint,
                 >::builder()
                 .parameters(sda_params)
                 .angular_function_parameters(afa_params)
@@ -324,6 +325,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                     UnitaryRepresentedSymmetryGroup,
                     f64,
+                    SpinConstraint,
                 >::builder()
                 .parameters(sda_params)
                 .angular_function_parameters(afa_params)
