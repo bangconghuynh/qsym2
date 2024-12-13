@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 use std::fmt;
+use std::hash::Hash;
 use std::ops::Mul;
 
 use anyhow::{self, bail, format_err};
@@ -17,7 +18,7 @@ use crate::analysis::{
     log_overlap_eigenvalues, EigenvalueComparisonMode, Overlap, ProjectionDecomposition,
     RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -214,20 +215,21 @@ where
 
 /// Structure to contain multi-determinantal representation analysis results.
 #[derive(Clone, Builder)]
-pub struct MultiDeterminantRepAnalysisResult<'a, G, T, B>
+pub struct MultiDeterminantRepAnalysisResult<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     /// The control parameters used to obtain this set of multi-determinantal wavefunction
     /// representation analysis results.
     parameters: &'a MultiDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The multi-determinantal wavefunctions being analysed.
-    multidets: Vec<&'a MultiDeterminant<'a, T, B>>,
+    multidets: Vec<&'a MultiDeterminant<'a, T, B, SC>>,
 
     /// The group used for the representation analysis.
     group: G,
@@ -241,17 +243,18 @@ where
     multidet_symmetries_thresholds: Vec<(Option<T>, Option<T>)>,
 }
 
-impl<'a, G, T, B> MultiDeterminantRepAnalysisResult<'a, G, T, B>
+impl<'a, G, T, B, SC> MultiDeterminantRepAnalysisResult<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Clone + Hash + Eq,
 {
     /// Returns a builder to construct a new [`MultiDeterminantRepAnalysisResultBuilder`]
     /// structure.
-    fn builder() -> MultiDeterminantRepAnalysisResultBuilder<'a, G, T, B> {
+    fn builder() -> MultiDeterminantRepAnalysisResultBuilder<'a, G, T, B, SC> {
         MultiDeterminantRepAnalysisResultBuilder::default()
     }
 
@@ -263,13 +266,14 @@ where
     }
 }
 
-impl<'a, G, T, B> fmt::Display for MultiDeterminantRepAnalysisResult<'a, G, T, B>
+impl<'a, G, T, B, SC> fmt::Display for MultiDeterminantRepAnalysisResult<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
@@ -356,7 +360,7 @@ where
             "  Spin constraint: {}",
             self.multidets
                 .get(0)
-                .map(|multidet_0| multidet_0.spin_constraint().to_string().to_lowercase())
+                .map(|multidet_0| multidet_0.structure_constraint().to_string().to_lowercase())
                 .unwrap_or("--".to_string())
         )?;
         writeln!(f, "{}", "┈".repeat(table_width))?;
@@ -413,13 +417,14 @@ where
     }
 }
 
-impl<'a, G, T, B> fmt::Debug for MultiDeterminantRepAnalysisResult<'a, G, T, B>
+impl<'a, G, T, B, SC> fmt::Debug for MultiDeterminantRepAnalysisResult<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -437,19 +442,20 @@ where
 /// Driver structure for performing representation analysis on multi-determinantal wavefunctions.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct MultiDeterminantRepAnalysisDriver<'a, G, T, B>
+pub struct MultiDeterminantRepAnalysisDriver<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     /// The control parameters for multi-determinantal wavefunction representation analysis.
     parameters: &'a MultiDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The multi-determinantal wavefunctions to be analysed.
-    multidets: Vec<&'a MultiDeterminant<'a, T, B>>,
+    multidets: Vec<&'a MultiDeterminant<'a, T, B, SC>>,
 
     /// The result from symmetry-group detection on the underlying molecular structure of the
     /// multi-determinantal wavefunctions.
@@ -470,16 +476,17 @@ where
 
     /// The result of the multi-determinantal wavefunction representation analysis.
     #[builder(setter(skip), default = "None")]
-    result: Option<MultiDeterminantRepAnalysisResult<'a, G, T, B>>,
+    result: Option<MultiDeterminantRepAnalysisResult<'a, G, T, B, SC>>,
 }
 
-impl<'a, G, T, B> MultiDeterminantRepAnalysisDriverBuilder<'a, G, T, B>
+impl<'a, G, T, B, SC> MultiDeterminantRepAnalysisDriverBuilder<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     fn validate(&self) -> Result<(), String> {
         let params = self.parameters.ok_or(
@@ -558,76 +565,64 @@ where
 // Generic for all symmetry groups G and wavefunction numeric type T
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T, B> MultiDeterminantRepAnalysisDriver<'a, G, T, B>
+impl<'a, G, T, B, SC> MultiDeterminantRepAnalysisDriver<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Clone + Hash + Eq,
 {
     /// Returns a builder to construct a [`MultiDeterminantRepAnalysisDriver`] structure.
-    pub fn builder() -> MultiDeterminantRepAnalysisDriverBuilder<'a, G, T, B> {
+    pub fn builder() -> MultiDeterminantRepAnalysisDriverBuilder<'a, G, T, B, SC> {
         MultiDeterminantRepAnalysisDriverBuilder::default()
     }
 
     /// Constructs the appropriate atomic-orbital overlap matrix based on the spin constraint of
     /// the multi-determinantal wavefunctions.
     fn construct_sao(&self) -> Result<(Array2<T>, Option<Array2<T>>), anyhow::Error> {
-        let mut spin_constraint_set = self
+        let mut structure_constraint_set = self
             .multidets
             .iter()
-            .map(|multidet| multidet.spin_constraint())
+            .map(|multidet| multidet.structure_constraint())
             .collect::<HashSet<_>>();
-        let spin_constraint = if spin_constraint_set.len() == 1 {
-            spin_constraint_set.drain().next().ok_or(format_err!(
-                "Unable to retrieve the spin constraint of the multi-determinantal wavefunctions."
+        let structure_constraint = if structure_constraint_set.len() == 1 {
+            structure_constraint_set.drain().next().ok_or(format_err!(
+                "Unable to retrieve the structure constraint of the multi-determinantal wavefunctions."
             ))
         } else {
             Err(format_err!(
-                "Inconsistent spin constraints across multi-determinantal wavefunctions."
+                "Inconsistent structure constraints across multi-determinantal wavefunctions."
             ))
         }?;
-        let sao = match spin_constraint {
-            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                self.sao_spatial.clone()
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                let nspins_usize = usize::from(nspins);
-                let nspatial = self.sao_spatial.nrows();
-                let mut sao_g = Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
-                (0..nspins_usize).for_each(|ispin| {
-                    let start = ispin * nspatial;
-                    let end = (ispin + 1) * nspatial;
-                    sao_g
-                        .slice_mut(s![start..end, start..end])
-                        .assign(self.sao_spatial);
-                });
-                sao_g
-            }
+
+        let nbas = self.sao_spatial.nrows();
+        let ncomps = structure_constraint.n_explicit_comps_per_coefficient_matrix();
+
+        let sao = {
+            let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+            (0..ncomps).for_each(|icomp| {
+                let start = icomp * nbas;
+                let end = (icomp + 1) * nbas;
+                sao_mut
+                    .slice_mut(s![start..end, start..end])
+                    .assign(self.sao_spatial);
+            });
+            sao_mut
         };
 
-        let sao_h = self
-            .sao_spatial_h
-            .map(|sao_spatial_h| match spin_constraint {
-                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                    sao_spatial_h.clone()
-                }
-                SpinConstraint::Generalised(nspins, _) => {
-                    let nspins_usize = usize::from(nspins);
-                    let nspatial = sao_spatial_h.nrows();
-                    let mut sao_g =
-                        Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
-                    (0..nspins_usize).for_each(|ispin| {
-                        let start = ispin * nspatial;
-                        let end = (ispin + 1) * nspatial;
-                        sao_g
-                            .slice_mut(s![start..end, start..end])
-                            .assign(sao_spatial_h);
-                    });
-                    sao_g
-                }
+        let sao_h = self.sao_spatial_h.map(|sao_spatial_h| {
+            let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+            (0..ncomps).for_each(|icomp| {
+                let start = icomp * nbas;
+                let end = (icomp + 1) * nbas;
+                sao_h_mut
+                    .slice_mut(s![start..end, start..end])
+                    .assign(sao_spatial_h);
             });
+            sao_h_mut
+        });
 
         Ok((sao, sao_h))
     }
@@ -636,12 +631,13 @@ where
 // Specific for unitary-represented symmetry groups, but generic for wavefunction numeric type T
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T, B> MultiDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, B>
+impl<'a, T, B, SC> MultiDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, B, SC>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     fn_construct_unitary_group!(
         /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
@@ -653,12 +649,13 @@ where
 // Specific for magnetic-represented symmetry groups, but generic for wavefunction numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T, B> MultiDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, B>
+impl<'a, T, B, SC> MultiDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, B, SC>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     fn_construct_magnetic_group!(
         /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
@@ -674,68 +671,76 @@ where
     duplicate!{
         [ dtype_nested; [f64]; [Complex<f64>] ]
         duplicate!{
-            [
+            [ sctype_nested; [SpinConstraint] ]
+            duplicate!{
                 [
-                    btype_nested [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>]
-                    calc_smat_nested [calc_smat_optimised]
+                    [
+                        btype_nested [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                        calc_smat_nested [calc_smat_optimised]
+                    ]
+                    [
+                        btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                        calc_smat_nested [calc_smat]
+                    ]
                 ]
                 [
-                    btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
-                    calc_smat_nested [calc_smat]
+                    gtype_ [ UnitaryRepresentedSymmetryGroup ]
+                    dtype_ [ dtype_nested ]
+                    btype_ [ btype_nested ]
+                    sctype_ [ sctype_nested ]
+                    doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
+                    analyse_fn_ [ analyse_representation ]
+                    construct_group_ [ self.construct_unitary_group()? ]
+                    calc_smat_ [ calc_smat_nested ]
+                    calc_projections_ [
+                        log_subtitle("Multi-determinantal wavefunction projection decompositions");
+                        qsym2_output!("");
+                        qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                        qsym2_output!("    {}", multidet_orbit.origin().overlap_definition());
+                        qsym2_output!("");
+                        multidet_orbit
+                            .projections_to_string(
+                                &multidet_orbit.calc_projection_compositions()?,
+                                params.integrality_threshold,
+                            )
+                            .log_output_display();
+                        qsym2_output!("");
+                    ]
                 ]
-            ]
-            [
-                gtype_ [ UnitaryRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                btype_ [ btype_nested ]
-                doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
-                analyse_fn_ [ analyse_representation ]
-                construct_group_ [ self.construct_unitary_group()? ]
-                calc_smat_ [ calc_smat_nested ]
-                calc_projections_ [
-                    log_subtitle("Multi-determinantal wavefunction projection decompositions");
-                    qsym2_output!("");
-                    qsym2_output!("  Projections are defined w.r.t. the following inner product:");
-                    qsym2_output!("    {}", multidet_orbit.origin().overlap_definition());
-                    qsym2_output!("");
-                    multidet_orbit
-                        .projections_to_string(
-                            &multidet_orbit.calc_projection_compositions()?,
-                            params.integrality_threshold,
-                        )
-                        .log_output_display();
-                    qsym2_output!("");
-                ]
-            ]
+            }
         }
     }
     duplicate!{
         [ dtype_nested; [f64]; [Complex<f64>] ]
         duplicate!{
-            [
+            [ sctype_nested; [SpinConstraint] ]
+            duplicate!{
                 [
-                    btype_nested [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>]
-                    calc_smat_nested [calc_smat_optimised]
+                    [
+                        btype_nested [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                        calc_smat_nested [calc_smat_optimised]
+                    ]
+                    [
+                        btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                        calc_smat_nested [calc_smat]
+                    ]
                 ]
                 [
-                    btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
-                    calc_smat_nested [calc_smat]
+                    gtype_ [ MagneticRepresentedSymmetryGroup ]
+                    dtype_ [ dtype_nested ]
+                    btype_ [ btype_nested ]
+                    sctype_ [ sctype_nested ]
+                    doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
+                    analyse_fn_ [ analyse_corepresentation ]
+                    construct_group_ [ self.construct_magnetic_group()? ]
+                    calc_smat_ [ calc_smat_nested ]
+                    calc_projections_ [ ]
                 ]
-            ]
-            [
-                gtype_ [ MagneticRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                btype_ [ btype_nested ]
-                doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
-                analyse_fn_ [ analyse_corepresentation ]
-                construct_group_ [ self.construct_magnetic_group()? ]
-                calc_smat_ [ calc_smat_nested ]
-                calc_projections_ [ ]
-            ]
-        }
+            }
+    }
     }
 )]
-impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
+impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> {
     #[doc = doc_sub_]
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
@@ -861,13 +866,14 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
 // Generic for all symmetry groups G, basis B, and wavefunction numeric type T
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T, B> fmt::Display for MultiDeterminantRepAnalysisDriver<'a, G, T, B>
+impl<'a, G, T, B, SC> fmt::Display for MultiDeterminantRepAnalysisDriver<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "Multi-determinantal Wavefunction Symmetry Analysis")?;
@@ -877,13 +883,14 @@ where
     }
 }
 
-impl<'a, G, T, B> fmt::Debug for MultiDeterminantRepAnalysisDriver<'a, G, T, B>
+impl<'a, G, T, B, SC> fmt::Debug for MultiDeterminantRepAnalysisDriver<'a, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T>> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    SC: StructureConstraint + Hash + Eq,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -897,40 +904,48 @@ where
     duplicate!{
         [ dtype_nested; [f64]; [Complex<f64>] ]
         duplicate!{
-            [
-                btype_nested;
-                [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>];
-                [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
-            ]
-            [
-                gtype_ [ UnitaryRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                btype_ [ btype_nested ]
-                analyse_fn_ [ analyse_representation ]
-            ]
+            [ sctype_nested; [SpinConstraint] ]
+            duplicate!{
+                [
+                    btype_nested;
+                    [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                    [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                ]
+                [
+                    gtype_ [ UnitaryRepresentedSymmetryGroup ]
+                    dtype_ [ dtype_nested ]
+                    btype_ [ btype_nested ]
+                    sctype_ [ sctype_nested ]
+                    analyse_fn_ [ analyse_representation ]
+                ]
+            }
         }
     }
     duplicate!{
         [ dtype_nested; [f64]; [Complex<f64>] ]
         duplicate!{
-            [
-                btype_nested;
-                [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested>>];
-                [EagerBasis<SlaterDeterminant<'a, dtype_nested>>]
-            ]
-            [
-                gtype_ [ MagneticRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                btype_ [ btype_nested ]
-                analyse_fn_ [ analyse_corepresentation ]
-            ]
+            [ sctype_nested; [SpinConstraint] ]
+            duplicate!{
+                [
+                    btype_nested;
+                    [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                    [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                ]
+                [
+                    gtype_ [ MagneticRepresentedSymmetryGroup ]
+                    dtype_ [ dtype_nested ]
+                    btype_ [ btype_nested ]
+                    sctype_ [ sctype_nested ]
+                    analyse_fn_ [ analyse_corepresentation ]
+                ]
+            }
         }
     }
 )]
-impl<'a> QSym2Driver for MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_> {
+impl<'a> QSym2Driver for MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> {
     type Params = MultiDeterminantRepAnalysisParams<f64>;
 
-    type Outcome = MultiDeterminantRepAnalysisResult<'a, gtype_, dtype_, btype_>;
+    type Outcome = MultiDeterminantRepAnalysisResult<'a, gtype_, dtype_, btype_, sctype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result.as_ref().ok_or_else(|| {
