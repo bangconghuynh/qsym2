@@ -93,12 +93,12 @@ fn test_drivers_multideterminant_analysis_bh3() {
     ];
     let oalpha = array![1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0];
     let obeta = array![1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-    let det = SlaterDeterminant::<f64>::builder()
+    let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
         .bao(&bao_bh3)
         .mol(&mol_bh3)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-7)
         .build()
@@ -205,7 +205,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
         .unwrap();
 
     let mut mda_driver =
-        MultiDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _>::builder()
+        MultiDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _, SpinConstraint>::builder()
             .parameters(&mda_params)
             .angular_function_parameters(&afa_params)
             .multidets(vec![&a1_multidet, &ex_multidet, &ey_multidet])

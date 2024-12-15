@@ -134,18 +134,19 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     ];
     let oalpha = array![1.0, 1.0, 0.0, 0.0];
     let obeta = array![1.0, 0.0, 0.0];
-    let det_d3_cg: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[calpha, cbeta])
-        .occupations(&[oalpha, obeta])
-        .bao(&bao_vf6)
-        .mol(mol_vf6)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
-        .complex_symmetric(false)
-        .threshold(1e-14)
-        .build()
-        .unwrap()
-        .to_generalised()
-        .into();
+    let det_d3_cg: SlaterDeterminant<C128, SpinConstraint> =
+        SlaterDeterminant::<f64, SpinConstraint>::builder()
+            .coefficients(&[calpha, cbeta])
+            .occupations(&[oalpha, obeta])
+            .bao(&bao_vf6)
+            .mol(mol_vf6)
+            .structure_constraint(SpinConstraint::Unrestricted(2, false))
+            .complex_symmetric(false)
+            .threshold(1e-14)
+            .build()
+            .unwrap()
+            .to_generalised()
+            .into();
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh (ordinary, unitary) - spin spatial
@@ -163,15 +164,18 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -199,15 +203,18 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -236,15 +243,18 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
 
@@ -264,15 +274,18 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
 
@@ -292,15 +305,18 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        MagneticRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -328,15 +344,18 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        MagneticRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -510,18 +529,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     ];
     let oalpha = array![1.0, 1.0, 0.0, 0.0];
     let obeta = array![1.0, 0.0, 0.0];
-    let det_d3_cg: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[calpha, cbeta])
-        .occupations(&[oalpha, obeta])
-        .bao(&bao_vf6)
-        .mol(mol_vf6)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
-        .complex_symmetric(false)
-        .threshold(1e-14)
-        .build()
-        .unwrap()
-        .to_generalised()
-        .into();
+    let det_d3_cg: SlaterDeterminant<C128, SpinConstraint> =
+        SlaterDeterminant::<f64, SpinConstraint>::builder()
+            .coefficients(&[calpha, cbeta])
+            .occupations(&[oalpha, obeta])
+            .bao(&bao_vf6)
+            .mol(mol_vf6)
+            .structure_constraint(SpinConstraint::Unrestricted(2, false))
+            .complex_symmetric(false)
+            .threshold(1e-14)
+            .build()
+            .unwrap()
+            .to_generalised()
+            .into();
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh (ordinary, unitary) - spin-spatial
@@ -540,16 +560,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_4c(Some(&sao_spatial_4c))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_4c(Some(&sao_spatial_4c))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -631,16 +654,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_4c(Some(&sao_spatial_4c))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_4c(Some(&sao_spatial_4c))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -723,16 +749,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_4c(Some(&sao_spatial_4c))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_4c(Some(&sao_spatial_4c))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
 
@@ -806,16 +835,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_4c(Some(&sao_spatial_4c))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_4c(Some(&sao_spatial_4c))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
 
@@ -889,16 +921,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_4c(Some(&sao_spatial_4c))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        MagneticRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_4c(Some(&sao_spatial_4c))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -980,16 +1015,19 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_d3_cg)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_4c(Some(&sao_spatial_4c))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        MagneticRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_d3_cg)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_4c(Some(&sao_spatial_4c))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert_eq!(
         *sda_driver
@@ -1182,12 +1220,12 @@ fn test_drivers_slater_determinant_analysis_h2co_by_mag_uni() {
     // ----------------------
     let oa = Array1::from_iter((0..n_spatial).map(|i| if i < 8 { 1.0 } else { 0.0 }));
     let ob = oa.clone();
-    let det_cu = SlaterDeterminant::<C128>::builder()
+    let det_cu = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[ca, cb])
         .occupations(&[oa, ob])
         .bao(&bao_h2co)
         .mol(mol_h2co)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()
@@ -1206,16 +1244,19 @@ fn test_drivers_slater_determinant_analysis_h2co_by_mag_uni() {
         .build()
         .unwrap();
 
-    let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-            .parameters(&sda_params)
-            .angular_function_parameters(&afa_params)
-            .determinant(&det_cu)
-            .sao_spatial(&sao_spatial)
-            .sao_spatial_h(Some(&sao_spatial_h))
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinConstraint,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_cu)
+    .sao_spatial(&sao_spatial)
+    .sao_spatial_h(Some(&sao_spatial_h))
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(sda_driver.run().is_ok());
     assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
 

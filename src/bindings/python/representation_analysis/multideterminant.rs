@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::bindings::python::integrals::PyBasisAngularOrder;
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
@@ -198,12 +199,12 @@ pub fn rep_analyse_multideterminants_orbit_basis(
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
     // Set up NOCI function
-    let noci_solver_r = |multidets: &Vec<SlaterDeterminant<f64>>| {
+    let noci_solver_r = |multidets: &Vec<SlaterDeterminant<f64, SpinConstraint>>| {
         Python::with_gil(|py_inner| {
             let pymultidets = multidets
                 .iter()
                 .map(|det| {
-                    let pysc = det.spin_constraint().clone().try_into()?;
+                    let pysc = det.structure_constraint().clone().try_into()?;
                     Ok(PySlaterDeterminantReal::new(
                         pysc,
                         det.complex_symmetric(),
@@ -232,12 +233,12 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                 .and_then(|res| res.extract::<(Vec<f64>, Vec<Vec<f64>>)>(py_inner))
         })
     };
-    let noci_solver_c = |multidets: &Vec<SlaterDeterminant<C128>>| {
+    let noci_solver_c = |multidets: &Vec<SlaterDeterminant<C128, SpinConstraint>>| {
         Python::with_gil(|py_inner| {
             let pymultidets = multidets
                 .iter()
                 .map(|det| {
-                    let pysc = det.spin_constraint().clone().try_into()?;
+                    let pysc = det.structure_constraint().clone().try_into()?;
                     Ok(PySlaterDeterminantComplex::new(
                         pysc,
                         det.complex_symmetric(),
@@ -414,6 +415,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         MagneticRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -542,6 +544,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         UnitaryRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -578,7 +581,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
                             .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r).to_generalised()),
+                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r).to_generalised()),
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c
                             .to_qsym2(&bao, mol)
                             .map(|det_c| det_c.to_generalised()),
@@ -590,7 +593,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
                             .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r)),
+                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r)),
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -707,6 +710,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         MagneticRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -835,6 +839,7 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         UnitaryRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -1094,6 +1099,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         MagneticRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -1116,6 +1122,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         UnitaryRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -1164,7 +1171,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
                             .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r).to_generalised()),
+                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r).to_generalised()),
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c
                             .to_qsym2(&bao, mol)
                             .map(|det_c| det_c.to_generalised()),
@@ -1176,7 +1183,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
                             .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r)),
+                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r)),
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -1218,6 +1225,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         MagneticRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
@@ -1240,6 +1248,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         UnitaryRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
