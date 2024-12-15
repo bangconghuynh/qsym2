@@ -1472,7 +1472,7 @@ where
 impl<'a> QSym2Driver for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
     type Params = SlaterDeterminantRepAnalysisParams<f64>;
 
-    type Outcome = SlaterDeterminantRepAnalysisResult<'a, gtype_, dtype_, SpinConstraint>;
+    type Outcome = SlaterDeterminantRepAnalysisResult<'a, gtype_, dtype_, sctype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result.as_ref().ok_or_else(|| {
