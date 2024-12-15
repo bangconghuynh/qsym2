@@ -10,6 +10,7 @@ use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
 use crate::analysis::EigenvalueComparisonMode;
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
@@ -41,6 +42,10 @@ type C128 = Complex<f64>;
 // ------------------
 // Slater determinant
 // ------------------
+
+// ~~~~~~~~~~~~
+// Real, no SOC
+// ~~~~~~~~~~~~
 
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
@@ -192,9 +197,9 @@ impl PySlaterDeterminantReal {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<SlaterDeterminant<'b, f64>, anyhow::Error> {
-        let det = SlaterDeterminant::<f64>::builder()
-            .spin_constraint(self.spin_constraint.clone().into())
+    ) -> Result<SlaterDeterminant<'b, f64, SpinConstraint>, anyhow::Error> {
+        let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
+            .structure_constraint(self.spin_constraint.clone().into())
             .bao(bao)
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
@@ -363,9 +368,9 @@ impl PySlaterDeterminantComplex {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<SlaterDeterminant<'b, C128>, anyhow::Error> {
-        let det = SlaterDeterminant::<C128>::builder()
-            .spin_constraint(self.spin_constraint.clone().into())
+    ) -> Result<SlaterDeterminant<'b, C128, SpinConstraint>, anyhow::Error> {
+        let det = SlaterDeterminant::<C128, SpinConstraint>::builder()
+            .structure_constraint(self.spin_constraint.clone().into())
             .bao(bao)
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
@@ -627,6 +632,7 @@ pub fn rep_analyse_slater_determinant(
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         f64,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
@@ -706,6 +712,7 @@ pub fn rep_analyse_slater_determinant(
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         f64,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
@@ -794,7 +801,7 @@ pub fn rep_analyse_slater_determinant(
                     .to_qsym2(&bao, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
-            let det_c: SlaterDeterminant<C128> = det_r.into();
+            let det_c: SlaterDeterminant<C128, SpinConstraint> = det_r.into();
             let sao_spatial_c = pysao_c.to_owned_array();
             let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
                 // sao_spatial_h must have the same reality as sao_spatial.
@@ -816,6 +823,7 @@ pub fn rep_analyse_slater_determinant(
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         C128,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
@@ -895,6 +903,7 @@ pub fn rep_analyse_slater_determinant(
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         C128,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
@@ -1009,6 +1018,7 @@ pub fn rep_analyse_slater_determinant(
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         C128,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
@@ -1088,6 +1098,7 @@ pub fn rep_analyse_slater_determinant(
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         C128,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sda_params)
                     .angular_function_parameters(&afa_params)
