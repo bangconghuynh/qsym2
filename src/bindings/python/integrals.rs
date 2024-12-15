@@ -16,7 +16,7 @@ use pyo3::types::PyType;
 #[cfg(feature = "qchem")]
 use regex::Regex;
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::angmom::{ANGMOM_INDICES, ANGMOM_LABELS};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
@@ -35,7 +35,8 @@ lazy_static! {
         Regex::new(r"(.*sp)\\energy_function$").expect("Regex pattern invalid.");
 }
 
-/// Python-exposed enumerated type to handle the union type `bool | list[int]` in Python.
+/// Python-exposed enumerated type to handle the union type `bool | list[int]` in Python for
+/// specifying pure-spherical-harmonic order.
 #[derive(Clone, FromPyObject)]
 pub enum PyPureOrder {
     /// Variant for standard pure shell order. The associated boolean indicates if the functions
@@ -44,6 +45,19 @@ pub enum PyPureOrder {
 
     /// Variant for custom pure shell order. The associated vector contains a sequence of integers
     /// specifying the order of $`m`$ values in the shell.
+    Custom(Vec<i32>),
+}
+
+/// Python-exposed enumerated type to handle the union type `bool | list[int]` in Python for
+/// specifying spinor order.
+#[derive(Clone, FromPyObject)]
+pub enum PySpinorOrder {
+    /// Variant for standard spinor shell order. The associated boolean indicates if the functions
+    /// are arranged in increasing-$`m_j`$ order.
+    Standard(bool),
+
+    /// Variant for custom spinor shell order. The associated vector contains a sequence of integers
+    /// specifying the order of $`2m_j`$ values in the shell.
     Custom(Vec<i32>),
 }
 
@@ -64,6 +78,13 @@ pub enum PyShellOrder {
     ///
     /// Python type: Optional[list[tuple[int, int, int]]].
     CartOrder(Option<Vec<(u32, u32, u32)>>),
+
+    /// Variant for spinor shell order. The associated value is either a boolean indicating if the
+    /// functions are arranged in increasing-$`2m_j`$ order, or a sequence of integers specifying a
+    /// custom $`2m_j`$-order.
+    ///
+    /// Python type: `bool | list[int]`.
+    SpinorOrder(PySpinorOrder),
 }
 
 /// Python-exposed structure to marshal basis angular order information between Python and Rust.
@@ -297,7 +318,8 @@ impl PyBasisAngularOrder {
         qsym2_output!("");
         "Each single-point calculation has associated with it a `PyBasisAngularOrder` object.\n\
         The table below shows the `PyBasisAngularOrder` index in the generated list and the\n\
-        corresponding single-point calculation.".log_output_display();
+        corresponding single-point calculation."
+            .log_output_display();
         qsym2_output!("{}", "┈".repeat(table_width));
         qsym2_output!(" {:<idx_width$}  {:<}", "Index", "Q-Chem job");
         qsym2_output!("{}", "┈".repeat(table_width));
@@ -330,7 +352,7 @@ impl PyBasisAngularOrder {
     pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
-    ) -> Result<BasisAngularOrder, anyhow::Error> {
+    ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
             "The number of basis atoms does not match the number of ordinary atoms."
@@ -395,6 +417,37 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
             SpinConstraint::Generalised(2, false) => Ok(PySpinConstraint::Generalised),
             _ => Err(format_err!(
                 "`PySpinConstraint` can only support two spin spaces."
+            )),
+        }
+    }
+}
+
+/// Python-exposed enumerated type to marshall basis spin--orbit-coupled layout in the coupled
+/// treatment of spin and spatial degrees of freedome between Rust and Python.
+#[pyclass]
+#[derive(Clone)]
+pub enum PySpinOrbitCoupled {
+    /// Variant for $`j`$-adapted basis functions. Only two relativistic components are exposed,
+    /// and within each shell, the $`m_j`$ functions are arranged in increasing order.
+    JAdapted,
+}
+
+impl From<PySpinOrbitCoupled> for SpinOrbitCoupled {
+    fn from(pysoc: PySpinOrbitCoupled) -> Self {
+        match pysoc {
+            PySpinOrbitCoupled::JAdapted => SpinOrbitCoupled::JAdapted(2, true),
+        }
+    }
+}
+
+impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
+    type Error = anyhow::Error;
+
+    fn try_from(soc: SpinOrbitCoupled) -> Result<Self, Self::Error> {
+        match soc {
+            SpinOrbitCoupled::JAdapted(2, true) => Ok(PySpinOrbitCoupled::JAdapted),
+            _ => Err(format_err!(
+                "`PySpinOrbitCoupled` can only support two relativistic components where the `m_j` functions are arranged in increasing order."
             )),
         }
     }
@@ -574,6 +627,14 @@ fn create_basis_shell(
                     "Cartesian shell order expected, but specification for pure shell order found."
                 )
             }
+            PyShellOrder::SpinorOrder(_) => {
+                log::error!(
+                    "Cartesian shell order expected, but specification for spinor shell order found."
+                );
+                bail!(
+                    "Cartesian shell order expected, but specification for spinor shell order found."
+                )
+            }
         };
         ShellOrder::Cart(cart_order)
     } else {
@@ -595,6 +656,12 @@ fn create_basis_shell(
                 bail!(
                     "Pure shell order expected, but specification for Cartesian shell order found."
                 )
+            }
+            PyShellOrder::SpinorOrder(_) => {
+                log::error!(
+                    "Pure shell order expected, but specification for spinor shell order found."
+                );
+                bail!("Pure shell order expected, but specification for spinor shell order found.")
             }
         }
     };

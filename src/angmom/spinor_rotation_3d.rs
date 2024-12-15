@@ -173,7 +173,7 @@ pub enum SpinOrbitCoupled {
     /// Variant for $`j`$-adapted basis functions where each shell consists of $`\ket{j, m_j}`$
     /// functions. The associated value specifies the total number of duplications of the
     /// $`j`$-adapted basis (*e.g.* `2` in Dirac--Hartree--Fock), and the associated boolean
-    /// indicates if the $`m_j`$ components in each shell  are arranged in increasing order.
+    /// indicates if the $`m_j`$ components in each shell are arranged in increasing order.
     JAdapted(u16, bool),
 }
 
