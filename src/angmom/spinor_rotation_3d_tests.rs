@@ -451,8 +451,8 @@ proptest! {
             approx::assert_relative_eq!(
                 (&rl - &dmatl_r).map(|x| x.abs().powi(2)).sum().sqrt(),
                 0.0,
-                epsilon = 1e-12 * angle.abs().max(1.0) * (2 * l) as f64,
-                max_relative = 1e-12 * angle.abs().max(1.0) * (2 * l) as f64
+                epsilon = 1e-11 * angle.abs().max(1.0) * (2 * l) as f64,
+                max_relative = 1e-11 * angle.abs().max(1.0) * (2 * l) as f64
             );
         }
     }

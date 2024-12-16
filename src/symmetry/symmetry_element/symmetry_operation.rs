@@ -911,15 +911,17 @@ impl SymmetryOperation {
 
     /// Returns the representation matrix for this symmetry operation in a $`j`$-adapted basis.
     ///
-    /// This representation matrix is in the basis of $`\ket{j, m_j}`$.
+    /// This representation matrix is in the basis of $`\ket{j, m_j}`$. For improper rotations in
+    /// half-odd-integer $`j`$ bases, the Pauli gauge is used where the inversion operation is
+    /// represented by a trivial identity matrix.
     #[must_use]
     pub fn get_wigner_matrix(&self, two_j: u32, increasingm: bool) -> Array2<Complex<f64>> {
-        todo!("Test");
         let spinor_basis = two_j.rem_euclid(2) == 1;
+        let odd_sh_basis = (!spinor_basis) && two_j.rem_euclid(4) == 2;
         let dmat_rotation = {
             let angle = self.calc_pole_angle();
             let axis = self.calc_pole().coords;
-            if spinor_basis && self.is_su2_class_1() {
+            if (spinor_basis && self.is_su2_class_1()) || (odd_sh_basis && !self.is_proper()) {
                 -dmat_angleaxis_gen_single(two_j, angle, axis, increasingm)
             } else {
                 dmat_angleaxis_gen_single(two_j, angle, axis, increasingm)
