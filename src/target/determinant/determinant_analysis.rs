@@ -145,22 +145,7 @@ where
         })
         .fold(T::one(), |acc, x| acc * x);
 
-        ensure!(
-            self.structure_constraint
-                .n_implicit_comps_per_coefficient_matrix()
-                .rem_euclid(
-                    self.structure_constraint
-                        .n_explicit_comps_per_coefficient_matrix()
-                )
-                == 0
-        );
-        let implicit_factor = self
-            .structure_constraint
-            .n_implicit_comps_per_coefficient_matrix()
-            .div_euclid(
-                self.structure_constraint
-                    .n_explicit_comps_per_coefficient_matrix(),
-            );
+        let implicit_factor = self.structure_constraint.implicit_factor()?;
         if implicit_factor > 1 {
             let p_i32 = i32::try_from(implicit_factor)?;
             Ok(ComplexFloat::powi(ov, p_i32))

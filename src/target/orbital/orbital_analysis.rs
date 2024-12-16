@@ -629,22 +629,7 @@ where
             })
             .fold(T::one(), |acc, x| acc * x);
 
-            ensure!(
-                det.structure_constraint()
-                    .n_implicit_comps_per_coefficient_matrix()
-                    .rem_euclid(
-                        det.structure_constraint()
-                            .n_explicit_comps_per_coefficient_matrix()
-                    )
-                    == 0
-            );
-            let implicit_factor = det
-                .structure_constraint()
-                .n_implicit_comps_per_coefficient_matrix()
-                .div_euclid(
-                    det.structure_constraint()
-                        .n_explicit_comps_per_coefficient_matrix(),
-                );
+            let implicit_factor = det.structure_constraint().implicit_factor()?;
             let w0_ov = if implicit_factor > 1 {
                 let p_i32 = i32::try_from(implicit_factor)?;
                 ComplexFloat::powi(w0_ov, p_i32)
@@ -747,22 +732,7 @@ where
             })
             .fold(T::one(), |acc, x| acc * x);
 
-            ensure!(
-                det.structure_constraint()
-                    .n_implicit_comps_per_coefficient_matrix()
-                    .rem_euclid(
-                        det.structure_constraint()
-                            .n_explicit_comps_per_coefficient_matrix()
-                    )
-                    == 0
-            );
-            let implicit_factor = det
-                .structure_constraint()
-                .n_implicit_comps_per_coefficient_matrix()
-                .div_euclid(
-                    det.structure_constraint()
-                        .n_explicit_comps_per_coefficient_matrix(),
-                );
+            let implicit_factor = det.structure_constraint().implicit_factor()?;
             let wx_ov = if implicit_factor > 1 {
                 let p_i32 = i32::try_from(implicit_factor)?;
                 ComplexFloat::powi(wx_ov, p_i32)

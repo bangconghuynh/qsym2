@@ -297,24 +297,14 @@ where
     where
         <T as ComplexFloat>::Real: Sum + From<u16>,
     {
-        assert_eq!(
-            self.structure_constraint
-                .n_implicit_comps_per_coefficient_matrix()
-                .rem_euclid(
-                    self.structure_constraint
-                        .n_explicit_comps_per_coefficient_matrix()
-                ),
-            0
-        );
         let implicit_factor = self
             .structure_constraint
-            .n_implicit_comps_per_coefficient_matrix()
-            .div_euclid(
-                self.structure_constraint
-                    .n_explicit_comps_per_coefficient_matrix(),
-            );
+            .implicit_factor()
+            .expect("Unable to retrieve the implicit factor from the structure constraint.");
         <T as ComplexFloat>::Real::from(
-            implicit_factor.to_u16().expect("Unable to convert the implicit factor to `u16`."),
+            implicit_factor
+                .to_u16()
+                .expect("Unable to convert the implicit factor to `u16`."),
         ) * self
             .occupations
             .iter()
