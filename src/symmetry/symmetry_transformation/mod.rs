@@ -4,6 +4,7 @@ use std::error::Error;
 use std::fmt;
 
 use anyhow::format_err;
+use itertools::Itertools;
 use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
@@ -14,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
-use crate::basis::ao::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder};
+use crate::basis::ao::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder, SpinorOrder};
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
@@ -469,7 +470,6 @@ where
     }
 }
 
-
 // =========
 // Functions
 // =========
@@ -661,5 +661,166 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
             }
         })
         .collect::<Result<Vec<Array2<f64>>, _>>();
+    rmats_res
+}
+
+/// Assembles spinor rotation matrices for all shells.
+///
+/// # Arguments
+///
+/// * `bao` - A structure specifying the angular order of the underlying basis.
+/// * `symop` - A symmetry operation representing the transformation.
+/// * `perm` - An optional permutation describing how any off-origin sites are permuted amongst
+/// each other under the transformation.
+///
+/// # Returns
+///
+/// A vector of spinor rotation matrices, one for each shells in `bao`. Non-standard orderings of
+/// functions in shells are taken into account.
+pub(crate) fn assemble_spinor_rotation_matrices(
+    bao: &BasisAngularOrder,
+    symop: &SymmetryOperation,
+    perm: Option<&Permutation<usize>>,
+) -> Result<Vec<Array2<Complex<f64>>>, anyhow::Error> {
+    let pbao = if let Some(p) = perm {
+        bao.permute(p)?
+    } else {
+        bao.clone()
+    };
+    let two_j_max = pbao
+        .basis_shells()
+        .map(|shl| match shl.shell_order {
+            ShellOrder::Pure(_) => 2 * shl.l,
+            ShellOrder::Cart(_) => 2 * shl.l,
+            ShellOrder::Spinor(_) => shl.l,
+        })
+        .max()
+        .expect("The maximum rank cannot be found.");
+    let r2js = (0..=two_j_max)
+        .map(|two_j| symop.get_wigner_matrix(two_j, true))
+        .collect::<Vec<_>>();
+
+    // All matrices in `rls` are in increasing-m order by default. See the function `get_wigner_matrix` for
+    // the origin of this order. Hence, conversion matrices must also honour this.
+    let cart2rss_lex: Vec<Vec<Array2<Complex<f64>>>> = (0..=two_j_max)
+        .step_by(2)
+        .map(|two_lcart| {
+            sh_cart2r(
+                two_lcart.div_euclid(2),
+                &CartOrder::lex(two_lcart.div_euclid(2)),
+                true,
+                PureOrder::increasingm,
+            )
+            .into_iter()
+            .map(|mat| mat.mapv(Complex::<f64>::from))
+            .collect_vec()
+        })
+        .collect();
+    let r2cartss_lex: Vec<Vec<Array2<Complex<f64>>>> = (0..=two_j_max)
+        .map(|two_lcart| {
+            sh_r2cart(
+                two_lcart.div_euclid(2),
+                &CartOrder::lex(two_lcart.div_euclid(2)),
+                true,
+                PureOrder::increasingm,
+            )
+            .into_iter()
+            .map(|mat| mat.mapv(Complex::<f64>::from))
+            .collect_vec()
+        })
+        .collect();
+
+    let rmats_res = pbao.basis_shells()
+        .map(|shl| {
+            let l =
+                usize::try_from(shl.l).unwrap_or_else(|_| {
+                panic!(
+                    "Unable to convert the rank `{}` to `usize`.",
+                    shl.l
+                );
+            });
+            match &shl.shell_order {
+                ShellOrder::Pure(pure_order) => {
+                    // Spherical functions.
+                    let po_il = PureOrder::increasingm(shl.l);
+                    let rl = r2js[2*l].clone();
+                    if *pure_order != po_il {
+                        // `rl` is in increasing-m order by default. See the function `rlmat` for
+                        // the origin of this order.
+                        let perm = pure_order
+                            .get_perm_of(&po_il)
+                            .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
+                        Ok(rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                    } else {
+                        Ok(rl)
+                    }
+                }
+                ShellOrder::Cart(cart_order) => {
+                    // Cartesian functions. Convert them to real solid harmonics first, then
+                    // applying the transformation, then convert back.
+                    // The actual Cartesian order will be taken into account.
+
+                    // Perform the conversion using lexicographic order first. This allows for the
+                    // conversion matrices to be computed only once in the lexicographic order.
+                    let cart2rs = &cart2rss_lex[l];
+                    let r2carts = &r2cartss_lex[l];
+                    let rl = cart2rs.iter().zip(r2carts.iter()).enumerate().fold(
+                        Array2::zeros((cart_order.ncomps(), cart_order.ncomps())),
+                        |acc, (i, (xmat, wmat))| {
+                            let lpure = l - 2 * i;
+                            acc + wmat.dot(&r2js[2*lpure]).dot(xmat)
+                        },
+                    );
+                    let lex_cart_order = CartOrder::lex(shl.l);
+
+                    // Now deal with the actual Cartesian order by permutations.
+                    if *cart_order != lex_cart_order {
+                        // `rl` is in lexicographic order (because of `wmat` and `xmat`) by default.
+                        // Consider a transformation R and its representation matrix D in a
+                        // lexicographically-ordered Cartesian basis b collected in a row vector.
+                        // Then,
+                        //      R b = b D.
+                        // If we now permute the basis functions in b by a permutation π, then the
+                        // representation matrix for R changes:
+                        //      R πb = πb D(π).
+                        // To relate D(π) to D, we first note the representation matrix for π, P:
+                        //      πb = π b = b P,
+                        // which, when acts on a left row vector, permutes its entries normally, but
+                        // when acts on a right column vector, permutes its entries inversely.
+                        // Then,
+                        //      R πb = R b P = b P D(π) => R b = b PD(π)P^(-1).
+                        // Thus,
+                        //      D(π) = P^(-1)DP,
+                        // i.e., to obtain D(π), we permute the rows and columns of D normally
+                        // according to π.
+                        let perm = lex_cart_order
+                            .get_perm_of(cart_order)
+                            .unwrap_or_else(
+                                || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
+                            );
+                        Ok(rl.select(Axis(0), perm.image())
+                            .select(Axis(1), perm.image()))
+                    } else {
+                        Ok(rl)
+                    }
+                }
+                ShellOrder::Spinor(spinor_order) => {
+                    // Spinor functions. l = two_j.
+                    let so_il = SpinorOrder::increasingm(shl.l);
+                    let r2j = r2js[l].clone();
+                    if *spinor_order != so_il {
+                        // `rl` is in increasing-m order by default. See the function `rlmat` for
+                        // the origin of this order.
+                        let perm = spinor_order
+                            .get_perm_of(&so_il)
+                            .expect("Unable to obtain the permutation that maps `spinor_order` to the increasing order.");
+                        Ok(r2j.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                    } else {
+                        Ok(r2j)
+                    }
+                }
+            }
+        })
+        .collect::<Result<Vec<Array2<Complex<f64>>>, _>>();
     rmats_res
 }

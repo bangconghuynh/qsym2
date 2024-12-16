@@ -3,17 +3,21 @@
 use std::ops::Mul;
 
 use approx;
+use nalgebra::Vector3;
 use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::SymmetryOperation;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryOperation, TRROT};
+use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
-    SymmetryTransformable, TimeReversalTransformable, TransformationError,
+    assemble_sh_rotation_3d_matrices, assemble_spinor_rotation_matrices, permute_array_by_atoms,
+    ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
+    SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
+    TransformationError,
 };
 use crate::target::determinant::SlaterDeterminant;
 
@@ -486,15 +490,135 @@ where
     }
 }
 
+// --------------------------------
+// DefaultTimeReversalTransformable
+// --------------------------------
+impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T, SpinConstraint> where
+    T: ComplexFloat + Lapack
+{
+}
+
+// ====================================
+// Coupled spin and spatial coordinates
+// ====================================
+
+// ---------------------------
+// SpatialUnitaryTransformable
+// ---------------------------
+impl<'a, T> SpatialUnitaryTransformable for SlaterDeterminant<'a, T, SpinOrbitCoupled>
+where
+    T: ComplexFloat + Lapack,
+{
+    fn transform_spatial_mut(
+        &mut self,
+        _rmat: &Array2<f64>,
+        _perm: Option<&Permutation<usize>>,
+    ) -> Result<&mut Self, TransformationError> {
+        Err(TransformationError(
+            "Unable to apply only spatial transformations to a spin--orbit-coupled determinant."
+                .to_string(),
+        ))
+    }
+}
+
+// ------------------------
+// SpinUnitaryTransformable
+// ------------------------
+impl<'a, T> SpinUnitaryTransformable for SlaterDeterminant<'a, T, SpinOrbitCoupled>
+where
+    T: ComplexFloat + Lapack,
+{
+    fn transform_spin_mut(
+        &mut self,
+        _dmat: &Array2<Complex<f64>>,
+    ) -> Result<&mut Self, TransformationError> {
+        Err(TransformationError(
+            "Unable to apply only spin transformations to a spin--orbit-coupled determinant."
+                .to_string(),
+        ))
+    }
+}
+
+// -------------------------
+// TimeReversalTransformable
+// -------------------------
+impl<'a> TimeReversalTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled> {
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        let tc2y_element = SymmetryElement::builder()
+            .threshold(1e-12)
+            .proper_order(ElementOrder::Int(2))
+            .proper_power(1)
+            .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+            .kind(TRROT)
+            .rotation_group(RotationGroup::SU2(true))
+            .build()
+            .unwrap();
+        let tc2y = SymmetryOperation::builder()
+            .generating_element(tc2y_element)
+            .power(1)
+            .build()
+            .unwrap();
+        let tmats: Vec<Array2<Complex<f64>>> =
+            assemble_spinor_rotation_matrices(self.bao, &tc2y, None)
+                .map_err(|err| TransformationError(err.to_string()))?
+                .iter()
+                .map(|tmat| tmat.map(|&x| x.into()))
+                .collect();
+
+        let new_coefficients = self
+            .coefficients
+            .iter()
+            .map(|old_coeff| match self.structure_constraint {
+                SpinOrbitCoupled::JAdapted(ncomps, _) => {
+                    let nfuncs_per_comp = self.bao.n_funcs();
+                    let t_comp_blocks = (0..ncomps).map(|icomp| {
+                        // Extract component block icomp.
+                        let comp_start = usize::from(icomp) * nfuncs_per_comp;
+                        let comp_end = (usize::from(icomp) + 1) * nfuncs_per_comp;
+                        let comp_block = old_coeff.slice(s![comp_start..comp_end, ..]).to_owned();
+
+                        // Transform within spin block ispin.
+                        let t_blocks = self.bao
+                            .shell_boundary_indices()
+                            .iter()
+                            .zip(tmats.iter())
+                            .map(|((shl_start, shl_end), tmat)| {
+                                tmat.dot(&comp_block.slice(s![*shl_start..*shl_end, ..]))
+                            })
+                            .collect::<Vec<_>>();
+
+                        // Concatenate blocks for various shells within spin block ispin.
+                        concatenate(
+                            Axis(0),
+                            &t_blocks.iter().map(|t_block| t_block.view()).collect::<Vec<_>>(),
+                        )
+                        .expect("Unable to concatenate the transformed rows for the various shells.")
+                    }).collect::<Vec<_>>();
+
+                    // Concatenate component blocks.
+                    concatenate(
+                        Axis(0),
+                        &t_comp_blocks
+                            .iter()
+                            .map(|t_spin_block| t_spin_block.view())
+                            .collect::<Vec<_>>(),
+                    )
+                    .expect("Unable to concatenate the transformed component blocks.")
+                }
+            })
+            .collect::<Vec<Array2<Complex<f64>>>>();
+        self.coefficients = new_coefficients;
+        Ok(self)
+    }
+}
+
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T, SpinConstraint>
-where
-    T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T, SpinConstraint>:
-        SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
-{
+impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled> {
+    // ----------------
+    // Required methods
+    // ----------------
     fn sym_permute_sites_spatial(
         &self,
         symop: &SymmetryOperation,
@@ -514,14 +638,80 @@ where
             "Unable to determine the atom permutation corresponding to the operation `{symop}`.",
         )))
     }
-}
 
-// --------------------------------
-// DefaultTimeReversalTransformable
-// --------------------------------
-impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T, SpinConstraint> where
-    T: ComplexFloat + Lapack
-{
+    // ----------------------------
+    // Overwritten provided methods
+    // ----------------------------
+    fn sym_transform_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        let perm = self.sym_permute_sites_spatial(symop)?;
+        let pbao = self
+            .bao
+            .permute(&perm)
+            .map_err(|err| TransformationError(err.to_string()))?;
+
+        let tmats: Vec<Array2<Complex<f64>>> =
+            assemble_spinor_rotation_matrices(&pbao, symop, Some(&perm))
+                .map_err(|err| TransformationError(err.to_string()))?
+                .iter()
+                .map(|tmat| tmat.map(|&x| x.into()))
+                .collect();
+
+        let new_coefficients = self
+            .coefficients
+            .iter()
+            .map(|old_coeff| match self.structure_constraint {
+                SpinOrbitCoupled::JAdapted(ncomps, _) => {
+                    let nfuncs_per_comp = self.bao.n_funcs();
+                    let t_p_comp_blocks = (0..ncomps).map(|icomp| {
+                        // Extract component block icomp.
+                        let comp_start = usize::from(icomp) * nfuncs_per_comp;
+                        let comp_end = (usize::from(icomp) + 1) * nfuncs_per_comp;
+                        let comp_block = old_coeff.slice(s![comp_start..comp_end, ..]).to_owned();
+
+                        // Permute within comp block icomp.
+                        let p_comp_block = permute_array_by_atoms(&comp_block, &perm, &[Axis(0)], self.bao);
+
+                        // Transform within comp block icomp.
+                        let t_p_blocks = pbao
+                            .shell_boundary_indices()
+                            .into_iter()
+                            .zip(tmats.iter())
+                            .map(|((shl_start, shl_end), tmat)| {
+                                tmat.dot(&p_comp_block.slice(s![shl_start..shl_end, ..]))
+                            })
+                            .collect::<Vec<_>>();
+
+                        // Concatenate blocks for various shells within comp block icomp.
+                        concatenate(
+                            Axis(0),
+                            &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
+                        )
+                        .expect("Unable to concatenate the transformed rows for the various shells.")
+                    }).collect::<Vec<_>>();
+
+                    // Concatenate comp blocks.
+                    concatenate(
+                        Axis(0),
+                        &t_p_comp_blocks
+                            .iter()
+                            .map(|t_p_comp_block| t_p_comp_block.view())
+                            .collect::<Vec<_>>(),
+                    )
+                    .expect("Unable to concatenate the transformed comp blocks.")
+                }
+            })
+            .collect::<Vec<Array2<Complex<f64>>>>();
+        self.coefficients = new_coefficients;
+
+        // Time reversal, if any.
+        if symop.contains_time_reversal() {
+            self.transform_timerev_mut()?;
+        }
+        Ok(self)
+    }
 }
 
 // =========================
