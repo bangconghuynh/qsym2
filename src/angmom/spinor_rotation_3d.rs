@@ -8,6 +8,7 @@ use approx;
 use factorial::Factorial;
 use nalgebra::Vector3;
 use ndarray::{array, Array2, Axis};
+use ndarray_linalg::Scalar;
 use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
@@ -839,31 +840,47 @@ fn angleaxis_to_euler_single(angle: f64, axis: Vector3<f64>, thresh: f64) -> (f6
 
     let (alpha, gamma) =
         if approx::relative_ne!(cosbeta.abs(), 1.0, epsilon = thresh, max_relative = thresh) {
-            // cosbeta != 1 or -1, beta != 0 or pi
+            // cosbeta != 1 or -1, beta != 0 or pi, sin(beta) != 0
             // alpha and gamma are given by Equations (**3**-5.4) to (**3**-5.10)
             // in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover Publications,
             // Inc., 2005).
+            let sgn = beta.sin().signum();
             let num_alpha = -nx * normalised_angle.sin()
-                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2);
+                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
             let den_alpha = ny * normalised_angle.sin()
-                + 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2);
+                + 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
             // -pi <= alpha <= pi
             let alpha = num_alpha.atan2(den_alpha);
 
             let num_gamma = nx * normalised_angle.sin()
-                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2);
+                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
             let den_gamma = ny * normalised_angle.sin()
-                - 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2);
+                - 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
             // -pi <= gamma <= pi
             let gamma = num_gamma.atan2(den_gamma);
 
             (alpha, gamma)
         } else if approx::relative_eq!(cosbeta, 1.0, epsilon = thresh, max_relative = thresh) {
             // cosbeta == 1, beta == 0
-            // cos(0.5(alpha+gamma)) = cos(0.5phi)
-            // We set alpha == 0 by convention.
-            // We then set gamma = phi.
-            (0.0, normalised_angle)
+            // => cos(0.5(alpha+gamma)) = cos(0.5phi)
+            // => alpha + gamma = ±phi
+            // There are two possibilities:
+            //   1. phi == 0, in which case we simply set both alpha and gamma to zero
+            //   2. nx^2 + ny^2 = 0, which means nx = ny = 0, which means we are at either the
+            //      North pole or the South pole. In either case, we set alpha == 0 by convention.
+            //      We then set gamma = phi at the North pole or -phi at the South pole.
+            if approx::relative_eq!(
+                normalised_angle,
+                0.0,
+                epsilon = thresh,
+                max_relative = thresh
+            ) {
+                (0.0, normalised_angle)
+            } else if nz > 0.0 {
+                (0.0, normalised_angle)
+            } else {
+                (0.0, -normalised_angle)
+            }
         } else {
             // cosbeta == -1, beta == pi
             // sin(0.5phi) must be non-zero, otherwise cosbeta == 1, a contradiction.
