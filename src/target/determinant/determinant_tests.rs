@@ -7,12 +7,12 @@ use num_complex::Complex;
 use num_traits::Pow;
 
 use crate::analysis::{EigenvalueComparisonMode, Overlap, RepAnalysis};
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -892,6 +892,146 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
             let spin_spatial_tdetgen_k = detgen.sym_transform_spin_spatial(&op_k).unwrap();
             assert_eq!(spin_spatial_tdetgen_k, spin_spatial_tdetgen_ij);
         });
+}
+
+#[test]
+fn test_determinant_transformation_bf4_sqpl_jadapted() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f0 = Atom::from_xyz("F 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f1 = Atom::from_xyz("F 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
+
+    let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1half.clone()]);
+    let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1half.clone()]);
+    let batm_f1 = BasisAtom::new(&atm_f1, &[bs_sp1half.clone()]);
+    let batm_f2 = BasisAtom::new(&atm_f2, &[bs_sp1half.clone()]);
+    let batm_f3 = BasisAtom::new(&atm_f3, &[bs_sp1half.clone()]);
+
+    let bao_bf4 = BasisAngularOrder::new(&[batm_b0, batm_f0, batm_f1, batm_f2, batm_f3]);
+    let mol_bf4 = Molecule::from_atoms(
+        &[
+            atm_b0.clone(),
+            atm_f0.clone(),
+            atm_f1.clone(),
+            atm_f2.clone(),
+            atm_f3.clone(),
+        ],
+        1e-7,
+    );
+
+    #[rustfmt::skip]
+    let c = array![
+        [1.0], [0.0], // B0β
+        [0.0], [1.0], // F0α
+        [1.0], [0.0], // F1β
+        [0.0], [1.0], // F2α
+        [1.0], [0.0], // F3β
+    ];
+    let occ = array![1.0];
+
+    let det: SlaterDeterminant<Complex<f64>, SpinOrbitCoupled> =
+        SlaterDeterminant::<f64, SpinOrbitCoupled>::builder()
+            .coefficients(&[c])
+            .occupations(&[occ.clone()])
+            .bao(&bao_bf4)
+            .mol(&mol_bf4)
+            .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+            .complex_symmetric(false)
+            .threshold(1e-14)
+            .build()
+            .unwrap()
+            .into();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_bf4)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
+
+    let c4p1_nsr = group.get_index(2).unwrap();
+    assert!(det.sym_transform_spatial(&c4p1_nsr).is_err());
+    let tdet_c4p1_nsr = det.sym_transform_spin_spatial(&c4p1_nsr).unwrap();
+    let sqrt2inv = std::f64::consts::FRAC_1_SQRT_2;
+    #[rustfmt::skip]
+    let tc_ref = array![
+        [Complex::new(sqrt2inv, sqrt2inv)], [Complex::from(0.0)], // B0β
+        [Complex::new(sqrt2inv, sqrt2inv)], [Complex::from(0.0)], // F3β
+        [Complex::from(0.0)], [Complex::new(sqrt2inv, -sqrt2inv)], // F0α
+        [Complex::new(sqrt2inv, sqrt2inv)], [Complex::from(0.0)], // F1β
+        [Complex::from(0.0)], [Complex::new(sqrt2inv, -sqrt2inv)], // F2α
+    ];
+    let tdet_c4p1_nsr_ref = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[tc_ref])
+        .occupations(&[occ.clone()])
+        .bao(&bao_bf4)
+        .mol(&mol_bf4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    assert_eq!(tdet_c4p1_nsr, tdet_c4p1_nsr_ref);
+
+    let c4p1_isr = group.get_index(3).unwrap();
+    let tdet_c4p1_isr = det.sym_transform_spin_spatial(&c4p1_isr).unwrap();
+    #[rustfmt::skip]
+    let tc_ref = -array![
+        [Complex::new(sqrt2inv, sqrt2inv)], [Complex::from(0.0)], // B0β
+        [Complex::new(sqrt2inv, sqrt2inv)], [Complex::from(0.0)], // F3β
+        [Complex::from(0.0)], [Complex::new(sqrt2inv, -sqrt2inv)], // F0α
+        [Complex::new(sqrt2inv, sqrt2inv)], [Complex::from(0.0)], // F1β
+        [Complex::from(0.0)], [Complex::new(sqrt2inv, -sqrt2inv)], // F2α
+    ];
+    let tdet_c4p1_isr_ref = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[tc_ref])
+        .occupations(&[occ.clone()])
+        .bao(&bao_bf4)
+        .mol(&mol_bf4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    assert_eq!(tdet_c4p1_isr, tdet_c4p1_isr_ref);
+
+    let c4pm1_nsr = group.get_index(4).unwrap();
+    let tdet_c4pm1_nsr = det
+        .sym_transform_spin_spatial(&c4pm1_nsr)
+        .unwrap()
+        .sym_transform_spin_spatial(&c4p1_nsr)
+        .unwrap();
+    println!("{} * {} = {}", c4pm1_nsr, c4p1_nsr, &c4pm1_nsr * &c4p1_nsr);
+    println!("{}", tdet_c4pm1_nsr.coefficients()[0]);
+    #[rustfmt::skip]
+    let tc_ref = array![
+        [Complex::new(sqrt2inv, -sqrt2inv)], [Complex::from(0.0)], // B0β
+        [Complex::new(sqrt2inv, -sqrt2inv)], [Complex::from(0.0)], // F1β
+        [Complex::from(0.0)], [Complex::new(sqrt2inv, sqrt2inv)], // F2α
+        [Complex::new(sqrt2inv, -sqrt2inv)], [Complex::from(0.0)], // F3β
+        [Complex::from(0.0)], [Complex::new(sqrt2inv, sqrt2inv)], // F0α
+    ];
+    let tdet_c4pm1_nsr_ref = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[tc_ref])
+        .occupations(&[occ.clone()])
+        .bao(&bao_bf4)
+        .mol(&mol_bf4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    assert_eq!(tdet_c4pm1_nsr, tdet_c4pm1_nsr_ref);
 }
 
 #[test]

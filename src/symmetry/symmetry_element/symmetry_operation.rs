@@ -928,7 +928,8 @@ impl SymmetryOperation {
             }
         };
         if self.contains_time_reversal() {
-            dmat_angleaxis_gen_single(two_j, std::f64::consts::PI, Vector3::y(), increasingm).dot(&dmat_rotation)
+            dmat_angleaxis_gen_single(two_j, std::f64::consts::PI, Vector3::y(), increasingm)
+                .dot(&dmat_rotation)
         } else {
             dmat_rotation
         }

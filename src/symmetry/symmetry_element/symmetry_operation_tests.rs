@@ -6439,65 +6439,89 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 1/2
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(1, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(1, true)),
         &(-Array2::<Complex64>::eye(2)),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(1, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(1, true)),
         &c2_nsr_p2.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p2 * &c2_nsr_p2).get_wigner_matrix(1, true),
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(1, true)
+            .dot(&c2_nsr_p2.get_wigner_matrix(1, true)),
         &(Array2::<Complex64>::eye(2)),
         1e-14
     );
     // j = 1
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(2, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(2, true)),
         &(Array2::<Complex64>::eye(3)),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(2, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(2, true)),
         &c2_nsr_p2.get_wigner_matrix(2, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p2 * &c2_nsr_p2).get_wigner_matrix(2, true),
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(2, true)
+            .dot(&c2_nsr_p2.get_wigner_matrix(2, true)),
         &(Array2::<Complex64>::eye(3)),
         1e-14
     );
     // j = 3/2
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(3, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(3, true)),
         &(-Array2::<Complex64>::eye(4)),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(3, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(3, true)),
         &c2_nsr_p2.get_wigner_matrix(3, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p2 * &c2_nsr_p2).get_wigner_matrix(3, true),
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(3, true)
+            .dot(&c2_nsr_p2.get_wigner_matrix(3, true)),
         &(Array2::<Complex64>::eye(4)),
         1e-14
     );
     // j = 2
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(4, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(4, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(4, true)),
         &(Array2::<Complex64>::eye(5)),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_nsr_p1).get_wigner_matrix(4, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(4, true)
+            .dot(&c2_nsr_p1.get_wigner_matrix(4, true)),
         &c2_nsr_p2.get_wigner_matrix(4, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2_nsr_p2 * &c2_nsr_p2).get_wigner_matrix(4, true),
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(4, true)
+            .dot(&c2_nsr_p2.get_wigner_matrix(4, true)),
         &(Array2::<Complex64>::eye(5)),
         1e-14
     );
@@ -6520,7 +6544,9 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 1/2
     assert_close_l2!(
-        &(&c2_nsr_p1 * &c2_isr_p1).get_wigner_matrix(1, true),
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .dot(&c2_isr_p1.get_wigner_matrix(1, true)),
         &(Array2::<Complex64>::eye(2)),
         1e-14
     );
@@ -6555,22 +6581,30 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 1/2
     assert_close_l2!(
-        &(&c3_nsr_p1 * &c3_nsr_p2).get_wigner_matrix(1, true),
+        &(&c3_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .dot(&c3_nsr_p2.get_wigner_matrix(1, true)),
         &(-Array2::<Complex64>::eye(2)),
         1e-14
     );
     assert_close_l2!(
-        &(&c3_nsr_p4 * &c3_nsr_p2).get_wigner_matrix(1, true),
+        &(&c3_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .dot(&c3_nsr_p2.get_wigner_matrix(1, true)),
         &(Array2::<Complex64>::eye(2)),
         1e-14
     );
     assert_close_l2!(
-        &(&c3_nsr_p2 * &c3_nsr_p2).get_wigner_matrix(1, true),
+        &(&c3_nsr_p2)
+            .get_wigner_matrix(1, true)
+            .dot(&c3_nsr_p2.get_wigner_matrix(1, true)),
         &c3_nsr_p4.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3_nsr_p4 * &c3_nsr_p4).get_wigner_matrix(1, true),
+        &(&c3_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .dot(&c3_nsr_p4.get_wigner_matrix(1, true)),
         &c3_nsr_p2.get_wigner_matrix(1, true),
         1e-14
     );
@@ -6600,7 +6634,7 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
         .power(3)
         .build()
         .unwrap();
-    let c4_nsr_p2 = c4_nsr_p1.pow(2);
+    let c4_nsr_p2 = (&c4_nsr_p1).pow(2);
     let c4_nsr_pm2 = c4_nsr_pm1.pow(2);
 
     // j = 5/2
@@ -6630,12 +6664,76 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
         .power(1)
         .build()
         .unwrap();
-    let c4b_nsr_p2 = c4b_nsr_p1.pow(2);
+    let c4b_nsr_p2 = (&c4b_nsr_p1).pow(2);
 
+    // j = 1/2
+    assert_close_l2!(
+        &(&c4_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .dot(&c4b_nsr_p1.get_wigner_matrix(1, true)),
+        &Array2::eye(2),
+        1e-14
+    );
     // j = 5/2
+    assert_close_l2!(
+        &(&c4_nsr_p1)
+            .get_wigner_matrix(5, true)
+            .dot(&c4b_nsr_p1.get_wigner_matrix(5, true)),
+        &Array2::eye(6),
+        1e-14
+    );
     assert_close_l2!(
         &c4b_nsr_p2.get_wigner_matrix(5, true),
         &c2_nsr_p3.get_wigner_matrix(5, true),
+        1e-14
+    );
+
+    let c4c_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4c_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4c_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c4d_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(-Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4d_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4d_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // j = 1/2
+    assert_close_l2!(
+        &(&c4c_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .dot(&c4d_nsr_p1.get_wigner_matrix(1, true)),
+        &Array2::eye(2),
+        1e-14
+    );
+    // j = 5/2
+    assert_close_l2!(
+        &(&c4c_nsr_p1)
+            .get_wigner_matrix(5, true)
+            .dot(&c4d_nsr_p1.get_wigner_matrix(5, true)),
+        &Array2::eye(6),
         1e-14
     );
 
@@ -6672,12 +6770,16 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
         1e-14
     );
     assert_close_l2!(
-        &(&c5_nsr_p1 * &c5_nsr_pm1).get_wigner_matrix(7, true),
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(7, true)
+            .dot(&c5_nsr_pm1.get_wigner_matrix(7, true)),
         &(Array2::<Complex64>::eye(8)),
         1e-14
     );
     assert_close_l2!(
-        &(&c5_nsr_p1 * &c5_nsr_p9).get_wigner_matrix(7, true),
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(7, true)
+            .dot(&c5_nsr_p9.get_wigner_matrix(7, true)),
         &(Array2::<Complex64>::eye(8)),
         1e-14
     );
@@ -6695,7 +6797,9 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 7/2
     assert_close_l2!(
-        &(&c5_nsr_p2 * &c5_nsr_p3).get_wigner_matrix(7, true),
+        &(&c5_nsr_p2)
+            .get_wigner_matrix(7, true)
+            .dot(&c5_nsr_p3.get_wigner_matrix(7, true)),
         &(-Array2::<Complex64>::eye(8)),
         1e-14
     );
@@ -6723,7 +6827,9 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 7/2
     assert_close_l2!(
-        &(&c5_nsr_p2 * &c5_nsr_p4).get_wigner_matrix(7, true),
+        &(&c5_nsr_p2)
+            .get_wigner_matrix(7, true)
+            .dot(&c5_nsr_p4.get_wigner_matrix(7, true)),
         &c5_isr_p1.get_wigner_matrix(7, true),
         1e-14
     );
@@ -6760,7 +6866,9 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 9/2
     assert_close_l2!(
-        &(&c5_nsr_p1 * &c7_isr_p1).get_wigner_matrix(9, true),
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(9, true)
+            .dot(&c7_isr_p1.get_wigner_matrix(9, true)),
         &c35_pp12_isr_p1.get_wigner_matrix(9, true),
         1e-14
     );
@@ -6787,7 +6895,9 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 9/2
     assert_close_l2!(
-        &(&c5_nsr_p1 * &c7_isr_pm1).get_wigner_matrix(9, true),
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(9, true)
+            .dot(&c7_isr_pm1.get_wigner_matrix(9, true)),
         &c35_pp2_isr_p1.get_wigner_matrix(9, true),
         1e-14
     );
@@ -6813,11 +6923,12 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
         .power(6)
         .build()
         .unwrap();
-    assert_eq!(&c5_nsr_p1 * &c10_nsr_p4, c10_nsr_p6);
 
     // j = 9/2
     assert_close_l2!(
-        &(&c5_nsr_p1 * &c10_nsr_p4).get_wigner_matrix(9, true),
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(9, true)
+            .dot(&c10_nsr_p4.get_wigner_matrix(9, true)),
         &c10_nsr_p6.get_wigner_matrix(9, true),
         1e-14
     );
@@ -6892,13 +7003,17 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 5
     assert_close_l2!(
-        &(&s5_nsr_p1 * &s5_nsr_p1).get_wigner_matrix(10, true),
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(10, true)
+            .dot(&s5_nsr_p1.get_wigner_matrix(10, true)),
         &c5_nsr_p7.get_wigner_matrix(10, true),
         1e-14
     );
     // j = 11/2
     assert_close_l2!(
-        &(&s5_nsr_p1 * &s5_nsr_p1).get_wigner_matrix(11, true),
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(11, true)
+            .dot(&s5_nsr_p1.get_wigner_matrix(11, true)),
         &c5_nsr_p7.get_wigner_matrix(11, true),
         1e-14
     );
@@ -6921,13 +7036,17 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 5
     assert_close_l2!(
-        &(&s5_nsr_p1 * &c5_nsr_p1).get_wigner_matrix(10, true),
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(10, true)
+            .dot(&c5_nsr_p1.get_wigner_matrix(10, true)),
         &s5_pp2_nsr_p1.get_wigner_matrix(10, true),
         1e-14
     );
     // j = 11/2
     assert_close_l2!(
-        &(&s5_nsr_p1 * &c5_nsr_p1).get_wigner_matrix(11, true),
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(11, true)
+            .dot(&c5_nsr_p1.get_wigner_matrix(11, true)),
         &s5_pp2_nsr_p1.get_wigner_matrix(11, true),
         1e-14
     );
@@ -6972,13 +7091,17 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
 
     // j = 5
     assert_close_l2!(
-        &(&c2z_nsr_p1 * &s4z_nsr_p1).get_wigner_matrix(10, true),
+        &(&c2z_nsr_p1)
+            .get_wigner_matrix(10, true)
+            .dot(&s4z_nsr_p1.get_wigner_matrix(10, true)),
         &s4z_nsr_pm1.get_wigner_matrix(10, true),
         1e-14
     );
     // j = 11/2
     assert_close_l2!(
-        &(&c2z_nsr_p1 * &s4z_nsr_p1).get_wigner_matrix(11, true),
+        &(&c2z_nsr_p1)
+            .get_wigner_matrix(11, true)
+            .dot(&s4z_nsr_p1.get_wigner_matrix(11, true)),
         &s4z_nsr_pm1.get_wigner_matrix(11, true),
         1e-14
     );

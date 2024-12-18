@@ -498,6 +498,36 @@ impl<'a, T> DefaultTimeReversalTransformable for SlaterDeterminant<'a, T, SpinCo
 {
 }
 
+// ---------------------
+// SymmetryTransformable
+// ---------------------
+impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T, SpinConstraint>
+where
+    T: ComplexFloat + Lapack,
+    SlaterDeterminant<'a, T, SpinConstraint>:
+        SpatialUnitaryTransformable + SpinUnitaryTransformable + TimeReversalTransformable,
+{
+    fn sym_permute_sites_spatial(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Permutation<usize>, TransformationError> {
+        if (symop.generating_element.threshold().log10() - self.mol.threshold.log10()).abs() >= 3.0
+        {
+            log::warn!(
+                "Symmetry operation threshold ({:.3e}) and molecule threshold ({:.3e}) \
+                differ by more than three orders of magnitudes.",
+                symop.generating_element.threshold(),
+                self.mol.threshold
+            )
+        }
+        symop
+            .act_permute(&self.mol.molecule_ordinary_atoms())
+            .ok_or(TransformationError(format!(
+            "Unable to determine the atom permutation corresponding to the operation `{symop}`.",
+        )))
+    }
+}
+
 // ====================================
 // Coupled spin and spatial coordinates
 // ====================================
