@@ -7533,336 +7533,464 @@ fn test_symmetry_operation_su2_noncoaxial_composition_wigner_matrix() {
 
     // e_nsr
     assert_close_l2!(
-        &(&e_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c2x_nsr
     assert_close_l2!(
-        &(&c2x_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_nsr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c2y_nsr
     assert_close_l2!(
-        &(&c2y_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_nsr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c2z_nsr
     assert_close_l2!(
-        &(&c2z_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_nsr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // e_isr
     assert_close_l2!(
-        &(&e_isr * &e_nsr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &e_isr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_isr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c2x_isr
     assert_close_l2!(
-        &(&c2x_isr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &e_isr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2x_isr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c2y_isr
     assert_close_l2!(
-        &(&c2y_isr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &e_isr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2y_isr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c2z_isr
     assert_close_l2!(
-        &(&c2z_isr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c2z_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &c2x_nsr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_nsr.get_wigner_matrix(1, true)),
         &c2y_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &c2y_nsr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_nsr.get_wigner_matrix(1, true)),
         &c2x_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &c2z_nsr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &e_isr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c2z_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &c2x_isr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2x_isr.get_wigner_matrix(1, true)),
         &c2y_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &c2y_isr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2y_isr.get_wigner_matrix(1, true)),
         &c2x_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c2z_isr * &c2z_isr).get_wigner_matrix(1, true),
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .dot(&c2z_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
@@ -7972,22 +8100,30 @@ fn test_symmetry_operation_su2_noncoaxial_composition_wigner_matrix() {
 
     // e_nsr
     assert_close_l2!(
-        &(&e_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c3p1_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true)),
         &c3p1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c3pm1_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true)),
         &c3pm1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c21_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_nsr.get_wigner_matrix(1, true)),
         &c21_nsr.get_wigner_matrix(1, true),
         1e-14
     );
@@ -7997,347 +8133,481 @@ fn test_symmetry_operation_su2_noncoaxial_composition_wigner_matrix() {
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c23_nsr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_nsr.get_wigner_matrix(1, true)),
         &c23_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c3p1_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_isr.get_wigner_matrix(1, true)),
         &c3p1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c3pm1_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true)),
         &c3pm1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c21_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_isr.get_wigner_matrix(1, true)),
         &c21_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c22_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_isr.get_wigner_matrix(1, true)),
         &c22_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&e_nsr * &c23_isr).get_wigner_matrix(1, true),
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_isr.get_wigner_matrix(1, true)),
         &c23_isr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c3p1_nsr
     assert_close_l2!(
-        &(&c3p1_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c3p1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c3p1_nsr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true)),
         &c3pm1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c3pm1_nsr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c21_nsr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_nsr.get_wigner_matrix(1, true)),
         &c23_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c22_nsr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_nsr.get_wigner_matrix(1, true)),
         &c21_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c23_nsr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_nsr.get_wigner_matrix(1, true)),
         &c22_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c3p1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c3p1_isr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_isr.get_wigner_matrix(1, true)),
         &c3pm1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c3pm1_isr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c21_isr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_isr.get_wigner_matrix(1, true)),
         &c23_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c22_isr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_isr.get_wigner_matrix(1, true)),
         &c21_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3p1_nsr * &c23_isr).get_wigner_matrix(1, true),
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_isr.get_wigner_matrix(1, true)),
         &c22_nsr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c3pm1_nsr
     assert_close_l2!(
-        &(&c3pm1_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c3pm1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c3p1_nsr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c3pm1_nsr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true)),
         &c3p1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c21_nsr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_nsr.get_wigner_matrix(1, true)),
         &c22_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c22_nsr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_nsr.get_wigner_matrix(1, true)),
         &c23_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c23_nsr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_nsr.get_wigner_matrix(1, true)),
         &c21_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c3pm1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c3p1_isr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_isr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c3pm1_isr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true)),
         &c3p1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c21_isr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_isr.get_wigner_matrix(1, true)),
         &c22_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c22_isr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_isr.get_wigner_matrix(1, true)),
         &c23_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c3pm1_nsr * &c23_isr).get_wigner_matrix(1, true),
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_isr.get_wigner_matrix(1, true)),
         &c21_isr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c21_nsr
     assert_close_l2!(
-        &(&c21_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c21_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c3p1_nsr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true)),
         &c22_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c3pm1_nsr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true)),
         &c23_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c21_nsr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c22_nsr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_nsr.get_wigner_matrix(1, true)),
         &c3p1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c23_nsr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_nsr.get_wigner_matrix(1, true)),
         &c3pm1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c21_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c3p1_isr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_isr.get_wigner_matrix(1, true)),
         &c22_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c3pm1_isr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true)),
         &c23_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c21_isr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c22_isr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_isr.get_wigner_matrix(1, true)),
         &c3p1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c21_nsr * &c23_isr).get_wigner_matrix(1, true),
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_isr.get_wigner_matrix(1, true)),
         &c3pm1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c22_nsr
     assert_close_l2!(
-        &(&c22_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c22_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c3p1_nsr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true)),
         &c23_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c3pm1_nsr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true)),
         &c21_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c21_nsr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_nsr.get_wigner_matrix(1, true)),
         &c3pm1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c22_nsr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c23_nsr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_nsr.get_wigner_matrix(1, true)),
         &c3p1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c22_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c3p1_isr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_isr.get_wigner_matrix(1, true)),
         &c23_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c3pm1_isr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true)),
         &c21_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c21_isr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_isr.get_wigner_matrix(1, true)),
         &c3pm1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c22_isr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c22_nsr * &c23_isr).get_wigner_matrix(1, true),
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_isr.get_wigner_matrix(1, true)),
         &c3p1_isr.get_wigner_matrix(1, true),
         1e-14
     );
 
     // c23_nsr
     assert_close_l2!(
-        &(&c23_nsr * &e_nsr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_nsr.get_wigner_matrix(1, true)),
         &c23_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c3p1_nsr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true)),
         &c21_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c3pm1_nsr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true)),
         &c22_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c21_nsr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_nsr.get_wigner_matrix(1, true)),
         &c3p1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c22_nsr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_nsr.get_wigner_matrix(1, true)),
         &c3pm1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c23_nsr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_nsr.get_wigner_matrix(1, true)),
         &e_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &e_isr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&e_isr.get_wigner_matrix(1, true)),
         &c23_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c3p1_isr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3p1_isr.get_wigner_matrix(1, true)),
         &c21_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c3pm1_isr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true)),
         &c22_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c21_isr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c21_isr.get_wigner_matrix(1, true)),
         &c3p1_nsr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c22_isr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c22_isr.get_wigner_matrix(1, true)),
         &c3pm1_isr.get_wigner_matrix(1, true),
         1e-14
     );
     assert_close_l2!(
-        &(&c23_nsr * &c23_isr).get_wigner_matrix(1, true),
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .dot(&c23_isr.get_wigner_matrix(1, true)),
         &e_nsr.get_wigner_matrix(1, true),
         1e-14
     );
