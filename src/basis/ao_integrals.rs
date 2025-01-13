@@ -223,6 +223,12 @@ impl<E, C> BasisShellContraction<E, C> {
 }
 
 impl BasisShellContraction<f64, f64> {
+    /// Returns a builder for [`BasisShellContraction`] with real exponents and contraction
+    /// coefficients.
+    pub fn builder() -> BasisShellContractionBuilder<f64, f64> {
+        BasisShellContractionBuilder::<f64, f64>::default()
+    }
+
     /// Computes the self-overlap ($`\mathcal{l}_2`$-norm) of this shell and divides in-place the
     /// contraction coefficients by ther square root of this, so that the functions in the shell
     /// are always normalised.
