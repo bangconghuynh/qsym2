@@ -1,12 +1,16 @@
 use approx;
-use nalgebra::Vector3;
-use ndarray::array;
+use nalgebra::{ComplexField, Vector3};
+use ndarray::{array, Array2};
 use num::{Complex, Zero};
 use proptest::prelude::*;
 
+use crate::angmom::sh_conversion::sh_r2c_mat;
+use crate::angmom::sh_rotation_3d::{rlmat, rmat};
 use crate::angmom::spinor_rotation_3d::{
-    dmat_angleaxis, dmat_angleaxis_gen_double, dmat_angleaxis_gen_single, dmat_euler, dmat_euler_gen,
+    dmat_angleaxis, dmat_angleaxis_gen_double, dmat_angleaxis_gen_single, dmat_euler,
+    dmat_euler_gen,
 };
+use crate::basis::ao::PureOrder;
 
 type C128 = Complex<f64>;
 
@@ -411,5 +415,45 @@ proptest! {
             epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
             max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
         );
+    }
+}
+
+proptest! {
+    #[test]
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_compare_with_rlmat(
+        nx in (-1000000.0..1000000.0f64),
+        ny in (-1000000.0..1000000.0f64),
+        nz in (-1000000.0..1000000.0f64),
+        angle in (-10000.0..10000.0f64)
+    ) {
+        let mag = (nx.powi(2) + ny.powi(2) + nz.powi(2)).sqrt();
+        prop_assume!(
+            approx::relative_ne!(
+                mag,
+                0.0,
+                epsilon = 1e-14,
+                max_relative = 1e-14
+            )
+        );
+
+        let axis = Vector3::new(nx, ny, nz).normalize();
+        let r = rmat(angle, axis);
+
+        let mut rls_r = vec![Array2::eye(1), r.clone()];
+
+        for l in 2..=23 {
+            let rl_r = rlmat(l, &r, &rls_r[l as usize -1]);
+            let rl = rl_r.mapv(Complex::from);
+            rls_r.push(rl_r);
+            let dmatl_c = dmat_angleaxis_gen_single(2*l, angle, axis, true);
+            let t = sh_r2c_mat(l, true, &PureOrder::increasingm(l));
+            let dmatl_r = t.t().mapv(|v| v.conj()).dot(&dmatl_c).dot(&t);
+            approx::assert_relative_eq!(
+                (&rl - &dmatl_r).map(|x| x.abs().powi(2)).sum().sqrt(),
+                0.0,
+                epsilon = 1e-12 * angle.abs().max(1.0) * (2 * l) as f64,
+                max_relative = 1e-12 * angle.abs().max(1.0) * (2 * l) as f64
+            );
+        }
     }
 }

@@ -353,21 +353,25 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
 /// Panics when a three-dimensional rotation matrix cannot be constructed for `angle` and `axis`.
 #[must_use]
 pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
-    let normalised_axis = Unit::new_normalize(axis);
-    let rot = Rotation3::from_axis_angle(&normalised_axis, angle);
-    // nalgebra matrix iter is column-major.
-    let rot_array = Array2::<f64>::from_shape_vec(
-        (3, 3).f(),
-        rot.into_inner().iter().copied().collect::<Vec<_>>(),
-    )
-    .unwrap_or_else(
-        |_| panic!(
-            "Unable to construct a three-dimensional rotation matrix for angle {angle} and axis {axis}."
+    if axis.norm() < 1e-14 {
+        Array2::eye(3)
+    } else {
+        let normalised_axis = Unit::new_normalize(axis);
+        let rot = Rotation3::from_axis_angle(&normalised_axis, angle);
+        // nalgebra matrix iter is column-major.
+        let rot_array = Array2::<f64>::from_shape_vec(
+            (3, 3).f(),
+            rot.into_inner().iter().copied().collect::<Vec<_>>(),
         )
-    );
-    rot_array
-        .select(Axis(0), &[1, 2, 0])
-        .select(Axis(1), &[1, 2, 0])
+        .unwrap_or_else(
+            |_| panic!(
+                "Unable to construct a three-dimensional rotation matrix for angle {angle} and axis {axis}."
+            )
+        );
+        rot_array
+            .select(Axis(0), &[1, 2, 0])
+            .select(Axis(1), &[1, 2, 0])
+    }
 }
 
 /// Computes the representation matrix $`\mathbf{R}^l`$ for a transformation of interest in the
