@@ -5,7 +5,6 @@ use std::ops::Index;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
-use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use rayon::prelude::*;
 use reqwest;
@@ -43,6 +42,17 @@ impl<E, C> GaussianContraction<E, C> {
     /// tuple of its exponent $`\alpha`$ and coefficient $`c`$, respectively.
     pub fn primitives(&self) -> &Vec<(E, C)> {
         &self.primitives
+    }
+}
+
+impl<E, C> GaussianContraction<E, C>
+where
+    E: Clone,
+    C: Clone,
+{
+    /// Returns a builder for [`GaussianContraction`].
+    pub fn builder() -> GaussianContractionBuilder<E, C> {
+        GaussianContractionBuilder::<E, C>::default()
     }
 }
 
@@ -222,13 +232,18 @@ impl<E, C> BasisShellContraction<E, C> {
     }
 }
 
-impl BasisShellContraction<f64, f64> {
-    /// Returns a builder for [`BasisShellContraction`] with real exponents and contraction
-    /// coefficients.
-    pub fn builder() -> BasisShellContractionBuilder<f64, f64> {
-        BasisShellContractionBuilder::<f64, f64>::default()
+impl<E, C> BasisShellContraction<E, C>
+where
+    E: Clone,
+    C: Clone,
+{
+    /// Returns a builder for [`BasisShellContraction`].
+    pub fn builder() -> BasisShellContractionBuilder<E, C> {
+        BasisShellContractionBuilder::<E, C>::default()
     }
+}
 
+impl BasisShellContraction<f64, f64> {
     /// Computes the self-overlap ($`\mathcal{l}_2`$-norm) of this shell and divides in-place the
     /// contraction coefficients by ther square root of this, so that the functions in the shell
     /// are always normalised.
@@ -495,9 +510,7 @@ impl<E, C> BasisSet<E, C> {
     }
 
     /// Returns a mutable iterator over all shells in the basis set.
-    pub fn all_shells_mut(
-        &mut self,
-    ) -> impl Iterator<Item = &mut BasisShellContraction<E, C>> {
+    pub fn all_shells_mut(&mut self) -> impl Iterator<Item = &mut BasisShellContraction<E, C>> {
         self.basis_atoms.iter_mut().flatten()
     }
 }
