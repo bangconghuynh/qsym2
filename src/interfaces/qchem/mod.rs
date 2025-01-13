@@ -16,7 +16,7 @@ use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::interfaces::qchem::hdf5::slater_determinant::QChemSlaterDeterminantH5Driver;
 use crate::interfaces::qchem::hdf5::vibrational_coordinate::QChemVibrationH5Driver;
 
-pub(crate) mod hdf5;
+pub mod hdf5;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Input target: Slater determinant; source: Q-Chem archive
