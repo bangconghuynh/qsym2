@@ -698,7 +698,7 @@ pub(crate) fn assemble_spinor_rotation_matrices(
         .expect("The maximum rank cannot be found.");
     let r2js = (0..=two_j_max)
         .map(|two_j| symop.get_wigner_matrix(two_j, true))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
 
     // All matrices in `rls` are in increasing-m order by default. See the function `get_wigner_matrix` for
     // the origin of this order. Hence, conversion matrices must also honour this.
