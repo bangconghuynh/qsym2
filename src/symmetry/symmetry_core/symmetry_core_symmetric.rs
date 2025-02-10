@@ -11,7 +11,7 @@ use nalgebra::Vector3;
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, TRROT, TRSIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, CTRROT, CTRSIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
 
@@ -79,7 +79,7 @@ impl Symmetry {
                     .unwrap_or(&HashMap::new())
                     .contains_key(&ORDER_2)
                     || self
-                        .get_elements(&TRROT)
+                        .get_elements(&CTRROT)
                         .unwrap_or(&HashMap::new())
                         .contains_key(&ORDER_2)
                 {
@@ -198,7 +198,7 @@ impl Symmetry {
                     .unwrap_or(&HashMap::new())
                     .values()
                     .chain(
-                        self.get_elements(&TRROT)
+                        self.get_elements(&CTRROT)
                             .unwrap_or(&HashMap::new())
                             .values(),
                     )
@@ -285,7 +285,7 @@ impl Symmetry {
                     .unwrap_or(&IndexSet::new())
                     .iter()
                     .chain(
-                        self.get_elements(&TRROT)
+                        self.get_elements(&CTRROT)
                             .unwrap_or(&HashMap::new())
                             .get(&ORDER_2)
                             .unwrap_or(&IndexSet::new()),
@@ -354,7 +354,7 @@ impl Symmetry {
                             .unwrap_or(&HashMap::new())
                             .values()
                             .chain(
-                                self.get_elements(&TRROT)
+                                self.get_elements(&CTRROT)
                                     .unwrap_or(&HashMap::new())
                                     .values(),
                             )
@@ -411,7 +411,7 @@ impl Symmetry {
                             .unwrap_or(&HashMap::new())
                             .values()
                             .chain(
-                                self.get_elements(&TRROT)
+                                self.get_elements(&CTRROT)
                                     .unwrap_or(&HashMap::new())
                                     .values(),
                             )
@@ -612,7 +612,7 @@ impl Symmetry {
                             .and_then(|sigmas| sigmas.remove(&ORDER_1))
                             .ok_or_else(|| format_err!("No σ found."))?
                     } else {
-                        self.get_elements_mut(&TRSIG)
+                        self.get_elements_mut(&CTRSIG)
                             .and_then(|sigmas| sigmas.remove(&ORDER_1))
                             .ok_or_else(|| format_err!("No time-reversed σ found."))?
                     };
@@ -679,7 +679,7 @@ impl Symmetry {
                         .unwrap_or(&HashMap::new())
                         .values()
                         .chain(
-                            self.get_elements(&TRROT)
+                            self.get_elements(&CTRROT)
                                 .unwrap_or(&HashMap::new())
                                 .values(),
                         )

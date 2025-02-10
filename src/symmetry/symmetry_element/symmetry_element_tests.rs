@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use crate::auxiliary::misc;
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, TRINV, TRROT,
-    TRSIG,
+    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, CTRINV, CTRROT,
+    CTRSIG,
 };
 
 type F = fraction::GenericFraction<u32>;
@@ -92,7 +92,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -116,7 +116,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -140,7 +140,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -164,7 +164,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -188,7 +188,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -212,7 +212,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(3)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -318,7 +318,7 @@ fn test_symmetry_element_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
         .raw_axis(Vector3::new(1.0, 0.0, -1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -342,7 +342,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Inf)
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(0.12)
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -369,7 +369,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Inf)
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(3.160)
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -399,7 +399,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -423,7 +423,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -447,7 +447,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -471,7 +471,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -495,7 +495,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -520,7 +520,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -545,7 +545,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -569,7 +569,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -593,7 +593,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -617,7 +617,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -641,7 +641,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -665,7 +665,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -689,7 +689,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Inf)
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, -1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -704,7 +704,7 @@ fn test_symmetry_element_constructor() {
     assert_eq!(format!("{}", &tsib), "θ·Ṡ∞(-0.707, +0.000, +0.707)");
     assert_eq!(format!("{:?}", &tsib), "θ·iC∞(-0.707, +0.000, +0.707)");
 
-    let tsic = tsi.convert_to_improper_kind(&TRINV, false);
+    let tsic = tsi.convert_to_improper_kind(&CTRINV, false);
     assert_eq!(format!("{}", &tsic), "θ·Ṡ∞(-0.707, +0.000, +0.707)");
     assert_eq!(format!("{:?}", &tsic), "θ·iC∞(-0.707, +0.000, +0.707)");
 
@@ -725,7 +725,7 @@ fn test_symmetry_element_constructor() {
         .proper_order(ElementOrder::Inf)
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(0.121)
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -786,7 +786,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -814,7 +814,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -842,7 +842,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -872,7 +872,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -904,7 +904,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -935,7 +935,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -974,7 +974,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -983,7 +983,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1005,7 +1005,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(2)
         .raw_axis(Vector3::new(4.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1037,7 +1037,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1046,7 +1046,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1089,7 +1089,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1098,7 +1098,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1109,7 +1109,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1135,7 +1135,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1161,7 +1161,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1188,7 +1188,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1213,7 +1213,7 @@ fn test_symmetry_element_finite_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(-Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1271,7 +1271,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1280,7 +1280,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1289,14 +1289,14 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(0)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     assert_eq!(tc1, tc1p);
     assert_eq!(tc1, tc1p2);
     assert_eq!(tc1p, tc1p2);
-    assert!(tc1.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
+    assert!(tc1.is_o3_identity(Some(AntiunitaryKind::CommutingTimeReversal)));
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1337,31 +1337,31 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(!tc2.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
+    assert!(!tc2.is_o3_identity(Some(AntiunitaryKind::CommutingTimeReversal)));
     let tc2p = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tc2p.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
+    assert!(tc2p.is_o3_identity(Some(AntiunitaryKind::CommutingTimeReversal)));
     let tc2p2 = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(3)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(!tc2p2.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
+    assert!(!tc2p2.is_o3_identity(Some(AntiunitaryKind::CommutingTimeReversal)));
     assert_eq!(tc2, tc2p2);
     assert_eq!(tc1, tc2p);
     assert_ne!(tc1, tc2p2);
@@ -1423,7 +1423,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1432,7 +1432,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(2)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1441,7 +1441,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(3)
         .raw_axis(-Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1450,7 +1450,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(4)
         .raw_axis(-Vector3::new(2.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1459,11 +1459,11 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(5)
         .raw_axis(-Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tc4p4.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
+    assert!(tc4p4.is_o3_identity(Some(AntiunitaryKind::CommutingTimeReversal)));
     assert_eq!(tc4p2, tc2);
     assert_eq!(tc4p4, tc1);
     assert_eq!(tc4p4, tc1p2);
@@ -1495,7 +1495,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1504,7 +1504,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(9)
         .raw_axis(-Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1543,21 +1543,21 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts1.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts1.is_o3_mirror_plane(Some(AntiunitaryKind::CommutingTimeReversal)));
     let ts1p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(1))
         .proper_power(2)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts1p2.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts1p2.is_o3_mirror_plane(Some(AntiunitaryKind::CommutingTimeReversal)));
     assert_eq!(ts1, ts1p2);
     let tsd2 = ts1.convert_to_improper_kind(&INV, false);
     let tsd2p = ts1p2.convert_to_improper_kind(&INV, false);
@@ -1601,31 +1601,31 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts2.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts2.is_o3_inversion_centre(Some(AntiunitaryKind::CommutingTimeReversal)));
     let ts2p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts2p2.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts2p2.is_o3_mirror_plane(Some(AntiunitaryKind::CommutingTimeReversal)));
     let ts2p3 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
         .proper_power(3)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts2p3.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts2p3.is_o3_inversion_centre(Some(AntiunitaryKind::CommutingTimeReversal)));
     assert_eq!(ts1, ts2p2);
     assert_eq!(ts2, ts2p3);
 
@@ -1661,22 +1661,22 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tsd2.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
+    assert!(tsd2.is_o3_mirror_plane(Some(AntiunitaryKind::CommutingTimeReversal)));
     let tsd2b = tsd2.convert_to_improper_kind(&SIG, true);
     let tsd2p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tsd2p2.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
+    assert!(tsd2p2.is_o3_inversion_centre(Some(AntiunitaryKind::CommutingTimeReversal)));
     let tsd2p2b = tsd2p2.convert_to_improper_kind(&SIG, true);
     assert_eq!(tsd2, ts1);
     assert_eq!(tsd2p2, ts2);
@@ -1728,7 +1728,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1737,7 +1737,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1746,7 +1746,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(4)
         .raw_axis(Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1755,11 +1755,11 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .raw_axis(Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts3p3.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts3p3.is_o3_mirror_plane(Some(AntiunitaryKind::CommutingTimeReversal)));
     assert_eq!(ts3, ts3p2);
     assert_eq!(ts3, ts3p4);
 
@@ -1799,7 +1799,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(6))
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1808,7 +1808,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(6))
         .proper_power(3)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1817,11 +1817,11 @@ fn test_symmetry_element_finite_power_comparison() {
         .proper_order(ElementOrder::Int(6))
         .proper_power(4)
         .raw_axis(-Vector3::new(1.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts6p3.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
+    assert!(ts6p3.is_o3_inversion_centre(Some(AntiunitaryKind::CommutingTimeReversal)));
     assert_eq!(ts3, ts6p2);
     assert_eq!(ts3, ts6p4);
 
@@ -1969,7 +1969,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1981,7 +1981,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -1993,7 +1993,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2005,7 +2005,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2017,7 +2017,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2029,7 +2029,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(-Vector3::new(1.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2041,7 +2041,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2056,7 +2056,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2071,7 +2071,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2086,7 +2086,7 @@ fn test_symmetry_element_finite_hashset() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(-Vector3::new(2.0, 2.0, 1.0))
-        .kind(TRSIG)
+        .kind(CTRSIG)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2288,7 +2288,7 @@ fn test_symmetry_element_su2_construction() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2317,7 +2317,7 @@ fn test_symmetry_element_su2_construction() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(TRROT)
+        .kind(CTRROT)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -2462,7 +2462,7 @@ fn test_symmetry_element_su2_construction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(TRINV)
+        .kind(CTRINV)
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
