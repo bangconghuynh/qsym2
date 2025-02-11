@@ -7,7 +7,7 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use itertools::{self, Itertools};
-use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
+use nalgebra::{ClosedMulAssign, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
 use num_traits::{One, ToPrimitive};
 use serde::{Deserialize, Serialize};
 
@@ -205,7 +205,7 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Opt
 /// # Returns
 ///
 /// The outer product $`\mathbf{v}_1 \otimes \mathbf{v}_2`$.
-fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> Matrix3<T> {
+fn outer<T: Scalar + ClosedMulAssign + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> Matrix3<T> {
     let outer_product_iter: Vec<T> = vec2
         .iter()
         .flat_map(|&item_x| vec1.iter().map(move |&item_y| item_x * item_y))

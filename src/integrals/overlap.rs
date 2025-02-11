@@ -623,7 +623,7 @@ macro_rules! impl_shell_tuple_overlap {
                                     )
                                 }
                             })
-                            .into_shape(shape)
+                            .into_shape_with_order(shape)
                             .expect("Unable to convert transformed `z` to {$RANK} dimensions.");
                             acc * z_transformed
                         });

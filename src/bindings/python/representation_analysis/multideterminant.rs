@@ -210,17 +210,17 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         det.complex_symmetric(),
                         det.coefficients()
                             .iter()
-                            .map(|arr| PyArray2::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray2::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.occupations()
                             .iter()
-                            .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray1::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.threshold(),
                         det.mo_energies().map(|mo_energies| {
                             mo_energies
                                 .iter()
-                                .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
                                 .collect::<Vec<_>>()
                         }),
                         det.energy().ok().cloned(),
@@ -244,17 +244,17 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         det.complex_symmetric(),
                         det.coefficients()
                             .iter()
-                            .map(|arr| PyArray2::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray2::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.occupations()
                             .iter()
-                            .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray1::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.threshold(),
                         det.mo_energies().map(|mo_energies| {
                             mo_energies
                                 .iter()
-                                .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
                                 .collect::<Vec<_>>()
                         }),
                         det.energy().ok().cloned(),
