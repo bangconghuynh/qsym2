@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
@@ -86,6 +87,7 @@ impl PyMolecule {
     /// * `electric_field` - An optional uniform external electric field. Python type:
     /// `Optional[tuple[float, float, float]]`.
     #[new]
+    #[pyo3(signature = (atoms, threshold, magnetic_field=None, electric_field=None))]
     pub fn new(
         atoms: Vec<(String, [f64; 3])>,
         threshold: f64,
@@ -126,7 +128,7 @@ impl From<PyMolecule> for Molecule {
 
 /// Python-exposed structure to marshall symmetry element kind information one-way from Rust to
 /// Python.
-#[pyclass]
+#[pyclass(eq, eq_int)]
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub enum PySymmetryElementKind {
     /// Variant denoting proper symmetry elements.
@@ -190,12 +192,12 @@ pub struct PySymmetry {
     /// The symmetry elements.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
-    elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+    elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Arc<Py<PyArray1<f64>>>>>>,
 
     /// The symmetry generators.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
-    generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+    generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Arc<Py<PyArray1<f64>>>>>>,
 }
 
 impl PySymmetry {
@@ -237,6 +239,18 @@ impl PySymmetry {
         self.elements
             .get(kind)
             .cloned()
+            .and_then(|elements| {
+                elements
+                    .iter()
+                    .map(|(order, axes_arc)| {
+                        let axes_opt = axes_arc
+                            .iter()
+                            .map(|axis_arc| Arc::into_inner(axis_arc.clone()))
+                            .collect::<Option<Vec<_>>>();
+                        axes_opt.map(|axes| (order.clone(), axes))
+                    })
+                    .collect::<Option<HashMap<_, _>>>()
+            })
             .ok_or(PyRuntimeError::new_err(format!(
                 "Elements of kind `{kind}` not found."
             )))
@@ -262,6 +276,18 @@ impl PySymmetry {
         self.generators
             .get(kind)
             .cloned()
+            .and_then(|generators| {
+                generators
+                    .iter()
+                    .map(|(order, axes_arc)| {
+                        let axes_opt = axes_arc
+                            .iter()
+                            .map(|axis_arc| Arc::into_inner(axis_arc.clone()))
+                            .collect::<Option<Vec<_>>>();
+                        axes_opt.map(|axes| (order.clone(), axes))
+                    })
+                    .collect::<Option<HashMap<_, _>>>()
+            })
             .ok_or(PyRuntimeError::new_err(format!(
                 "Elements of kind `{kind}` not found."
             )))
@@ -291,14 +317,14 @@ impl TryFrom<&Symmetry> for PySymmetry {
                         let pyorder_elements = order_elements
                             .iter()
                             .map(|ele| {
-                                Python::with_gil(|py| {
+                                Arc::new(Python::with_gil(|py| {
                                     ele.raw_axis()
                                         .iter()
                                         .cloned()
                                         .collect::<Vec<_>>()
-                                        .to_pyarray_bound(py)
+                                        .to_pyarray(py)
                                         .unbind()
-                                })
+                                }))
                             })
                             .collect::<Vec<_>>();
                         Ok::<_, Self::Error>((order_i32, pyorder_elements))
@@ -323,14 +349,14 @@ impl TryFrom<&Symmetry> for PySymmetry {
                         let pyorder_generators = order_generators
                             .iter()
                             .map(|ele| {
-                                Python::with_gil(|py| {
+                                Arc::new(Python::with_gil(|py| {
                                     ele.raw_axis()
                                         .iter()
                                         .cloned()
                                         .collect::<Vec<_>>()
-                                        .to_pyarray_bound(py)
+                                        .to_pyarray(py)
                                         .unbind()
-                                })
+                                }))
                             })
                             .collect::<Vec<_>>();
                         Ok::<_, Self::Error>((order_i32, pyorder_generators))

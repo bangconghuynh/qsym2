@@ -41,8 +41,8 @@ impl fmt::Display for CharacterTableDisplay {
 
 /// Enumerated type indicating the type of magnetic symmetry to be used for representation
 /// analysis.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 pub enum MagneticSymmetryAnalysisKind {
     /// Variant indicating that unitary representations should be used for magnetic symmetry
     /// analysis.

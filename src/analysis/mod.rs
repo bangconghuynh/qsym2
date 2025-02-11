@@ -157,8 +157,8 @@ where
 
 /// Enumerated type specifying the comparison mode for filtering out orbit overlap
 /// eigenvalues.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 pub enum EigenvalueComparisonMode {
     /// Compares the eigenvalues using only their real parts.
     Real,
@@ -372,10 +372,10 @@ where
         let nspatial = norm.len();
         let norm_col = norm
             .clone()
-            .into_shape([nspatial, 1])
+            .into_shape_with_order([nspatial, 1])
             .map_err(|err| format_err!(err))?;
         let norm_row = norm
-            .into_shape([1, nspatial])
+            .into_shape_with_order([1, nspatial])
             .map_err(|err| format_err!(err))?;
         let norm_mat = norm_col.dot(&norm_row);
         let normalised_smat = smat / norm_mat;

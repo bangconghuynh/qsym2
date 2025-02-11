@@ -120,6 +120,7 @@ impl PySlaterDeterminantReal {
     /// `Optional[list[numpy.1darray[float]]]`.
     /// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
     #[new]
+    #[pyo3(signature = (spin_constraint, complex_symmetric, coefficients, occupations, threshold, mo_energies=None, energy=None))]
     pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
@@ -157,7 +158,7 @@ impl PySlaterDeterminantReal {
         Ok(self
             .occupations
             .iter()
-            .map(|occ| occ.to_pyarray_bound(py))
+            .map(|occ| occ.to_pyarray(py))
             .collect::<Vec<_>>())
     }
 
@@ -166,7 +167,7 @@ impl PySlaterDeterminantReal {
         Ok(self
             .coefficients
             .iter()
-            .map(|occ| occ.to_pyarray_bound(py))
+            .map(|occ| occ.to_pyarray(py))
             .collect::<Vec<_>>())
     }
 }
@@ -192,7 +193,7 @@ impl PySlaterDeterminantReal {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<SlaterDeterminant<f64>, anyhow::Error> {
+    ) -> Result<SlaterDeterminant<'b, f64>, anyhow::Error> {
         let det = SlaterDeterminant::<f64>::builder()
             .spin_constraint(self.spin_constraint.clone().into())
             .bao(bao)
@@ -291,6 +292,7 @@ impl PySlaterDeterminantComplex {
     /// `Optional[list[numpy.1darray[complex]]]`.
     /// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
     #[new]
+    #[pyo3(signature = (spin_constraint, complex_symmetric, coefficients, occupations, threshold, mo_energies=None, energy=None))]
     pub(crate) fn new(
         spin_constraint: PySpinConstraint,
         complex_symmetric: bool,
@@ -328,7 +330,7 @@ impl PySlaterDeterminantComplex {
         Ok(self
             .occupations
             .iter()
-            .map(|occ| occ.to_pyarray_bound(py))
+            .map(|occ| occ.to_pyarray(py))
             .collect::<Vec<_>>())
     }
 
@@ -337,7 +339,7 @@ impl PySlaterDeterminantComplex {
         Ok(self
             .coefficients
             .iter()
-            .map(|occ| occ.to_pyarray_bound(py))
+            .map(|occ| occ.to_pyarray(py))
             .collect::<Vec<_>>())
     }
 }
@@ -363,7 +365,7 @@ impl PySlaterDeterminantComplex {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<SlaterDeterminant<C128>, anyhow::Error> {
+    ) -> Result<SlaterDeterminant<'b, C128>, anyhow::Error> {
         let det = SlaterDeterminant::<C128>::builder()
             .spin_constraint(self.spin_constraint.clone().into())
             .bao(bao)

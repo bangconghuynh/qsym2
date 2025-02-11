@@ -360,8 +360,8 @@ impl PyBasisAngularOrder {
 
 /// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.
-#[pyclass]
-#[derive(Clone)]
+#[pyclass(eq, eq_int)]
+#[derive(Clone, PartialEq)]
 pub enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
@@ -488,6 +488,7 @@ impl PyBasisShellContraction {
     /// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
     /// $`\mathbf{k}`$ vector of this shell. Python type: `Optional[list[float]]`.
     #[new]
+    #[pyo3(signature = (basis_shell, primitives, cart_origin, k=None))]
     pub fn new(
         basis_shell: (String, bool, PyShellOrder),
         primitives: Vec<(f64, f64)>,
@@ -648,7 +649,7 @@ pub fn calc_overlap_2c_real<'py>(
             .pop()
             .expect("Unable to retrieve the two-centre overlap matrix.")
     });
-    let pysao_2c = sao_2c.into_pyarray_bound(py);
+    let pysao_2c = sao_2c.into_pyarray(py);
     Ok(pysao_2c)
 }
 
@@ -694,7 +695,7 @@ pub fn calc_overlap_2c_complex<'py>(
             .pop()
             .expect("Unable to retrieve the two-centre overlap matrix.")
     });
-    let pysao_2c = sao_2c.into_pyarray_bound(py);
+    let pysao_2c = sao_2c.into_pyarray(py);
     Ok(pysao_2c)
 }
 
@@ -741,7 +742,7 @@ pub fn calc_overlap_4c_real<'py>(
             .pop()
             .expect("Unable to retrieve the four-centre overlap tensor.")
     });
-    let pysao_4c = sao_4c.into_pyarray_bound(py);
+    let pysao_4c = sao_4c.into_pyarray(py);
     Ok(pysao_4c)
 }
 
@@ -787,6 +788,6 @@ pub fn calc_overlap_4c_complex<'py>(
             .pop()
             .expect("Unable to retrieve the four-centre overlap tensor.")
     });
-    let pysao_4c = sao_4c.into_pyarray_bound(py);
+    let pysao_4c = sao_4c.into_pyarray(py);
     Ok(pysao_4c)
 }
