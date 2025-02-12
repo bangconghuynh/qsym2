@@ -28,8 +28,8 @@ mod symmetry_transformation_tests;
 // ================
 
 /// Enumerated type for managing the kind of symmetry transformation on an object.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 pub enum SymmetryTransformationKind {
     /// Spatial-only transformation.
     Spatial,

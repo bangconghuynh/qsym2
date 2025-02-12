@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use crate::auxiliary::misc;
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, TRINV, TRROT,
-    TRSIG,
+    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, K, ROT, SIG, TR, TRINV,
+    TRROT, TRSIG,
 };
 
 type F = fraction::GenericFraction<u32>;
@@ -2473,4 +2473,21 @@ fn test_symmetry_element_su2_construction() {
         format!("{:?}", &n_sr_tsd2p2),
         "θ·Ṡ1(Σ)(-0.707, +0.707, +0.000)"
     );
+}
+
+#[test]
+fn test_symmetry_element_flatten_tr() {
+    let tc3p1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc3p1_fl = tc3p1
+        .convert_to_antiunitary_kind(&K)
+        .unwrap();
+    println!("{tc3p1_fl}");
 }

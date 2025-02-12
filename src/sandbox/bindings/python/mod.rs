@@ -8,7 +8,7 @@ pub(crate) fn register_sandbox_module(
     py: Python<'_>,
     parent_module: Bound<'_, PyModule>,
 ) -> PyResult<()> {
-    let sandbox_module = PyModule::new_bound(py, "sandbox")?;
+    let sandbox_module = PyModule::new(py, "sandbox")?;
 
     // ---------
     // Functions

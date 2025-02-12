@@ -330,7 +330,7 @@ impl PyBasisAngularOrder {
     pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
-    ) -> Result<BasisAngularOrder, anyhow::Error> {
+    ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
             "The number of basis atoms does not match the number of ordinary atoms."
