@@ -548,7 +548,7 @@ impl SymmetryElement {
     /// Returns the axis of the unitary proper rotation multiplied by the sign of the rotation angle.
     /// If the proper rotation is a binary rotation, then the positive axis is always returned.
     pub fn signed_axis(&self) -> Vector3<f64> {
-        let au = self.contains_antiunitary();
+        let au = self.antiunitary_part();
         if self.is_o3_binary_rotation_axis(au) || self.is_o3_mirror_plane(au) {
             self.standard_positive_axis()
         } else {
@@ -668,13 +668,19 @@ impl SymmetryElement {
         self.kind.contains_time_reversal()
     }
 
-    /// Checks if the symmetry element contains an antiunitary part.
+    /// Indicates if an antiunitary operation is associated with this element.
+    #[must_use]
+    pub fn contains_antiunitary(&self) -> bool {
+        self.kind.contains_antiunitary()
+    }
+
+    /// Returns the antiunitary part of the element, if any.
     ///
     /// # Returns
     ///
     /// Returns `None` if the symmetry element has no antiunitary parts, or `Some` wrapping around
     /// the antiunitary kind if the symmetry element contains an antiunitary part.
-    pub fn contains_antiunitary(&self) -> Option<AntiunitaryKind> {
+    pub fn antiunitary_part(&self) -> Option<AntiunitaryKind> {
         match self.kind {
             SymmetryElementKind::Proper(au)
             | SymmetryElementKind::ImproperMirrorPlane(au)
@@ -1068,7 +1074,7 @@ impl SymmetryElement {
         };
 
         if let Some(proper_fraction) = self.proper_fraction {
-            let au = self.contains_antiunitary();
+            let au = self.antiunitary_part();
             let proper_order = if self.is_o3_identity(au)
                 || self.is_o3_inversion_centre(au)
                 || self.is_o3_mirror_plane(au)
@@ -1198,7 +1204,7 @@ impl SymmetryElement {
         };
 
         if let Some(proper_fraction) = self.proper_fraction {
-            let au = self.contains_antiunitary();
+            let au = self.antiunitary_part();
             let proper_order = if self.is_o3_identity(au)
                 || self.is_o3_inversion_centre(au)
                 || self.is_o3_mirror_plane(au)
@@ -1308,7 +1314,7 @@ impl SymmetryElement {
         improper_kind: &SymmetryElementKind,
         preserves_power: bool,
     ) -> Self {
-        let au = self.contains_antiunitary();
+        let au = self.antiunitary_part();
         assert!(
             !self.is_o3_proper(au),
             "Only improper elements can be converted."
@@ -1451,7 +1457,7 @@ impl SymmetryElement {
     ///
     /// Errors when `self` is not an antiunitary element.
     pub fn convert_to_antiunitary_kind(&self, au: &AntiunitaryKind) -> Result<Self, anyhow::Error> {
-        if let Some(self_au) = self.contains_antiunitary() {
+        if let Some(self_au) = self.antiunitary_part() {
             if self_au == *au {
                 Ok(self.clone())
             } else {
@@ -1597,7 +1603,7 @@ impl fmt::Debug for SymmetryElement {
 
 impl fmt::Display for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let au = self.contains_antiunitary();
+        let au = self.antiunitary_part();
         if self.is_o3_identity(au) || self.is_o3_inversion_centre(au) {
             write!(f, "{}", self.get_simplified_symbol())
         } else {
@@ -1619,11 +1625,13 @@ impl PartialEq for SymmetryElement {
     ///
     /// * they are both in the same rotation group and belong to the same homotopy class;
     /// * they are both proper or improper;
-    /// * they both have the same antiunitary properties;
+    /// * they are both unitary or antiunitary;
     /// * their axes are either parallel or anti-parallel;
     /// * their proper rotation angles have equal absolute values.
     ///
     /// For improper elements, proper rotation angles are taken in the inversion centre convention.
+    /// For antiunitary elements, proper rotation angles are taken in the complex conjugation
+    /// convention.
     ///
     /// Thus, symmetry element equality is less strict than symmetry operation equality. This is so
     /// that parallel or anti-parallel symmetry elements with the same spatial and time-reversal
@@ -1636,12 +1644,12 @@ impl PartialEq for SymmetryElement {
             return false;
         }
 
-        if self.contains_antiunitary() != other.contains_antiunitary() {
+        if self.antiunitary_part() != other.antiunitary_part() {
             // Different anti-unitary kinds.
             return false;
         }
 
-        let au = self.contains_antiunitary();
+        let au = self.antiunitary_part();
 
         if self.is_o3_proper(au) != other.is_o3_proper(au) {
             // Different spatial parities.
@@ -1755,7 +1763,7 @@ impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.rotation_group.hash(state);
 
-        let au = self.contains_antiunitary();
+        let au = self.antiunitary_part();
         au.hash(state);
 
         self.is_o3_proper(au).hash(state);

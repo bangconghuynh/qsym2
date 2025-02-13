@@ -850,7 +850,7 @@ fn _add_sigmahcn(
     presym: &PreSymmetry,
     tr: bool,
 ) -> Result<(), anyhow::Error> {
-    let au = sigma_h.contains_antiunitary();
+    let au = sigma_h.antiunitary_part();
     ensure!(sigma_h.is_o3_mirror_plane(au), "Expected σh not found.");
     for c_element in non_id_c_elements {
         if approx::relative_eq!(

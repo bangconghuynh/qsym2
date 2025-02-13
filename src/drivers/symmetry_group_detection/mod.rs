@@ -718,7 +718,7 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                         SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
                         SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
                     };
-                    let au_str = match any_element.contains_antiunitary() {
+                    let au_str = match any_element.antiunitary_part() {
                         None => "",
                         Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
                         Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",

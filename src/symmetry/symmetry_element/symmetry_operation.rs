@@ -993,7 +993,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
-        let au = self.generating_element.contains_antiunitary();
+        let au = self.generating_element.antiunitary_part();
         self.generating_element.is_o3_proper(au) || self.power.rem_euclid(2) == 0
     }
 
@@ -1172,7 +1172,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(au))
                 }
             };
-            let generating_element_au = c_self.generating_element.contains_antiunitary();
+            let generating_element_au = c_self.generating_element.antiunitary_part();
             let spatial_proper_identity = c_self
                 .generating_element
                 .is_o3_identity(generating_element_au)
