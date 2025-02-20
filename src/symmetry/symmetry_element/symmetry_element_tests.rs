@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use crate::auxiliary::misc;
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, K, ROT, SIG, TR, TRINV,
-    TRROT, TRSIG,
+    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, K, KINV, KROT, KSIG, ROT,
+    SIG, TR, TRINV, TRROT, TRSIG,
 };
 
 type F = fraction::GenericFraction<u32>;
@@ -1128,7 +1128,10 @@ fn test_symmetry_element_finite_comparison() {
         .build()
         .unwrap();
     let sd2 = s1.convert_to_improper_kind(&INV, false);
+    let s1_std = s1.standardise();
     assert_eq!(s1, sd2);
+    assert_eq!(s1, s1_std);
+    assert_eq!(sd2, s1_std);
 
     let ts1 = SymmetryElement::builder()
         .threshold(1e-3)
@@ -1140,7 +1143,9 @@ fn test_symmetry_element_finite_comparison() {
         .build()
         .unwrap();
     let tsd2 = ts1.convert_to_improper_kind(&INV, false);
+    let ts1_std = ts1.standardise();
     assert_eq!(ts1, tsd2);
+    assert_eq!(ts1, ts1_std);
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2235,8 +2240,12 @@ fn test_infinite_symmetry_element_comparison() {
         .unwrap();
     let si3b = si3.convert_to_improper_kind(&INV, false);
     let si3c = si3.convert_to_improper_kind(&INV, true);
+    let si3d = si3.standardise();
     assert_eq!(si3, si3b);
     assert_eq!(si3, si3c);
+    assert_eq!(si3, si3d);
+    assert_eq!(si3b, si3d);
+    assert_eq!(si3c, si3d);
 
     let si4 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2476,8 +2485,533 @@ fn test_symmetry_element_su2_construction() {
 }
 
 #[test]
-fn test_symmetry_element_flatten_tr() {
-    let tc3p1 = SymmetryElement::builder()
+fn test_symmetry_element_su2_finite_standardisation() {
+    // ========================
+    // Proper symmetry elements
+    // ========================
+    let c1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c1_std = c1.standardise();
+    assert_eq!(c1, c1_std);
+    assert_eq!(c1.to_string(), "E(Σ)");
+    assert_eq!(c1_std.to_string(), "E(Σ)");
+
+    let tc1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc1_std = tc1.standardise();
+    assert_eq!(tc1, tc1_std);
+    assert_eq!(tc1.to_string(), "θ(Σ)");
+    assert_eq!(tc1_std.to_string(), "K·C2(Σ)(+0.000, +1.000, +0.000)");
+
+    let kc1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, 1.0, 1.0))
+        .kind(KROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let kc1_std = kc1.standardise();
+    assert_eq!(kc1, kc1_std);
+    assert_ne!(kc1, tc1);
+    assert_eq!(kc1.to_string(), "K(Σ)");
+    assert_eq!(kc1_std.to_string(), "K(Σ)");
+
+    let c2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2_std = c2.standardise();
+    assert_eq!(c2, c2_std);
+    assert_eq!(c2.to_string(), "C2(Σ)(+0.707, +0.000, +0.707)");
+    assert_eq!(c2_std.to_string(), "C2(Σ)(+0.707, +0.000, +0.707)");
+
+    let tc2y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc2y_std = tc2y.standardise();
+    assert_eq!(tc2y, tc2y_std);
+    assert_eq!(tc2y.to_string(), "θ·C2(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tc2y_std.to_string(), "K(QΣ)");
+
+    let tc2y_so3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let tc2y_so3_std = tc2y_so3.standardise();
+    assert_eq!(tc2y_so3, tc2y_so3_std);
+    assert_eq!(tc2y_so3.to_string(), "θ·C2(+0.000, +1.000, +0.000)");
+    assert_eq!(tc2y_so3_std.to_string(), "θ·C2(+0.000, +1.000, +0.000)");
+
+    let tc2z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc2z_std = tc2z.standardise();
+    assert_eq!(tc2z, tc2z_std);
+    assert_eq!(tc2z.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tc2z_std.to_string(),  "K·C2(Σ)(+1.000, +0.000, +0.000)");
+
+    let tc2x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc2x_std = tc2x.standardise();
+    assert_eq!(tc2x, tc2x_std);
+    assert_eq!(tc2x.to_string(), "θ·C2(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tc2x_std.to_string(),  "K·C2(QΣ)(+0.000, +0.000, +1.000)");
+
+    let kc2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 2.0))
+        .kind(KROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let kc2_std = kc2.standardise();
+    assert_eq!(kc2, kc2_std);
+    assert_eq!(kc2.to_string(), "K·C2(Σ)(+0.408, +0.408, +0.816)");
+    assert_eq!(kc2_std.to_string(), "K·C2(Σ)(+0.408, +0.408, +0.816)");
+
+    let kc2_so3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(-1.0, 1.0, 2.0))
+        .kind(KROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let kc2_so3_std = kc2_so3.standardise();
+    assert_eq!(kc2_so3, kc2_so3_std);
+    assert_eq!(kc2_so3.to_string(), "K·C2(-0.408, +0.408, +0.816)");
+    assert_eq!(kc2_so3_std.to_string(), "K·C2(-0.408, +0.408, +0.816)");
+
+    let tc3y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc3y_std = tc3y.standardise();
+    assert_eq!(tc3y, tc3y_std);
+    assert_eq!(tc3y.to_string(), "θ·C3(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tc3y_std.to_string(), "K·C6(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tc3x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc3x_std = tc3x.standardise();
+    assert_eq!(tc3x, tc3x_std);
+    assert_eq!(tc3x.to_string(), "θ·C3(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tc3x_std.to_string(), "K·C2(QΣ)(+0.000, -0.500, +0.866)");
+
+    let tc3z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc3z_std = tc3z.standardise();
+    assert_eq!(tc3z, tc3z_std);
+    assert_eq!(tc3z.to_string(), "θ·C3(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tc3z_std.to_string(), "K·C2(Σ)(+0.866, +0.500, +0.000)");
+
+    let tc4y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc4y_std = tc4y.standardise();
+    assert_eq!(tc4y, tc4y_std);
+    assert_eq!(tc4y.to_string(), "θ·C4(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tc4y_std.to_string(), "K·C4(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tc4z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc4z_std = tc4z.standardise();
+    assert_eq!(tc4z, tc4z_std);
+    assert_eq!(tc4z.to_string(), "θ·C4(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tc4z_std.to_string(), "K·C2(Σ)(+0.707, +0.707, +0.000)");
+
+    let tc4x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc4x_std = tc4x.standardise();
+    assert_eq!(tc4x, tc4x_std);
+    assert_eq!(tc4x.to_string(), "θ·C4(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tc4x_std.to_string(), "K·C2(QΣ)(+0.000, -0.707, +0.707)");
+
+    let tc5y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc5y_std = tc5y.standardise();
+    assert_eq!(tc5y, tc5y_std);
+    assert_eq!(tc5y.to_string(), "θ·C5(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tc5y_std.to_string(), "K·C10^3(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tc5z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc5z_std = tc5z.standardise();
+    assert_eq!(tc5z, tc5z_std);
+    assert_eq!(tc5z.to_string(), "θ·C5(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tc5z_std.to_string(), "K·C2(Σ)(+0.588, +0.809, +0.000)");
+
+    let tc5x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tc5x_std = tc5x.standardise();
+    assert_eq!(tc5x, tc5x_std);
+    assert_eq!(tc5x.to_string(), "θ·C5(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tc5x_std.to_string(), "K·C2(QΣ)(+0.000, -0.809, +0.588)");
+
+    // ==========================
+    // Improper symmetry elements
+    // ==========================
+    let s1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let s1_std = s1.standardise();
+    assert_eq!(s1, s1_std);
+    assert_eq!(s1.to_string(), "σ(Σ)(+0.577, +0.577, +0.577)");
+    assert_eq!(s1_std.to_string(), "σ(Σ)(+0.577, +0.577, +0.577)");
+
+    let ts1y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts1y_std = ts1y.standardise();
+    assert_eq!(ts1y, ts1y_std);
+    assert_eq!(ts1y.to_string(), "θ·σ(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(ts1y_std.to_string(), "K·i(QΣ)");
+
+    let ts1z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts1z_std = ts1z.standardise();
+    assert_eq!(ts1z, ts1z_std);
+    assert_eq!(ts1z.to_string(), "θ·σ(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(ts1z_std.to_string(), "K·σ(Σ)(+1.000, +0.000, +0.000)");
+
+    let ts1x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts1x_std = ts1x.standardise();
+    assert_eq!(ts1x, ts1x_std);
+    assert_eq!(ts1x.to_string(), "θ·σ(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(ts1x_std.to_string(), "K·σ(QΣ)(+0.000, +0.000, +1.000)");
+
+    let ts2y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts2y_std = ts2y.standardise();
+    assert_eq!(ts2y, ts2y_std);
+    assert_eq!(ts2y.to_string(), "θ·i(Σ)");
+    assert_eq!(ts2y_std.to_string(), "K·σ(Σ)(+0.000, +1.000, +0.000)");
+
+    let ts2z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts2z_std = ts2z.standardise();
+    assert_eq!(ts2z, ts2z_std);
+    assert_eq!(ts2z.to_string(), "θ·i(Σ)");
+    assert_eq!(ts2z_std.to_string(), "K·σ(Σ)(+0.000, +1.000, +0.000)");
+
+    let ts2x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts2x_std = ts2x.standardise();
+    assert_eq!(ts2x, ts2x_std);
+    assert_eq!(ts2x.to_string(), "θ·i(Σ)");
+    assert_eq!(ts2x_std.to_string(), "K·σ(Σ)(+0.000, +1.000, +0.000)");
+
+    let ts3y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts3y_std = ts3y.standardise();
+    assert_eq!(ts3y, ts3y_std);
+    assert_eq!(ts3y.to_string(), "θ·S3(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(ts3y_std.to_string(), "K·Ṡ3(Σ)(+0.000, +1.000, +0.000)");
+
+    let ts3z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts3z_std = ts3z.standardise();
+    assert_eq!(ts3z, ts3z_std);
+    assert_eq!(ts3z.to_string(), "θ·S3(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(ts3z_std.to_string(), "K·σ(QΣ)(+0.500, -0.866, +0.000)");
+
+    let ts3x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts3x_std = ts3x.standardise();
+    assert_eq!(ts3x, ts3x_std);
+    assert_eq!(ts3x.to_string(), "θ·S3(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(ts3x_std.to_string(), "K·σ(Σ)(+0.000, +0.866, +0.500)");
+
+    let ts4y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts4y_std = ts4y.standardise();
+    assert_eq!(ts4y, ts4y_std);
+    assert_eq!(ts4y.to_string(), "θ·S4(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(ts4y_std.to_string(), "K·Ṡ4(Σ)(+0.000, +1.000, +0.000)");
+
+    let ts5y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts5y_std = ts5y.standardise();
+    assert_eq!(ts5y, ts5y_std);
+    assert_eq!(ts5y.to_string(), "θ·S5(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(ts5y_std.to_string(), "K·Ṡ5(Σ)(+0.000, +1.000, +0.000)");
+
+    let ts6y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(6))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRSIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let ts6y_std = ts6y.standardise();
+    assert_eq!(ts6y, ts6y_std);
+    assert_eq!(ts6y.to_string(), "θ·S6(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(ts6y_std.to_string(), "K·Ṡ6(Σ)(+0.000, +1.000, +0.000)");
+
+    let tsd1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd1_std = tsd1.standardise();
+    assert_eq!(tsd1, tsd1_std);
+    assert_eq!(tsd1.to_string(), "θ·i(Σ)");
+    assert_eq!(tsd1_std.to_string(), "K·σ(Σ)(+0.000, +1.000, +0.000)");
+
+    let tsd1_so3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let tsd1_so3_std = tsd1_so3.standardise();
+    assert_eq!(tsd1_so3, tsd1_so3_std);
+    assert_eq!(tsd1_so3.to_string(), "θ·i");
+    assert_eq!(tsd1_so3_std.to_string(),  "θ·i");
+
+    let tsd2y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd2y_std = tsd2y.standardise();
+    assert_eq!(tsd2y, tsd2y_std);
+    assert_eq!(tsd2y.to_string(), "θ·σ(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tsd2y_std.to_string(), "K·i(QΣ)");
+
+    let tsd2z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd2z_std = tsd2z.standardise();
+    assert_eq!(tsd2z, tsd2z_std);
+    assert_eq!(tsd2z.to_string(), "θ·σ(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tsd2z_std.to_string(), "K·σ(Σ)(+1.000, +0.000, +0.000)");
+
+    let tsd2x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd2x_std = tsd2x.standardise();
+    assert_eq!(tsd2x, tsd2x_std);
+    assert_eq!(tsd2x.to_string(), "θ·σ(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tsd2x_std.to_string(), "K·σ(QΣ)(+0.000, +0.000, +1.000)");
+
+    let tsd3y = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
@@ -2486,8 +3020,78 @@ fn test_symmetry_element_flatten_tr() {
         .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
-    let tc3p1_fl = tc3p1
-        .convert_to_antiunitary_kind(&K)
+    let tsd3y_std = tsd3y.standardise();
+    assert_eq!(tsd3y, tsd3y_std);
+    assert_eq!(tsd3y.to_string(), "θ·Ṡ3(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tsd3y_std.to_string(), "K·Ṡ6(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tsd3z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
         .unwrap();
-    println!("{tc3p1_fl}");
+    let tsd3z_std = tsd3z.standardise();
+    assert_eq!(tsd3z, tsd3z_std);
+    assert_eq!(tsd3z.to_string(), "θ·Ṡ3(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tsd3z_std.to_string(), "K·σ(Σ)(+0.866, +0.500, +0.000)");
+
+    let tsd3x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd3x_std = tsd3x.standardise();
+    assert_eq!(tsd3x, tsd3x_std);
+    assert_eq!(tsd3x.to_string(), "θ·Ṡ3(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tsd3x_std.to_string(), "K·σ(QΣ)(+0.000, -0.500, +0.866)");
+
+    let tsd4y = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd4y_std = tsd4y.standardise();
+    assert_eq!(tsd4y, tsd4y_std);
+    assert_eq!(tsd4y.to_string(), "θ·Ṡ4(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tsd4y_std.to_string(), "K·Ṡ4(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tsd4z = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd4z_std = tsd4z.standardise();
+    assert_eq!(tsd4z, tsd4z_std);
+    assert_eq!(tsd4z.to_string(), "θ·Ṡ4(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tsd4z_std.to_string(), "K·σ(Σ)(+0.707, +0.707, +0.000)");
+
+    let tsd4x = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRINV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let tsd4x_std = tsd4x.standardise();
+    assert_eq!(tsd4x, tsd4x_std);
+    assert_eq!(tsd4x.to_string(), "θ·Ṡ4(Σ)(+1.000, +0.000, +0.000)");
+    assert_eq!(tsd4x_std.to_string(), "K·σ(QΣ)(+0.000, -0.707, +0.707)");
 }

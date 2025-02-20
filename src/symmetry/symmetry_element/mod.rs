@@ -73,6 +73,16 @@ impl SymmetryElementKind {
         }
     }
 
+    /// Indicates if the antiunitary part of this element contains a pure complex conjugation.
+    #[must_use]
+    pub fn contains_complex_conjugation(&self) -> bool {
+        match self {
+            Self::Proper(tr)
+            | Self::ImproperMirrorPlane(tr)
+            | Self::ImproperInversionCentre(tr) => *tr == Some(AntiunitaryKind::ComplexConjugation),
+        }
+    }
+
     /// Indicates if an antiunitary operation is associated with this element.
     #[must_use]
     pub fn contains_antiunitary(&self) -> bool {
@@ -727,7 +737,8 @@ impl SymmetryElement {
     /// antiunitary attribute.
     ///
     /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is the
-    /// identity, and if $`\hat{\alpha}`$ is as specified by `au`.
+    /// identity, and if $`\hat{\alpha}`$ is as specified by `au`. Any rotation in $`\hat{\alpha}`$
+    /// will not be absorbed into $`\hat{C}_n^k`$.
     ///
     /// # Arguments
     ///
@@ -755,7 +766,8 @@ impl SymmetryElement {
     /// antiunitary attribute.
     ///
     /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is the
-    /// spatial inversion, and if $`\hat{\alpha}`$ is as specified by `au`.
+    /// spatial inversion, and if $`\hat{\alpha}`$ is as specified by `au`. Any rotation in
+    /// $`\hat{\alpha}`$ will not be absorbed into $`\hat{C}_n^k`$.
     ///
     /// # Arguments
     ///
@@ -804,7 +816,8 @@ impl SymmetryElement {
     /// antiunitary attribute.
     ///
     /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is a binary
-    /// rotation, and if $`\hat{\alpha}`$ is as specified by `au`.
+    /// rotation, and if $`\hat{\alpha}`$ is as specified by `au`. Any rotation in $`\hat{\alpha}`$
+    /// will not be absorbed into $`\hat{C}_n^k`$.
     ///
     /// # Arguments
     ///
@@ -836,7 +849,8 @@ impl SymmetryElement {
     /// antiunitary attribute.
     ///
     /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is a
-    /// reflection, and if $`\hat{\alpha}`$ is as specified by `au`.
+    /// reflection, and if $`\hat{\alpha}`$ is as specified by `au`. Any rotation in
+    /// $`\hat{\alpha}`$ will not be absorbed into $`\hat{C}_n^k`$.
     ///
     /// # Arguments
     ///
@@ -890,6 +904,7 @@ impl SymmetryElement {
     /// Some additional symbols that can be unconventional include:
     ///
     /// * `θ`: time reversal,
+    /// * `K`: complex conjugation,
     /// * `(Σ)`: the spatial part is in homotopy class 0 of $`\mathsf{SU}'(2)`$,
     /// * `(QΣ)`: the spatial part is in homotopy class 1 of $`\mathsf{SU}'(2)`$.
     ///
@@ -900,14 +915,16 @@ impl SymmetryElement {
     /// The full symbol for this symmetry element.
     #[must_use]
     pub fn get_full_symbol(&self) -> String {
-        let tr_sym = if self.kind.contains_time_reversal() {
+        let au_sym = if self.kind.contains_time_reversal() {
             "θ·"
+        } else if self.kind.contains_complex_conjugation() {
+            "K·"
         } else {
             ""
         };
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper(_) => {
-                format!("{tr_sym}C")
+                format!("{au_sym}C")
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => {
                 if *self.raw_proper_order() != ElementOrder::Inf
@@ -922,9 +939,9 @@ impl SymmetryElement {
                             .expect("No proper fractions found for a finite-order element.")
                             .is_zero())
                 {
-                    format!("{tr_sym}S")
+                    format!("{au_sym}S")
                 } else {
-                    format!("{tr_sym}σC")
+                    format!("{au_sym}σC")
                 }
             }
             SymmetryElementKind::ImproperInversionCentre(_) => {
@@ -940,9 +957,9 @@ impl SymmetryElement {
                             .expect("No proper fractions found for a finite-order element.")
                             .is_zero())
                 {
-                    format!("{tr_sym}Ṡ")
+                    format!("{au_sym}Ṡ")
                 } else {
-                    format!("{tr_sym}iC")
+                    format!("{au_sym}iC")
                 }
             }
         };
@@ -1465,7 +1482,7 @@ impl SymmetryElement {
                 let inv_self_au = SymmetryElementKind::ImproperInversionCentre(Some(self_au));
 
                 // gamma is either e or i
-                let alpha_gamma_c = if self.is_o3_proper(Some(*au)) {
+                let alpha_gamma_c = if self.is_o3_proper(Some(self_au)) {
                     self.clone()
                 } else {
                     self.convert_to_improper_kind(&inv_self_au, false)
@@ -1505,7 +1522,8 @@ impl SymmetryElement {
                 let converted_alpha_gamma_c_prime = match self.kind {
                     SymmetryElementKind::Proper(_) => {
                         let mut converted_alpha_e_c_prime = c_prime_op.to_symmetry_element();
-                        converted_alpha_e_c_prime.kind = SymmetryElementKind::Proper(Some(au.clone()));
+                        converted_alpha_e_c_prime.kind =
+                            SymmetryElementKind::Proper(Some(au.clone()));
                         converted_alpha_e_c_prime
                     }
                     SymmetryElementKind::ImproperInversionCentre(_) => {
@@ -1532,6 +1550,33 @@ impl SymmetryElement {
             Err(format_err!(
                 "This element does not contain an antiunitary part."
             ))
+        }
+    }
+
+    fn standardise(&self) -> Self {
+        let au = self.antiunitary_part();
+        let improper_conv = !self.is_o3_proper(au);
+        let antiunitary_conv = self.contains_antiunitary();
+        let su2 = self.is_su2();
+        match (improper_conv, antiunitary_conv, su2) {
+            (false, false, _) => self.clone(),
+            (true, false, _) => self
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(au), false),
+            (false, true, true) => self
+                .convert_to_antiunitary_kind(&K)
+                .expect("Unable to convert to the complex conjugation convention."),
+            (false, true, false) => self.clone(),
+            (true, true, true) => self
+                .convert_to_improper_kind(
+                    &SymmetryElementKind::ImproperInversionCentre(Some(K)),
+                    true,
+                )
+                .convert_to_antiunitary_kind(&K)
+                .expect("Unable to convert to the complex conjugation convention."),
+            (true, true, false) => self.convert_to_improper_kind(
+                &SymmetryElementKind::ImproperInversionCentre(Some(K)),
+                false,
+            ),
         }
     }
 
@@ -1590,14 +1635,22 @@ impl SymmetryElement {
 impl fmt::Debug for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let signed_axis = self.signed_axis();
-        write!(
-            f,
-            "{}({:+.3}, {:+.3}, {:+.3})",
-            self.get_full_symbol(),
-            signed_axis[0] + 0.0,
-            signed_axis[1] + 0.0,
+        let x = if signed_axis[0].abs() < 5e-4 {
+            0.000
+        } else {
+            signed_axis[0] + 0.0
+        };
+        let y = if signed_axis[1].abs() < 5e-4 {
+            0.000
+        } else {
+            signed_axis[1] + 0.0
+        };
+        let z = if signed_axis[2].abs() < 5e-4 {
+            0.000
+        } else {
             signed_axis[2] + 0.0
-        )
+        };
+        write!(f, "{}({x:+.3}, {y:+.3}, {z:+.3})", self.get_full_symbol(),)
     }
 }
 
@@ -1608,13 +1661,25 @@ impl fmt::Display for SymmetryElement {
             write!(f, "{}", self.get_simplified_symbol())
         } else {
             let signed_axis = self.signed_axis();
+            let x = if signed_axis[0].abs() < 5e-4 {
+                0.000
+            } else {
+                signed_axis[0] + 0.0
+            };
+            let y = if signed_axis[1].abs() < 5e-4 {
+                0.000
+            } else {
+                signed_axis[1] + 0.0
+            };
+            let z = if signed_axis[2].abs() < 5e-4 {
+                0.000
+            } else {
+                signed_axis[2] + 0.0
+            };
             write!(
                 f,
-                "{}({:+.3}, {:+.3}, {:+.3})",
+                "{}({x:+.3}, {y:+.3}, {z:+.3})",
                 self.get_simplified_symbol(),
-                signed_axis[0] + 0.0,
-                signed_axis[1] + 0.0,
-                signed_axis[2] + 0.0
             )
         }
     }
@@ -1639,50 +1704,54 @@ impl PartialEq for SymmetryElement {
     /// where one does not yet care much about directions of rotations.
     #[allow(clippy::too_many_lines)]
     fn eq(&self, other: &Self) -> bool {
-        if self.rotation_group != other.rotation_group {
-            // Different rotation groups or homotopy classes.
+        if self.is_su2() != other.is_su2() {
+            // Different rotation groups for the rotation parts. This will not change in any
+            // convention.
             return false;
         }
 
-        if self.antiunitary_part() != other.antiunitary_part() {
-            // Different anti-unitary kinds.
+        if self.contains_antiunitary() != other.contains_antiunitary() {
+            // Different antiunitarities. This will not change in any convention.
             return false;
         }
 
-        let au = self.antiunitary_part();
+        let s_au = self.antiunitary_part();
+        let o_au = other.antiunitary_part();
 
-        if self.is_o3_proper(au) != other.is_o3_proper(au) {
-            // Different spatial parities.
+        if self.is_o3_proper(s_au) != other.is_o3_proper(o_au) {
+            // Different spatial parities. This will not change in any convention.
             return false;
         }
 
-        if self.is_o3_identity(au) && other.is_o3_identity(au) {
-            // Both are spatial identity.
-            return misc::calculate_hash(self) == misc::calculate_hash(other);
+        if self.is_o3_identity(s_au) && other.is_o3_identity(o_au) {
+            // Both are spatial identity. The equality depends on whether s_au == o_au or not.
+            return s_au == o_au && misc::calculate_hash(self) == misc::calculate_hash(other);
         }
 
-        if self.is_o3_inversion_centre(au) && other.is_o3_inversion_centre(au) {
-            // Both are spatial inversion centre.
-            return misc::calculate_hash(self) == misc::calculate_hash(other);
+        if self.is_o3_inversion_centre(s_au) && other.is_o3_inversion_centre(o_au) {
+            // Both are spatial inversion centre. The equality depends on whether s_au == o_au or not.
+            return s_au == o_au && misc::calculate_hash(self) == misc::calculate_hash(other);
         }
 
         let thresh = (self.threshold * other.threshold).sqrt();
 
-        let result = if self.is_o3_proper(au) {
-            // Proper.
+        let std_self = self.standardise();
+        let std_other = other.standardise();
 
+        let result = {
             // Parallel or anti-parallel axes.
             let similar_poles = approx::relative_eq!(
-                geometry::get_standard_positive_pole(&self.raw_axis, thresh),
-                geometry::get_standard_positive_pole(&other.raw_axis, thresh),
+                geometry::get_standard_positive_pole(&std_self.raw_axis, thresh),
+                geometry::get_standard_positive_pole(&std_other.raw_axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
             );
 
             // Same angle of rotation (irrespective of signs).
-            let similar_angles = match (*self.raw_proper_order(), *other.raw_proper_order()) {
+            let similar_angles = match (*std_self.raw_proper_order(), *std_other.raw_proper_order())
+            {
                 (ElementOrder::Inf, ElementOrder::Inf) => {
-                    match (self.proper_angle, other.proper_angle) {
+                    match (std_self.proper_angle, std_other.proper_angle) {
                         (Some(s_angle), Some(o_angle)) => {
                             approx::relative_eq!(
                                 s_angle.abs(),
@@ -1696,62 +1765,104 @@ impl PartialEq for SymmetryElement {
                     }
                 }
                 (ElementOrder::Int(_), ElementOrder::Int(_)) => {
-                    let c_proper_fraction = self
+                    let s_proper_fraction = std_self
                         .proper_fraction
-                        .expect("Proper fraction for `self` not found.");
-                    let o_proper_fraction = other
+                        .expect("Proper fraction for `std_self` not found.");
+                    let o_proper_fraction = std_other
                         .proper_fraction
-                        .expect("Proper fraction for `other` not found.");
-                    c_proper_fraction.abs() == o_proper_fraction.abs()
-                }
-                _ => false,
-            };
-
-            similar_poles && similar_angles
-        } else {
-            // Improper => convert to inversion-centre convention.
-            let inv_au = SymmetryElementKind::ImproperInversionCentre(au);
-            let c_self = self.convert_to_improper_kind(&inv_au, false);
-            let c_other = other.convert_to_improper_kind(&inv_au, false);
-
-            // Parallel or anti-parallel axes.
-            let similar_poles = approx::relative_eq!(
-                geometry::get_standard_positive_pole(&c_self.raw_axis, thresh),
-                geometry::get_standard_positive_pole(&c_other.raw_axis, thresh),
-                epsilon = thresh,
-                max_relative = thresh
-            );
-
-            // Same angle of rotation (irrespective of signs).
-            let similar_angles = match (*c_self.raw_proper_order(), *c_other.raw_proper_order()) {
-                (ElementOrder::Inf, ElementOrder::Inf) => {
-                    match (c_self.proper_angle, c_other.proper_angle) {
-                        (Some(s_angle), Some(o_angle)) => {
-                            approx::relative_eq!(
-                                s_angle.abs(),
-                                o_angle.abs(),
-                                epsilon = thresh,
-                                max_relative = thresh
-                            )
-                        }
-                        (None, None) => similar_poles,
-                        _ => false,
-                    }
-                }
-                (ElementOrder::Int(_), ElementOrder::Int(_)) => {
-                    let c_proper_fraction = c_self
-                        .proper_fraction
-                        .expect("Proper fraction for `c_self` not found.");
-                    let o_proper_fraction = c_other
-                        .proper_fraction
-                        .expect("Proper fraction for `c_other` not found.");
-                    c_proper_fraction.abs() == o_proper_fraction.abs()
+                        .expect("Proper fraction for `std_other` not found.");
+                    s_proper_fraction.abs() == o_proper_fraction.abs()
                 }
                 _ => false,
             };
 
             similar_poles && similar_angles
         };
+
+        // let result = if self.is_o3_proper(s_au) {
+        //     // Proper.
+        //
+        //     // Parallel or anti-parallel axes.
+        //     let similar_poles = approx::relative_eq!(
+        //         geometry::get_standard_positive_pole(&self.raw_axis, thresh),
+        //         geometry::get_standard_positive_pole(&other.raw_axis, thresh),
+        //         epsilon = thresh,
+        //         max_relative = thresh
+        //     );
+        //
+        //     // Same angle of rotation (irrespective of signs).
+        //     let similar_angles = match (*self.raw_proper_order(), *other.raw_proper_order()) {
+        //         (ElementOrder::Inf, ElementOrder::Inf) => {
+        //             match (self.proper_angle, other.proper_angle) {
+        //                 (Some(s_angle), Some(o_angle)) => {
+        //                     approx::relative_eq!(
+        //                         s_angle.abs(),
+        //                         o_angle.abs(),
+        //                         epsilon = thresh,
+        //                         max_relative = thresh
+        //                     )
+        //                 }
+        //                 (None, None) => similar_poles,
+        //                 _ => false,
+        //             }
+        //         }
+        //         (ElementOrder::Int(_), ElementOrder::Int(_)) => {
+        //             let c_proper_fraction = self
+        //                 .proper_fraction
+        //                 .expect("Proper fraction for `self` not found.");
+        //             let o_proper_fraction = other
+        //                 .proper_fraction
+        //                 .expect("Proper fraction for `other` not found.");
+        //             c_proper_fraction.abs() == o_proper_fraction.abs()
+        //         }
+        //         _ => false,
+        //     };
+        //
+        //     similar_poles && similar_angles
+        // } else {
+        //     // Improper => convert to inversion-centre convention.
+        //     let inv_au = SymmetryElementKind::ImproperInversionCentre(au);
+        //     let c_self = self.convert_to_improper_kind(&inv_au, false);
+        //     let c_other = other.convert_to_improper_kind(&inv_au, false);
+        //
+        //     // Parallel or anti-parallel axes.
+        //     let similar_poles = approx::relative_eq!(
+        //         geometry::get_standard_positive_pole(&c_self.raw_axis, thresh),
+        //         geometry::get_standard_positive_pole(&c_other.raw_axis, thresh),
+        //         epsilon = thresh,
+        //         max_relative = thresh
+        //     );
+        //
+        //     // Same angle of rotation (irrespective of signs).
+        //     let similar_angles = match (*c_self.raw_proper_order(), *c_other.raw_proper_order()) {
+        //         (ElementOrder::Inf, ElementOrder::Inf) => {
+        //             match (c_self.proper_angle, c_other.proper_angle) {
+        //                 (Some(s_angle), Some(o_angle)) => {
+        //                     approx::relative_eq!(
+        //                         s_angle.abs(),
+        //                         o_angle.abs(),
+        //                         epsilon = thresh,
+        //                         max_relative = thresh
+        //                     )
+        //                 }
+        //                 (None, None) => similar_poles,
+        //                 _ => false,
+        //             }
+        //         }
+        //         (ElementOrder::Int(_), ElementOrder::Int(_)) => {
+        //             let c_proper_fraction = c_self
+        //                 .proper_fraction
+        //                 .expect("Proper fraction for `c_self` not found.");
+        //             let o_proper_fraction = c_other
+        //                 .proper_fraction
+        //                 .expect("Proper fraction for `c_other` not found.");
+        //             c_proper_fraction.abs() == o_proper_fraction.abs()
+        //         }
+        //         _ => false,
+        //     };
+        //
+        //     similar_poles && similar_angles
+        // };
 
         result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
@@ -1761,74 +1872,77 @@ impl Eq for SymmetryElement {}
 
 impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.rotation_group.hash(state);
+        let std_self = self.standardise();
 
-        let au = self.antiunitary_part();
+        std_self.rotation_group.hash(state);
+
+        let au = std_self.antiunitary_part();
         au.hash(state);
 
-        self.is_o3_proper(au).hash(state);
+        std_self.is_o3_proper(au).hash(state);
 
-        if self.is_o3_identity(au) || self.is_o3_inversion_centre(au) {
+        if std_self.is_o3_identity(au) || std_self.is_o3_inversion_centre(au) {
             true.hash(state);
-        } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(au) {
-            let c_self = self
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(au), false);
-            let pole = geometry::get_standard_positive_pole(&c_self.raw_axis, c_self.threshold);
-            pole[0]
-                .round_factor(self.threshold)
-                .integer_decode()
-                .hash(state);
-            pole[1]
-                .round_factor(self.threshold)
-                .integer_decode()
-                .hash(state);
-            pole[2]
-                .round_factor(self.threshold)
-                .integer_decode()
-                .hash(state);
-            if let ElementOrder::Inf = *c_self.raw_proper_order() {
-                if let Some(angle) = c_self.proper_angle {
-                    angle
-                        .abs()
-                        .round_factor(self.threshold)
-                        .integer_decode()
-                        .hash(state);
-                } else {
-                    0.hash(state);
-                }
-            } else {
-                c_self
-                    .proper_fraction
-                    .expect("No proper fractions for `c_self` found.")
-                    .abs()
-                    .hash(state);
-            };
+        // } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(au) {
+        //     let c_self = self
+        //         .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(au), false);
+        //     let pole = geometry::get_standard_positive_pole(&c_self.raw_axis, c_self.threshold);
+        //     pole[0]
+        //         .round_factor(self.threshold)
+        //         .integer_decode()
+        //         .hash(state);
+        //     pole[1]
+        //         .round_factor(self.threshold)
+        //         .integer_decode()
+        //         .hash(state);
+        //     pole[2]
+        //         .round_factor(self.threshold)
+        //         .integer_decode()
+        //         .hash(state);
+        //     if let ElementOrder::Inf = *c_self.raw_proper_order() {
+        //         if let Some(angle) = c_self.proper_angle {
+        //             angle
+        //                 .abs()
+        //                 .round_factor(self.threshold)
+        //                 .integer_decode()
+        //                 .hash(state);
+        //         } else {
+        //             0.hash(state);
+        //         }
+        //     } else {
+        //         c_self
+        //             .proper_fraction
+        //             .expect("No proper fractions for `c_self` found.")
+        //             .abs()
+        //             .hash(state);
+        //     };
         } else {
-            let pole = geometry::get_standard_positive_pole(&self.raw_axis, self.threshold);
+            let pole = geometry::get_standard_positive_pole(&std_self.raw_axis, std_self.threshold);
             pole[0]
-                .round_factor(self.threshold)
+                .round_factor(std_self.threshold)
                 .integer_decode()
                 .hash(state);
             pole[1]
-                .round_factor(self.threshold)
+                .round_factor(std_self.threshold)
                 .integer_decode()
                 .hash(state);
             pole[2]
-                .round_factor(self.threshold)
+                .round_factor(std_self.threshold)
                 .integer_decode()
                 .hash(state);
-            if let ElementOrder::Inf = *self.raw_proper_order() {
-                if let Some(angle) = self.proper_angle {
+            if let ElementOrder::Inf = *std_self.raw_proper_order() {
+                if let Some(angle) = std_self.proper_angle {
                     angle
                         .abs()
-                        .round_factor(self.threshold)
+                        .round_factor(std_self.threshold)
                         .integer_decode()
                         .hash(state);
                 } else {
                     0.hash(state);
                 }
             } else {
-                self.proper_fraction
+                std_self
+                    .proper_fraction
                     .expect("No proper fractions for `self` found.")
                     .abs()
                     .hash(state);
@@ -1860,6 +1974,15 @@ pub const TRSIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(
 
 /// Time-reversed improper symmetry element kind in the inversion-centre convention.
 pub const TRINV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(Some(TR));
+
+/// Complex-conjugated proper rotation symmetry element kind.
+pub const KROT: SymmetryElementKind = SymmetryElementKind::Proper(Some(K));
+
+/// Complex-conjugated improper symmetry element kind in the mirror-plane convention.
+pub const KSIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(Some(K));
+
+/// Complex-conjugated improper symmetry element kind in the inversion-centre convention.
+pub const KINV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(Some(K));
 
 /// Rotation group $`\mathsf{SO}(3)`$.
 pub const SO3: RotationGroup = RotationGroup::SO3;

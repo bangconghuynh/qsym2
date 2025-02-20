@@ -275,7 +275,7 @@ impl PyBasisAngularOrder {
                     .into_iter()
                     .map(|(atom_idx, v)| {
                         let element = elements
-                            .get(nuclei[atom_idx])
+                            .get(nuclei[atom_idx] - 1)
                             .map(|el| el.symbol.to_string())
                             .ok_or_else(|| PyValueError::new_err(format!("Unable to identify an element for atom index `{atom_idx}`.")))?;
                         Ok((element, v))
