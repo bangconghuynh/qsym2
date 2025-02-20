@@ -1553,6 +1553,19 @@ impl SymmetryElement {
         }
     }
 
+    /// Standardises this element
+    ///
+    /// ```math
+    /// \hat{g} = \hat{\alpha} \hat{\gamma} \hat{C}_n^k,
+    /// ```
+    ///
+    /// such that if $`\hat{\gamma}`$ is improper, it will become the inversion, and if
+    /// $`\hat{\alpha}`$ is antiunitary and $`\hat{C}_n^k`$ is in $`\mathsf{SU}'(2)`$, then
+    /// $`\hat{\alpha}`$ will become the complex conjugation.
+    ///
+    /// # Returns
+    ///
+    /// The standardised version of this element.
     fn standardise(&self) -> Self {
         let au = self.antiunitary_part();
         let improper_conv = !self.is_o3_proper(au);
@@ -1568,13 +1581,13 @@ impl SymmetryElement {
             (false, true, false) => self.clone(),
             (true, true, true) => self
                 .convert_to_improper_kind(
-                    &SymmetryElementKind::ImproperInversionCentre(Some(K)),
+                    &SymmetryElementKind::ImproperInversionCentre(au),
                     true,
                 )
                 .convert_to_antiunitary_kind(&K)
                 .expect("Unable to convert to the complex conjugation convention."),
             (true, true, false) => self.convert_to_improper_kind(
-                &SymmetryElementKind::ImproperInversionCentre(Some(K)),
+                &SymmetryElementKind::ImproperInversionCentre(au),
                 false,
             ),
         }
