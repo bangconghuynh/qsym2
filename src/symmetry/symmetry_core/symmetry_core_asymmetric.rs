@@ -7,7 +7,7 @@ use nalgebra::Vector3;
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{SymmetryElement, ROT, SIG, CTRROT, CTRSIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, ROT, SIG, TRROT, TRSIG};
 use crate::symmetry::symmetry_element_order::{ORDER_1, ORDER_2};
 
 use super::{PreSymmetry, Symmetry};
@@ -57,7 +57,7 @@ impl Symmetry {
         log::debug!("Proper elements found: {:?}", self.get_elements(&ROT));
         log::debug!(
             "Time-reversed proper elements found: {:?}",
-            self.get_elements(&CTRROT)
+            self.get_elements(&TRROT)
         );
 
         // Classify into point groups
@@ -532,7 +532,7 @@ impl Symmetry {
                         .get_elements_mut(&SIG)
                         .and_then(|sigmas| sigmas.remove(&ORDER_1))
                         .or_else(|| {
-                            self.get_elements_mut(&CTRSIG)
+                            self.get_elements_mut(&TRSIG)
                                 .and_then(|tr_sigmas| tr_sigmas.remove(&ORDER_1))
                         })
                         .ok_or_else(|| {

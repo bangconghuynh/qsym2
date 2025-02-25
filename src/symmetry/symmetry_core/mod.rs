@@ -22,7 +22,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     sort_operations, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, CTRROT, CTRSIG,
+    AntiunitaryKind, SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -208,7 +208,7 @@ impl PreSymmetry {
         } else if tr {
             let tr_rotated_mol = rotated_mol.reverse_time();
             if tr_rotated_mol == self.recentred_molecule {
-                Some(CTRROT)
+                Some(TRROT)
             } else {
                 None
             }
@@ -365,10 +365,10 @@ impl Symmetry {
         }
 
         if tr {
-            if self.get_elements(&CTRROT).is_none()
-                && self.get_elements(&CTRSIG).is_none()
-                && self.get_generators(&CTRROT).is_none()
-                && self.get_generators(&CTRSIG).is_none()
+            if self.get_elements(&TRROT).is_none()
+                && self.get_elements(&TRSIG).is_none()
+                && self.get_generators(&TRROT).is_none()
+                && self.get_generators(&TRSIG).is_none()
             {
                 log::debug!("Antiunitary symmetry requested, but so far only non-time-reversed elements found.");
                 // Time-reversal requested, but the above analysis gives only non-time-reversed
@@ -378,7 +378,7 @@ impl Symmetry {
                     log::debug!("Time reversal is a symmetry element. This is a grey group.");
                     // Add time-reversed copies of proper elements
                     self.elements.insert(
-                        CTRROT,
+                        TRROT,
                         self.get_elements(&ROT)
                             .ok_or_else(|| format_err!("No proper elements found."))?
                             .iter()
@@ -404,7 +404,7 @@ impl Symmetry {
                     // Add time-reversed copies of improper elements, if any
                     if self.get_elements(&SIG).is_some() {
                         self.elements.insert(
-                            CTRSIG,
+                            TRSIG,
                             self.get_elements(&SIG)
                                 .ok_or_else(|| format_err!("No improper elements found."))?
                                 .iter()
@@ -467,7 +467,7 @@ impl Symmetry {
         tr: bool,
     ) -> bool {
         let positive_axis = geometry::get_standard_positive_pole(axis, threshold).normalize();
-        let proper_kind = if tr { CTRROT } else { ROT };
+        let proper_kind = if tr { TRROT } else { ROT };
         let element = SymmetryElement::builder()
             .threshold(threshold)
             .proper_order(order)
@@ -588,7 +588,7 @@ impl Symmetry {
         tr: bool,
     ) -> bool {
         let positive_axis = geometry::get_standard_positive_pole(axis, threshold).normalize();
-        let mirror_kind = if tr { CTRSIG } else { SIG };
+        let mirror_kind = if tr { TRSIG } else { SIG };
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()
@@ -629,7 +629,7 @@ impl Symmetry {
         };
         let is_o3_mirror_plane = element.is_o3_mirror_plane(au);
         let is_o3_inversion_centre = element.is_o3_inversion_centre(au);
-        let improper_kind = if tr { CTRSIG } else { SIG };
+        let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
             if let Vacant(improper_generators) = self.generators.entry(improper_kind) {
                 improper_generators.insert(HashMap::from([(order, IndexSet::from([element]))]));
@@ -865,7 +865,7 @@ impl Symmetry {
                 );
             }
         }
-        if let Some(tr_improper_generators) = self.get_generators(&CTRSIG) {
+        if let Some(tr_improper_generators) = self.get_generators(&TRSIG) {
             if let Some(sigmas) = tr_improper_generators.get(&ORDER_1) {
                 sigma_generators.extend(
                     sigmas
@@ -894,11 +894,11 @@ impl Symmetry {
             .keys()
             .chain(self.get_elements(&ROT).unwrap_or(&HashMap::new()).keys())
             .chain(
-                self.get_generators(&CTRROT)
+                self.get_generators(&TRROT)
                     .unwrap_or(&HashMap::new())
                     .keys(),
             )
-            .chain(self.get_elements(&CTRROT).unwrap_or(&HashMap::new()).keys())
+            .chain(self.get_elements(&TRROT).unwrap_or(&HashMap::new()).keys())
             .max()
             .expect("No highest proper rotation order could be obtained.")
     }
@@ -920,7 +920,7 @@ impl Symmetry {
             .map(|proper_elements| proper_elements.get(order))
             .unwrap_or_default();
         let opt_tr_proper_elements = self
-            .get_elements(&CTRROT)
+            .get_elements(&TRROT)
             .map(|tr_proper_elements| tr_proper_elements.get(order))
             .unwrap_or_default();
 
@@ -956,7 +956,7 @@ impl Symmetry {
             .map(|improper_elements| improper_elements.get(order))
             .unwrap_or_default();
         let opt_tr_improper_elements = self
-            .get_elements(&CTRSIG)
+            .get_elements(&TRSIG)
             .map(|tr_improper_elements| tr_improper_elements.get(order))
             .unwrap_or_default();
 
@@ -999,7 +999,7 @@ impl Symmetry {
                 .map(|proper_generators| proper_generators.get(&max_ord))
                 .unwrap_or_default();
             let opt_tr_proper_generators = self
-                .get_elements(&CTRROT)
+                .get_elements(&TRROT)
                 .map(|tr_proper_generators| tr_proper_generators.get(&max_ord))
                 .unwrap_or_default();
 
@@ -1040,11 +1040,11 @@ impl Symmetry {
                 .keys()
                 .chain(self.get_elements(&ROT).unwrap_or(&HashMap::new()).keys())
                 .chain(
-                    self.get_generators(&CTRROT)
+                    self.get_generators(&TRROT)
                         .unwrap_or(&HashMap::new())
                         .keys(),
                 )
-                .chain(self.get_elements(&CTRROT).unwrap_or(&HashMap::new()).keys())
+                .chain(self.get_elements(&TRROT).unwrap_or(&HashMap::new()).keys())
                 .max()
                 .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
@@ -1212,7 +1212,7 @@ impl Symmetry {
 
         // Finite time-reversed proper operations
         let mut tr_proper_orders = self
-            .get_elements(&CTRROT)
+            .get_elements(&TRROT)
             .unwrap_or(&empty_elements)
             .keys()
             .collect::<Vec<_>>();
@@ -1224,7 +1224,7 @@ impl Symmetry {
             tr_proper_orders
                 .iter()
                 .fold(vec![], |mut acc, tr_proper_order| {
-                    self.get_elements(&CTRROT)
+                    self.get_elements(&TRROT)
                         .unwrap_or(&empty_elements)
                         .get(tr_proper_order)
                         .unwrap_or_else(|| {
@@ -1249,7 +1249,7 @@ impl Symmetry {
 
         // Finite time-reversed proper operations from generators
         let tr_proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
-            self.get_generators(&CTRROT)
+            self.get_generators(&TRROT)
                 .unwrap_or(&empty_elements)
                 .par_iter()
                 .fold(
@@ -1381,7 +1381,7 @@ impl Symmetry {
 
         // Finite time-reversed improper operations
         let mut tr_improper_orders = self
-            .get_elements(&CTRSIG)
+            .get_elements(&TRSIG)
             .unwrap_or(&empty_elements)
             .keys()
             .collect::<Vec<_>>();
@@ -1393,7 +1393,7 @@ impl Symmetry {
             tr_improper_orders
                 .iter()
                 .fold(vec![], |mut acc, tr_improper_order| {
-                    self.get_elements(&CTRSIG)
+                    self.get_elements(&TRSIG)
                         .unwrap_or(&empty_elements)
                         .get(tr_improper_order)
                         .unwrap_or_else(|| {
@@ -1418,7 +1418,7 @@ impl Symmetry {
 
         // Finite time-reversed improper operations from generators
         let tr_improper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
-            self.get_generators(&CTRSIG)
+            self.get_generators(&TRSIG)
                 .unwrap_or(&empty_elements)
                 .par_iter()
                 .fold(
@@ -1741,7 +1741,7 @@ fn _search_proper_rotations(
                                 .iter()
                                 .chain(
                                     sea_sym
-                                        .get_elements(&CTRROT)
+                                        .get_elements(&TRROT)
                                         .unwrap_or(&HashMap::new())
                                         .iter(),
                                 )
