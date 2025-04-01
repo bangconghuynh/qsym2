@@ -62,7 +62,7 @@ pub enum SymmetryElementKind {
 }
 
 impl SymmetryElementKind {
-    /// Indicates if a time-reversal operation is associated with this element.
+    /// Indicates if the antiunitary part of this element contains a time-reversal operation.
     #[must_use]
     pub fn contains_time_reversal(&self) -> bool {
         match self {
@@ -119,8 +119,8 @@ impl SymmetryElementKind {
     }
 }
 
-/// Enumerated type to signify whether a spatial symmetry operation has an associated spin
-/// rotation.
+/// Enumerated type to indicate the rotation group to which the unitary proper rotation part of a
+/// symmetry element belongs.
 #[derive(Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum RotationGroup {
     /// Variant indicating that the proper part of the symmetry element generates rotations in
@@ -245,6 +245,9 @@ impl fmt::Display for SymmetryElementKind {
 /// * $`\hat{\alpha}`$ is either the identity $`\hat{e}`$, the complex conjugation $`\hat{K}`$, or
 /// the time reversal $`\hat{\theta}`$.
 ///
+/// We shall refer to $`\hat{C}_n^k`$ as the *unitary proper rotation part*, $`\hat{\gamma}`$ the
+/// *improper rotation part*, and $`\hat{\alpha}`$ the *antiunitary part* of the symmetry element.
+///
 /// With this definition, the above pieces of information required to specify a geometrical symmetry
 /// element are given as follows:
 ///
@@ -253,11 +256,12 @@ impl fmt::Display for SymmetryElementKind {
 /// * the improper contribution $`\hat{\gamma}`$,
 /// * the antiunitary contribution $`\hat{\alpha}`$.
 ///
-/// This definition also allows the unitary part of $`\hat{g}`$ to be interpreted as an element of
-/// either $`\mathsf{O}(3)`$ or $`\mathsf{SU}'(2)`$, which means that the unitary part of
-/// $`\hat{g}`$ is also a symmetry operation in the corresponding group, and a rather special one
-/// that can be used to generate other symmetry operations of the group. $`\hat{g}`$ thus serves as
-/// a bridge between molecular symmetry and abstract group theory.
+/// This definition also allows the unitary part of $`\hat{g}`$ (*i.e.* the composition
+/// $`\hat{\gamma} \hat{C}_n^k`$) to be interpreted as an element of either $`\mathsf{O}(3)`$ or
+/// $`\mathsf{SU}'(2)`$, which means that the unitary part of $`\hat{g}`$ is also a symmetry
+/// operation in the corresponding group, and a rather special one that can be used to generate
+/// other symmetry operations of the group. $`\hat{g}`$ thus serves as a bridge between molecular
+/// symmetry and abstract group theory.
 ///
 /// There is one small caveat: for infinite-order elements, $`n`$ and $`k`$ can no longer be used
 /// to give the angle of rotation. There must thus be a mechanism to allow for infinite-order
@@ -267,19 +271,23 @@ impl fmt::Display for SymmetryElementKind {
 /// floating-point number $`\phi`$.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct SymmetryElement {
-    /// The rotational order $`n`$ of the proper rotation part of the symmetry element. This can be
-    /// finite or infinite, and will determine whether the proper power is `None` or
+    /// The rotational order $`n`$ of the unitary proper rotation part of the symmetry element. This
+    /// can be finite or infinite, and will determine whether the proper power is `None` or
     /// contains an integer value.
     #[builder(setter(name = "proper_order"))]
     raw_proper_order: ElementOrder,
 
-    /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ of the proper symmetry element such that
-    /// $`\lfloor -n/2 \rfloor < k <= \lfloor n/2 \rfloor`$. This is only defined if
-    /// the proper order is finite.
+    /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ of the unitary proper rotation part of the
+    /// symmetry element such that $`\lfloor -n/2 \rfloor < k <= \lfloor n/2 \rfloor`$. This is only
+    /// defined if [`Self::raw_proper_order`] is finite.
+    ///
+    /// The unitary proper rotation does not include any additional unitary rotations introduced by
+    /// the antiunitary part of the symmetry element (*e.g.* time reversal).
     #[builder(setter(custom, name = "proper_power"), default = "None")]
     raw_proper_power: Option<i32>,
 
-    /// The normalised axis of the symmetry element whose direction is as specified at construction.
+    /// The normalised axis of the unitary proper rotation part of the symmetry element whose
+    /// direction is as specified at construction.
     #[builder(setter(custom))]
     raw_axis: Vector3<f64>,
 
@@ -287,8 +295,8 @@ pub struct SymmetryElement {
     #[builder(default = "SymmetryElementKind::Proper(None)")]
     kind: SymmetryElementKind,
 
-    /// The rotation group in which the proper rotation part of the symmetry element shall be
-    /// interpreted.
+    /// The rotation group in which the unitary proper rotation part of the symmetry element shall
+    /// be interpreted.
     rotation_group: RotationGroup,
 
     /// A boolean indicating whether the symmetry element is a generator of the group to which it
@@ -308,14 +316,21 @@ pub struct SymmetryElement {
     #[builder(default = "String::new()")]
     pub(crate) additional_subscript: String,
 
-    /// The fraction $`k/n \in (-1/2, 1/2]`$ of the proper rotation, represented exactly
+    /// The fraction $`k/n \in (-1/2, 1/2]`$ of the unitary proper rotation, represented exactly
     /// for hashing and comparison purposes.
+    ///
+    /// The unitary proper rotation does not include any additional unitary rotations introduced by
+    /// the antiunitary part of the symmetry element (*e.g.* time reversal).
     ///
     /// This is not defined for infinite-order elements and cannot be set arbitrarily.
     #[builder(setter(skip), default = "self.calc_proper_fraction()")]
     proper_fraction: Option<F>,
 
-    /// The normalised proper angle $`\phi \in (-\pi, \pi]`$ corresponding to the proper rotation.
+    /// The normalised proper angle $`\phi \in (-\pi, \pi]`$ corresponding to the unitary proper
+    /// rotation.
+    ///
+    /// The unitary proper rotation does not include any additional unitary rotations introduced by
+    /// the antiunitary part of the symmetry element (*e.g.* time reversal).
     ///
     /// This can be set arbitrarily only for infinite-order elements.
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
@@ -323,7 +338,7 @@ pub struct SymmetryElement {
 }
 
 impl SymmetryElementBuilder {
-    /// Sets the proper power of the element.
+    /// Sets the power of the unitary proper rotation part of the element.
     ///
     /// # Arguments
     ///
@@ -350,7 +365,7 @@ impl SymmetryElementBuilder {
         self
     }
 
-    /// Sets the proper rotation angle of the infinite-order element.
+    /// Sets the rotation angle of the unitary proper rotation part of the infinite-order element.
     ///
     /// # Arguments
     ///
@@ -414,6 +429,13 @@ impl SymmetryElementBuilder {
         self
     }
 
+    /// Calculates the fraction $`k/n \in (-1/2, 1/2]`$ of the unitary proper rotation, represented
+    /// exactly for hashing and comparison purposes.
+    ///
+    /// The unitary proper rotation does not include any additional unitary rotations introduced by
+    /// the antiunitary part of the symmetry element (*e.g.* time reversal).
+    ///
+    /// This is not defined for infinite-order elements and cannot be set arbitrarily.
     fn calc_proper_fraction(&self) -> Option<F> {
         let raw_proper_order = self
             .raw_proper_order
@@ -450,6 +472,13 @@ impl SymmetryElementBuilder {
         }
     }
 
+    /// Calculates the normalised proper angle $`\phi \in (-\pi, \pi]`$ corresponding to the unitary
+    /// proper rotation.
+    ///
+    /// The unitary proper rotation does not include any additional unitary rotations introduced by
+    /// the antiunitary part of the symmetry element (*e.g.* time reversal).
+    ///
+    /// This can be set arbitrarily only for infinite-order elements.
     fn calc_proper_angle(&self) -> Option<f64> {
         let raw_proper_order = self
             .raw_proper_order
@@ -490,30 +519,30 @@ impl SymmetryElement {
         SymmetryElementBuilder::default()
     }
 
-    /// Returns the raw order of the proper rotation. This might not be equal to the value of $`n`$
-    /// if the fraction $`k/n`$ has been reduced.
+    /// Returns the raw order of the unitary proper rotation. This might not be equal to the value of
+    /// $`n`$ if the fraction $`k/n`$ has been reduced.
     pub fn raw_proper_order(&self) -> &ElementOrder {
         &self.raw_proper_order
     }
 
-    /// Returns the raw power of the proper rotation. This might not be equal to the value of $`k`$
-    /// if the fraction $`k/n`$ has been reduced.
+    /// Returns the raw power of the unitary proper rotation. This might not be equal to the value of
+    /// $`k`$ if the fraction $`k/n`$ has been reduced.
     pub fn raw_proper_power(&self) -> Option<&i32> {
         self.raw_proper_power.as_ref()
     }
 
-    /// Returns the raw axis of the proper rotation.
+    /// Returns the raw axis of the unitary proper rotation.
     pub fn raw_axis(&self) -> &Vector3<f64> {
         &self.raw_axis
     }
 
-    /// Returns the axis of the proper rotation in the standard positive hemisphere.
+    /// Returns the axis of the unitary proper rotation in the standard positive hemisphere.
     pub fn standard_positive_axis(&self) -> Vector3<f64> {
         geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
     }
 
-    /// Returns the axis of the proper rotation multiplied by the sign of the rotation angle. If
-    /// the proper rotation is a binary rotation, then the positive axis is always returned.
+    /// Returns the axis of the unitary proper rotation multiplied by the sign of the rotation angle.
+    /// If the proper rotation is a binary rotation, then the positive axis is always returned.
     pub fn signed_axis(&self) -> Vector3<f64> {
         let au = self.contains_antiunitary();
         if self.is_o3_binary_rotation_axis(au) || self.is_o3_mirror_plane(au) {
@@ -533,10 +562,10 @@ impl SymmetryElement {
         }
     }
 
-    /// Returns the pole of the proper rotation part of the element while leaving any improper and
-    /// antiunitary contributions intact.
+    /// Returns the pole of the unitary proper rotation part of the element while leaving any improper
+    /// and antiunitary contributions intact.
     ///
-    /// If the proper rotation part if a binary rotation, the pole is always in the standard
+    /// If the unitary proper rotation part if a binary rotation, the pole is always in the standard
     /// positive hemisphere.
     ///
     /// # Returns
@@ -588,17 +617,17 @@ impl SymmetryElement {
         }
     }
 
-    /// Returns the proper fraction for this element, if any.
+    /// Returns the unitary proper fraction for this element, if any.
     ///
-    /// The element lacks a proper fraction if it is infinite-order.
+    /// The element lacks a unitary proper fraction if it is infinite-order.
     pub fn proper_fraction(&self) -> Option<&F> {
         self.proper_fraction.as_ref()
     }
 
-    /// Returns the proper angle for this element, if any.
+    /// Returns the unitary proper angle for this element, if any.
     ///
-    /// The element lacks a proper angle if it is infinite-order and the rotation angle has not
-    /// been set.
+    /// The element lacks a unitary proper angle if it is infinite-order and the rotation angle has
+    /// not been set.
     pub fn proper_angle(&self) -> Option<f64> {
         self.proper_angle
     }
@@ -649,14 +678,14 @@ impl SymmetryElement {
         }
     }
 
-    /// Checks if the proper rotation part of the element is in $`\mathsf{SU}(2)`$.
+    /// Checks if the unitary proper rotation part of the element is in $`\mathsf{SU}(2)`$.
     #[must_use]
     pub fn is_su2(&self) -> bool {
         self.rotation_group.is_su2()
     }
 
-    /// Checks if the proper rotation part of the element is in $`\mathsf{SU}(2)`$ and connected to
-    /// the identity via a homotopy path of class 1.
+    /// Checks if the unitary proper rotation part of the element is in $`\mathsf{SU}(2)`$ and
+    /// connected to the identity via a homotopy path of class 1.
     ///
     /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover Publications, Inc., New
     /// York, 2005) for further information.
@@ -667,6 +696,9 @@ impl SymmetryElement {
 
     /// Checks if the spatial part of the symmetry element is proper and has the specified
     /// antiunitary attribute.
+    ///
+    /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is proper,
+    /// and if $`\hat{\alpha}`$ is as specified by `au`.
     ///
     /// # Arguments
     ///
@@ -684,6 +716,9 @@ impl SymmetryElement {
     /// Checks if the symmetry element is spatially an identity element and has the specified
     /// antiunitary attribute.
     ///
+    /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is the
+    /// identity, and if $`\hat{\alpha}`$ is as specified by `au`.
+    ///
     /// # Arguments
     ///
     /// * `au` - An `Option` for the desired antiunitary kind.
@@ -700,11 +735,7 @@ impl SymmetryElement {
                 .map(|frac| frac.is_zero())
                 .or_else(|| {
                     self.proper_angle.map(|proper_angle| {
-                        approx::abs_diff_eq!(
-                            proper_angle,
-                            0.0,
-                            epsilon = self.threshold,
-                        )
+                        approx::abs_diff_eq!(proper_angle, 0.0, epsilon = self.threshold,)
                     })
                 })
                 .unwrap_or(false)
@@ -713,14 +744,17 @@ impl SymmetryElement {
     /// Checks if the symmetry element is spatially an inversion centre and has the specified
     /// antiunitary attribute.
     ///
+    /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is the
+    /// spatial inversion, and if $`\hat{\alpha}`$ is as specified by `au`.
+    ///
     /// # Arguments
     ///
     /// * `au` - An `Option` for the desired antiunitary kind.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if this symmetry element is an inversion centre and has the specified
-    /// antiunitary attribute.
+    /// A boolean indicating if this symmetry element is spatially an inversion centre and has the
+    /// specified antiunitary attribute.
     #[must_use]
     pub fn is_o3_inversion_centre(&self, au: Option<AntiunitaryKind>) -> bool {
         match self.kind {
@@ -747,11 +781,7 @@ impl SymmetryElement {
                         .map(|frac| frac.is_zero())
                         .or_else(|| {
                             self.proper_angle.map(|proper_angle| {
-                                approx::abs_diff_eq!(
-                                    proper_angle,
-                                    0.0,
-                                    epsilon = self.threshold,
-                                )
+                                approx::abs_diff_eq!(proper_angle, 0.0, epsilon = self.threshold,)
                             })
                         })
                         .unwrap_or(false)
@@ -762,6 +792,9 @@ impl SymmetryElement {
 
     /// Checks if the symmetry element is spatially a binary rotation axis and has the specified
     /// antiunitary attribute.
+    ///
+    /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is a binary
+    /// rotation, and if $`\hat{\alpha}`$ is as specified by `au`.
     ///
     /// # Arguments
     ///
@@ -792,6 +825,9 @@ impl SymmetryElement {
     /// Checks if the symmetry element is spatially a mirror plane and has the specified
     /// antiunitary attribute.
     ///
+    /// More specifically, this checks if the combination $`\hat{\gamma} \hat{C}_n^k`$ is a
+    /// reflection, and if $`\hat{\alpha}`$ is as specified by `au`.
+    ///
     /// # Arguments
     ///
     /// * `au` - An `Option` for the desired antiunitary kind.
@@ -810,11 +846,7 @@ impl SymmetryElement {
                         .map(|frac| frac.is_zero())
                         .or_else(|| {
                             self.proper_angle.map(|proper_angle| {
-                                approx::abs_diff_eq!(
-                                    proper_angle,
-                                    0.0,
-                                    epsilon = self.threshold,
-                                )
+                                approx::abs_diff_eq!(proper_angle, 0.0, epsilon = self.threshold,)
                             })
                         })
                         .unwrap_or(false)
@@ -1214,7 +1246,7 @@ impl SymmetryElement {
 
     /// Returns a copy of the current improper symmetry element that has been converted to the
     /// required improper kind. For $`\mathsf{SU}'(2)`$ elements, the conversion will be carried
-    /// out in the same homotopy class.
+    /// out in the same homotopy class. The antiunitary part will be kept unchanged.
     ///
     /// To convert between the two improper kinds, we essentially seek integers
     /// $`n, n' \in \mathbb{N}_{+}`$ and $`k \in \mathbb{Z}/n\mathbb{Z}`$,

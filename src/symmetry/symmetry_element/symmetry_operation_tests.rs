@@ -8783,7 +8783,10 @@ fn test_symmetry_operation_su2_noncoaxial_composition_wigner_matrix() {
 }
 
 #[test]
-fn test_symmetry_operation_time_reversal() {
+fn test_symmetry_operation_time_reversal_composition_wigner_matrix() {
+    // ----------
+    // C2x & θC2x
+    // ----------
     let tc2x_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -8793,37 +8796,86 @@ fn test_symmetry_operation_time_reversal() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-
     let tc2x = SymmetryOperation::builder()
         .generating_element(tc2x_element)
         .power(1)
         .build()
         .unwrap();
+    let tc2x_su2 = tc2x.to_su2_class_0();
     assert_eq!(tc2x.order(), 2);
     assert!(tc2x.contains_time_reversal());
     assert!((&tc2x * &tc2x).is_identity());
 
+    // -----------
+    // θC2x ⋅ θC2x
+    // -----------
+    // From Table 8-6.2 of Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+    // Publications, Inc., 2005), in SU(2), C2x ⋅ C2x = E(QΣ), so θC2x ⋅ θC2x = E(Σ). Note that
+    // since θC2x is antiunitary, corepresentation theory is required.
     assert!(tc2x.get_wigner_matrix(1, true).is_err());
-    println!("{}", &tc2x.to_su2_class_0().get_wigner_matrix(1, true).unwrap());
-
-    println!("{}", &tc2x.to_su2_class_0() * &tc2x.to_su2_class_0());
-    // assert_close_l2!(
-    //     &(&tc2x.to_su2_class_0())
-    //         .get_wigner_matrix(1, true)
-    //         .unwrap()
-    //         .dot(&tc2x.to_su2_class_0().get_wigner_matrix(1, true).unwrap()),
-    //     &(Array2::<Complex64>::eye(2)),
-    //     1e-14
-    // );
     assert_close_l2!(
-        &(&tc2x)
+        &tc2x_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
             .get_wigner_matrix(2, true)
             .unwrap()
-            .dot(&tc2x.get_wigner_matrix(2, true).unwrap()),
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
         &(Array2::<Complex64>::eye(3)),
         1e-14
     );
 
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(4, true).unwrap().map(|x| x.conj())),
+        &(Array2::<Complex64>::eye(5)),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(4, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(4, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(5)),
+        1e-14
+    );
+
+    // ----------
+    // θC2x ⋅ C2x
+    // ----------
     let c2x_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -8838,16 +8890,155 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let c2x_su2 = c2x.to_su2_class_0();
     assert!(!c2x.contains_time_reversal());
-    println!("{}", &c2x.to_su2_class_0().get_wigner_matrix(1, true).unwrap());
 
     let t = &tc2x * &c2x;
+    let t_su2 = t.to_su2_class_0();
     assert_eq!(t.order(), 2);
     assert!(t.contains_time_reversal());
     assert!(!t.is_identity());
     assert!(t.is_time_reversal());
     assert!((&t * &t).is_identity());
 
+    let t_su2_qe = &tc2x_su2 * &c2x_su2;
+    assert_eq!(t_su2_qe.order(), 4);
+    assert!(t_su2_qe.contains_time_reversal());
+    assert!(!t_su2_qe.is_identity());
+    assert!(!t_su2_qe.is_time_reversal());
+    assert!(!(&t_su2_qe * &t_su2_qe).is_identity());
+
+    assert!(c2x.get_wigner_matrix(1, true).is_err());
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2x.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &t.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&c2x.get_wigner_matrix(4, true).unwrap().map(|x| x.conj())),
+        &t.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(4, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(4, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2x ⋅ θC2x
+    // ----------
+    let t2 = &c2x * &tc2x;
+    assert_eq!(t2.order(), 2);
+    assert!(t2.contains_time_reversal());
+    assert!(!t2.is_identity());
+    assert!(t2.is_time_reversal());
+    assert!((&t2 * &t2).is_identity());
+
+    let t2_su2_qe = &c2x_su2 * &tc2x_su2;
+    assert_eq!(t2_su2_qe.order(), 4);
+    assert!(t2_su2_qe.contains_time_reversal());
+    assert!(!t2_su2_qe.is_identity());
+    assert!(!t2_su2_qe.is_time_reversal());
+    assert!(!(&t2_su2_qe * &t2_su2_qe).is_identity());
+
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(1, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &c2x.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap()),
+        &t2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(2, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(3, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &c2x.get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(4, true).unwrap()),
+        &t2.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(4, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2y & θC2y
+    // ----------
     let tc2y_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -8863,6 +9054,7 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let tc2y_su2 = tc2y.to_su2_class_0();
 
     let c2y_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -8878,17 +9070,251 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let c2y_su2 = c2y.to_su2_class_0();
+    let c2y_su2_qe = c2y.to_su2_class_0().pow(3);
 
     assert_eq!(tc2y.order(), 2);
     assert_eq!(c2y.order(), 2);
+
+    // -------
+    // θ ⋅ C2y
+    // -------
     assert_eq!(&t * &c2y, tc2y);
+    assert_eq!(&t_su2 * &c2y_su2, tc2y_su2);
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &c2y_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc2y_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2y.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &tc2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &c2y_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc2y_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // -------
+    // C2y ⋅ θ
+    // -------
     assert_eq!(&c2y * &t, tc2y);
+    assert_eq!(&c2y_su2 * &t_su2, tc2y_su2);
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap()),
+        &tc2y_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap()),
+        &tc2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap()),
+        &tc2y_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // --------
+    // θ ⋅ θC2y
+    // --------
     assert_eq!(&t * &tc2y, c2y);
+    assert_eq!(&t_su2 * &tc2y_su2, c2y_su2_qe);
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2y_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2y_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2y.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &tc2y_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2y_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // --------
+    // θC2y ⋅ θ
+    // --------
     assert_eq!(&tc2y * &t, c2y);
+    assert_eq!(&tc2y_su2 * &t_su2, c2y_su2_qe);
+    assert_close_l2!(
+        &tc2y_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap().map(|x| x.conj())),
+        &c2y_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2y_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2z & θC2z
+    // ----------
+    let tc2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let tc2z = SymmetryOperation::builder()
+        .generating_element(tc2z_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let c2z = SymmetryOperation::builder()
+        .generating_element(c2z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c2z_su2 = c2z.to_su2_class_0();
+    let c2z_su2_qe = c2z.to_su2_class_0().pow(3);
+    let tc2z_su2_qe = &t_su2 * &c2z_su2_qe;
+
+    // -----------
+    // θC2y ⋅ θC2x
+    // -----------
     assert!(!(&tc2y * &tc2x).contains_time_reversal());
+    assert_eq!(&tc2y * &tc2x, c2z);
+    assert_eq!(&tc2y_su2 * &tc2x_su2, c2z_su2);
+    assert_close_l2!(
+        &tc2y_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2z_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2z_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2y ⋅ θC2x
+    // ----------
     assert!((&c2y * &tc2x).contains_time_reversal());
     assert!(!(&c2y * &tc2x).is_time_reversal());
+    assert_eq!(&c2y * &tc2x, tc2z);
+    assert_eq!(&c2y_su2 * &tc2x_su2, tc2z_su2_qe);
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(1, true).unwrap()),
+        &tc2z_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap()),
+        &tc2z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(2, true).unwrap()),
+        &tc2z_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(3, true).unwrap()),
+        &tc2z_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
 
+    // --------
+    // Ṡ1 & θṠ1
+    // --------
     let sd1_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
@@ -8904,6 +9330,7 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let sd1_su2 = sd1.to_su2_class_0();
     assert_eq!(sd1.order(), 2);
     assert!(!sd1.contains_time_reversal());
 
@@ -8922,12 +9349,101 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let tsd1_su2 = tsd1.to_su2_class_0();
     assert_eq!(tsd1.order(), 2);
     assert!(tsd1.contains_time_reversal());
     assert!(!tsd1.is_inversion());
     assert!(!tsd1.is_identity());
+
+    // --------
+    // θṠ1 ⋅ Ṡ1
+    // --------
     assert!((&tsd1 * &sd1).is_time_reversal());
-    assert!((&tsd1 * &t).is_inversion());
+    assert!((&tsd1_su2 * &sd1_su2).is_time_reversal());
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &sd1_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&sd1.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &t.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &sd1_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &sd1_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    // -------
+    // θṠ1 ⋅ θ
+    // -------
+    let inv = &tsd1 * &t;
+    let inv_su2_qe = &tsd1_su2 * &t_su2;
+    assert!(inv.is_inversion());
+    assert!(inv_su2_qe.is_su2_class_1());
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &t_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &inv_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &inv.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &t_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &inv_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &t_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &inv_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
 }
 
 #[test]
