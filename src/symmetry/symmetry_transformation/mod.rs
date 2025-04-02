@@ -664,7 +664,8 @@ pub fn assemble_sh_rotation_3d_matrices(
     rmats_res
 }
 
-/// Assembles spinor rotation matrices for all shells.
+/// Assembles spinor rotation matrices for all shells, which also include the unitary part of time
+/// reversal, if any.
 ///
 /// # Arguments
 ///

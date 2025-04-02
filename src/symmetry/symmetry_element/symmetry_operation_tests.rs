@@ -7,11 +7,10 @@ use std::collections::HashSet;
 
 use crate::auxiliary::geometry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
+    ElementOrder, FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
-    TRROT, TRSIG,
+    RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV, TRROT, TRSIG,
 };
 
 #[test]
@@ -9312,6 +9311,107 @@ fn test_symmetry_operation_time_reversal_composition_wigner_matrix() {
         1e-14
     );
 
+    // ----------
+    // C3z & θC3z
+    // ----------
+    let tc3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let tc3z = SymmetryOperation::builder()
+        .generating_element(tc3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let tc3z_su2 = tc3z.to_su2_class_0();
+
+    let c3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let c3z = SymmetryOperation::builder()
+        .generating_element(c3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c3z_su2 = c3z.to_su2_class_0();
+
+    assert_eq!(tc3z.order(), 6);
+    assert_eq!(c3z.order(), 3);
+
+    // -------
+    // θ ⋅ C3z
+    // -------
+    assert_eq!(&t * &c3z, tc3z);
+    assert_eq!(&t_su2 * &c3z_su2, tc3z_su2);
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &c3z_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc3z_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3z.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &tc3z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &c3z_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc3z_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // -------
+    // C3z ⋅ θ
+    // -------
+    assert_eq!(&c3z * &t, tc3z);
+    assert_eq!(&c3z_su2 * &t_su2, tc3z_su2);
+    assert_close_l2!(
+        &c3z_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap()),
+        &tc3z_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c3z.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap()),
+        &tc3z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c3z_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap()),
+        &tc3z_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
     // --------
     // Ṡ1 & θṠ1
     // --------
@@ -9407,12 +9507,10 @@ fn test_symmetry_operation_time_reversal_composition_wigner_matrix() {
     assert!(inv.is_inversion());
     assert!(inv_su2_qe.is_su2_class_1());
     assert_close_l2!(
-        &tsd1_su2.get_wigner_matrix(1, true).unwrap().dot(
-            &t_su2
-                .get_wigner_matrix(1, true)
-                .unwrap()
-                .map(|x| x.conj())
-        ),
+        &tsd1_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap().map(|x| x.conj())),
         &inv_su2_qe.get_wigner_matrix(1, true).unwrap(),
         1e-14
     );
@@ -9425,22 +9523,18 @@ fn test_symmetry_operation_time_reversal_composition_wigner_matrix() {
         1e-14
     );
     assert_close_l2!(
-        &tsd1_su2.get_wigner_matrix(2, true).unwrap().dot(
-            &t_su2
-                .get_wigner_matrix(2, true)
-                .unwrap()
-                .map(|x| x.conj())
-        ),
+        &tsd1_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
         &inv_su2_qe.get_wigner_matrix(2, true).unwrap(),
         1e-14
     );
     assert_close_l2!(
-        &tsd1_su2.get_wigner_matrix(3, true).unwrap().dot(
-            &t_su2
-                .get_wigner_matrix(3, true)
-                .unwrap()
-                .map(|x| x.conj())
-        ),
+        &tsd1_su2
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(3, true).unwrap().map(|x| x.conj())),
         &inv_su2_qe.get_wigner_matrix(3, true).unwrap(),
         1e-14
     );

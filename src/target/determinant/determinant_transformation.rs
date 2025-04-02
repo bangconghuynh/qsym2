@@ -574,22 +574,22 @@ where
 // -------------------------
 impl<'a> TimeReversalTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled> {
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
-        let tc2y_element = SymmetryElement::builder()
+        let t_element = SymmetryElement::builder()
             .threshold(1e-12)
-            .proper_order(ElementOrder::Int(2))
+            .proper_order(ElementOrder::Int(1))
             .proper_power(1)
-            .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+            .raw_axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(TRROT)
             .rotation_group(RotationGroup::SU2(true))
             .build()
             .unwrap();
-        let tc2y = SymmetryOperation::builder()
-            .generating_element(tc2y_element)
+        let t = SymmetryOperation::builder()
+            .generating_element(t_element)
             .power(1)
             .build()
             .unwrap();
         let tmats: Vec<Array2<Complex<f64>>> =
-            assemble_spinor_rotation_matrices(self.bao, &tc2y, None)
+            assemble_spinor_rotation_matrices(self.bao, &t, None)
                 .map_err(|err| TransformationError(err.to_string()))?
                 .iter()
                 .map(|tmat| tmat.map(|&x| x.into()))
@@ -638,6 +638,8 @@ impl<'a> TimeReversalTransformable for SlaterDeterminant<'a, Complex<f64>, SpinO
             })
             .collect::<Vec<Array2<Complex<f64>>>>();
         self.coefficients = new_coefficients;
+
+        self.transform_cc_mut()?;
         Ok(self)
     }
 }
@@ -689,6 +691,15 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
                 .map(|tmat| tmat.map(|&x| x.into()))
                 .collect();
 
+        // Time reversal, if any.
+        if symop.contains_time_reversal() {
+            // The unitary part of time reversal has already been included in the `tmats` generated
+            // by `assemble_spinor_rotation_matrices`. We therefore only need to take care of the
+            // complex conjugation of the coefficients. This must be done before the transformation
+            // matrices are applied.
+            self.transform_cc_mut()?;
+        }
+
         let new_coefficients = self
             .coefficients
             .iter()
@@ -736,10 +747,6 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
             .collect::<Vec<Array2<Complex<f64>>>>();
         self.coefficients = new_coefficients;
 
-        // Time reversal, if any.
-        if symop.contains_time_reversal() {
-            self.transform_timerev_mut()?;
-        }
         Ok(self)
     }
 }

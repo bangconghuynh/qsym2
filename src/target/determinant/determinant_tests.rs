@@ -17,6 +17,12 @@ use crate::basis::ao::{
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
+use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
+use crate::symmetry::symmetry_element::{
+    RotationGroup, SpecialSymmetryTransformation, SymmetryElement, INV, ROT, SIG, SO3, SU2_0,
+    SU2_1, TRINV, TRROT, TRSIG,
+};
+use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
 use crate::symmetry::symmetry_transformation::{
@@ -895,6 +901,163 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
 }
 
 #[test]
+fn test_determinant_transformation_h_jadapted() {
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1half.clone()]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+    let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
+
+    #[rustfmt::skip]
+    let c = array![
+        [Complex::new(1.0, 1.0)],
+        [Complex::new(2.0, 2.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ.clone()])
+        .bao(&bao_h)
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // -
+    // θ
+    // -
+    let t_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let t_su2 = SymmetryOperation::builder()
+        .generating_element(t_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_t = det.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_t2 = det.transform_timerev().unwrap();
+    assert_eq!(tdet_t, tdet_t2);
+    #[rustfmt::skip]
+    let tdet_t_c0_ref = array![
+        [Complex::new(2.0, -2.0)],
+        [Complex::new(-1.0, 1.0)],
+    ];
+    assert_close_l2!(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
+
+    // ---
+    // C2y
+    // ---
+    let c2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2y_su2 = SymmetryOperation::builder()
+        .generating_element(c2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_c2y = det.sym_transform_spin_spatial(&c2y_su2).unwrap();
+    #[rustfmt::skip]
+    let tdet_c2y_c0_ref = array![
+        [Complex::new(2.0, 2.0)],
+        [Complex::new(-1.0, -1.0)],
+    ];
+    assert_close_l2!(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
+
+    // -------
+    // θ ⋅ C2y
+    // -------
+    let tdet_c2y_t = tdet_c2y.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_tc2y = det
+        .sym_transform_spin_spatial(&(&t_su2 * &c2y_su2))
+        .unwrap();
+    assert_eq!(tdet_c2y_t, tdet_tc2y);
+    #[rustfmt::skip]
+    let tdet_c2y_t_c0_ref = array![
+        [Complex::new(-1.0, 1.0)],
+        [Complex::new(-2.0, 2.0)],
+    ];
+    assert_close_l2!(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
+
+    // -------
+    // C2y ⋅ θ
+    // -------
+    let tdet_t_c2y = tdet_t.sym_transform_spin_spatial(&c2y_su2).unwrap();
+    let tdet_c2yt = det
+        .sym_transform_spin_spatial(&(&c2y_su2 * &t_su2))
+        .unwrap();
+    assert_eq!(tdet_t_c2y, tdet_c2yt);
+    #[rustfmt::skip]
+    let tdet_t_c2y_c0_ref = array![
+        [Complex::new(-1.0, 1.0)],
+        [Complex::new(-2.0, 2.0)],
+    ];
+    assert_close_l2!(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
+
+    // ---
+    // C3z
+    // ---
+    let c3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c3z_su2 = SymmetryOperation::builder()
+        .generating_element(c3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_c3z = det.sym_transform_spin_spatial(&c3z_su2).unwrap();
+    #[rustfmt::skip]
+    let pi3 = std::f64::consts::FRAC_PI_3;
+    let tdet_c3z_c0_ref = array![
+        [Complex::new(1.0, 1.0) * Complex::new(pi3.cos(), pi3.sin())],
+        [Complex::new(2.0, 2.0) * Complex::new(pi3.cos(), -pi3.sin())],
+    ];
+    assert_close_l2!(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
+
+    // -------
+    // θ ⋅ C3z
+    // -------
+    let tdet_c3z_t = tdet_c3z.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tc3z_su2 = &t_su2 * &c3z_su2;
+    println!("{t_su2} * {c3z_su2} = {tc3z_su2}");
+    println!("{}\n", c3z_su2.get_wigner_matrix(1, true).unwrap());
+    println!("{}\n", tc3z_su2.get_wigner_matrix(1, true).unwrap());
+
+    let tdet_tc3z = det
+        .sym_transform_spin_spatial(&(&t_su2 * &c3z_su2))
+        .unwrap();
+    println!("{}", tdet_c3z_t.coefficients()[0]);
+    println!("{}", tdet_tc3z.coefficients()[0]);
+    assert_eq!(tdet_c3z_t, tdet_tc3z);
+}
+
+#[test]
 fn test_determinant_transformation_bf4_sqpl_jadapted() {
     // env_logger::init();
     let emap = ElementMap::new();
@@ -953,12 +1116,81 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false).unwrap();
+    sym.analyse(&presym, true).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
         .unwrap()
         .to_double_group()
         .unwrap();
 
+    // Group elements:
+    //  0 - E(Σ)
+    //  1 - E(QΣ)
+    //  2 - C4(Σ)(+0.000, +0.000, +1.000)
+    //  3 - C4(QΣ)(+0.000, +0.000, +1.000)
+    //  4 - C4(Σ)(+0.000, +0.000, -1.000)
+    //  5 - C4(QΣ)(+0.000, +0.000, -1.000)
+    //  6 - C2(Σ)(+0.000, +0.000, +1.000)
+    //  7 - C2(QΣ)(+0.000, +0.000, +1.000)
+    //  8 - C2(Σ)(+0.000, +1.000, +0.000)
+    //  9 - C2(QΣ)(+0.000, +1.000, +0.000)
+    // 10 - C2(Σ)(+1.000, +0.000, +0.000)
+    // 11 - C2(QΣ)(+1.000, +0.000, +0.000)
+    // 12 - C2(Σ)(+0.707, +0.707, +0.000)
+    // 13 - C2(Σ)(+0.707, -0.707, +0.000)
+    // 14 - C2(QΣ)(+0.707, +0.707, +0.000)
+    // 15 - C2(QΣ)(+0.707, -0.707, +0.000)
+    // 16 - i(Σ)
+    // 17 - i(QΣ)
+    // 18 - S4(Σ)(+0.000, +0.000, +1.000)
+    // 19 - S4(QΣ)(+0.000, +0.000, +1.000)
+    // 20 - S4(Σ)(+0.000, +0.000, -1.000)
+    // 21 - S4(QΣ)(+0.000, +0.000, -1.000)
+    // 22 - σh(Σ)(+0.000, +0.000, +1.000)
+    // 23 - σh(QΣ)(+0.000, +0.000, +1.000)
+    // 24 - σv(Σ)(+0.000, +1.000, +0.000)
+    // 25 - σv(QΣ)(+0.000, +1.000, +0.000)
+    // 26 - σv(Σ)(+1.000, +0.000, +0.000)
+    // 27 - σv(QΣ)(+1.000, +0.000, +0.000)
+    // 28 - σv(Σ)(+0.707, +0.707, +0.000)
+    // 29 - σv(Σ)(+0.707, -0.707, +0.000)
+    // 30 - σv(QΣ)(+0.707, +0.707, +0.000)
+    // 31 - σv(QΣ)(+0.707, -0.707, +0.000)
+    // 32 - θ(Σ)
+    // 33 - θ(QΣ)
+    // 34 - θ·C4(Σ)(+0.000, +0.000, +1.000)
+    // 35 - θ·C4(QΣ)(+0.000, +0.000, +1.000)
+    // 36 - [θ·C4(Σ)(+0.000, +0.000, +1.000)]^3
+    // 37 - θ·C4(QΣ)(+0.000, +0.000, -1.000)
+    // 38 - θ·C2(Σ)(+0.000, +0.000, +1.000)
+    // 39 - θ·C2(QΣ)(+0.000, +0.000, +1.000)
+    // 40 - θ·C2(Σ)(+0.000, +1.000, +0.000)
+    // 41 - θ·C2(QΣ)(+0.000, +1.000, +0.000)
+    // 42 - θ·C2(Σ)(+1.000, +0.000, +0.000)
+    // 43 - θ·C2(QΣ)(+1.000, +0.000, +0.000)
+    // 44 - θ·C2(Σ)(+0.707, +0.707, +0.000)
+    // 45 - θ·C2(Σ)(+0.707, -0.707, +0.000)
+    // 46 - θ·C2(QΣ)(+0.707, +0.707, +0.000)
+    // 47 - θ·C2(QΣ)(+0.707, -0.707, +0.000)
+    // 48 - θ·i(Σ)
+    // 49 - θ·i(QΣ)
+    // 50 - θ·S4(Σ)(+0.000, +0.000, +1.000)
+    // 51 - θ·S4(QΣ)(+0.000, +0.000, +1.000)
+    // 52 - [θ·S4(Σ)(+0.000, +0.000, +1.000)]^3
+    // 53 - θ·S4(QΣ)(+0.000, +0.000, -1.000)
+    // 54 - θ·σh(Σ)(+0.000, +0.000, +1.000)
+    // 55 - θ·σh(QΣ)(+0.000, +0.000, +1.000)
+    // 56 - θ·σv(Σ)(+0.000, +1.000, +0.000)
+    // 57 - θ·σv(QΣ)(+0.000, +1.000, +0.000)
+    // 58 - θ·σv(Σ)(+1.000, +0.000, +0.000)
+    // 59 - θ·σv(QΣ)(+1.000, +0.000, +0.000)
+    // 60 - θ·σv(Σ)(+0.707, +0.707, +0.000)
+    // 61 - θ·σv(Σ)(+0.707, -0.707, +0.000)
+    // 62 - θ·σv(QΣ)(+0.707, +0.707, +0.000)
+    // 63 - θ·σv(QΣ)(+0.707, -0.707, +0.000)
+
+    // -------------------------------
+    // Explicit reference coefficients
+    // -------------------------------
     let c4p1_nsr = group.get_index(2).unwrap();
     assert!(det.sym_transform_spatial(&c4p1_nsr).is_err());
     let tdet_c4p1_nsr = det.sym_transform_spin_spatial(&c4p1_nsr).unwrap();
@@ -1006,13 +1238,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     assert_eq!(tdet_c4p1_isr, tdet_c4p1_isr_ref);
 
     let c4pm1_nsr = group.get_index(4).unwrap();
-    let tdet_c4pm1_nsr = det
-        .sym_transform_spin_spatial(&c4pm1_nsr)
-        .unwrap()
-        .sym_transform_spin_spatial(&c4p1_nsr)
-        .unwrap();
-    println!("{} * {} = {}", c4pm1_nsr, c4p1_nsr, &c4pm1_nsr * &c4p1_nsr);
-    println!("{}", tdet_c4pm1_nsr.coefficients()[0]);
+    let tdet_c4pm1_nsr = det.sym_transform_spin_spatial(&c4pm1_nsr).unwrap();
     #[rustfmt::skip]
     let tc_ref = array![
         [Complex::new(sqrt2inv, -sqrt2inv)], [Complex::from(0.0)], // B0β
@@ -1032,6 +1258,45 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
         .build()
         .unwrap();
     assert_eq!(tdet_c4pm1_nsr, tdet_c4pm1_nsr_ref);
+
+    let tdet_c4pm1_nsr_c4p1_nsr = det
+        .sym_transform_spin_spatial(&c4pm1_nsr)
+        .unwrap()
+        .sym_transform_spin_spatial(&c4p1_nsr)
+        .unwrap();
+    assert!((&c4p1_nsr * &c4pm1_nsr).is_identity());
+    assert_eq!(tdet_c4pm1_nsr_c4p1_nsr, det);
+
+    // --------------------------------------------------
+    // Implicit via representation/corepresentation rules
+    // --------------------------------------------------
+
+    //  4 - C4(Σ)(+0.000, +0.000, -1.000)
+    // 15 - C2(QΣ)(+0.707, -0.707, +0.000)
+    let tdet_s15_s4 = det
+        .sym_transform_spin_spatial(&group.get_index(15).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(4).unwrap())
+        .unwrap();
+    let tdet_s4s15 = det
+        .sym_transform_spin_spatial(&(group.get_index(4).unwrap() * group.get_index(15).unwrap()))
+        .unwrap();
+    assert_eq!(tdet_s15_s4, tdet_s4s15);
+
+    // 18 - S4(Σ)(+0.000, +0.000, +1.000)
+    // 32 - θ(Σ)
+    let tdet_s18_s32 = det
+        .sym_transform_spin_spatial(&group.get_index(18).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(32).unwrap())
+        .unwrap();
+    let tdet_s32s18 = det
+        .sym_transform_spin_spatial(&(group.get_index(32).unwrap() * group.get_index(18).unwrap()))
+        .unwrap();
+    println!("{}", tdet_s18_s32.coefficients()[0]);
+    println!("");
+    println!("{}", tdet_s32s18.coefficients()[0]);
+    assert_eq!(tdet_s18_s32, tdet_s32s18);
 }
 
 #[test]
