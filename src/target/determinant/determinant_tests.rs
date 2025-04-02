@@ -901,7 +901,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
 }
 
 #[test]
-fn test_determinant_transformation_h_jadapted() {
+fn test_determinant_transformation_h_jadapted_twoj_1() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
@@ -1045,16 +1045,391 @@ fn test_determinant_transformation_h_jadapted() {
     // -------
     let tdet_c3z_t = tdet_c3z.sym_transform_spin_spatial(&t_su2).unwrap();
     let tc3z_su2 = &t_su2 * &c3z_su2;
-    println!("{t_su2} * {c3z_su2} = {tc3z_su2}");
-    println!("{}\n", c3z_su2.get_wigner_matrix(1, true).unwrap());
-    println!("{}\n", tc3z_su2.get_wigner_matrix(1, true).unwrap());
-
     let tdet_tc3z = det
         .sym_transform_spin_spatial(&(&t_su2 * &c3z_su2))
         .unwrap();
-    println!("{}", tdet_c3z_t.coefficients()[0]);
-    println!("{}", tdet_tc3z.coefficients()[0]);
     assert_eq!(tdet_c3z_t, tdet_tc3z);
+    let tdet_c3z_t_c0_ref = array![
+        [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), pi3.sin())],
+        [Complex::new(-1.0, 1.0) * Complex::new(pi3.cos(), -pi3.sin())],
+    ];
+    assert_close_l2!(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
+
+    // -------
+    // C3z ⋅ θ
+    // -------
+    let tdet_t_c3z = tdet_t.sym_transform_spin_spatial(&c3z_su2).unwrap();
+    let tdet_c3zt = det
+        .sym_transform_spin_spatial(&(&c3z_su2 * &t_su2))
+        .unwrap();
+    assert_eq!(tdet_t_c3z, tdet_c3zt);
+    let tdet_t_c3z_c0_ref = array![
+        [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), pi3.sin())],
+        [Complex::new(-1.0, 1.0) * Complex::new(pi3.cos(), -pi3.sin())],
+    ];
+    assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
+}
+
+#[test]
+fn test_determinant_transformation_h_jadapted_twoj_2() {
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+    let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
+
+    #[rustfmt::skip]
+    let c = array![
+        [Complex::new(1.0, 1.0)],
+        [Complex::new(2.0, 2.0)],
+        [Complex::new(3.0, 3.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ.clone()])
+        .bao(&bao_h)
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // -
+    // θ
+    // -
+    let t_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let t_su2 = SymmetryOperation::builder()
+        .generating_element(t_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_t = det.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_t2 = det.transform_timerev().unwrap();
+    assert_eq!(tdet_t, tdet_t2);
+    #[rustfmt::skip]
+    let tdet_t_c0_ref = array![
+        [Complex::new(3.0, -3.0)],
+        [Complex::new(-2.0, 2.0)],
+        [Complex::new(1.0, -1.0)],
+    ];
+    assert_close_l2!(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
+
+    // ---
+    // C2y
+    // ---
+    let c2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2y_su2 = SymmetryOperation::builder()
+        .generating_element(c2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_c2y = det.sym_transform_spin_spatial(&c2y_su2).unwrap();
+    #[rustfmt::skip]
+    let tdet_c2y_c0_ref = array![
+        [Complex::new(3.0, 3.0)],
+        [Complex::new(-2.0, -2.0)],
+        [Complex::new(1.0, 1.0)],
+    ];
+    assert_close_l2!(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
+
+    // -------
+    // θ ⋅ C2y
+    // -------
+    let tdet_c2y_t = tdet_c2y.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_tc2y = det
+        .sym_transform_spin_spatial(&(&t_su2 * &c2y_su2))
+        .unwrap();
+    assert_eq!(tdet_c2y_t, tdet_tc2y);
+    #[rustfmt::skip]
+    let tdet_c2y_t_c0_ref = array![
+        [Complex::new(1.0, -1.0)],
+        [Complex::new(2.0, -2.0)],
+        [Complex::new(3.0, -3.0)],
+    ];
+    assert_close_l2!(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
+
+    // -------
+    // C2y ⋅ θ
+    // -------
+    let tdet_t_c2y = tdet_t.sym_transform_spin_spatial(&c2y_su2).unwrap();
+    let tdet_c2yt = det
+        .sym_transform_spin_spatial(&(&c2y_su2 * &t_su2))
+        .unwrap();
+    assert_eq!(tdet_t_c2y, tdet_c2yt);
+    #[rustfmt::skip]
+    let tdet_t_c2y_c0_ref = array![
+        [Complex::new(1.0, -1.0)],
+        [Complex::new(2.0, -2.0)],
+        [Complex::new(3.0, -3.0)],
+    ];
+    assert_close_l2!(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
+
+    // ---
+    // C3z
+    // ---
+    let c3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c3z_su2 = SymmetryOperation::builder()
+        .generating_element(c3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_c3z = det.sym_transform_spin_spatial(&c3z_su2).unwrap();
+    #[rustfmt::skip]
+    let pi3 = std::f64::consts::FRAC_PI_3;
+    let tdet_c3z_c0_ref = array![
+        [Complex::new(1.0, 1.0) * Complex::new(-pi3.cos(), pi3.sin())],
+        [Complex::new(2.0, 2.0)],
+        [Complex::new(3.0, 3.0) * Complex::new(-pi3.cos(), -pi3.sin())],
+    ];
+    assert_close_l2!(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
+
+    // -------
+    // θ ⋅ C3z
+    // -------
+    let tdet_c3z_t = tdet_c3z.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_tc3z = det
+        .sym_transform_spin_spatial(&(&t_su2 * &c3z_su2))
+        .unwrap();
+    assert_eq!(tdet_c3z_t, tdet_tc3z);
+    let tdet_c3z_t_c0_ref = array![
+        [Complex::new(3.0, -3.0) * Complex::new(-pi3.cos(), pi3.sin())],
+        [Complex::new(-2.0, 2.0)],
+        [Complex::new(1.0, -1.0) * Complex::new(-pi3.cos(), -pi3.sin())],
+    ];
+    assert_close_l2!(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
+
+    // -------
+    // C3z ⋅ θ
+    // -------
+    let tdet_t_c3z = tdet_t.sym_transform_spin_spatial(&c3z_su2).unwrap();
+    let tdet_c3zt = det
+        .sym_transform_spin_spatial(&(&c3z_su2 * &t_su2))
+        .unwrap();
+    assert_eq!(tdet_t_c3z, tdet_c3zt);
+    let tdet_t_c3z_c0_ref = array![
+        [Complex::new(3.0, -3.0) * Complex::new(-pi3.cos(), pi3.sin())],
+        [Complex::new(-2.0, 2.0)],
+        [Complex::new(1.0, -1.0) * Complex::new(-pi3.cos(), -pi3.sin())],
+    ];
+    assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
+}
+
+#[test]
+fn test_determinant_transformation_h_jadapted_twoj_3() {
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+    let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
+
+    #[rustfmt::skip]
+    let c = array![
+        [Complex::new(1.0, 1.0)],
+        [Complex::new(2.0, 2.0)],
+        [Complex::new(3.0, 3.0)],
+        [Complex::new(4.0, 4.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ.clone()])
+        .bao(&bao_h)
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // -
+    // θ
+    // -
+    let t_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let t_su2 = SymmetryOperation::builder()
+        .generating_element(t_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_t = det.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_t2 = det.transform_timerev().unwrap();
+    assert_eq!(tdet_t, tdet_t2);
+    #[rustfmt::skip]
+    let tdet_t_c0_ref = array![
+        [Complex::new(4.0, -4.0)],
+        [Complex::new(-3.0, 3.0)],
+        [Complex::new(2.0, -2.0)],
+        [Complex::new(-1.0, 1.0)],
+    ];
+    assert_close_l2!(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
+
+    // ---
+    // C2y
+    // ---
+    let c2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2y_su2 = SymmetryOperation::builder()
+        .generating_element(c2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_c2y = det.sym_transform_spin_spatial(&c2y_su2).unwrap();
+    #[rustfmt::skip]
+    let tdet_c2y_c0_ref = array![
+        [Complex::new(4.0, 4.0)],
+        [Complex::new(-3.0, -3.0)],
+        [Complex::new(2.0, 2.0)],
+        [Complex::new(-1.0, -1.0)],
+    ];
+    assert_close_l2!(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
+
+    // -------
+    // θ ⋅ C2y
+    // -------
+    let tdet_c2y_t = tdet_c2y.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_tc2y = det
+        .sym_transform_spin_spatial(&(&t_su2 * &c2y_su2))
+        .unwrap();
+    assert_eq!(tdet_c2y_t, tdet_tc2y);
+    #[rustfmt::skip]
+    let tdet_c2y_t_c0_ref = array![
+        [Complex::new(-1.0, 1.0)],
+        [Complex::new(-2.0, 2.0)],
+        [Complex::new(-3.0, 3.0)],
+        [Complex::new(-4.0, 4.0)],
+    ];
+    assert_close_l2!(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
+
+    // -------
+    // C2y ⋅ θ
+    // -------
+    let tdet_t_c2y = tdet_t.sym_transform_spin_spatial(&c2y_su2).unwrap();
+    let tdet_c2yt = det
+        .sym_transform_spin_spatial(&(&c2y_su2 * &t_su2))
+        .unwrap();
+    assert_eq!(tdet_t_c2y, tdet_c2yt);
+    #[rustfmt::skip]
+    let tdet_t_c2y_c0_ref = array![
+        [Complex::new(-1.0, 1.0)],
+        [Complex::new(-2.0, 2.0)],
+        [Complex::new(-3.0, 3.0)],
+        [Complex::new(-4.0, 4.0)],
+    ];
+    assert_close_l2!(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
+
+    // ---
+    // C3z
+    // ---
+    let c3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c3z_su2 = SymmetryOperation::builder()
+        .generating_element(c3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tdet_c3z = det.sym_transform_spin_spatial(&c3z_su2).unwrap();
+    #[rustfmt::skip]
+    let pi3 = std::f64::consts::FRAC_PI_3;
+    let tdet_c3z_c0_ref = array![
+        [-Complex::new(1.0, 1.0)],
+        [Complex::new(2.0, 2.0) * Complex::new(pi3.cos(), pi3.sin())],
+        [Complex::new(3.0, 3.0) * Complex::new(pi3.cos(), -pi3.sin())],
+        [-Complex::new(4.0, 4.0)],
+    ];
+    assert_close_l2!(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
+
+    // -------
+    // θ ⋅ C3z
+    // -------
+    let tdet_c3z_t = tdet_c3z.sym_transform_spin_spatial(&t_su2).unwrap();
+    let tdet_tc3z = det
+        .sym_transform_spin_spatial(&(&t_su2 * &c3z_su2))
+        .unwrap();
+    assert_eq!(tdet_c3z_t, tdet_tc3z);
+    let tdet_c3z_t_c0_ref = array![
+        [Complex::new(-4.0, 4.0)],
+        [Complex::new(-3.0, 3.0) * Complex::new(pi3.cos(), pi3.sin())],
+        [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), -pi3.sin())],
+        [Complex::new(1.0, -1.0)],
+    ];
+    assert_close_l2!(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
+
+    // -------
+    // C3z ⋅ θ
+    // -------
+    let tdet_t_c3z = tdet_t.sym_transform_spin_spatial(&c3z_su2).unwrap();
+    let tdet_c3zt = det
+        .sym_transform_spin_spatial(&(&c3z_su2 * &t_su2))
+        .unwrap();
+    assert_eq!(tdet_t_c3z, tdet_c3zt);
+    let tdet_t_c3z_c0_ref = array![
+        [Complex::new(-4.0, 4.0)],
+        [Complex::new(-3.0, 3.0) * Complex::new(pi3.cos(), pi3.sin())],
+        [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), -pi3.sin())],
+        [Complex::new(1.0, -1.0)],
+    ];
+    assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
 }
 
 #[test]

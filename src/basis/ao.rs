@@ -869,7 +869,8 @@ impl BasisShell {
     ///
     /// # Arguments
     ///
-    /// * `l` - The rank of this shell.
+    /// * `l` - The rank of this shell, which is equal to $`l_{\mathrm{pure}}`$ for a pure shell,
+    /// $`l_{\mathrm{cart}}`$ for a Cartesian shell, or $`2j`$ for a spinor shell.
     /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
     /// functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
