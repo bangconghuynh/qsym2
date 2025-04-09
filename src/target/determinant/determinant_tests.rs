@@ -1,4 +1,4 @@
-use env_logger;
+// use env_logger;
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
@@ -4094,7 +4094,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
 
 #[test]
 fn test_determinant_orbit_rep_analysis_h_jadapted() {
-    env_logger::init();
+    // env_logger::init();
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
@@ -4352,7 +4352,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
 
 #[test]
 fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
-    env_logger::init();
+    // env_logger::init();
     let emap = ElementMap::new();
     let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_h0 = Atom::from_xyz("H  0.5905546  1.0228705 0.0000000", &emap, 1e-7).unwrap();
