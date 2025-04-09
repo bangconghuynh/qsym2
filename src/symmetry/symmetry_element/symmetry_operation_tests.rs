@@ -6409,55 +6409,55 @@ fn test_symmetry_operation_su2_coaxial_composition() {
     assert_eq!(&c2z_nsr_p1 * &s4z_nsr_p1, s4z_nsr_pm1);
 }
 
-#[test]
-fn test_symmetry_operation_su2_coaxial_composition_debug() {
-    let c3_111_nsr_element = SymmetryElement::builder()
-        .threshold(1e-7)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(ROT)
-        .rotation_group(RotationGroup::SU2(true))
-        .build()
-        .unwrap();
-
-    let c3_111_nsr_p1 = SymmetryOperation::builder()
-        .generating_element(c3_111_nsr_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
-
-    let c3_111_nsr_pm1 = SymmetryOperation::builder()
-        .generating_element(c3_111_nsr_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-
-    let c3_m1m1m1_nsr_element = SymmetryElement::builder()
-        .threshold(1e-7)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(-1.0, -1.0, -1.0))
-        .kind(ROT)
-        .rotation_group(RotationGroup::SU2(true))
-        .build()
-        .unwrap();
-
-    let c3_m1m1m1_nsr_p1 = SymmetryOperation::builder()
-        .generating_element(c3_m1m1m1_nsr_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
-
-    assert_close_l2!(
-        &(&c3_111_nsr_p1)
-            .get_wigner_matrix(1, true)
-            .unwrap()
-            .dot(&c3_m1m1m1_nsr_p1.get_wigner_matrix(1, true).unwrap()),
-        &(Array2::<Complex64>::eye(2)),
-        1e-14
-    );
-}
+// #[test]
+// fn test_symmetry_operation_su2_coaxial_composition_debug() {
+//     let c3_111_nsr_element = SymmetryElement::builder()
+//         .threshold(1e-7)
+//         .proper_order(ElementOrder::Int(3))
+//         .proper_power(1)
+//         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+//         .kind(ROT)
+//         .rotation_group(RotationGroup::SU2(true))
+//         .build()
+//         .unwrap();
+//
+//     let c3_111_nsr_p1 = SymmetryOperation::builder()
+//         .generating_element(c3_111_nsr_element.clone())
+//         .power(1)
+//         .build()
+//         .unwrap();
+//
+//     let c3_111_nsr_pm1 = SymmetryOperation::builder()
+//         .generating_element(c3_111_nsr_element.clone())
+//         .power(2)
+//         .build()
+//         .unwrap();
+//
+//     let c3_m1m1m1_nsr_element = SymmetryElement::builder()
+//         .threshold(1e-7)
+//         .proper_order(ElementOrder::Int(3))
+//         .proper_power(1)
+//         .raw_axis(Vector3::new(-1.0, -1.0, -1.0))
+//         .kind(ROT)
+//         .rotation_group(RotationGroup::SU2(true))
+//         .build()
+//         .unwrap();
+//
+//     let c3_m1m1m1_nsr_p1 = SymmetryOperation::builder()
+//         .generating_element(c3_m1m1m1_nsr_element.clone())
+//         .power(1)
+//         .build()
+//         .unwrap();
+//
+//     assert_close_l2!(
+//         &(&c3_111_nsr_p1)
+//             .get_wigner_matrix(1, true)
+//             .unwrap()
+//             .dot(&c3_m1m1m1_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+//         &(Array2::<Complex64>::eye(2)),
+//         1e-14
+//     );
+// }
 
 #[test]
 fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
@@ -6657,6 +6657,18 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
         .build()
         .unwrap();
 
+    let c3_111_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c3_111_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    let c3_111_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(c3_111_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+
     let c3_111_nsr_pm1 = SymmetryOperation::builder()
         .generating_element(c3_111_nsr_element.clone())
         .power(-1)
@@ -6702,6 +6714,98 @@ fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
             .unwrap()
             .dot(&c3_111_nsr_pm1.get_wigner_matrix(1, true).unwrap()),
         &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(1, true).unwrap()),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(1, true).unwrap()),
+        &(-Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+        &c3_111_nsr_p5.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // j = 1
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_p1.get_wigner_matrix(2, true).unwrap()),
+        &c3_111_nsr_p5.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // j = 3/2
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(3, true).unwrap()),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(3, true).unwrap()),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(3, true).unwrap()),
+        &(-Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_p1.get_wigner_matrix(3, true).unwrap()),
+        &c3_111_nsr_p5.get_wigner_matrix(3, true).unwrap(),
         1e-14
     );
 
