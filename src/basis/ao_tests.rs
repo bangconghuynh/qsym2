@@ -1,7 +1,7 @@
-use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-};
 use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::basis::ao::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+};
 use crate::permutation::PermutableCollection;
 
 #[test]
@@ -231,7 +231,23 @@ fn test_ao_basis_pureorder() {
 
 #[test]
 fn test_ao_basis_spinororder() {
-    todo!()
+    // ========
+    // twoj = 1
+    // ========
+    let spo_1_increasingm = SpinorOrder::increasingm(1);
+    assert_eq!(spo_1_increasingm.two_mjs, vec![-1, 1]);
+
+    // ========
+    // twoj = 3
+    // ========
+    let spo_3_increasingm = SpinorOrder::increasingm(3);
+    assert_eq!(spo_3_increasingm.two_mjs, vec![-3, -1, 1, 3]);
+
+    // ========
+    // twoj = 5
+    // ========
+    let spo_5_increasingm = SpinorOrder::increasingm(5);
+    assert_eq!(spo_5_increasingm.two_mjs, vec![-5, -3, -1, 1, 3, 5]);
 }
 
 #[test]
@@ -255,6 +271,9 @@ fn test_ao_basis_basisshell() {
     let bs3_c = BasisShell::new(3, ShellOrder::Cart(CartOrder::lex(3)));
     assert_eq!(bs3_p.n_funcs(), 7);
     assert_eq!(bs3_c.n_funcs(), 10);
+
+    let bs5_sp = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5)));
+    assert_eq!(bs5_sp.n_funcs(), 6);
 }
 
 #[test]
@@ -268,13 +287,17 @@ fn test_ao_basis_basisatom() {
     let bs3s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bs3p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
     let bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+    let bs32_sp = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
 
-    let batm = BasisAtom::new(&atm, &[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c]);
+    let batm = BasisAtom::new(
+        &atm,
+        &[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c, bs32_sp],
+    );
 
-    assert_eq!(batm.n_funcs(), 15);
+    assert_eq!(batm.n_funcs(), 19);
     assert_eq!(
         batm.shell_boundary_indices(),
-        &[(0, 1), (1, 2), (2, 5), (5, 6), (6, 9), (9, 15),]
+        &[(0, 1), (1, 2), (2, 5), (5, 6), (6, 9), (9, 15), (15, 19),]
     );
 }
 
