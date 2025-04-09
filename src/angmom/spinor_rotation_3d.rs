@@ -789,7 +789,8 @@ pub fn dmat_angleaxis_gen_single(
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
     let euler_angles = angleaxis_to_euler_single(angle, axis, 1e-14);
-    dmat_euler_gen(twoj, euler_angles, increasingm)
+    let mat = dmat_euler_gen(twoj, euler_angles, increasingm);
+    mat
 }
 
 /// Converts an angle and axis of rotation to Euler angles using the equations in Section
@@ -838,60 +839,92 @@ fn angleaxis_to_euler_single(angle: f64, axis: Vector3<f64>, thresh: f64) -> (f6
     // 0 <= beta <= pi.
     let beta = cosbeta.acos();
 
-    let (alpha, gamma) =
-        if approx::relative_ne!(cosbeta.abs(), 1.0, epsilon = thresh, max_relative = thresh) {
-            // cosbeta != 1 or -1, beta != 0 or pi, sin(beta) != 0
-            // alpha and gamma are given by Equations (**3**-5.4) to (**3**-5.10)
-            // in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover Publications,
-            // Inc., 2005).
-            let sgn = beta.sin().signum();
-            let num_alpha = -nx * normalised_angle.sin()
-                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            let den_alpha = ny * normalised_angle.sin()
-                + 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            // -pi <= alpha <= pi
-            let alpha = num_alpha.atan2(den_alpha);
+    let (alpha, gamma) = if approx::relative_ne!(
+        cosbeta.abs(),
+        1.0,
+        epsilon = thresh,
+        max_relative = thresh
+    ) {
+        // cosbeta != 1 or -1, beta != 0 or pi, sin(beta) != 0
+        // alpha and gamma are given by Equations (**3**-5.4) to (**3**-5.10)
+        // in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover Publications,
+        // Inc., 2005).
+        let sgn = beta.sin().signum();
+        let num_alpha = -nx * normalised_angle.sin()
+            + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
+        let den_alpha = ny * normalised_angle.sin()
+            + 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
+        // -pi <= alpha <= pi
+        let alpha = num_alpha.atan2(den_alpha);
 
-            let num_gamma = nx * normalised_angle.sin()
-                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            let den_gamma = ny * normalised_angle.sin()
-                - 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            // -pi <= gamma <= pi
-            let gamma = num_gamma.atan2(den_gamma);
+        let num_gamma = nx * normalised_angle.sin()
+            + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
+        let den_gamma = ny * normalised_angle.sin()
+            - 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
+        // -pi <= gamma <= pi
+        let gamma = num_gamma.atan2(den_gamma);
 
-            (alpha, gamma)
-        } else if approx::relative_eq!(cosbeta, 1.0, epsilon = thresh, max_relative = thresh) {
-            // cosbeta == 1, beta == 0
-            // => cos(0.5(alpha+gamma)) = cos(0.5phi)
-            // => alpha + gamma = ±phi
-            // There are two possibilities:
-            //   1. phi == 0, in which case we simply set both alpha and gamma to zero
-            //   2. nx^2 + ny^2 = 0, which means nx = ny = 0, which means we are at either the
-            //      North pole or the South pole. In either case, we set alpha == 0 by convention.
-            //      We then set gamma = phi at the North pole or -phi at the South pole.
+        // We shall next determine the scalar part of the quaternion corresponding to the deduced
+        // Euler angles. We need this to ensure that the Euler angles correspond to rotations of
+        // homotopy class 0.
+        // See Eqn. 12-11.4 in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+        // Publications, Inc., 2005).
+        let lambda = (beta * 0.5).cos() * ((alpha + gamma) * 0.5).cos();
+        if lambda < 0.0 {
             if approx::relative_eq!(
-                normalised_angle,
-                0.0,
+                gamma.abs(),
+                std::f64::consts::PI,
                 epsilon = thresh,
                 max_relative = thresh
             ) {
-                (0.0, normalised_angle)
-            } else if nz > 0.0 {
-                (0.0, normalised_angle)
+                (alpha, gamma - gamma.signum() * 2.0 * std::f64::consts::PI)
+            } else if approx::relative_eq!(
+                alpha.abs(),
+                std::f64::consts::PI,
+                epsilon = thresh,
+                max_relative = thresh
+            ) {
+                (alpha - alpha.signum() * 2.0 * std::f64::consts::PI, gamma)
             } else {
-                (0.0, -normalised_angle)
+                panic!("Unable to adjust α or γ within [-π, π] so that the resultant Euler angles correspond to a quaternion with a non-negative scalar part.")
             }
         } else {
-            // cosbeta == -1, beta == pi
-            // sin(0.5phi) must be non-zero, otherwise cosbeta == 1, a contradiction.
-            // sin(0.5(alpha-gamma)) = -nx*sin(0.5phi)
-            // cos(0.5(alpha-gamma)) = +ny*sin(0.5phi)
-            // We set alpha == 0 by convention.
-            // gamma then lies in [-pi, pi].
-            let gamma = 2.0 * nx.atan2(ny);
+            (alpha, gamma)
+        }
+    } else if approx::relative_eq!(cosbeta, 1.0, epsilon = thresh, max_relative = thresh) {
+        // cosbeta == 1, beta == 0
+        // => cos(0.5(alpha+gamma)) = cos(0.5phi)
+        // => alpha + gamma = ±phi
+        // There are two possibilities:
+        //   1. phi == 0, in which case we simply set both alpha and gamma to zero
+        //   2. nx^2 + ny^2 = 0, which means nx = ny = 0, which means we are at either the
+        //      North pole or the South pole. In either case, we set alpha == 0 by convention.
+        //      We then set gamma = phi at the North pole or -phi at the South pole.
+        // In both cases, lambda = cos(±phi/2), and since -π ≤ phi ≤ π, lambda ≥ 0.
+        if approx::relative_eq!(
+            normalised_angle,
+            0.0,
+            epsilon = thresh,
+            max_relative = thresh
+        ) {
+            (0.0, normalised_angle)
+        } else if nz > 0.0 {
+            (0.0, normalised_angle)
+        } else {
+            (0.0, -normalised_angle)
+        }
+    } else {
+        // cosbeta == -1, beta == pi
+        // sin(0.5phi) must be non-zero, otherwise cosbeta == 1, a contradiction.
+        // sin(0.5(alpha-gamma)) = -nx*sin(0.5phi)
+        // cos(0.5(alpha-gamma)) = +ny*sin(0.5phi)
+        // We set alpha == 0 by convention.
+        // gamma then lies in [-pi, pi].
+        // lambda = 0 since beta = pi.
+        let gamma = 2.0 * nx.atan2(ny);
 
-            (0.0, gamma)
-        };
+        (0.0, gamma)
+    };
 
     (alpha, beta, gamma)
 }

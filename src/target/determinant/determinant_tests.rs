@@ -1,4 +1,4 @@
-// use env_logger;
+use env_logger;
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
@@ -1044,7 +1044,6 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
     // θ ⋅ C3z
     // -------
     let tdet_c3z_t = tdet_c3z.sym_transform_spin_spatial(&t_su2).unwrap();
-    let tc3z_su2 = &t_su2 * &c3z_su2;
     let tdet_tc3z = det
         .sym_transform_spin_spatial(&(&t_su2 * &c3z_su2))
         .unwrap();
@@ -1068,6 +1067,27 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(-1.0, 1.0) * Complex::new(pi3.cos(), -pi3.sin())],
     ];
     assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
+
+    // -------
+    // C3(111)
+    // -------
+    let c3_111_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c3_111_su2 = SymmetryOperation::builder()
+        .generating_element(c3_111_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let tdet_c3_111 = det.sym_transform_spin_spatial(&c3_111_su2).unwrap();
+    let tdet_c3_111_ref = array![[Complex::new(2.0, 1.0)], [Complex::new(2.0, -1.0)],];
+    assert_close_l2!(&tdet_c3_111.coefficients()[0], &tdet_c3_111_ref, 1e-14);
 }
 
 #[test]
@@ -1075,9 +1095,9 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let bs_p1 = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
 
-    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_p1.clone()]);
     let bao_h = BasisAngularOrder::new(&[batm_h0]);
     let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
 
@@ -1252,9 +1272,9 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
+    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
 
-    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp3.clone()]);
     let bao_h = BasisAngularOrder::new(&[batm_h0]);
     let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
 
@@ -1668,10 +1688,61 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     let tdet_s32s18 = det
         .sym_transform_spin_spatial(&(group.get_index(32).unwrap() * group.get_index(18).unwrap()))
         .unwrap();
-    println!("{}", tdet_s18_s32.coefficients()[0]);
-    println!("");
-    println!("{}", tdet_s32s18.coefficients()[0]);
     assert_eq!(tdet_s18_s32, tdet_s32s18);
+
+    let tdet_s32_s18 = det
+        .sym_transform_spin_spatial(&group.get_index(32).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(18).unwrap())
+        .unwrap();
+    let tdet_s18s32 = det
+        .sym_transform_spin_spatial(&(group.get_index(18).unwrap() * group.get_index(32).unwrap()))
+        .unwrap();
+    assert_eq!(tdet_s32_s18, tdet_s18s32);
+
+    // 21 - S4(QΣ)(+0.000, +0.000, -1.000)
+    // 56 - θ·σv(Σ)(+0.000, +1.000, +0.000)
+    let tdet_s21_s56 = det
+        .sym_transform_spin_spatial(&group.get_index(21).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(56).unwrap())
+        .unwrap();
+    let tdet_s56s21 = det
+        .sym_transform_spin_spatial(&(group.get_index(56).unwrap() * group.get_index(21).unwrap()))
+        .unwrap();
+    assert_eq!(tdet_s21_s56, tdet_s56s21);
+
+    let tdet_s56_s21 = det
+        .sym_transform_spin_spatial(&group.get_index(56).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(21).unwrap())
+        .unwrap();
+    let tdet_s21s56 = det
+        .sym_transform_spin_spatial(&(group.get_index(21).unwrap() * group.get_index(56).unwrap()))
+        .unwrap();
+    assert_eq!(tdet_s56_s21, tdet_s21s56);
+
+    // 51 - θ·S4(QΣ)(+0.000, +0.000, +1.000)
+    // 55 - θ·σh(QΣ)(+0.000, +0.000, +1.000)
+    let tdet_s51_s55 = det
+        .sym_transform_spin_spatial(&group.get_index(51).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(55).unwrap())
+        .unwrap();
+    let tdet_s55s51 = det
+        .sym_transform_spin_spatial(&(group.get_index(55).unwrap() * group.get_index(51).unwrap()))
+        .unwrap();
+    assert_eq!(tdet_s51_s55, tdet_s55s51);
+
+    let tdet_s55_s51 = det
+        .sym_transform_spin_spatial(&group.get_index(55).unwrap())
+        .unwrap()
+        .sym_transform_spin_spatial(&group.get_index(51).unwrap())
+        .unwrap();
+    let tdet_s51s55 = det
+        .sym_transform_spin_spatial(&(group.get_index(51).unwrap() * group.get_index(55).unwrap()))
+        .unwrap();
+    assert_eq!(tdet_s55_s51, tdet_s51s55);
 }
 
 #[test]
@@ -4019,4 +4090,103 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
             .unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||F~|_(g)|").unwrap()
     );
+}
+
+#[test]
+fn test_determinant_orbit_rep_analysis_h_jadapted() {
+    env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
+    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp3.clone()]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+    let mol_h = Molecule::from_atoms(
+        &[
+            atm_h0.clone(),
+        ],
+        1e-7,
+    );
+
+    #[rustfmt::skip]
+    let c = array![
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ.clone()])
+        .bao(&bao_h)
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh (ordinary, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
+    for (i, el) in group_u_oh_double.elements().iter().enumerate() {
+        println!(
+            "{i} - {el} (angle: {:.7}, axis: {})\n Wigner: {}",
+            el.calc_pole_angle(),
+            el.calc_pole().coords,
+            el.get_wigner_matrix(1, true).unwrap()
+        );
+    }
+
+    let sao: Array2<f64> = Array2::eye(4);
+    let sao_c = sao.mapv(C128::from);
+
+    let mut orbit_c_u_oh_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    for (i, s) in orbit_c_u_oh_spinspatial
+        .smat()
+        .unwrap()
+        .column(0)
+        .iter()
+        .enumerate()
+    {
+        println!("<{i}|0> = {s:+.7e}");
+    }
+    for v in orbit_c_u_oh_spinspatial
+        .smat_eigvals
+        .as_ref()
+        .unwrap()
+        .iter()
+    {
+        println!("{v:.7e}");
+    }
+    println!("{}", orbit_c_u_oh_spinspatial.analyse_rep().unwrap());
+    // assert_eq!(
+    //     orbit_cg_u_oh_spatial_dyy.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap()
+    // );
 }
