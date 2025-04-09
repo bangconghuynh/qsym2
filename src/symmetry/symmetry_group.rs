@@ -651,7 +651,11 @@ impl SymmetryGroupProperties
                 }),
                 None,
             )
-        } else if !self.elements().iter().all(|op| !op.contains_time_reversal()) {
+        } else if !self
+            .elements()
+            .iter()
+            .all(|op| !op.contains_time_reversal())
+        {
             log::debug!(
                 "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
             );
@@ -769,6 +773,10 @@ impl SymmetryGroupProperties
         >::new(&format!("u[{group_name}]"), unitary_operations)?;
         let uni_symbols = unitary_subgroup.class_symbols_from_symmetry();
         unitary_subgroup.set_class_symbols(&uni_symbols);
+        if handles_infinite_group.is_some() {
+            let finite_subgroup_name = unitary_subgroup.deduce_finite_group_name();
+            unitary_subgroup.set_finite_subgroup_name(Some(finite_subgroup_name));
+        }
         unitary_subgroup.construct_irrep_character_table();
         unitary_subgroup.canonicalise_character_table();
         log::debug!("Constructing the unitary subgroup for the magnetic group... Done.");
@@ -882,6 +890,12 @@ impl SymmetryGroupProperties
             >::new(&format!("u[{group_name}]"), unitary_su2_operations)?;
         let uni_symbols = double_unitary_subgroup.class_symbols_from_symmetry();
         double_unitary_subgroup.set_class_symbols(&uni_symbols);
+        if double_unitary_subgroup.name().contains('∞')
+            || double_unitary_subgroup.name().contains("O(3)")
+        {
+            let finite_subgroup_name = double_unitary_subgroup.deduce_finite_group_name();
+            double_unitary_subgroup.set_finite_subgroup_name(Some(finite_subgroup_name));
+        }
         double_unitary_subgroup.construct_irrep_character_table();
         double_unitary_subgroup.canonicalise_character_table();
         log::debug!(
