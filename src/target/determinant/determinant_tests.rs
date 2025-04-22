@@ -4572,6 +4572,221 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
 }
 
 #[test]
+fn test_determinant_orbit_rep_analysis_bh4_jadapted() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_h0 = Atom::from_xyz("H    0.6405130   -0.6405130    0.6405130", &emap, 1e-7).unwrap();
+    let atm_h1 = Atom::from_xyz("H    0.6405130    0.6405130   -0.6405130", &emap, 1e-7).unwrap();
+    let atm_h2 = Atom::from_xyz("H   -0.6405130    0.6405130    0.6405130", &emap, 1e-7).unwrap();
+    let atm_h3 = Atom::from_xyz("H   -0.6405130   -0.6405130   -0.6405130", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
+    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
+
+    let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp1.clone(), bs_sp3.clone()]);
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bs_sp1.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bs_sp1.clone()]);
+    let batm_h3 = BasisAtom::new(&atm_h3, &[bs_sp1.clone()]);
+    let bao_bh4 = BasisAngularOrder::new(&[batm_b0, batm_h0, batm_h1, batm_h2, batm_h3]);
+    let mol_bh4 = Molecule::from_atoms(
+        &[
+            atm_b0.clone(),
+            atm_h0.clone(),
+            atm_h1.clone(),
+            atm_h2.clone(),
+            atm_h3.clone(),
+        ],
+        1e-7,
+    );
+
+    // a|1/2, 1/2⟩ ⊗ b|1/2, 1/2⟩
+    #[rustfmt::skip]
+    let c_1212 = array![
+        // B
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H0
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H1
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H2
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H3
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0, 1.0];
+
+    let det_1212 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_1212])
+        .occupations(&[occ])
+        .bao(&bao_bh4)
+        .mol(&mol_bh4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // a|1/2, 1/2⟩ ⊗ b|1/2, -1/2⟩
+    #[rustfmt::skip]
+    let c_12m12 = array![
+        // B
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H0
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H1
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H2
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H3
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0, 1.0];
+
+    let det_12m12 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_12m12])
+        .occupations(&[occ])
+        .bao(&bao_bh4)
+        .mol(&mol_bh4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // |1/2, 1/2⟩ ⊗ (|3/2, -1/2⟩ ⊕ |3/2, 3/2⟩)
+    #[rustfmt::skip]
+    let c_1232 = array![
+        // B
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(1.0, 0.0)],
+        // H0
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H1
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H2
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        // H3
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0, 1.0];
+
+    let det_1232 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_1232])
+        .occupations(&[occ])
+        .bao(&bao_bh4)
+        .mol(&mol_bh4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let sao: Array2<f64> = Array2::eye(16);
+    let sao_c = sao.mapv(C128::from);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // u Td* (double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_bh4)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_td = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let group_u_td_double = group_u_td.to_double_group().unwrap();
+
+    let mut orbit_c_u_td_double_spinspatial_1212 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_td_double)
+        .origin(&det_1212)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_td_double_spinspatial_1212
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_td_double_spinspatial_1212.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1)|").unwrap()
+    );
+
+    let mut orbit_c_u_td_double_spinspatial_12m12 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_td_double)
+        .origin(&det_12m12)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_td_double_spinspatial_12m12
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_td_double_spinspatial_12m12.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1)| ⊕ ||T|_(1)|").unwrap()
+    );
+
+    let mut orbit_c_u_td_double_spinspatial_1232 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_td_double)
+        .origin(&det_1232)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_td_double_spinspatial_1232
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_td_double_spinspatial_1232.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|| ⊕ ||T|_(1)| ⊕ ||T|_(2)|").unwrap()
+    );
+}
+
+#[test]
 fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     // env_logger::init();
     let emap = ElementMap::new();
