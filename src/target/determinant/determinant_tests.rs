@@ -13,14 +13,12 @@ use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
 };
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
 use crate::symmetry::symmetry_element::{
-    RotationGroup, SpecialSymmetryTransformation, SymmetryElement, INV, ROT, SIG, SO3, SU2_0,
-    SU2_1, TRINV, TRROT, TRSIG,
+    RotationGroup, SpecialSymmetryTransformation, SymmetryElement, ROT, TRROT,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
@@ -4572,7 +4570,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
 }
 
 #[test]
-fn test_determinant_orbit_rep_analysis_bh4_jadapted() {
+fn test_determinant_orbit_rep_analysis_bh4_tet_jadapted() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
