@@ -6,7 +6,6 @@ use std::fmt;
 use anyhow::{self, ensure};
 use approx;
 use factorial::Factorial;
-use log;
 use nalgebra::Vector3;
 use ndarray::{array, Array2, Axis};
 use num::{BigUint, Complex, Zero};
@@ -23,6 +22,7 @@ mod spinor_rotation_3d_tests;
 // Trait definition
 // ================
 
+/// Trait for defining the spin-spatial structure of the coefficient matrices.
 pub trait StructureConstraint {
     // ----------------
     // Required methods
@@ -119,39 +119,6 @@ impl StructureConstraint for SpinConstraint {
     }
 }
 
-// impl SpinConstraint {
-//     /// Returns the total number of units of consideration.
-//     ///
-//     /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
-//     pub fn nunits(&self) -> u16 {
-//         match self {
-//             Self::Restricted(nspins) => *nspins,
-//             Self::Unrestricted(nspins, _) => *nspins,
-//             Self::Generalised(_, _) => 1,
-//         }
-//     }
-//
-//     /// Returns the number of spin spaces per 'unit' of consideration.
-//     ///
-//     /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
-//     pub fn nspins_per_unit(&self) -> u16 {
-//         match self {
-//             Self::Restricted(_) => 1,
-//             Self::Unrestricted(_, _) => 1,
-//             Self::Generalised(nspins, _) => *nspins,
-//         }
-//     }
-//
-//     /// Returns the total number of spin spaces.
-//     pub fn nspins(&self) -> u16 {
-//         match self {
-//             Self::Restricted(nspins) => *nspins,
-//             Self::Unrestricted(nspins, _) => *nspins,
-//             Self::Generalised(nspins, _) => *nspins,
-//         }
-//     }
-// }
-
 impl fmt::Display for SpinConstraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -197,27 +164,27 @@ impl fmt::Display for SpinConstraint {
 pub enum SpinOrbitCoupled {
     /// Variant for $`j`$-adapted basis functions where each shell consists of $`\ket{j, m_j}`$
     /// functions. The associated value specifies the total number of duplications of the
-    /// $`j`$-adapted basis (*e.g.* `2` in Dirac--Hartree--Fock), and the associated boolean
-    /// indicates if the $`m_j`$ components in each shell are arranged in increasing order.
-    JAdapted(u16, bool),
+    /// $`j`$-adapted basis (*e.g.* `2` in Dirac--Hartree--Fock). The order of $`m_j`$ in each
+    /// shell should be specified in a [`BasisAngularOrder`] structure elsewhere.
+    JAdapted(u16),
 }
 
 impl StructureConstraint for SpinOrbitCoupled {
     fn n_coefficient_matrices(&self) -> usize {
         match self {
-            SpinOrbitCoupled::JAdapted(_, _) => 1,
+            SpinOrbitCoupled::JAdapted(_) => 1,
         }
     }
 
     fn n_explicit_comps_per_coefficient_matrix(&self) -> usize {
         match self {
-            SpinOrbitCoupled::JAdapted(ncomps, _) => *ncomps as usize,
+            SpinOrbitCoupled::JAdapted(ncomps) => *ncomps as usize,
         }
     }
 
     fn n_implicit_comps_per_coefficient_matrix(&self) -> usize {
         match self {
-            SpinOrbitCoupled::JAdapted(ncomps, _) => *ncomps as usize,
+            SpinOrbitCoupled::JAdapted(ncomps) => *ncomps as usize,
         }
     }
 }
@@ -225,20 +192,15 @@ impl StructureConstraint for SpinOrbitCoupled {
 impl fmt::Display for SpinOrbitCoupled {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::JAdapted(ncomps, increasingm) => write!(
+            Self::JAdapted(ncomps) => write!(
                 f,
-                "Spin--orbit-coupled j-adapted ({} {}, {} m_j)",
+                "Spin--orbit-coupled j-adapted ({} {})",
                 ncomps,
                 if *ncomps == 1 {
                     "component"
                 } else {
                     "components"
                 },
-                if *increasingm {
-                    "increasing"
-                } else {
-                    "decreasing"
-                }
             ),
         }
     }

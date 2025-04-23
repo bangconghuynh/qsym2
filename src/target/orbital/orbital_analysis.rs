@@ -23,7 +23,7 @@ use crate::analysis::{
     fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
     Overlap, RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::misc::{complex_modified_gram_schmidt, ProductRepeat};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};

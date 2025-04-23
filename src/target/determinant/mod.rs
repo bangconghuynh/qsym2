@@ -566,6 +566,62 @@ where
     }
 }
 
+impl<'a, T> SlaterDeterminant<'a, Complex<T>, SpinOrbitCoupled>
+where
+    T: Float + FloatConst + Lapack,
+    Complex<T>: Lapack,
+{
+    /// Constructs a vector of complex densities, one for each component in the multi-component
+    /// j-adapted basis.
+    ///
+    /// Occupation numbers are also incorporated in the formation of density matrices.
+    ///
+    /// # Arguments
+    ///
+    /// * `sd` - A Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of complex densities.
+    pub fn to_densities(
+        &'a self,
+    ) -> Result<DensitiesOwned<'a, Complex<T>, SpinOrbitCoupled>, anyhow::Error> {
+        let densities = match self.structure_constraint {
+            SpinOrbitCoupled::JAdapted(ncomps) => {
+                let denmat = einsum(
+                    "i,mi,ni->mn",
+                    &[
+                        &self.occupations[0].map(Complex::<T>::from).view(),
+                        &self.coefficients[0].view(),
+                        &self.coefficients[0].map(Complex::conj).view()
+                    ]
+                )
+                .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
+                .into_dimensionality::<Ix2>()
+                .expect("Unable to convert the resultant density matrix to two dimensions.");
+                let nspatial = self.bao.n_funcs();
+                (0..usize::from(ncomps)).map(|icomp| {
+                    let icomp_denmat = denmat.slice(
+                        s![icomp*nspatial..(icomp + 1)*nspatial, icomp*nspatial..(icomp + 1)*nspatial]
+                    ).to_owned();
+                    Density::<Complex<T>>::builder()
+                        .density_matrix(icomp_denmat)
+                        .bao(self.bao())
+                        .mol(self.mol())
+                        .complex_symmetric(self.complex_symmetric())
+                        .threshold(self.threshold())
+                        .build()
+                }).collect::<Result<Vec<_>, _>>()?
+            }
+        };
+        DensitiesOwned::builder()
+            .structure_constraint(self.structure_constraint.clone())
+            .densities(densities)
+            .build()
+            .map_err(|err| format_err!(err))
+    }
+}
+
 // =====================
 // Trait implementations
 // =====================

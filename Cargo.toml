@@ -80,3 +80,6 @@ rustdoc-args = [
 
 [lib]
 crate-type = ["cdylib", "lib"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

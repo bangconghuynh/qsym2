@@ -585,7 +585,7 @@ impl<'a> TimeReversalTransformable for MolecularOrbital<'a, Complex<f64>, SpinOr
         let new_coefficients = {
             let old_coeff = self.coefficients();
             match self.structure_constraint {
-                SpinOrbitCoupled::JAdapted(ncomps, _) => {
+                SpinOrbitCoupled::JAdapted(ncomps) => {
                     let nfuncs_per_comp = self.bao.n_funcs();
                     let t_comp_blocks = (0..ncomps)
                         .map(|icomp| {
@@ -692,7 +692,7 @@ impl<'a> SymmetryTransformable for MolecularOrbital<'a, Complex<f64>, SpinOrbitC
         let new_coefficients = {
             let old_coeffs = self.coefficients();
             match self.structure_constraint {
-                SpinOrbitCoupled::JAdapted(ncomps, _) => {
+                SpinOrbitCoupled::JAdapted(ncomps) => {
                     let nfuncs_per_comp = self.bao.n_funcs();
                     let t_p_comp_blocks = (0..ncomps).map(|icomp| {
                         // Extract component block icomp.

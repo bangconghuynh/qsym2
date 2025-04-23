@@ -599,7 +599,7 @@ impl<'a> TimeReversalTransformable for SlaterDeterminant<'a, Complex<f64>, SpinO
             .coefficients
             .iter()
             .map(|old_coeff| match self.structure_constraint {
-                SpinOrbitCoupled::JAdapted(ncomps, _) => {
+                SpinOrbitCoupled::JAdapted(ncomps) => {
                     let nfuncs_per_comp = self.bao.n_funcs();
                     let t_comp_blocks = (0..ncomps).map(|icomp| {
                         // Extract component block icomp.
@@ -704,7 +704,7 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
             .coefficients
             .iter()
             .map(|old_coeff| match self.structure_constraint {
-                SpinOrbitCoupled::JAdapted(ncomps, _) => {
+                SpinOrbitCoupled::JAdapted(ncomps) => {
                     let nfuncs_per_comp = self.bao.n_funcs();
                     let t_p_comp_blocks = (0..ncomps).map(|icomp| {
                         // Extract component block icomp.
