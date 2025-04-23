@@ -956,7 +956,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ 2||E|_(g)|").unwrap()
     );
     // Spin-1 density symmetry
     assert_eq!(
@@ -969,7 +969,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ ||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap()
     );
     // Total density symmetry
     assert_eq!(
@@ -982,7 +982,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ 2||E|_(g)|").unwrap()
     );
     // Spin-polarised density 0 - 1 symmetry
     assert_eq!(
@@ -995,7 +995,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ 2||E|_(g)|").unwrap()
     );
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1051,7 +1051,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ 2||E|_(g)|").unwrap()
     );
     // Spin-1 density symmetry
     assert_eq!(
@@ -1064,7 +1064,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ ||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap()
     );
     // Total density symmetry
     assert_eq!(
@@ -1077,7 +1077,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ 2||E|_(g)|").unwrap()
     );
     // Spin-polarised density 0 - 1 symmetry
     assert_eq!(
@@ -1090,7 +1090,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .1
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ 2||E|_(g)|").unwrap()
     );
 }
 

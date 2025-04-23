@@ -4,8 +4,10 @@ use anyhow::{self, ensure};
 use counter::Counter;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use nalgebra::Vector3;
 use ordered_float::OrderedFloat;
+use regex::Regex;
 
 use crate::auxiliary::geometry::{self, PositiveHemisphere};
 use crate::chartab::chartab_group::{
@@ -32,6 +34,11 @@ mod symmetry_group_tests;
 #[cfg(test)]
 #[path = "symmetry_chartab_tests.rs"]
 mod symmetry_chartab_tests;
+
+lazy_static! {
+    static ref SQUARE_BRACKETED_GROUP_NAME_RE: Regex =
+        Regex::new(r"u\[(.+)\]").expect("Regex pattern invalid.");
+}
 
 // ======================
 // Type alias definitions
@@ -108,81 +115,110 @@ pub trait SymmetryGroupProperties:
     /// Deduces the group name in Schönflies notation of a finite subgroup of an infinite molecular
     /// symmetry group.
     fn deduce_finite_group_name(&mut self) -> String {
-        let finite_group = if self.name().contains('∞') {
+        let (full_name, full_order, grey, double) = if let Some((_, [grp_name])) =
+            SQUARE_BRACKETED_GROUP_NAME_RE
+                .captures(&self.name())
+                .map(|caps| caps.extract())
+        {
+            // u[group] means taking the unitary halving subgroup of 'group', i.e. 'group' is a grey
+            // group.
+            // So, we shall deduce the finite subgroup of 'group' first, and then take the unitary
+            // halving subgroup of that.
+            (
+                grp_name.to_string(),
+                self.order() * 2,
+                true,
+                grp_name.contains('*'),
+            )
+        } else {
+            (self.name(), self.order(), false, self.name().contains('*'))
+        };
+        let finite_group = if full_name.contains('∞') {
             // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
-            if self.name().as_bytes()[0] == b'D' {
+            if full_name.as_bytes()[0] == b'D' {
                 if matches!(
-                    self.name()
+                    full_name
                         .as_bytes()
                         .iter()
                         .last()
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'd'
                 ) {
-                    if self.name().contains('θ') {
-                        assert_eq!(self.order() % 8, 0);
-                        self.name()
-                            .replace('∞', format!("{}", self.order() / 8).as_str())
+                    if full_name.contains('θ') {
+                        assert_eq!(full_order % 8, 0);
+                        full_name.replace('∞', format!("{}", full_order / 8).as_str())
                     } else {
-                        assert_eq!(self.order() % 4, 0);
-                        self.name()
-                            .replace('∞', format!("{}", self.order() / 4).as_str())
+                        assert_eq!(full_order % 4, 0);
+                        full_name.replace('∞', format!("{}", full_order / 4).as_str())
                     }
-                } else if self.name().contains('θ') {
-                    assert_eq!(self.order() % 4, 0);
-                    self.name()
-                        .replace('∞', format!("{}", self.order() / 4).as_str())
+                } else if full_name.contains('θ') {
+                    assert_eq!(full_order % 4, 0);
+                    full_name.replace('∞', format!("{}", full_order / 4).as_str())
                 } else {
-                    assert_eq!(self.order() % 2, 0);
-                    self.name()
-                        .replace('∞', format!("{}", self.order() / 2).as_str())
+                    assert_eq!(full_order % 2, 0);
+                    full_name.replace('∞', format!("{}", full_order / 2).as_str())
                 }
             } else {
-                assert!(matches!(self.name().as_bytes()[0], b'C' | b'S'));
+                assert!(matches!(full_name.as_bytes()[0], b'C' | b'S'));
                 if matches!(
-                    self.name()
+                    full_name
                         .as_bytes()
                         .iter()
                         .last()
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'v'
                 ) {
-                    if self.name().contains('θ') {
-                        assert_eq!(self.order() % 4, 0);
+                    if full_name.contains('θ') {
+                        assert_eq!(
+                            full_order % 4,
+                            0,
+                            "Unexpected order {} for group {full_name}.",
+                            full_order
+                        );
                     } else {
-                        assert_eq!(self.order() % 2, 0);
+                        assert_eq!(
+                            full_order % 2,
+                            0,
+                            "Unexpected order {} for group {full_name}.",
+                            full_order
+                        );
                     }
-                    if self.order() > 2 {
-                        if self.name().contains('θ') {
-                            self.name()
-                                .replace('∞', format!("{}", self.order() / 4).as_str())
+                    if full_order > 2 {
+                        if full_name.contains('θ') {
+                            full_name.replace('∞', format!("{}", full_order / 4).as_str())
                         } else {
-                            self.name()
-                                .replace('∞', format!("{}", self.order() / 2).as_str())
+                            full_name.replace('∞', format!("{}", full_order / 2).as_str())
                         }
                     } else {
-                        assert_eq!(self.name().as_bytes()[0], b'C');
+                        assert_eq!(full_name.as_bytes()[0], b'C');
                         "Cs".to_string()
                     }
                 } else {
-                    self.name()
-                        .replace('∞', format!("{}", self.order()).as_str())
+                    full_name.replace('∞', format!("{}", full_order).as_str())
                 }
             }
-        } else if self.name().contains("O(3)") {
+        } else if full_name.contains("O(3)") {
             // O(3) or the corresponding grey group
-            match self.order() {
-                8 => "D2h".to_string(),
-                16 => "D2h + θ·D2h".to_string(),
-                48 => "Oh".to_string(),
-                96 => "Oh + θ·Oh".to_string(),
-                _ => panic!("Unsupported number of group elements for a finite group of O(3)."),
+            match (full_order, double) {
+                (8, false) => "D2h".to_string(),
+                (16, true) => "D2h*".to_string(),
+                (16, false) => "D2h + θ·D2h".to_string(),
+                (32, true) => "(D2h + θ·D2h)*".to_string(),
+                (48, false) => "Oh".to_string(),
+                (96, true) => "Oh*".to_string(),
+                (96, false) => "Oh + θ·Oh".to_string(),
+                (192, true) => "(Oh + θ·Oh)*".to_string(),
+                _ => panic!("Unsupported number of group elements ({full_order}) for a finite group of {full_name}."),
             }
         } else {
             // This is already a finite group.
-            self.name()
+            full_name
         };
-        finite_group
+        if grey {
+            format!("u[{finite_group}]")
+        } else {
+            finite_group
+        }
     }
 
     /// Returns `true` if all elements in this group are unitary.
