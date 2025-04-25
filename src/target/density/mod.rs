@@ -1,19 +1,21 @@
 //! Electron densities.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, Index, Sub};
 
+use anyhow::{ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::Array2;
+use ndarray::{s, Array2};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::StructureConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 
@@ -130,6 +132,75 @@ where
 
     pub fn iter(&self) -> impl Iterator<Item = &Density<'a, T>> {
         self.densities.iter()
+    }
+
+    /// Calculates the total density and the pairwise-component density differences.
+    pub fn calc_extra_densities<'b: 'a>(
+        &'b self,
+    ) -> Result<Vec<(String, Density<'a, T>)>, anyhow::Error> {
+        let nspatials = self
+            .iter()
+            .map(|den| den.bao().n_funcs())
+            .collect::<HashSet<usize>>();
+        ensure!(
+            nspatials.len() == 1,
+            "Inconsistent number of spatial functions."
+        );
+        let nspatial = *nspatials.iter().next().ok_or_else(|| {
+            format_err!(
+                "Unable to retrieve the number of spatial functions of the density matrices."
+            )
+        })?;
+
+        let den0 = self
+            .iter()
+            .next()
+            .ok_or_else(|| format_err!("Unable to retrieve the first density."))?;
+        ensure!(
+            nspatial == den0.density_matrix.nrows(),
+            "Unexpected density matrix dimension: {} != {}",
+            nspatial,
+            den0.density_matrix.nrows()
+        );
+
+        // Total density
+        let total_denmat = self
+            .iter()
+            .fold(Array2::<T>::zeros((nspatial, nspatial)), |acc, den| {
+                acc + den.density_matrix()
+            });
+        let total_den = Density::<T>::builder()
+            .density_matrix(total_denmat)
+            .bao(den0.bao())
+            .mol(den0.mol)
+            .complex_symmetric(den0.complex_symmetric())
+            .threshold(den0.threshold())
+            .build()?;
+
+        // Density differences
+        let extra_dens = vec![Ok(("Total density".to_string(), total_den))]
+            .into_iter()
+            .chain((0..self.densities.len()).combinations(2).map(|indices| {
+                let i0 = indices[0];
+                let i1 = indices[1];
+                let denmat_0 = self.densities[i0].density_matrix();
+                let denmat_1 = self.densities[i1].density_matrix();
+                let denmat_01 = denmat_0 - denmat_1;
+                let den_01 = Density::<T>::builder()
+                    .density_matrix(denmat_01)
+                    .bao(den0.bao())
+                    .mol(den0.mol)
+                    .complex_symmetric(den0.complex_symmetric())
+                    .threshold(den0.threshold())
+                    .build()?;
+                Ok((
+                    format!("Density (component {i0}) - Density (component {i1})"),
+                    den_01,
+                ))
+            }))
+            .collect::<Result<Vec<_>, _>>();
+
+        extra_dens
     }
 }
 

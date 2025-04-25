@@ -19,7 +19,7 @@ use crate::analysis::{
     log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
     RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -46,7 +46,6 @@ use crate::symmetry::symmetry_symbols::{
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::density::density_analysis::DensitySymmetryOrbit;
-use crate::target::density::Density;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
@@ -255,7 +254,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters used to obtain this set of Slater determinant representation
@@ -303,7 +302,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Clone,
+    SC: StructureConstraint + Clone + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a new [`SlaterDeterminantRepAnalysisResultBuilder`]
@@ -318,7 +317,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns the group used for the representation analysis.
@@ -767,7 +766,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters for Slater determinant representation analysis.
@@ -815,7 +814,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn validate(&self) -> Result<(), String> {
@@ -892,15 +891,15 @@ where
 // Struct implementations
 // ~~~~~~~~~~~~~~~~~~~~~~
 
-// Generic for all symmetry groups G and determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Generic for all symmetry groups G, determinant numeric type T, and structure constraint SC
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, G, T, SC> SlaterDeterminantRepAnalysisDriver<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Clone,
+    SC: StructureConstraint + Clone + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisDriver`] structure.
@@ -945,14 +944,14 @@ where
     }
 }
 
-// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T and structure constraint SC
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, T, SC> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, SC>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     fn_construct_unitary_group!(
@@ -962,14 +961,14 @@ where
     );
 }
 
-// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T and structure constraint SC
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, T, SC> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, SC>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     fn_construct_magnetic_group!(
@@ -984,47 +983,51 @@ where
 
 #[duplicate_item(
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
-        duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            [
-                gtype_ [ UnitaryRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                sctype_ [ sctype_nested ]
-                doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
-                analyse_fn_ [ analyse_representation ]
-                construct_group_ [ self.construct_unitary_group()? ]
-                calc_projections_ [
-                    log_subtitle("Slater determinant projection decompositions");
-                    qsym2_output!("");
-                    qsym2_output!("  Projections are defined w.r.t. the following inner product:");
-                    qsym2_output!("    {}", det_orbit.origin().overlap_definition());
-                    qsym2_output!("");
-                    det_orbit
-                        .projections_to_string(
-                            &det_orbit.calc_projection_compositions()?,
-                            params.integrality_threshold,
-                        )
-                        .log_output_display();
-                    qsym2_output!("");
-                ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
+        [
+            gtype_ [ UnitaryRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
+            doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
+            analyse_fn_ [ analyse_representation ]
+            construct_group_ [ self.construct_unitary_group()? ]
+            calc_projections_ [
+                log_subtitle("Slater determinant projection decompositions");
+                qsym2_output!("");
+                qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                qsym2_output!("    {}", det_orbit.origin().overlap_definition());
+                qsym2_output!("");
+                det_orbit
+                    .projections_to_string(
+                        &det_orbit.calc_projection_compositions()?,
+                        params.integrality_threshold,
+                    )
+                    .log_output_display();
+                qsym2_output!("");
             ]
-        }
+        ]
     }
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
-        duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            [
-                gtype_ [ MagneticRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                sctype_ [ sctype_nested ]
-                doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
-                analyse_fn_ [ analyse_corepresentation ]
-                construct_group_ [ self.construct_magnetic_group()? ]
-                calc_projections_ [ ]
-            ]
-        }
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
+        [
+            gtype_ [ MagneticRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
+            doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
+            analyse_fn_ [ analyse_corepresentation ]
+            construct_group_ [ self.construct_magnetic_group()? ]
+            calc_projections_ [ ]
+        ]
     }
 )]
 impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
@@ -1247,26 +1250,15 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                         )
                     })
                     .collect::<Vec<_>>();
-                let mut extra_den_syms = match self.determinant.structure_constraint() {
-                    SpinConstraint::Restricted(_) => {
-                        vec![("Total density".to_string(), spin_den_syms[0].1.clone())]
-                    }
-                    SpinConstraint::Unrestricted(nspins, _)
-                    | SpinConstraint::Generalised(nspins, _) => {
-                        let total_den_sym_res = || {
-                            let nspatial = self.determinant.bao().n_funcs();
-                            let zero_den = Density::<dtype_>::builder()
-                                .density_matrix(Array2::<dtype_>::zeros((nspatial, nspatial)))
-                                .bao(self.determinant.bao())
-                                .mol(self.determinant.mol())
-                                .complex_symmetric(self.determinant.complex_symmetric())
-                                .threshold(self.determinant.threshold())
-                                .build()?;
-                            let total_den =
-                                densities.iter().fold(zero_den, |acc, denmat| acc + denmat);
-                            let mut total_den_orbit = DensitySymmetryOrbit::builder()
+                let mut extra_den_syms = densities
+                    .calc_extra_densities()
+                    .expect("Unable to calculate extra densities.")
+                    .iter()
+                    .map(|(label, den)| {
+                        let den_sym_res = || {
+                            let mut den_orbit = DensitySymmetryOrbit::builder()
                                 .group(&group)
-                                .origin(&total_den)
+                                .origin(den)
                                 .integrality_threshold(params.integrality_threshold)
                                 .linear_independence_threshold(params.linear_independence_threshold)
                                 .symmetry_transformation_kind(
@@ -1276,59 +1268,100 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                                     params.eigenvalue_comparison_mode.clone(),
                                 )
                                 .build()?;
-                            total_den_orbit
+                            den_orbit
                                 .calc_smat(
                                     self.sao_spatial_4c,
                                     self.sao_spatial_4c_h,
                                     params.use_cayley_table,
                                 )?
                                 .calc_xmat(false)?;
-                            total_den_orbit
-                                .analyse_rep()
-                                .map_err(|err| format_err!(err))
+                            den_orbit.analyse_rep().map_err(|err| format_err!(err))
                         };
-                        let mut extra_syms = vec![(
-                            "Total density".to_string(),
-                            total_den_sym_res().map_err(|err| err.to_string()),
-                        )];
-                        extra_syms.extend((0..usize::from(*nspins)).combinations(2).map(
-                            |indices| {
-                                let i = indices[0];
-                                let j = indices[1];
-                                let den_ij = &densities[i] - &densities[j];
-                                let den_ij_sym_res = || {
-                                    let mut den_ij_orbit = DensitySymmetryOrbit::builder()
-                                        .group(&group)
-                                        .origin(&den_ij)
-                                        .integrality_threshold(params.integrality_threshold)
-                                        .linear_independence_threshold(
-                                            params.linear_independence_threshold,
-                                        )
-                                        .symmetry_transformation_kind(
-                                            params.symmetry_transformation_kind.clone(),
-                                        )
-                                        .eigenvalue_comparison_mode(
-                                            params.eigenvalue_comparison_mode.clone(),
-                                        )
-                                        .build()?;
-                                    den_ij_orbit
-                                        .calc_smat(
-                                            self.sao_spatial_4c,
-                                            self.sao_spatial_4c_h,
-                                            params.use_cayley_table,
-                                        )?
-                                        .calc_xmat(false)?;
-                                    den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
-                                };
-                                (
-                                    format!("Spin-polarised density {i} - {j}"),
-                                    den_ij_sym_res().map_err(|err| err.to_string()),
-                                )
-                            },
-                        ));
-                        extra_syms
-                    }
-                };
+                        (label.clone(), den_sym_res().map_err(|err| err.to_string()))
+                    })
+                    .collect_vec();
+                // let mut extra_den_syms = match self.determinant.structure_constraint() {
+                //     SpinConstraint::Restricted(_) => {
+                //         vec![("Total density".to_string(), spin_den_syms[0].1.clone())]
+                //     }
+                //     SpinConstraint::Unrestricted(nspins, _)
+                //     | SpinConstraint::Generalised(nspins, _) => {
+                //         let total_den_sym_res = || {
+                //             let nspatial = self.determinant.bao().n_funcs();
+                //             let zero_den = Density::<dtype_>::builder()
+                //                 .density_matrix(Array2::<dtype_>::zeros((nspatial, nspatial)))
+                //                 .bao(self.determinant.bao())
+                //                 .mol(self.determinant.mol())
+                //                 .complex_symmetric(self.determinant.complex_symmetric())
+                //                 .threshold(self.determinant.threshold())
+                //                 .build()?;
+                //             let total_den =
+                //                 densities.iter().fold(zero_den, |acc, denmat| acc + denmat);
+                //             let mut total_den_orbit = DensitySymmetryOrbit::builder()
+                //                 .group(&group)
+                //                 .origin(&total_den)
+                //                 .integrality_threshold(params.integrality_threshold)
+                //                 .linear_independence_threshold(params.linear_independence_threshold)
+                //                 .symmetry_transformation_kind(
+                //                     params.symmetry_transformation_kind.clone(),
+                //                 )
+                //                 .eigenvalue_comparison_mode(
+                //                     params.eigenvalue_comparison_mode.clone(),
+                //                 )
+                //                 .build()?;
+                //             total_den_orbit
+                //                 .calc_smat(
+                //                     self.sao_spatial_4c,
+                //                     self.sao_spatial_4c_h,
+                //                     params.use_cayley_table,
+                //                 )?
+                //                 .calc_xmat(false)?;
+                //             total_den_orbit
+                //                 .analyse_rep()
+                //                 .map_err(|err| format_err!(err))
+                //         };
+                //         let mut extra_syms = vec![(
+                //             "Total density".to_string(),
+                //             total_den_sym_res().map_err(|err| err.to_string()),
+                //         )];
+                //         extra_syms.extend((0..usize::from(*nspins)).combinations(2).map(
+                //             |indices| {
+                //                 let i = indices[0];
+                //                 let j = indices[1];
+                //                 let den_ij = &densities[i] - &densities[j];
+                //                 let den_ij_sym_res = || {
+                //                     let mut den_ij_orbit = DensitySymmetryOrbit::builder()
+                //                         .group(&group)
+                //                         .origin(&den_ij)
+                //                         .integrality_threshold(params.integrality_threshold)
+                //                         .linear_independence_threshold(
+                //                             params.linear_independence_threshold,
+                //                         )
+                //                         .symmetry_transformation_kind(
+                //                             params.symmetry_transformation_kind.clone(),
+                //                         )
+                //                         .eigenvalue_comparison_mode(
+                //                             params.eigenvalue_comparison_mode.clone(),
+                //                         )
+                //                         .build()?;
+                //                     den_ij_orbit
+                //                         .calc_smat(
+                //                             self.sao_spatial_4c,
+                //                             self.sao_spatial_4c_h,
+                //                             params.use_cayley_table,
+                //                         )?
+                //                         .calc_xmat(false)?;
+                //                     den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
+                //                 };
+                //                 (
+                //                     format!("Spin-polarised density {i} - {j}"),
+                //                     den_ij_sym_res().map_err(|err| err.to_string()),
+                //                 )
+                //             },
+                //         ));
+                //         extra_syms
+                //     }
+                // };
                 spin_den_syms.append(&mut extra_den_syms);
                 spin_den_syms
             });
@@ -1416,7 +1449,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1432,7 +1465,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1445,28 +1478,32 @@ where
 
 #[duplicate_item(
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
-        duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            [
-                gtype_ [ UnitaryRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                sctype_ [ sctype_nested ]
-                analyse_fn_ [ analyse_representation ]
-            ]
-        }
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
+        [
+            gtype_ [ UnitaryRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
+            analyse_fn_ [ analyse_representation ]
+        ]
     }
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
-        duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            [
-                gtype_ [ MagneticRepresentedSymmetryGroup ]
-                dtype_ [ dtype_nested ]
-                sctype_ [ sctype_nested ]
-                analyse_fn_ [ analyse_corepresentation ]
-            ]
-        }
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
+        [
+            gtype_ [ MagneticRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
+            analyse_fn_ [ analyse_corepresentation ]
+        ]
     }
 )]
 impl<'a> QSym2Driver for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {

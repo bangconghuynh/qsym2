@@ -1,5 +1,6 @@
 //! Implementation of symmetry transformations for multi-determinantal wavefunctions.
 
+use std::fmt;
 use std::hash::Hash;
 
 use ndarray::Array2;
@@ -25,7 +26,7 @@ use crate::target::noci::multideterminant::MultiDeterminant;
 impl<'a, T, B, SC> SpatialUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + SpatialUnitaryTransformable + Clone,
 {
     fn transform_spatial_mut(
@@ -45,7 +46,7 @@ where
 impl<'a, T, B, SC> SpinUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + SpinUnitaryTransformable + Clone,
 {
     fn transform_spin_mut(
@@ -64,7 +65,7 @@ where
 impl<'a, T, B, SC> ComplexConjugationTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + ComplexConjugationTransformable + Clone,
 {
     /// Performs a complex conjugation in-place.

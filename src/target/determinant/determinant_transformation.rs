@@ -1,5 +1,6 @@
 //! Implementation of symmetry transformations for Slater determinants.
 
+use std::fmt;
 use std::ops::Mul;
 
 use approx;
@@ -762,7 +763,7 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
 impl<'a, T, SC> ComplexConjugationTransformable for SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Clone,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {

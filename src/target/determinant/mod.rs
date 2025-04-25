@@ -33,11 +33,11 @@ mod determinant_transformation;
 
 /// Structure to manage single-determinantal wavefunctions.
 #[derive(Builder, Clone)]
-// #[builder(build_fn(validate = "Self::validate"))]
+#[builder(build_fn(validate = "Self::validate"))]
 pub struct SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
 {
     /// The structure constraint associated with the coefficients describing this determinant.
     structure_constraint: SC,
@@ -199,7 +199,7 @@ where
 impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Clone + Lapack,
-    SC: StructureConstraint + Clone,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Extracts the molecular orbitals in this Slater determinant.
     ///
@@ -239,7 +239,7 @@ where
 impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Clone + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
 {
     /// Returns the complex-symmetric flag of the determinant.
     pub fn complex_symmetric(&self) -> bool {
@@ -666,7 +666,7 @@ where
 impl<'a, T, SC> PartialEq for SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat<Real = f64> + Lapack,
-    SC: StructureConstraint + PartialEq,
+    SC: StructureConstraint + PartialEq + fmt::Display,
 {
     fn eq(&self, other: &Self) -> bool {
         let thresh = (self.threshold * other.threshold).sqrt();
@@ -712,7 +712,7 @@ where
 impl<'a, T, SC> Eq for SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat<Real = f64> + Lapack,
-    SC: StructureConstraint + Eq,
+    SC: StructureConstraint + Eq + fmt::Display,
 {
 }
 
@@ -723,7 +723,7 @@ impl<'a, T, SC> fmt::Debug for SlaterDeterminant<'a, T, SC>
 where
     T: fmt::Debug + ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Debug,
-    SC: StructureConstraint + fmt::Debug,
+    SC: StructureConstraint + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

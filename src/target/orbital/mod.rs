@@ -11,7 +11,7 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::target::density::Density;
@@ -362,6 +362,48 @@ where
                         acc + full_denmat.slice(s![
                             ispin * nspatial..(ispin + 1) * nspatial,
                             ispin * nspatial..(ispin + 1) * nspatial
+                        ])
+                    },
+                );
+                Density::<Complex<T>>::builder()
+                    .density_matrix(denmat)
+                    .bao(self.bao())
+                    .mol(self.mol())
+                    .complex_symmetric(self.complex_symmetric())
+                    .threshold(self.threshold())
+                    .build()
+                    .map_err(|err| format_err!(err))
+            }
+        }
+    }
+}
+
+impl<'a, T> MolecularOrbital<'a, Complex<T>, SpinOrbitCoupled>
+where
+    T: Float + FloatConst + Lapack + From<u16>,
+    Complex<T>: Lapack,
+{
+    /// Constructs the total density of the molecular orbital.
+    pub fn to_total_density(&'a self) -> Result<Density<'a, Complex<T>>, anyhow::Error> {
+        match self.structure_constraint {
+            SpinOrbitCoupled::JAdapted(ncomps) => {
+                let full_denmat = einsum(
+                    "m,n->mn",
+                    &[
+                        &self.coefficients.view(),
+                        &self.coefficients.map(Complex::conj).view(),
+                    ],
+                )
+                .expect("Unable to construct a density matrix from the coefficient matrix.")
+                .into_dimensionality::<Ix2>()
+                .expect("Unable to convert the resultant density matrix to two dimensions.");
+                let nspatial = self.bao().n_funcs();
+                let denmat = (0..usize::from(ncomps)).fold(
+                    Array2::<Complex<T>>::zeros((nspatial, nspatial)),
+                    |acc, icomp| {
+                        acc + full_denmat.slice(s![
+                            icomp * nspatial..(icomp + 1) * nspatial,
+                            icomp * nspatial..(icomp + 1) * nspatial
                         ])
                     },
                 );

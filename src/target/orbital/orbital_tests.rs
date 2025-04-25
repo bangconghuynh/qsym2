@@ -315,7 +315,7 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
             .occupations(&[occ.clone()])
             .bao(&bao_bf4)
             .mol(&mol_bf4)
-            .structure_constraint(SpinOrbitCoupled::JAdapted(1, true))
+            .structure_constraint(SpinOrbitCoupled::JAdapted(1))
             .complex_symmetric(false)
             .threshold(1e-14)
             .build()

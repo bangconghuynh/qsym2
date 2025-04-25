@@ -435,7 +435,7 @@ pub enum PySpinOrbitCoupled {
 impl From<PySpinOrbitCoupled> for SpinOrbitCoupled {
     fn from(pysoc: PySpinOrbitCoupled) -> Self {
         match pysoc {
-            PySpinOrbitCoupled::JAdapted => SpinOrbitCoupled::JAdapted(2, true),
+            PySpinOrbitCoupled::JAdapted => SpinOrbitCoupled::JAdapted(2),
         }
     }
 }
@@ -445,7 +445,7 @@ impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
 
     fn try_from(soc: SpinOrbitCoupled) -> Result<Self, Self::Error> {
         match soc {
-            SpinOrbitCoupled::JAdapted(2, true) => Ok(PySpinOrbitCoupled::JAdapted),
+            SpinOrbitCoupled::JAdapted(2) => Ok(PySpinOrbitCoupled::JAdapted),
             _ => Err(format_err!(
                 "`PySpinOrbitCoupled` can only support two relativistic components where the `m_j` functions are arranged in increasing order."
             )),

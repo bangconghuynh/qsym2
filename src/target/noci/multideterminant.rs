@@ -36,7 +36,7 @@ mod multideterminant_tests;
 pub struct MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     #[builder(setter(skip), default = "PhantomData")]
@@ -79,7 +79,7 @@ where
 impl<'a, T, B, SC> MultiDeterminantBuilder<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn validate(&self) -> Result<(), String> {
@@ -146,7 +146,7 @@ where
 impl<'a, T, B, SC> MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     /// Returns a builder to construct a new [`MultiDeterminant`].
@@ -169,7 +169,7 @@ where
 impl<'a, T, B, SC> MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     /// Returns the complex-conjugated flag of the multi-determinantal wavefunction.
@@ -206,7 +206,7 @@ where
 impl<'a, T, B, SC> fmt::Debug for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -225,7 +225,7 @@ where
 impl<'a, T, B, SC> fmt::Display for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

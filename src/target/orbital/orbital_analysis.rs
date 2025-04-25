@@ -48,7 +48,7 @@ where
     <T as ComplexFloat>::Real: fmt::Debug
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Eq,
+    SC: StructureConstraint + Eq + fmt::Display,
 {
     fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
@@ -146,7 +146,7 @@ pub struct MolecularOrbitalSymmetryOrbit<'a, G, T, SC>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     MolecularOrbital<'a, T, SC>: SymmetryTransformable,
 {
     /// The generating symmetry group.
@@ -195,7 +195,7 @@ impl<'a, G, T, SC> MolecularOrbitalSymmetryOrbit<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint + Clone,
+    SC: StructureConstraint + Clone + fmt::Display,
     MolecularOrbital<'a, T, SC>: SymmetryTransformable,
 {
     /// Returns a builder to construct a new [`MolecularOrbitalSymmetryOrbit`] structure.
@@ -250,7 +250,7 @@ where
 impl<'a, G, SC> MolecularOrbitalSymmetryOrbit<'a, G, f64, SC>
 where
     G: SymmetryGroupProperties,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     MolecularOrbital<'a, f64, SC>: SymmetryTransformable,
 {
     fn_calc_xmat_real!(
@@ -274,7 +274,7 @@ where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     MolecularOrbital<'a, Complex<T>, SC>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
     fn_calc_xmat_complex!(
@@ -306,7 +306,7 @@ impl<'a, G, T, SC> Orbit<G, MolecularOrbital<'a, T, SC>>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint,
+    SC: StructureConstraint + fmt::Display,
     MolecularOrbital<'a, T, SC>: SymmetryTransformable,
 {
     type OrbitIter = OrbitIterator<'a, G, MolecularOrbital<'a, T, SC>>;
@@ -366,7 +366,7 @@ where
         + Zero
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Eq,
+    SC: StructureConstraint + Eq + fmt::Display,
     MolecularOrbital<'a, T, SC>: SymmetryTransformable,
 {
     fn set_smat(&mut self, smat: Array2<T>) {
@@ -524,7 +524,7 @@ where
         + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Clone + Eq,
+    SC: StructureConstraint + Clone + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     MolecularOrbital<'a, T, SC>: SymmetryTransformable,
 {

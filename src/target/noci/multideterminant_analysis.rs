@@ -50,7 +50,7 @@ where
     <T as ComplexFloat>::Real: fmt::Debug
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn complex_symmetric(&self) -> bool {
@@ -135,7 +135,7 @@ pub struct MultiDeterminantSymmetryOrbit<'a, 'g, G, T, B, SC>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
@@ -186,7 +186,7 @@ impl<'a, 'g, G, T, B, SC> MultiDeterminantSymmetryOrbit<'a, 'g, G, T, B, SC>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
@@ -204,7 +204,7 @@ where
 impl<'a, 'g, G, B, SC> MultiDeterminantSymmetryOrbit<'a, 'g, G, f64, B, SC>
 where
     G: SymmetryGroupProperties,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: 'a + Basis<SlaterDeterminant<'a, f64, SC>> + Clone,
     MultiDeterminant<'a, f64, B, SC>: SymmetryTransformable,
 {
@@ -229,7 +229,7 @@ where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: 'a + Basis<SlaterDeterminant<'a, Complex<T>, SC>> + Clone,
     MultiDeterminant<'a, Complex<T>, B, SC>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
@@ -262,7 +262,7 @@ impl<'a, 'g, G, T, B, SC> Orbit<G, MultiDeterminant<'a, T, B, SC>>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
     B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
@@ -325,7 +325,7 @@ where
         + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
@@ -487,7 +487,7 @@ where
         + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Hash + Eq + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     MultiDeterminant<'a, T, OrbitBasis<'g, G, SlaterDeterminant<'a, T, SC>>, SC>:
         SymmetryTransformable,
 {

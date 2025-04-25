@@ -1,18 +1,19 @@
+use std::f64::consts::FRAC_1_SQRT_2;
 use std::path::Path;
 
-// use log4rs;
 use byteorder::LittleEndian;
 use itertools::Itertools;
+use log4rs;
 use nalgebra::Vector3;
 use ndarray::{array, Array1, Array2};
 use num_complex::Complex;
 use serial_test::serial;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
 };
 #[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
@@ -365,6 +366,202 @@ fn test_drivers_slater_determinant_analysis_vf6() {
             .as_ref()
             .unwrap(),
         DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||F~|_(g)|")
+            .unwrap()
+    );
+}
+
+#[test]
+fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+
+    let afa_params = AngularFunctionRepAnalysisParams::default();
+
+    let pd_params = SymmetryGroupDetectionParams::builder()
+        .moi_thresholds(&[1e-6])
+        .distance_thresholds(&[1e-6])
+        .field_origin_com(true)
+        .time_reversal(true)
+        .write_symmetry_elements(true)
+        .build()
+        .unwrap();
+    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+        .parameters(&pd_params)
+        .xyz(Some(path.into()))
+        .build()
+        .unwrap();
+    assert!(pd_driver.run().is_ok());
+    let pd_res = pd_driver.result().unwrap();
+    let mol_ch4 = &pd_res.pre_symmetry.recentred_molecule;
+
+    let bssp_1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
+    let bssp_3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
+    let bssp_5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5)));
+
+    let batm_c0 = BasisAtom::new(
+        &mol_ch4.atoms[0],
+        &[bssp_1.clone(), bssp_3.clone(), bssp_5.clone()],
+    );
+    let batm_h0 = BasisAtom::new(&mol_ch4.atoms[1], &[bssp_1.clone()]);
+    let batm_h1 = BasisAtom::new(&mol_ch4.atoms[2], &[bssp_1.clone()]);
+    let batm_h2 = BasisAtom::new(&mol_ch4.atoms[3], &[bssp_1.clone()]);
+    let batm_h3 = BasisAtom::new(&mol_ch4.atoms[4], &[bssp_1.clone()]);
+
+    let bao_ch4 = BasisAngularOrder::new(&[batm_c0, batm_h0, batm_h1, batm_h2, batm_h3]);
+
+    let sao_spatial = Array2::<f64>::eye(20).mapv(C128::from);
+
+    #[rustfmt::skip]
+    let c = array![
+        [FRAC_1_SQRT_2, 0.0, 0.0, 0.0],
+        [FRAC_1_SQRT_2, 0.0, 0.0, 0.0],
+        [0.0, 0.5, 0.0, 0.0],
+        [0.0, 0.5, 0.0, 0.0],
+        [0.0, 0.5, 0.0, 0.0],
+        [0.0, 0.5, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.5],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.5],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.5],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.5],
+        [0.0, 0.0, 0.0, 0.0],
+    ].mapv(C128::from);
+    let occ = array![1.0, 1.0, 0.0, 0.0];
+    let det_cg = SlaterDeterminant::<C128, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .bao(&bao_ch4)
+        .mol(mol_ch4)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Td* (double, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(None)
+        .use_double_group(true)
+        .use_cayley_table(true)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(true)
+        .write_character_table(Some(CharacterTableDisplay::Symbolic))
+        .build()
+        .unwrap();
+
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinOrbitCoupled,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|| ⊕ ||T|_(1)| ⊕ ||T|_(2)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u (Td + θ·Td)* (grey, double, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
+        .use_double_group(true)
+        .use_cayley_table(true)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(true)
+        .write_character_table(Some(CharacterTableDisplay::Symbolic))
+        .build()
+        .unwrap();
+
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        C128,
+        SpinOrbitCoupled,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("|^(+)|E|| ⊕ |^(-)|T|_(1)| ⊕ |^(-)|T|_(2)|")
+            .unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // m (Td + θ·Td)* (grey, double, magnetic) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
+        .use_double_group(true)
+        .use_cayley_table(true)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(true)
+        .write_character_table(Some(CharacterTableDisplay::Symbolic))
+        .build()
+        .unwrap();
+
+    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+        MagneticRepresentedSymmetryGroup,
+        C128,
+        SpinOrbitCoupled,
+    >::builder()
+    .parameters(&sda_params)
+    .angular_function_parameters(&afa_params)
+    .determinant(&det_cg)
+    .sao_spatial(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E|| ⊕ ||T|_(1)| ⊕ ||T|_(2)|")
             .unwrap()
     );
 }

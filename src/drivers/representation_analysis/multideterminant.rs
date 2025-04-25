@@ -222,7 +222,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     /// The control parameters used to obtain this set of multi-determinantal wavefunction
     /// representation analysis results.
@@ -250,7 +250,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Clone + Hash + Eq,
+    SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     /// Returns a builder to construct a new [`MultiDeterminantRepAnalysisResultBuilder`]
     /// structure.
@@ -449,7 +449,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     /// The control parameters for multi-determinantal wavefunction representation analysis.
     parameters: &'a MultiDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
@@ -486,7 +486,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn validate(&self) -> Result<(), String> {
         let params = self.parameters.ok_or(
@@ -572,7 +572,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Clone + Hash + Eq,
+    SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     /// Returns a builder to construct a [`MultiDeterminantRepAnalysisDriver`] structure.
     pub fn builder() -> MultiDeterminantRepAnalysisDriverBuilder<'a, G, T, B, SC> {
@@ -637,7 +637,7 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn_construct_unitary_group!(
         /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
@@ -655,7 +655,7 @@ where
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn_construct_magnetic_group!(
         /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
@@ -873,7 +873,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "Multi-determinantal Wavefunction Symmetry Analysis")?;
@@ -890,7 +890,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
-    SC: StructureConstraint + Hash + Eq,
+    SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
