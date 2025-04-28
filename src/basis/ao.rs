@@ -573,15 +573,21 @@ impl SpinorOrderBuilder {
 
     fn two_mjs(&mut self, two_mjs: &[i32]) -> &mut Self {
         let two_j = self.two_j.expect("`two_j` has not been set.");
-        assert!(
-            two_mjs
-                .iter()
-                .map(|two_m| two_m.unsigned_abs())
-                .max()
-                .expect("The maximum |2m| value could not be determined.")
-                == two_j
+        let max_two_m = two_mjs
+            .iter()
+            .map(|two_m| two_m.unsigned_abs())
+            .max()
+            .expect("The maximum |2m| value could not be determined.");
+        assert_eq!(
+            max_two_m, two_j,
+            "The maximum |2m| value does not equal 2j = {two_j}."
         );
-        assert_eq!(two_mjs.len(), (two_j + 1) as usize);
+        assert_eq!(
+            two_mjs.len(),
+            (two_j + 1) as usize,
+            "The number of 2m values specified does not equal 2j + 1 = {}",
+            two_j + 1
+        );
         self.two_mjs = Some(two_mjs.to_vec());
         self
     }
@@ -599,7 +605,7 @@ impl SpinorOrder {
             .iter()
             .map(|two_m| two_m.unsigned_abs())
             .max()
-            .expect("The maximum |2m| value could not be determined.");
+            .ok_or_else(|| format_err!("The maximum |2m| value could not be determined."))?;
         let spinor_order = SpinorOrder::builder()
             .two_j(two_j)
             .two_mjs(two_mjs)
@@ -1198,10 +1204,14 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                         " {:>atom_index_length$}  {:<4}  {:<5}  {:<order_length$}",
                         atm_i,
                         atm.atomic_symbol,
-                        ANGMOM_LABELS
-                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
-                            .copied()
-                            .unwrap_or(&bshl.l.to_string()),
+                        match &bshl.shell_order {
+                            ShellOrder::Pure(_) | ShellOrder::Cart(_) => ANGMOM_LABELS
+                                .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                                .copied()
+                                .unwrap_or(&bshl.l.to_string())
+                                .to_string(),
+                            ShellOrder::Spinor(spinororder) => format!("{}/2", spinororder.two_j),
+                        },
                         bshl.shell_order
                     )?;
                 } else {
@@ -1210,10 +1220,14 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                         " {:>atom_index_length$}  {:<4}  {:<5}  {:<order_length$}",
                         "",
                         "",
-                        ANGMOM_LABELS
-                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
-                            .copied()
-                            .unwrap_or(&bshl.l.to_string()),
+                        match &bshl.shell_order {
+                            ShellOrder::Pure(_) | ShellOrder::Cart(_) => ANGMOM_LABELS
+                                .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                                .copied()
+                                .unwrap_or(&bshl.l.to_string())
+                                .to_string(),
+                            ShellOrder::Spinor(spinororder) => format!("{}/2", spinororder.two_j),
+                        },
                         bshl.shell_order
                     )?;
                 }

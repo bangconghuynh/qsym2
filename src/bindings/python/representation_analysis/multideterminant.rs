@@ -579,11 +579,14 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                 pyorigins
                     .iter()
                     .map(|pydet| match pydet {
-                        PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r).to_generalised()),
+                        PySlaterDeterminant::Real(pydet_r) => {
+                            pydet_r.to_qsym2::<SpinConstraint>(&bao, mol).map(|det_r| {
+                                SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
+                                    .to_generalised()
+                            })
+                        }
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
                             .map(|det_c| det_c.to_generalised()),
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -592,9 +595,11 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                     .iter()
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
                             .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r)),
-                        PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
+                        PySlaterDeterminant::Complex(pydet_c) => {
+                            pydet_c.to_qsym2::<SpinConstraint>(&bao, mol)
+                        }
                     })
                     .collect::<Result<Vec<_>, _>>()
             }
@@ -1169,11 +1174,14 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 pydets
                     .iter()
                     .map(|pydet| match pydet {
-                        PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r).to_generalised()),
+                        PySlaterDeterminant::Real(pydet_r) => {
+                            pydet_r.to_qsym2::<SpinConstraint>(&bao, mol).map(|det_r| {
+                                SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
+                                    .to_generalised()
+                            })
+                        }
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
                             .map(|det_c| det_c.to_generalised()),
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -1182,9 +1190,9 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .iter()
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
                             .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r)),
-                        PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
+                        PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2::<SpinConstraint>(&bao, mol),
                     })
                     .collect::<Result<Vec<_>, _>>()
             }
