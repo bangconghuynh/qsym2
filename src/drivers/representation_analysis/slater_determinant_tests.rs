@@ -173,7 +173,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -212,7 +212,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -252,7 +252,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -283,7 +283,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -314,7 +314,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -353,7 +353,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -394,9 +394,9 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     let pd_res = pd_driver.result().unwrap();
     let mol_ch4 = &pd_res.pre_symmetry.recentred_molecule;
 
-    let bssp_1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
-    let bssp_3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
-    let bssp_5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5)));
+    let bssp_1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
+    let bssp_3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
+    let bssp_5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
 
     let batm_c0 = BasisAtom::new(
         &mol_ch4.atoms[0],
@@ -470,7 +470,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -509,7 +509,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -549,7 +549,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
     .unwrap();
@@ -765,7 +765,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .sao_spatial_4c(Some(&sao_spatial_4c))
     .symmetry_group(pd_res)
     .build()
@@ -859,7 +859,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .sao_spatial_4c(Some(&sao_spatial_4c))
     .symmetry_group(pd_res)
     .build()
@@ -954,7 +954,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .sao_spatial_4c(Some(&sao_spatial_4c))
     .symmetry_group(pd_res)
     .build()
@@ -1040,7 +1040,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .sao_spatial_4c(Some(&sao_spatial_4c))
     .symmetry_group(pd_res)
     .build()
@@ -1126,7 +1126,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .sao_spatial_4c(Some(&sao_spatial_4c))
     .symmetry_group(pd_res)
     .build()
@@ -1220,7 +1220,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_d3_cg)
-    .sao_spatial(&sao_spatial)
+    .sao(&sao_spatial)
     .sao_spatial_4c(Some(&sao_spatial_4c))
     .symmetry_group(pd_res)
     .build()
@@ -1449,8 +1449,8 @@ fn test_drivers_slater_determinant_analysis_h2co_by_mag_uni() {
     .parameters(&sda_params)
     .angular_function_parameters(&afa_params)
     .determinant(&det_cu)
-    .sao_spatial(&sao_spatial)
-    .sao_spatial_h(Some(&sao_spatial_h))
+    .sao(&sao_spatial)
+    .sao_h(Some(&sao_spatial_h))
     .symmetry_group(pd_res)
     .build()
     .unwrap();

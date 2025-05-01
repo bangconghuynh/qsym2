@@ -209,7 +209,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
             .parameters(&mda_params)
             .angular_function_parameters(&afa_params)
             .multidets(vec![&a1_multidet, &ex_multidet, &ey_multidet])
-            .sao_spatial(&sao_spatial)
+            .sao(&sao_spatial)
             .symmetry_group(pd_res)
             .build()
             .unwrap();

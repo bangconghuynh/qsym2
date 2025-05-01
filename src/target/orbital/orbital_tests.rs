@@ -256,9 +256,9 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
     let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1)));
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3)));
-    let bs_sp5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5)));
+    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
+    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
+    let bs_sp5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp3.clone(), bs_sp5.clone()]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1.clone()]);

@@ -110,7 +110,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Cart (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
+                "Cart (u) (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -119,7 +119,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Cart (xx, xy, yy, xz, yz, zz)"
+                "Cart (g) (xx, xy, yy, xz, yz, zz)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -128,7 +128,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Cart (xx, xy, xz, yy, yz, zz)"
+                "Cart (g) (xx, xy, xz, yy, yz, zz)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -137,7 +137,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Pure (0, 1, -1, 2, -2, 3, -3)"
+                "Pure (u) (0, 1, -1, 2, -2, 3, -3)"
             );
         } else {
             assert!(false);

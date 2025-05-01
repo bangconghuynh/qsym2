@@ -1050,7 +1050,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .parameters(self.rep_analysis_parameters)
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&det)
-                    .sao_spatial(&sao)
+                    .sao(&sao)
                     .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
@@ -1083,7 +1083,7 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     .parameters(self.rep_analysis_parameters)
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&loc_det)
-                    .sao_spatial(&sao)
+                    .sao(&sao)
                     .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()?;

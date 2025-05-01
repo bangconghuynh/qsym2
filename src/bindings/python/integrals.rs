@@ -35,18 +35,20 @@ lazy_static! {
         Regex::new(r"(.*sp)\\energy_function$").expect("Regex pattern invalid.");
 }
 
-/// Python-exposed enumerated type to handle the union type `bool | list[int]` in Python for
-/// specifying pure-spherical-harmonic order or spinor order.
+/// Python-exposed enumerated type to handle the union type `(bool, bool) | (list[int], bool)` in
+/// Python for specifying pure-spherical-harmonic order or spinor order.
 #[derive(Clone, FromPyObject)]
 pub enum PyPureSpinorOrder {
-    /// Variant for standard pure or spinor shell order. The associated boolean indicates if the
-    /// functions are arranged in increasing-$`m`$ order.
-    Standard(bool),
+    /// Variant for standard pure or spinor shell order. The first associated boolean indicates if
+    /// the functions are arranged in increasing-$`m`$ order, and the second associated boolean
+    /// indicates if the shell is even with respect to spatial inversion.
+    Standard((bool, bool)),
 
     /// Variant for custom pure or spinor shell order. The associated vector contains a sequence of
     /// integers specifying the order of $`m`$ values for pure or $`2m`$ values for spinor in the
-    /// shell.
-    Custom(Vec<i32>),
+    /// shell, and the associated boolean indicates if the shell is even with respect to spatial
+    /// inversion.
+    Custom((Vec<i32>, bool)),
 }
 
 /// Python-exposed enumerated type to handle the `ShellOrder` union type `bool |
@@ -72,7 +74,7 @@ pub enum PyShellOrder {
 // /// analysis.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[pyclass(eq, eq_int)]
-pub enum PyShellType {
+pub enum ShellType {
     /// Variant indicating that unitary representations should be used for magnetic symmetry
     /// analysis.
     Pure,
@@ -119,7 +121,7 @@ pub struct PyBasisAngularOrder {
     /// specifying a custom $`m`$ order.
     ///
     /// Python type: `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
-    basis_atoms: Vec<(String, Vec<(u32, PyShellType, PyShellOrder)>)>,
+    basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
 }
 
 #[pymethods]
@@ -146,7 +148,7 @@ impl PyBasisAngularOrder {
     ///   Python type:
     ///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
     #[new]
-    fn new(basis_atoms: Vec<(String, Vec<(u32, PyShellType, PyShellOrder)>)>) -> Self {
+    fn new(basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>) -> Self {
         Self { basis_atoms }
     }
 
@@ -225,7 +227,7 @@ impl PyBasisAngularOrder {
                     .read_1d::<usize>()
                     .map_err(|err| PyValueError::new_err(err.to_string()))?;
 
-                let mut basis_atoms_map: IndexMap<usize, Vec<(u32, PyShellType, PyShellOrder)>> =
+                let mut basis_atoms_map: IndexMap<usize, Vec<(u32, ShellType, PyShellOrder)>> =
                     IndexMap::new();
                 shell_types.iter().zip(shell_to_atom_map.iter()).for_each(
                     |(shell_type, atom_idx)| {
@@ -233,14 +235,14 @@ impl PyBasisAngularOrder {
                             // S shell
                             basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
                                 0,
-                                PyShellType::Cartesian,
+                                ShellType::Cartesian,
                                 PyShellOrder::CartOrder(Some(CartOrder::qchem(0).cart_tuples)),
                             ));
                         } else if *shell_type == 1 {
                             // P shell
                             basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
                                 1,
-                                PyShellType::Cartesian,
+                                ShellType::Cartesian,
                                 PyShellOrder::CartOrder(Some(CartOrder::qchem(1).cart_tuples)),
                             ));
                         } else if *shell_type == -1 {
@@ -251,14 +253,14 @@ impl PyBasisAngularOrder {
                                 .extend_from_slice(&[
                                     (
                                         0,
-                                        PyShellType::Cartesian,
+                                        ShellType::Cartesian,
                                         PyShellOrder::CartOrder(Some(
                                             CartOrder::qchem(0).cart_tuples,
                                         )),
                                     ),
                                     (
                                         1,
-                                        PyShellType::Cartesian,
+                                        ShellType::Cartesian,
                                         PyShellOrder::CartOrder(Some(
                                             CartOrder::qchem(1).cart_tuples,
                                         )),
@@ -272,7 +274,7 @@ impl PyBasisAngularOrder {
                             //     .unwrap_or_else(|| panic!("Unable to convert the angular momentum value `|{shell_type}|` to `usize`."));
                             basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
                                 l,
-                                PyShellType::Cartesian,
+                                ShellType::Cartesian,
                                 PyShellOrder::CartOrder(Some(CartOrder::qchem(l).cart_tuples)),
                             ));
                         } else {
@@ -283,8 +285,8 @@ impl PyBasisAngularOrder {
                             //     .unwrap_or_else(|| panic!("Unable to convert the angular momentum value `|{shell_type}|` to `usize`."));
                             basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
                                 l,
-                                PyShellType::Pure,
-                                PyShellOrder::PureSpinorOrder(PyPureSpinorOrder::Standard(true)),
+                                ShellType::Pure,
+                                PyShellOrder::PureSpinorOrder(PyPureSpinorOrder::Standard((true, l % 2 == 0))),
                             ));
                         }
                     },
@@ -566,7 +568,7 @@ pub struct PyBasisShellContraction {
     ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
     ///
     /// Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
-    pub basis_shell: (u32, PyShellType, PyShellOrder),
+    pub basis_shell: (u32, ShellType, PyShellOrder),
 
     /// A list of tuples, each of which contains the exponent and the contraction coefficient of a
     /// Gaussian primitive in this shell.
@@ -616,7 +618,7 @@ impl PyBasisShellContraction {
     #[new]
     #[pyo3(signature = (basis_shell, primitives, cart_origin, k=None))]
     pub fn new(
-        basis_shell: (u32, PyShellType, PyShellOrder),
+        basis_shell: (u32, ShellType, PyShellOrder),
         primitives: Vec<(f64, f64)>,
         cart_origin: [f64; 3],
         k: Option<[f64; 3]>,
@@ -678,11 +680,11 @@ impl TryFrom<PyBasisShellContraction> for BasisShellContraction<f64, f64> {
 /// and `shell_order`.
 fn create_basis_shell(
     order: u32,
-    shell_type: &PyShellType,
+    shell_type: &ShellType,
     shell_order: &PyShellOrder,
 ) -> Result<BasisShell, anyhow::Error> {
     let shl_ord = match shell_type {
-        PyShellType::Cartesian => {
+        ShellType::Cartesian => {
             let cart_order = match shell_order {
                 PyShellOrder::CartOrder(cart_tuples_opt) => {
                     if let Some(cart_tuples) = cart_tuples_opt {
@@ -702,16 +704,16 @@ fn create_basis_shell(
             };
             ShellOrder::Cart(cart_order)
         }
-        PyShellType::Pure => match shell_order {
+        ShellType::Pure => match shell_order {
             PyShellOrder::PureSpinorOrder(pypureorder) => match pypureorder {
-                PyPureSpinorOrder::Standard(increasingm) => {
+                PyPureSpinorOrder::Standard((increasingm, _even)) => {
                     if *increasingm {
                         ShellOrder::Pure(PureOrder::increasingm(order))
                     } else {
                         ShellOrder::Pure(PureOrder::decreasingm(order))
                     }
                 }
-                PyPureSpinorOrder::Custom(mls) => ShellOrder::Pure(PureOrder::new(mls)?),
+                PyPureSpinorOrder::Custom((mls, _even)) => ShellOrder::Pure(PureOrder::new(mls)?),
             },
             PyShellOrder::CartOrder(_) => {
                 log::error!(
@@ -722,17 +724,17 @@ fn create_basis_shell(
                 )
             }
         },
-        PyShellType::Spinor => match shell_order {
+        ShellType::Spinor => match shell_order {
             PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
-                PyPureSpinorOrder::Standard(increasingm) => {
+                PyPureSpinorOrder::Standard((increasingm, even)) => {
                     if *increasingm {
-                        ShellOrder::Spinor(SpinorOrder::increasingm(order))
+                        ShellOrder::Spinor(SpinorOrder::increasingm(order, *even))
                     } else {
-                        ShellOrder::Spinor(SpinorOrder::decreasingm(order))
+                        ShellOrder::Spinor(SpinorOrder::decreasingm(order, *even))
                     }
                 }
-                PyPureSpinorOrder::Custom(two_mjs) => {
-                    ShellOrder::Spinor(SpinorOrder::new(two_mjs)?)
+                PyPureSpinorOrder::Custom((two_mjs, even)) => {
+                    ShellOrder::Spinor(SpinorOrder::new(two_mjs, *even)?)
                 }
             },
             PyShellOrder::CartOrder(_) => {

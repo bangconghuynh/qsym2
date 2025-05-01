@@ -10,12 +10,12 @@ use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array2};
+use ndarray::Array2;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 

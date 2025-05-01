@@ -357,7 +357,7 @@ where
         writeln!(f, "> Multi-determinantal results")?;
         writeln!(
             f,
-            "  Spin constraint: {}",
+            "  Structure constraint: {}",
             self.multidets
                 .get(0)
                 .map(|multidet_0| multidet_0.structure_constraint().to_string().to_lowercase())
@@ -461,15 +461,20 @@ where
     /// multi-determinantal wavefunctions.
     symmetry_group: &'a SymmetryGroupDetectionResult,
 
-    /// The atomic-orbital spatial overlap matrix of the underlying basis set used to describe the
-    /// wavefunctions.
-    sao_spatial: &'a Array2<T>,
+    /// The atomic-orbital overlap matrix of the underlying basis set used to describe the
+    /// wavefunctions. This is either for a single component corresponding to the basis functions
+    /// specified by the basis angular order structure in [`Self::determinant`], or for *all*
+    /// explicit components specified by the coefficients in the determinants.
+    sao: &'a Array2<T>,
 
-    /// The complex-symmetric atomic-orbital spatial overlap matrix of the underlying basis set used
-    /// to describe the wavefunctions. This is required if antiunitary symmetry operations are
-    /// involved. If none is provided, this will be assumed to be the same as [`Self::sao_spatial`].
+    /// The complex-symmetric atomic-orbital overlap matrix of the underlying basis set used to
+    /// describe the wavefunctions. This is either for a single component corresponding to the basis
+    /// functions specified by the basis angular order structure in the determinants, or for *all*
+    /// explicit components specified by the coefficients in the determinants.This is required if
+    /// antiunitary symmetry operations are involved. If none is provided, this will be assumed to
+    /// be the same as [`Self::sao`].
     #[builder(default = "None")]
-    sao_spatial_h: Option<&'a Array2<T>>,
+    sao_h: Option<&'a Array2<T>>,
 
     /// The control parameters for symmetry analysis of angular functions.
     angular_function_parameters: &'a AngularFunctionRepAnalysisParams,
@@ -498,15 +503,11 @@ where
             .symmetry_group
             .ok_or("No symmetry group information found.".to_string())?;
 
-        let sao_spatial = self
-            .sao_spatial
-            .ok_or("No spatial SAO matrix found.".to_string())?;
+        let sao = self.sao.ok_or("No SAO matrix found.".to_string())?;
 
-        if let Some(sao_spatial_h) = self.sao_spatial_h.flatten() {
-            if sao_spatial_h.shape() != sao_spatial.shape() {
-                return Err(
-                    "Mismatched shapes between `sao_spatial` and `sao_spatial_h`.".to_string(),
-                );
+        if let Some(sao_h) = self.sao_h.flatten() {
+            if sao_h.shape() != sao.shape() {
+                return Err("Mismatched shapes between `sao` and `sao_h`.".to_string());
             }
         }
 
@@ -517,20 +518,25 @@ where
         let mut n_spatial_set = multidets
             .iter()
             .flat_map(|multidet| {
-                multidet
-                    .basis()
-                    .iter()
-                    .map(|det_res| det_res.map(|det| det.bao().n_funcs()))
+                multidet.basis().iter().map(|det_res| {
+                    det_res.map(|det| {
+                        (
+                            det.bao().n_funcs(),
+                            det.structure_constraint()
+                                .n_explicit_comps_per_coefficient_matrix(),
+                        )
+                    })
+                })
             })
-            .collect::<Result<HashSet<usize>, _>>()
+            .collect::<Result<HashSet<(usize, usize)>, _>>()
             .map_err(|err| err.to_string())?;
-        let n_spatial = if n_spatial_set.len() == 1 {
+        let (n_spatial, n_comps) = if n_spatial_set.len() == 1 {
             n_spatial_set
                 .drain()
                 .next()
-                .ok_or("Unable to retrieve the number of spatial AO basis functions.".to_string())
+                .ok_or("Unable to retrieve the number of spatial AO basis functions and the number of explicit components.".to_string())
         } else {
-            Err("Inconsistent numbers of spatial AO basis functions across multi-determinantal wavefunctions.".to_string())
+            Err("Inconsistent numbers of spatial AO basis functions and/or explicit components across multi-determinantal wavefunctions.".to_string())
         }?;
 
         let sym = if params.use_magnetic_group.is_some() {
@@ -550,8 +556,10 @@ where
                     sym.group_name.as_ref().expect("No symmetry group name found.")
                 )
             )
-        } else if n_spatial != sao_spatial.nrows() || n_spatial != sao_spatial.ncols() {
-            Err("The dimensions of the spatial SAO matrix do not match the number of spatial AO basis functions.".to_string())
+        } else if (n_spatial != sao.nrows() || n_spatial != sao.ncols())
+            || (n_spatial * n_comps != sao.nrows() || n_spatial * n_comps != sao.ncols())
+        {
+            Err("The dimensions of the SAO matrix do not match either the number of spatial AO basis functions or the number of spatial AO basis functions multiplied by the number of explicit components per coefficient matrix.".to_string())
         } else {
             Ok(())
         }
@@ -579,8 +587,8 @@ where
         MultiDeterminantRepAnalysisDriverBuilder::default()
     }
 
-    /// Constructs the appropriate atomic-orbital overlap matrix based on the spin constraint of
-    /// the multi-determinantal wavefunctions.
+    /// Constructs the appropriate atomic-orbital overlap matrix based on the structure constraint of
+    /// the multi-determinantal wavefunctions and the provided overlap matrix.
     fn construct_sao(&self) -> Result<(Array2<T>, Option<Array2<T>>), anyhow::Error> {
         let mut structure_constraint_set = self
             .multidets
@@ -597,34 +605,60 @@ where
             ))
         }?;
 
-        let nbas = self.sao_spatial.nrows();
+        let mut nbas_set = self
+            .multidets
+            .iter()
+            .map(|multidet| {
+                multidet
+                    .basis()
+                    .first()
+                    .expect("Unable to obtain the first determinant in the basis.")
+                    .bao()
+                    .n_funcs()
+            })
+            .collect::<HashSet<_>>();
+        let nbas = if nbas_set.len() == 1 {
+            nbas_set.drain().next().ok_or(format_err!(
+                "Unable to retrieve the number of basis functions describing the multi-determinantal wavefunctions."
+            ))
+        } else {
+            Err(format_err!(
+                "Inconsistent numbers of basis functions across multi-determinantal wavefunctions."
+            ))
+        }?;
         let ncomps = structure_constraint.n_explicit_comps_per_coefficient_matrix();
+        let provided_dim = self.sao.nrows();
 
-        let sao = {
-            let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
-            (0..ncomps).for_each(|icomp| {
-                let start = icomp * nbas;
-                let end = (icomp + 1) * nbas;
+        if provided_dim == nbas {
+            let sao = {
+                let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                (0..ncomps).for_each(|icomp| {
+                    let start = icomp * nbas;
+                    let end = (icomp + 1) * nbas;
+                    sao_mut
+                        .slice_mut(s![start..end, start..end])
+                        .assign(self.sao);
+                });
                 sao_mut
-                    .slice_mut(s![start..end, start..end])
-                    .assign(self.sao_spatial);
-            });
-            sao_mut
-        };
+            };
 
-        let sao_h = self.sao_spatial_h.map(|sao_spatial_h| {
-            let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
-            (0..ncomps).for_each(|icomp| {
-                let start = icomp * nbas;
-                let end = (icomp + 1) * nbas;
+            let sao_h = self.sao_h.map(|sao_h| {
+                let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                (0..ncomps).for_each(|icomp| {
+                    let start = icomp * nbas;
+                    let end = (icomp + 1) * nbas;
+                    sao_h_mut
+                        .slice_mut(s![start..end, start..end])
+                        .assign(sao_h);
+                });
                 sao_h_mut
-                    .slice_mut(s![start..end, start..end])
-                    .assign(sao_spatial_h);
             });
-            sao_h_mut
-        });
 
-        Ok((sao, sao_h))
+            Ok((sao, sao_h))
+        } else {
+            assert_eq!(provided_dim, nbas * ncomps);
+            Ok((self.sao.clone(), self.sao_h.cloned()))
+        }
     }
 }
 

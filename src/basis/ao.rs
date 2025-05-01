@@ -37,6 +37,11 @@ pub struct PureOrder {
 
     /// The rank of the pure Gaussians.
     pub lpure: u32,
+
+    /// The spatial parity of the pure Gaussians: `true` if even under spatial inversion and
+    /// `false` if odd. By default, this is the same as the parity of `Self::lpure`.
+    #[builder(default = "self.default_even()?")]
+    pub even: bool,
 }
 
 impl PureOrderBuilder {
@@ -53,6 +58,13 @@ impl PureOrderBuilder {
         self.mls = Some(mls.to_vec());
         self
     }
+
+    fn default_even(&self) -> Result<bool, String> {
+        let lpure = self
+            .lpure
+            .ok_or_else(|| "`lpure` has not been set.".to_string())?;
+        Ok(lpure % 2 == 0)
+    }
 }
 
 impl PureOrder {
@@ -61,7 +73,8 @@ impl PureOrder {
         PureOrderBuilder::default()
     }
 
-    /// Constructs a new [`PureOrder`] structure from its constituting $`m_l`$ values.
+    /// Constructs a new [`PureOrder`] structure from its constituting $`m_l`$ values. The spatial
+    /// inversion parity is determined by the parity of the deduced $`l`$ value.
     pub fn new(mls: &[i32]) -> Result<Self, anyhow::Error> {
         let lpure = mls
             .iter()
@@ -78,6 +91,7 @@ impl PureOrder {
     }
 
     /// Constructs a new [`PureOrder`] structure for a specified rank with increasing-$`m`$ order.
+    /// The spatial inversion parity is determined by the parity of the deduced $`l`$ value.
     ///
     /// # Arguments
     ///
@@ -98,6 +112,7 @@ impl PureOrder {
     }
 
     /// Constructs a new [`PureOrder`] structure for a specified rank with decreasing-$`m`$ order.
+    /// The spatial inversion parity is determined by the parity of the deduced $`l`$ value.
     ///
     /// # Arguments
     ///
@@ -117,7 +132,8 @@ impl PureOrder {
             .expect("Unable to construct a `PureOrder` structure with decreasing-m order.")
     }
 
-    /// Constructs a new [`PureOrder`] structure for a specified rank with Molden order.
+    /// Constructs a new [`PureOrder`] structure for a specified rank with Molden order. The spatial
+    /// inversion parity is determined by the parity of the deduced $`l`$ value.
     ///
     /// # Arguments
     ///
@@ -560,6 +576,10 @@ pub struct SpinorOrder {
     /// A sequence of $`2m_j`$ values giving the ordering of the spinor Gaussians.
     #[builder(setter(custom))]
     two_mjs: Vec<i32>,
+
+    /// The spatial parity of the spinor Gaussians: `true` if even under spatial inversion and
+    /// `false` if odd.
+    pub even: bool,
 }
 
 impl SpinorOrderBuilder {
@@ -599,8 +619,9 @@ impl SpinorOrder {
         SpinorOrderBuilder::default()
     }
 
-    /// Constructs a new [`SpinorOrder`] structure from its constituting $`2m_j`$ values.
-    pub fn new(two_mjs: &[i32]) -> Result<Self, anyhow::Error> {
+    /// Constructs a new [`SpinorOrder`] structure from its constituting $`2m_j`$ values and a
+    /// specified spatial parity.
+    pub fn new(two_mjs: &[i32], even: bool) -> Result<Self, anyhow::Error> {
         let two_j = two_mjs
             .iter()
             .map(|two_m| two_m.unsigned_abs())
@@ -609,6 +630,7 @@ impl SpinorOrder {
         let spinor_order = SpinorOrder::builder()
             .two_j(two_j)
             .two_mjs(two_mjs)
+            .even(even)
             .build()
             .map_err(|err| format_err!(err))?;
         ensure!(spinor_order.verify(), "Invalid `SpinorOrder`.");
@@ -621,17 +643,20 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
+    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
+    /// inversion.
     ///
     /// # Returns
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with increasing-$`m`$ order.
     #[must_use]
-    pub fn increasingm(two_j: u32) -> Self {
+    pub fn increasingm(two_j: u32, even: bool) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (-two_j_i32..=two_j_i32).step_by(2).collect_vec();
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
+            .even(even)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with increasing-m order.")
     }
@@ -642,17 +667,20 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
+    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
+    /// inversion.
     ///
     /// # Returns
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with decreasing-$`m`$ order.
     #[must_use]
-    pub fn decreasingm(two_j: u32) -> Self {
+    pub fn decreasingm(two_j: u32, even: bool) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (-two_j_i32..=two_j_i32).rev().step_by(2).collect_vec();
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
+            .even(even)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with decreasing-m order.")
     }
@@ -662,12 +690,14 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
+    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
+    /// inversion.
     ///
     /// # Returns
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with Molden order.
     #[must_use]
-    pub fn molden(two_j: u32) -> Self {
+    pub fn molden(two_j: u32, even: bool) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (1..=two_j_i32)
             .step_by(2)
@@ -676,6 +706,7 @@ impl SpinorOrder {
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
+            .even(even)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with Molden order.")
     }
@@ -719,7 +750,12 @@ impl SpinorOrder {
 
 impl fmt::Display for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Angular momentum: {}/2", self.two_j)?;
+        writeln!(
+            f,
+            "Angular momentum: {}/2 ({})",
+            self.two_j,
+            if self.even { "g" } else { "u" }
+        )?;
         writeln!(f, "Order:")?;
         for two_m in self.iter() {
             writeln!(f, "  {two_m}/2")?;
@@ -730,7 +766,12 @@ impl fmt::Display for SpinorOrder {
 
 impl fmt::Debug for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Angular momentum: {}/2", self.two_j)?;
+        writeln!(
+            f,
+            "Angular momentum: {}/2 ({})",
+            self.two_j,
+            if self.even { "g" } else { "u" }
+        )?;
         writeln!(f, "Order:")?;
         for two_m in self.iter() {
             writeln!(f, "  {two_m:?}/2")?;
@@ -795,12 +836,14 @@ impl fmt::Display for ShellOrder {
         match self {
             ShellOrder::Pure(pure_order) => write!(
                 f,
-                "Pure ({})",
+                "Pure ({}) ({})",
+                if pure_order.even { "g" } else { "u" },
                 pure_order.iter().map(|m| m.to_string()).join(", ")
             ),
             ShellOrder::Cart(cart_order) => write!(
                 f,
-                "Cart ({})",
+                "Cart ({}) ({})",
+                if cart_order.lcart % 2 == 0 { "g" } else { "u" },
                 cart_order
                     .iter()
                     .map(|cart_tuple| { cart_tuple_to_str(cart_tuple, true) })
@@ -808,7 +851,8 @@ impl fmt::Display for ShellOrder {
             ),
             ShellOrder::Spinor(spinor_order) => write!(
                 f,
-                "Spinor ({})",
+                "Spinor ({}) ({})",
+                if spinor_order.even { "g" } else { "u" },
                 spinor_order
                     .iter()
                     .map(|two_m| format!("{two_m}/2"))

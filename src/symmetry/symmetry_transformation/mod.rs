@@ -665,7 +665,8 @@ pub fn assemble_sh_rotation_3d_matrices(
 }
 
 /// Assembles spinor rotation matrices for all shells, which also include the unitary part of time
-/// reversal, if any.
+/// reversal, if any. This also handles whether a spinor shell is even or odd with respect to
+/// spatial inversion.
 ///
 /// # Arguments
 ///
@@ -807,7 +808,7 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                 }
                 ShellOrder::Spinor(spinor_order) => {
                     // Spinor functions. l = two_j.
-                    let so_il = SpinorOrder::increasingm(shl.l);
+                    let so_il = SpinorOrder::increasingm(shl.l, spinor_order.even);
                     let r2j = r2js[l].clone();
                     if *spinor_order != so_il {
                         // `rl` is in increasing-m order by default. See the function `rlmat` for
@@ -815,9 +816,17 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                         let perm = spinor_order
                             .get_perm_of(&so_il)
                             .expect("Unable to obtain the permutation that maps `spinor_order` to the increasing order.");
-                        Ok(r2j.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                        if !so_il.even && !symop.is_proper() {
+                            Ok(-r2j.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                        } else {
+                            Ok(r2j.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                        }
                     } else {
-                        Ok(r2j)
+                        if !spinor_order.even && !symop.is_proper() {
+                            Ok(-r2j)
+                        } else {
+                            Ok(r2j)
+                        }
                     }
                 }
             }
