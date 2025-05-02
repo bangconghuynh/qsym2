@@ -577,8 +577,8 @@ pub struct SpinorOrder {
     #[builder(setter(custom))]
     two_mjs: Vec<i32>,
 
-    /// The spatial parity of the spinor Gaussians: `true` if even under spatial inversion and
-    /// `false` if odd.
+    /// The spatial inversion parity of the spinor Gaussians: `true` if even under spatial inversion
+    /// and `false` if odd.
     pub even: bool,
 }
 

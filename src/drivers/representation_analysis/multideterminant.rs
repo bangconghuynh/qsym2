@@ -464,8 +464,8 @@ where
 
     /// The atomic-orbital overlap matrix of the underlying basis set used to describe the
     /// wavefunctions. This is either for a single component corresponding to the basis functions
-    /// specified by the basis angular order structure in [`Self::determinant`], or for *all*
-    /// explicit components specified by the coefficients in the determinants.
+    /// specified by the basis angular order structure in the determinants in [`Self::multidets`],
+    /// or for *all* explicit components specified by the coefficients in the determinants.
     sao: &'a Array2<T>,
 
     /// The complex-symmetric atomic-orbital overlap matrix of the underlying basis set used to

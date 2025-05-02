@@ -791,7 +791,7 @@ where
     /// functions specified by the basis angular order structure in [`Self::determinant`], or for
     /// *all* explicit components specified by the coefficients in [`Self::determinant`]. This is
     /// required if antiunitary symmetry operations are involved. If none is provided, this will be
-    /// assumed to be the same as [`Self::sao_spatial`].
+    /// assumed to be the same as [`Self::sao`].
     #[builder(default = "None")]
     sao_h: Option<&'a Array2<T>>,
 
