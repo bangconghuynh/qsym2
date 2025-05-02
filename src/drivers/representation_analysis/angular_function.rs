@@ -1,7 +1,5 @@
 //! Driver for symmetry analysis of angular functions.
 
-use std::fmt;
-
 use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
@@ -94,7 +92,7 @@ where
         .clone()
         .into_iter()
         .next()
-        .expect("No symmetry operation found.")
+        .ok_or_else(|| format_err!("No symmetry operation found."))?
         .generating_element
         .threshold();
     let mol = Molecule::from_atoms(
@@ -430,13 +428,12 @@ where
     Ok(())
 }
 
-/// Determines the (co)representations of a group spanned by the angular functions (spherical/solid
-/// harmonics or Cartesian functions).
+/// Determines the (co)representations of a group spanned by the spinor functions.
 ///
 /// # Arguments
 ///
 /// * `group` - A symmetry group.
-/// * `params` - A parameter structure controlling the determination of angular function
+/// * `params` - A parameter structure controlling the determination of spinor function
 /// symmetries.
 pub(crate) fn find_spinor_function_representation<G>(
     group: &G,
@@ -459,7 +456,7 @@ where
         .clone()
         .into_iter()
         .next()
-        .expect("No symmetry operation found.")
+        .ok_or_else(|| format_err!("No symmetry operation found."))?
         .generating_element
         .threshold();
     let mol = Molecule::from_atoms(

@@ -22,7 +22,8 @@ use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, AngularFunctionRepAnalysisParams,
+    find_angular_function_representation, find_spinor_function_representation,
+    AngularFunctionRepAnalysisParams,
 };
 use crate::drivers::representation_analysis::{
     fn_construct_magnetic_group, fn_construct_unitary_group, log_bao, log_cc_transversal,
@@ -782,6 +783,9 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
         let group = construct_group_;
         log_cc_transversal(&group);
         let _ = find_angular_function_representation(&group, self.angular_function_parameters);
+        if group.is_double_group() {
+            let _ = find_spinor_function_representation(&group, self.angular_function_parameters);
+        }
         if let Some(det) = self
             .multidets
             .get(0)

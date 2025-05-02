@@ -20,7 +20,8 @@ use crate::analysis::{
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, AngularFunctionRepAnalysisParams,
+    find_angular_function_representation, find_spinor_function_representation,
+    AngularFunctionRepAnalysisParams,
 };
 use crate::drivers::representation_analysis::{
     fn_construct_magnetic_group, fn_construct_unitary_group, log_cc_transversal,
@@ -374,9 +375,9 @@ where
             .real_space_function
             .ok_or("No real-space function specified.".to_string())?;
 
-        let params = self
-            .parameters
-            .ok_or("No real-space function representation analysis parameters found.".to_string())?;
+        let params = self.parameters.ok_or(
+            "No real-space function representation analysis parameters found.".to_string(),
+        )?;
 
         let sym_res = self
             .symmetry_group
@@ -510,6 +511,9 @@ where
         let group = construct_group_;
         log_cc_transversal(&group);
         let _ = find_angular_function_representation(&group, self.angular_function_parameters);
+        if group.is_double_group() {
+            let _ = find_spinor_function_representation(&group, self.angular_function_parameters);
+        }
 
         let mut real_space_function_orbit = RealSpaceFunctionSymmetryOrbit::builder()
             .origin(self.real_space_function)
@@ -543,7 +547,9 @@ where
                     .map_err(|err| err.to_string())
             });
 
-        { calc_projections_ }
+        {
+            calc_projections_
+        }
 
         let result = RealSpaceFunctionRepAnalysisResult::builder()
             .parameters(params)
