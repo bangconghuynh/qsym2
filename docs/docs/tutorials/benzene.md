@@ -104,6 +104,7 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
         analyse_density_symmetries: false
         use_magnetic_group: null
         use_double_group: false
+        use_cayley_table: true
         symmetry_transformation_kind: Spatial
         write_character_table: Symbolic
         write_overlap_eigenvalues: true

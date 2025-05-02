@@ -4,8 +4,8 @@ use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::basis::ao::*;
 use crate::auxiliary::molecule::Molecule;
+use crate::basis::ao::*;
 
 // ---------------
 // InputShellOrder
@@ -38,6 +38,20 @@ pub enum InputShellOrder {
     /// This variant indicates that the angular functions are Cartesian functions arranged in
     /// a custom order specified by the ordered exponent tuples.
     CartCustom(Vec<(u32, u32, u32)>),
+
+    /// This variant indicates that the angular functions are spinors arranged in increasing $`m`$
+    /// order. The associated boolean indicates whether the spinors are even with respect to
+    /// spatial inversion.
+    SpinorIncreasingm(bool),
+
+    /// This variant indicates that the angular functions are spinors arranged in decreasing $`m`$
+    /// order. The associated boolean indicates whether the spinors are even with respect to
+    /// spatial inversion.
+    SpinorDecreasingm(bool),
+
+    /// This variant indicates that the angular functions are spinors arranged in a custom order
+    /// specified by the $`m_l`$ values.
+    SpinorCustom(bool, Vec<i32>),
 }
 
 impl InputShellOrder {
@@ -53,6 +67,15 @@ impl InputShellOrder {
             InputShellOrder::CartQChem => ShellOrder::Cart(CartOrder::qchem(l)),
             InputShellOrder::CartCustom(cart_tuples) => ShellOrder::Cart(
                 CartOrder::new(cart_tuples).expect("Invalid Cartesian tuples provided."),
+            ),
+            InputShellOrder::SpinorIncreasingm(even) => {
+                ShellOrder::Spinor(SpinorOrder::increasingm(l, *even))
+            }
+            InputShellOrder::SpinorDecreasingm(even) => {
+                ShellOrder::Spinor(SpinorOrder::decreasingm(l, *even))
+            }
+            InputShellOrder::SpinorCustom(even, mls) => ShellOrder::Spinor(
+                SpinorOrder::new(mls, *even).expect("Invalid 2mj sequence specified."),
             ),
         }
     }
@@ -84,10 +107,13 @@ impl InputBasisShell {
         match self.shell_order {
             InputShellOrder::PureIncreasingm
             | InputShellOrder::PureDecreasingm
-            | InputShellOrder::PureCustom(_) => 2 * lsize + 1,
+            | InputShellOrder::PureCustom(_) => 2 * lsize + 1, // lsize = l
             InputShellOrder::CartQChem
             | InputShellOrder::CartLexicographic
             | InputShellOrder::CartCustom(_) => ((lsize + 1) * (lsize + 2)).div_euclid(2),
+            InputShellOrder::SpinorIncreasingm(_)
+            | InputShellOrder::SpinorDecreasingm(_)
+            | InputShellOrder::SpinorCustom(_, _) => lsize + 1, // lsize = 2j
         }
     }
 
@@ -139,10 +165,7 @@ impl InputBasisAtom {
     ///
     /// Errors if the atom index and name in this [`InputBasisAtom`] do not match the
     /// corresponding atom in `mol`.
-    pub fn to_basis_atom<'a>(
-        &self,
-        mol: &'a Molecule,
-    ) -> Result<BasisAtom<'a>, anyhow::Error> {
+    pub fn to_basis_atom<'a>(&self, mol: &'a Molecule) -> Result<BasisAtom<'a>, anyhow::Error> {
         let (atm_i, atm_s) = &self.atom;
         let atom = &mol
             .atoms
