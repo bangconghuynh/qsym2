@@ -96,12 +96,12 @@ fn test_drivers_density_analysis_s4_sqpl_pxpy() {
     ];
     let oalpha = array![1.0];
     let obeta = array![1.0];
-    let det_ru = SlaterDeterminant::<f64>::builder()
+    let det_ru = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
         .bao(&bao_s4)
         .mol(&mol_s4)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
         .build()

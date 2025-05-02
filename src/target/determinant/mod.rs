@@ -6,14 +6,16 @@ use std::iter::Sum;
 use anyhow::{self, format_err};
 use approx;
 use derive_builder::Builder;
+use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::types::Lapack;
+use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::target::density::{DensitiesOwned, Density};
@@ -32,12 +34,13 @@ mod determinant_transformation;
 /// Structure to manage single-determinantal wavefunctions.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct SlaterDeterminant<'a, T>
+pub struct SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
-    /// The spin constraint associated with the coefficients describing this determinant.
-    spin_constraint: SpinConstraint,
+    /// The structure constraint associated with the coefficients describing this determinant.
+    structure_constraint: SC,
 
     /// The angular order of the basis functions with respect to which the coefficients are
     /// expressed.
@@ -75,9 +78,10 @@ where
     threshold: <T as ComplexFloat>::Real,
 }
 
-impl<'a, T> SlaterDeterminantBuilder<'a, T>
+impl<'a, T, SC> SlaterDeterminantBuilder<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     pub fn coefficients(&mut self, cs: &[Array2<T>]) -> &mut Self {
         self.coefficients = Some(cs.to_vec());
@@ -98,61 +102,82 @@ where
             .coefficients
             .as_ref()
             .ok_or("No coefficients found.".to_string())?;
-        let spincons = match self
-            .spin_constraint
+        let structcons = self
+            .structure_constraint
             .as_ref()
-            .ok_or("No spin constraint found.".to_string())?
+            .ok_or("No structure constraints found.".to_string())?;
+        let coefficients_length_check = if coefficients.len() != structcons.n_coefficient_matrices()
         {
-            SpinConstraint::Restricted(_) => {
-                coefficients.len() == 1 && coefficients[0].shape()[0] == nbas
-            }
-            SpinConstraint::Unrestricted(nspins, _) => {
-                coefficients.len() == usize::from(*nspins)
-                    && coefficients.iter().all(|c| c.shape()[0] == nbas)
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                coefficients.len() == 1
-                    && coefficients[0].shape()[0].rem_euclid(nbas) == 0
-                    && coefficients[0].shape()[0].div_euclid(nbas) == usize::from(*nspins)
+            log::error!(
+                    "Unexpected number of coefficient matrices: {} found, but {} expected for the structure constraint {}.",
+                    coefficients.len(),
+                    structcons.n_coefficient_matrices(),
+                    structcons
+                );
+            false
+        } else {
+            true
+        };
+        let coefficients_shape_check = {
+            let nrows = nbas * structcons.n_explicit_comps_per_coefficient_matrix();
+            if !coefficients.iter().all(|c| c.shape()[0] == nrows) {
+                log::error!(
+                    "Unexpected shapes of coefficient matrices: {} {} expected for all coefficient matrices, but {} found.",
+                    nrows,
+                    if nrows == 1 {"row"} else {"rows"},
+                    coefficients.iter().map(|c| c.shape()[0].to_string()).join(", ")
+                );
+                false
+            } else {
+                true
             }
         };
-        if !spincons {
-            log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
-        }
 
         let occupations = self
             .occupations
             .as_ref()
             .ok_or("No occupations found.".to_string())?;
-        let occs = match self
-            .spin_constraint
-            .as_ref()
-            .ok_or("No spin constraint found.".to_string())?
-        {
-            SpinConstraint::Restricted(_) => {
-                occupations.len() == 1 && occupations[0].shape()[0] == coefficients[0].shape()[1]
-            }
-            SpinConstraint::Unrestricted(nspins, _) => {
-                occupations.len() == usize::from(*nspins)
-                    && occupations
-                        .iter()
-                        .zip(coefficients.iter())
-                        .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
-            }
-            SpinConstraint::Generalised(_, _) => {
-                occupations.len() == 1 && occupations[0].shape()[0] == coefficients[0].shape()[1]
-            }
+        let occupations_length_check = if occupations.len() != structcons.n_coefficient_matrices() {
+            log::error!(
+                "Unexpected number of occupation vectors: {} found, but {} expected for the structure constraint {}.",
+                occupations.len(),
+                structcons.n_coefficient_matrices(),
+                structcons
+            );
+            false
+        } else {
+            true
         };
-        if !occs {
-            log::error!("The occupation patterns do not match the coefficient patterns.");
-        }
+        let occupations_shape_check = if !occupations
+            .iter()
+            .zip(coefficients.iter())
+            .all(|(o, c)| o.len() == c.shape()[1])
+        {
+            log::error!(
+                "Mismatched occupations and numbers of orbitals: {}",
+                occupations
+                    .iter()
+                    .zip(coefficients.iter())
+                    .map(|(o, c)| format!("{} vs. {}", o.len(), c.shape()[1]))
+                    .join(", ")
+            );
+            false
+        } else {
+            true
+        };
 
         let mol = self.mol.ok_or("No molecule found.".to_string())?;
-        let natoms = mol.atoms.len() == bao.n_atoms();
-        if !natoms {
+        let natoms_check = mol.atoms.len() == bao.n_atoms();
+        if !natoms_check {
             log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
         }
-        if spincons && occs && natoms {
+
+        if coefficients_length_check
+            && coefficients_shape_check
+            && occupations_length_check
+            && occupations_shape_check
+            && natoms_check
+        {
             Ok(())
         } else {
             Err("Slater determinant validation failed.".to_string())
@@ -160,15 +185,62 @@ where
     }
 }
 
-impl<'a, T> SlaterDeterminant<'a, T>
+impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat + Clone + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Returns a builder to construct a new [`SlaterDeterminant`].
-    pub fn builder() -> SlaterDeterminantBuilder<'a, T> {
+    pub fn builder() -> SlaterDeterminantBuilder<'a, T, SC> {
         SlaterDeterminantBuilder::default()
     }
+}
 
+impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
+where
+    T: ComplexFloat + Clone + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
+{
+    /// Extracts the molecular orbitals in this Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of the molecular orbitals constituting this Slater determinant. In the restricted
+    /// spin constraint, the identical molecular orbitals across different spin spaces are only
+    /// given once. Each molecular orbital does contain an index of the spin space it is in.
+    pub fn to_orbitals(&self) -> Vec<Vec<MolecularOrbital<'a, T, SC>>> {
+        self.coefficients
+            .iter()
+            .enumerate()
+            .map(|(spini, cs_spini)| {
+                cs_spini
+                    .columns()
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(i, c)| {
+                        MolecularOrbital::builder()
+                            .coefficients(c.to_owned())
+                            .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
+                            .bao(self.bao)
+                            .mol(self.mol)
+                            .structure_constraint(self.structure_constraint.clone())
+                            .component_index(spini)
+                            .complex_symmetric(self.complex_symmetric)
+                            .threshold(self.threshold)
+                            .build()
+                            .expect("Unable to construct a molecular orbital.")
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
+impl<'a, T, SC> SlaterDeterminant<'a, T, SC>
+where
+    T: ComplexFloat + Clone + Lapack,
+    SC: StructureConstraint + fmt::Display,
+{
     /// Returns the complex-symmetric flag of the determinant.
     pub fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
@@ -179,9 +251,9 @@ where
         self.complex_conjugated
     }
 
-    /// Returns the spin constraint imposed on the coefficients.
-    pub fn spin_constraint(&self) -> &SpinConstraint {
-        &self.spin_constraint
+    /// Returns the constraint imposed on the coefficients.
+    pub fn structure_constraint(&self) -> &SC {
+        &self.structure_constraint
     }
 
     /// Returns the basis angular order information of the basis set in which the coefficients are
@@ -225,23 +297,26 @@ where
     where
         <T as ComplexFloat>::Real: Sum + From<u16>,
     {
-        match self.spin_constraint {
-            SpinConstraint::Restricted(nspins) => {
-                <T as ComplexFloat>::Real::from(nspins)
-                    * self
-                        .occupations
-                        .iter()
-                        .map(|occ| occ.iter().copied().sum())
-                        .sum()
-            }
-            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => self
-                .occupations
-                .iter()
-                .map(|occ| occ.iter().copied().sum())
-                .sum(),
-        }
+        let implicit_factor = self
+            .structure_constraint
+            .implicit_factor()
+            .expect("Unable to retrieve the implicit factor from the structure constraint.");
+        <T as ComplexFloat>::Real::from(
+            implicit_factor
+                .to_u16()
+                .expect("Unable to convert the implicit factor to `u16`."),
+        ) * self
+            .occupations
+            .iter()
+            .map(|occ| occ.iter().copied().sum())
+            .sum()
     }
+}
 
+impl<'a, T> SlaterDeterminant<'a, T, SpinConstraint>
+where
+    T: ComplexFloat + Clone + Lapack,
+{
     /// Augments the encoding of coefficients in this Slater determinant to that in the
     /// corresponding generalised spin constraint.
     ///
@@ -250,7 +325,7 @@ where
     /// The equivalent Slater determinant with the coefficients encoded in the generalised spin
     /// constraint.
     pub fn to_generalised(&self) -> Self {
-        match self.spin_constraint {
+        match self.structure_constraint {
             SpinConstraint::Restricted(n) => {
                 log::debug!(
                     "Restricted Slater determinant will be augmented to generalised Slater determinant."
@@ -287,7 +362,7 @@ where
                     .energy(self.energy.clone())
                     .bao(self.bao)
                     .mol(self.mol)
-                    .spin_constraint(SpinConstraint::Generalised(n, false))
+                    .structure_constraint(SpinConstraint::Generalised(n, false))
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
                     .build()
@@ -335,7 +410,7 @@ where
                     .energy(self.energy.clone())
                     .bao(self.bao)
                     .mol(self.mol)
-                    .spin_constraint(SpinConstraint::Generalised(n, increasingm))
+                    .structure_constraint(SpinConstraint::Generalised(n, increasingm))
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
                     .build()
@@ -344,43 +419,9 @@ where
             SpinConstraint::Generalised(_, _) => self.clone(),
         }
     }
-
-    /// Extracts the molecular orbitals in this Slater determinant.
-    ///
-    /// # Returns
-    ///
-    /// A vector of the molecular orbitals constituting this Slater determinant. In the restricted
-    /// spin constraint, the identical molecular orbitals across different spin spaces are only
-    /// given once. Each molecular orbital does contain an index of the spin space it is in.
-    pub fn to_orbitals(&self) -> Vec<Vec<MolecularOrbital<'a, T>>> {
-        self.coefficients
-            .iter()
-            .enumerate()
-            .map(|(spini, cs_spini)| {
-                cs_spini
-                    .columns()
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(i, c)| {
-                        MolecularOrbital::builder()
-                            .coefficients(c.to_owned())
-                            .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
-                            .bao(self.bao)
-                            .mol(self.mol)
-                            .spin_constraint(self.spin_constraint.clone())
-                            .spin_index(spini)
-                            .complex_symmetric(self.complex_symmetric)
-                            .threshold(self.threshold)
-                            .build()
-                            .expect("Unable to construct a molecular orbital.")
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>()
-    }
 }
 
-impl<'a> SlaterDeterminant<'a, f64> {
+impl<'a> SlaterDeterminant<'a, f64, SpinConstraint> {
     /// Constructs a vector of real densities, one for each spin space in a Slater determinant.
     ///
     /// For restricted and unrestricted spin constraints, spin spaces are well-defined. For
@@ -392,8 +433,10 @@ impl<'a> SlaterDeterminant<'a, f64> {
     /// # Returns
     ///
     /// A vector of real densities, one for each spin space.
-    pub fn to_densities(&'a self) -> Result<DensitiesOwned<'a, f64>, anyhow::Error> {
-        let densities = match self.spin_constraint {
+    pub fn to_densities(
+        &'a self,
+    ) -> Result<DensitiesOwned<'a, f64, SpinConstraint>, anyhow::Error> {
+        let densities = match self.structure_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                 self.coefficients().iter().zip(self.occupations().iter()).map(|(c, o)| {
                     let denmat = einsum(
@@ -437,14 +480,14 @@ impl<'a> SlaterDeterminant<'a, f64> {
             }
         };
         DensitiesOwned::builder()
-            .spin_constraint(self.spin_constraint.clone())
+            .structure_constraint(self.structure_constraint.clone())
             .densities(densities)
             .build()
             .map_err(|err| format_err!(err))
     }
 }
 
-impl<'a, T> SlaterDeterminant<'a, Complex<T>>
+impl<'a, T> SlaterDeterminant<'a, Complex<T>, SpinConstraint>
 where
     T: Float + FloatConst + Lapack,
     Complex<T>: Lapack,
@@ -465,8 +508,10 @@ where
     /// # Returns
     ///
     /// A vector of complex densities, one for each spin space.
-    pub fn to_densities(&'a self) -> Result<DensitiesOwned<'a, Complex<T>>, anyhow::Error> {
-        let densities = match self.spin_constraint {
+    pub fn to_densities(
+        &'a self,
+    ) -> Result<DensitiesOwned<'a, Complex<T>, SpinConstraint>, anyhow::Error> {
+        let densities = match self.structure_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                 self.coefficients().iter().zip(self.occupations().iter()).map(|(c, o)| {
                     let denmat = einsum(
@@ -514,7 +559,63 @@ where
             }
         };
         DensitiesOwned::builder()
-            .spin_constraint(self.spin_constraint.clone())
+            .structure_constraint(self.structure_constraint.clone())
+            .densities(densities)
+            .build()
+            .map_err(|err| format_err!(err))
+    }
+}
+
+impl<'a, T> SlaterDeterminant<'a, Complex<T>, SpinOrbitCoupled>
+where
+    T: Float + FloatConst + Lapack,
+    Complex<T>: Lapack,
+{
+    /// Constructs a vector of complex densities, one for each component in the multi-component
+    /// j-adapted basis.
+    ///
+    /// Occupation numbers are also incorporated in the formation of density matrices.
+    ///
+    /// # Arguments
+    ///
+    /// * `sd` - A Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of complex densities.
+    pub fn to_densities(
+        &'a self,
+    ) -> Result<DensitiesOwned<'a, Complex<T>, SpinOrbitCoupled>, anyhow::Error> {
+        let densities = match self.structure_constraint {
+            SpinOrbitCoupled::JAdapted(ncomps) => {
+                let denmat = einsum(
+                    "i,mi,ni->mn",
+                    &[
+                        &self.occupations[0].map(Complex::<T>::from).view(),
+                        &self.coefficients[0].view(),
+                        &self.coefficients[0].map(Complex::conj).view()
+                    ]
+                )
+                .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
+                .into_dimensionality::<Ix2>()
+                .expect("Unable to convert the resultant density matrix to two dimensions.");
+                let nspatial = self.bao.n_funcs();
+                (0..usize::from(ncomps)).map(|icomp| {
+                    let icomp_denmat = denmat.slice(
+                        s![icomp*nspatial..(icomp + 1)*nspatial, icomp*nspatial..(icomp + 1)*nspatial]
+                    ).to_owned();
+                    Density::<Complex<T>>::builder()
+                        .density_matrix(icomp_denmat)
+                        .bao(self.bao())
+                        .mol(self.mol())
+                        .complex_symmetric(self.complex_symmetric())
+                        .threshold(self.threshold())
+                        .build()
+                }).collect::<Result<Vec<_>, _>>()?
+            }
+        };
+        DensitiesOwned::builder()
+            .structure_constraint(self.structure_constraint.clone())
             .densities(densities)
             .build()
             .map_err(|err| format_err!(err))
@@ -528,13 +629,14 @@ where
 // ----
 // From
 // ----
-impl<'a, T> From<SlaterDeterminant<'a, T>> for SlaterDeterminant<'a, Complex<T>>
+impl<'a, T, SC> From<SlaterDeterminant<'a, T, SC>> for SlaterDeterminant<'a, Complex<T>, SC>
 where
     T: Float + FloatConst + Lapack,
     Complex<T>: Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
-    fn from(value: SlaterDeterminant<'a, T>) -> Self {
-        SlaterDeterminant::<'a, Complex<T>>::builder()
+    fn from(value: SlaterDeterminant<'a, T, SC>) -> Self {
+        SlaterDeterminant::<'a, Complex<T>, SC>::builder()
             .coefficients(
                 &value
                     .coefficients
@@ -550,7 +652,7 @@ where
             }))
             .bao(value.bao)
             .mol(value.mol)
-            .spin_constraint(value.spin_constraint)
+            .structure_constraint(value.structure_constraint)
             .complex_symmetric(value.complex_symmetric)
             .threshold(value.threshold)
             .build()
@@ -561,9 +663,10 @@ where
 // ---------
 // PartialEq
 // ---------
-impl<'a, T> PartialEq for SlaterDeterminant<'a, T>
+impl<'a, T, SC> PartialEq for SlaterDeterminant<'a, T, SC>
 where
     T: ComplexFloat<Real = f64> + Lapack,
+    SC: StructureConstraint + PartialEq + fmt::Display,
 {
     fn eq(&self, other: &Self) -> bool {
         let thresh = (self.threshold * other.threshold).sqrt();
@@ -595,7 +698,7 @@ where
                         max_relative = thresh,
                     )
                 });
-        self.spin_constraint == other.spin_constraint
+        self.structure_constraint == other.structure_constraint
             && self.bao == other.bao
             && self.mol == other.mol
             && coefficients_eq
@@ -606,21 +709,27 @@ where
 // --
 // Eq
 // --
-impl<'a, T> Eq for SlaterDeterminant<'a, T> where T: ComplexFloat<Real = f64> + Lapack {}
+impl<'a, T, SC> Eq for SlaterDeterminant<'a, T, SC>
+where
+    T: ComplexFloat<Real = f64> + Lapack,
+    SC: StructureConstraint + Eq + fmt::Display,
+{
+}
 
 // -----
 // Debug
 // -----
-impl<'a, T> fmt::Debug for SlaterDeterminant<'a, T>
+impl<'a, T, SC> fmt::Debug for SlaterDeterminant<'a, T, SC>
 where
     T: fmt::Debug + ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Debug,
+    SC: StructureConstraint + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "SlaterDeterminant[{:?}: {:?} electrons, {} coefficient {} of dimensions {}]",
-            self.spin_constraint,
+            self.structure_constraint,
             self.nelectrons(),
             self.coefficients.len(),
             if self.coefficients.len() != 1 {
@@ -646,16 +755,17 @@ where
 // -------
 // Display
 // -------
-impl<'a, T> fmt::Display for SlaterDeterminant<'a, T>
+impl<'a, T, SC> fmt::Display for SlaterDeterminant<'a, T, SC>
 where
     T: fmt::Display + ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Display,
+    SC: StructureConstraint + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "SlaterDeterminant[{:?}: {} electrons, {} coefficient {} of dimensions {}]",
-            self.spin_constraint,
+            "SlaterDeterminant[{}: {} electrons, {} coefficient {} of dimensions {}]",
+            self.structure_constraint,
             self.nelectrons(),
             self.coefficients.len(),
             if self.coefficients.len() != 1 {

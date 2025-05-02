@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::bindings::python::integrals::PyBasisAngularOrder;
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
@@ -85,9 +86,9 @@ type C128 = Complex<f64>;
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
 /// Python type: `EigenvalueComparisonMode`.
-/// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
+/// * `sao` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
-/// * `sao_spatial_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
+/// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
 /// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
 /// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
@@ -118,8 +119,8 @@ type C128 = Complex<f64>;
     use_cayley_table,
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
-    sao_spatial,
-    sao_spatial_h=None,
+    sao,
+    sao_h=None,
     write_overlap_eigenvalues=true,
     write_character_table=true,
     infinite_order_to_finite=None,
@@ -140,8 +141,8 @@ pub fn rep_analyse_multideterminants_orbit_basis(
     use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
-    sao_spatial: PyArray2RC,
-    sao_spatial_h: Option<PyArray2RC>,
+    sao: PyArray2RC,
+    sao_h: Option<PyArray2RC>,
     write_overlap_eigenvalues: bool,
     write_character_table: bool,
     infinite_order_to_finite: Option<u32>,
@@ -198,28 +199,28 @@ pub fn rep_analyse_multideterminants_orbit_basis(
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
     // Set up NOCI function
-    let noci_solver_r = |multidets: &Vec<SlaterDeterminant<f64>>| {
+    let noci_solver_r = |multidets: &Vec<SlaterDeterminant<f64, SpinConstraint>>| {
         Python::with_gil(|py_inner| {
             let pymultidets = multidets
                 .iter()
                 .map(|det| {
-                    let pysc = det.spin_constraint().clone().try_into()?;
+                    let pysc = det.structure_constraint().clone().try_into()?;
                     Ok(PySlaterDeterminantReal::new(
                         pysc,
                         det.complex_symmetric(),
                         det.coefficients()
                             .iter()
-                            .map(|arr| PyArray2::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray2::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.occupations()
                             .iter()
-                            .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray1::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.threshold(),
                         det.mo_energies().map(|mo_energies| {
                             mo_energies
                                 .iter()
-                                .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
                                 .collect::<Vec<_>>()
                         }),
                         det.energy().ok().cloned(),
@@ -232,28 +233,28 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                 .and_then(|res| res.extract::<(Vec<f64>, Vec<Vec<f64>>)>(py_inner))
         })
     };
-    let noci_solver_c = |multidets: &Vec<SlaterDeterminant<C128>>| {
+    let noci_solver_c = |multidets: &Vec<SlaterDeterminant<C128, SpinConstraint>>| {
         Python::with_gil(|py_inner| {
             let pymultidets = multidets
                 .iter()
                 .map(|det| {
-                    let pysc = det.spin_constraint().clone().try_into()?;
+                    let pysc = det.structure_constraint().clone().try_into()?;
                     Ok(PySlaterDeterminantComplex::new(
                         pysc,
                         det.complex_symmetric(),
                         det.coefficients()
                             .iter()
-                            .map(|arr| PyArray2::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray2::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.occupations()
                             .iter()
-                            .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                            .map(|arr| PyArray1::from_array(py_inner, arr))
                             .collect::<Vec<_>>(),
                         det.threshold(),
                         det.mo_energies().map(|mo_energies| {
                             mo_energies
                                 .iter()
-                                .map(|arr| PyArray1::from_array_bound(py_inner, arr))
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
                                 .collect::<Vec<_>>()
                         }),
                         det.energy().ok().cloned(),
@@ -271,12 +272,12 @@ pub fn rep_analyse_multideterminants_orbit_basis(
         .iter()
         .all(|pyorigin| matches!(pyorigin, PySlaterDeterminant::Real(_)));
 
-    match (all_real, &sao_spatial) {
+    match (all_real, &sao) {
         (true, PyArray2RC::Real(pysao_r)) => {
             // Real numeric data type
 
             // Preparation
-            let sao_spatial = pysao_r.to_owned_array();
+            let sao = pysao_r.to_owned_array();
             let origins_r = if augment_to_generalised {
                 pyorigins
                     .iter()
@@ -414,12 +415,13 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         MagneticRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial)
-                    .sao_spatial_h(None) // Real SAO.
+                    .sao(&sao)
+                    .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -542,12 +544,13 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         UnitaryRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial)
-                    .sao_spatial_h(None) // Real SAO.
+                    .sao(&sao)
+                    .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -563,12 +566,12 @@ pub fn rep_analyse_multideterminants_orbit_basis(
             // Complex numeric data type
 
             // Preparation
-            let sao_spatial_c = match sao_spatial {
+            let sao_c = match sao {
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
-            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
-                // sao_spatial_h must have the same reality as sao_spatial.
+            let sao_h_c = sao_h.and_then(|pysao_h| match pysao_h {
+                // sao_h must have the same reality as sao.
                 PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
                 PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
             });
@@ -576,11 +579,14 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                 pyorigins
                     .iter()
                     .map(|pydet| match pydet {
-                        PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r).to_generalised()),
+                        PySlaterDeterminant::Real(pydet_r) => {
+                            pydet_r.to_qsym2::<SpinConstraint>(&bao, mol).map(|det_r| {
+                                SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
+                                    .to_generalised()
+                            })
+                        }
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
                             .map(|det_c| det_c.to_generalised()),
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -589,9 +595,11 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                     .iter()
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r)),
-                        PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r)),
+                        PySlaterDeterminant::Complex(pydet_c) => {
+                            pydet_c.to_qsym2::<SpinConstraint>(&bao, mol)
+                        }
                     })
                     .collect::<Result<Vec<_>, _>>()
             }
@@ -707,12 +715,13 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         MagneticRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
+                    .sao(&sao_c)
+                    .sao_h(sao_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -835,12 +844,13 @@ pub fn rep_analyse_multideterminants_orbit_basis(
                         UnitaryRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
+                    .sao(&sao_c)
+                    .sao_h(sao_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -901,9 +911,9 @@ pub fn rep_analyse_multideterminants_orbit_basis(
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
 /// Python type: `EigenvalueComparisonMode`.
-/// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
+/// * `sao` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
-/// * `sao_spatial_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
+/// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
 /// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
 /// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
@@ -935,8 +945,8 @@ pub fn rep_analyse_multideterminants_orbit_basis(
     use_cayley_table,
     symmetry_transformation_kind,
     eigenvalue_comparison_mode,
-    sao_spatial,
-    sao_spatial_h=None,
+    sao,
+    sao_h=None,
     write_overlap_eigenvalues=true,
     write_character_table=true,
     infinite_order_to_finite=None,
@@ -958,8 +968,8 @@ pub fn rep_analyse_multideterminants_eager_basis(
     use_cayley_table: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
-    sao_spatial: PyArray2RC,
-    sao_spatial_h: Option<PyArray2RC>,
+    sao: PyArray2RC,
+    sao_h: Option<PyArray2RC>,
     write_overlap_eigenvalues: bool,
     write_character_table: bool,
     infinite_order_to_finite: Option<u32>,
@@ -1019,7 +1029,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
         .iter()
         .all(|pydet| matches!(pydet, PySlaterDeterminant::Real(_)));
 
-    match (all_real, &coefficients, &energies, &sao_spatial) {
+    match (all_real, &coefficients, &energies, &sao) {
         (
             true,
             PyArray2RC::Real(pycoefficients_r),
@@ -1029,7 +1039,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
             // Real numeric data type
 
             // Preparation
-            let sao_spatial = pysao_r.to_owned_array();
+            let sao = pysao_r.to_owned_array();
             let coefficients_r = pycoefficients_r.to_owned_array();
             let energies_r = pyenergies_r.to_owned_array();
             let dets_r = if augment_to_generalised {
@@ -1094,12 +1104,13 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         MagneticRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial)
-                    .sao_spatial_h(None) // Real SAO.
+                    .sao(&sao)
+                    .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -1116,12 +1127,13 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         UnitaryRepresentedSymmetryGroup,
                         f64,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial)
-                    .sao_spatial_h(None) // Real SAO.
+                    .sao(&sao)
+                    .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -1139,11 +1151,11 @@ pub fn rep_analyse_multideterminants_eager_basis(
             // Complex numeric data type
 
             // Preparation
-            let sao_spatial_c = match sao_spatial {
+            let sao_c = match sao {
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
-            let sao_spatial_h_c = sao_spatial_h.and_then(|pysao_h| match pysao_h {
+            let sao_h_c = sao_h.and_then(|pysao_h| match pysao_h {
                 // sao_spatial_h must have the same reality as sao_spatial.
                 PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
                 PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
@@ -1162,11 +1174,14 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 pydets
                     .iter()
                     .map(|pydet| match pydet {
-                        PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r).to_generalised()),
+                        PySlaterDeterminant::Real(pydet_r) => {
+                            pydet_r.to_qsym2::<SpinConstraint>(&bao, mol).map(|det_r| {
+                                SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
+                                    .to_generalised()
+                            })
+                        }
                         PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
                             .map(|det_c| det_c.to_generalised()),
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -1175,9 +1190,11 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .iter()
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2(&bao, mol)
-                            .map(|det_r| SlaterDeterminant::<C128>::from(det_r)),
-                        PySlaterDeterminant::Complex(pydet_c) => pydet_c.to_qsym2(&bao, mol),
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .map(|det_r| SlaterDeterminant::<C128, SpinConstraint>::from(det_r)),
+                        PySlaterDeterminant::Complex(pydet_c) => {
+                            pydet_c.to_qsym2::<SpinConstraint>(&bao, mol)
+                        }
                     })
                     .collect::<Result<Vec<_>, _>>()
             }
@@ -1218,12 +1235,13 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         MagneticRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
+                    .sao(&sao_c)
+                    .sao_h(sao_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -1240,12 +1258,13 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         UnitaryRepresentedSymmetryGroup,
                         C128,
                         _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao_spatial(&sao_spatial_c)
-                    .sao_spatial_h(sao_spatial_h_c.as_ref())
+                    .sao(&sao_c)
+                    .sao_h(sao_h_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;

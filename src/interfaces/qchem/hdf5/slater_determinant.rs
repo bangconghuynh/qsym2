@@ -782,7 +782,8 @@ where
             &basis_set, &basis_set;
             f64
         ];
-        let sao_res = stc.overlap([0, 0])
+        let sao_res = stc
+            .overlap([0, 0])
             .pop()
             .ok_or(format_err!("Unable to compute the AO overlap matrix."));
         log::debug!("Recomputing atomic-orbital overlap matrix... Done.");
@@ -820,7 +821,7 @@ where
         bao: &'a BasisAngularOrder,
         threshold: <T as ComplexFloat>::Real,
         orbital_type: OrbitalType,
-    ) -> Result<SlaterDeterminant<'a, T>, anyhow::Error> {
+    ) -> Result<SlaterDeterminant<'a, T, SpinConstraint>, anyhow::Error> {
         let energy = self
             .sp_group
             .dataset(&format!(
@@ -932,7 +933,7 @@ where
             .ok();
 
         SlaterDeterminant::builder()
-            .spin_constraint(spincons)
+            .structure_constraint(spincons)
             .bao(bao)
             .complex_symmetric(false)
             .mol(mol)
@@ -1045,11 +1046,11 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
 
             log::debug!("Running representation analysis on canonical determinant...");
             let mut sda_driver =
-                SlaterDeterminantRepAnalysisDriver::<gtype_, f64>::builder()
+                SlaterDeterminantRepAnalysisDriver::<gtype_, f64, SpinConstraint>::builder()
                     .parameters(self.rep_analysis_parameters)
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&det)
-                    .sao_spatial(&sao)
+                    .sao(&sao)
                     .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
@@ -1077,11 +1078,12 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                     let mut loc_sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         f64,
+                        SpinConstraint,
                     >::builder()
                     .parameters(self.rep_analysis_parameters)
                     .angular_function_parameters(self.angular_function_analysis_parameters)
                     .determinant(&loc_det)
-                    .sao_spatial(&sao)
+                    .sao(&sao)
                     .sao_spatial_4c(sao_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()?;

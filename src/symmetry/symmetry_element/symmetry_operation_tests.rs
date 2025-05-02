@@ -1,14 +1,16 @@
 use nalgebra::{Point3, Vector3};
+use ndarray::Array2;
+use ndarray_linalg::assert_close_l2;
+use num_complex::Complex64;
 use num_traits::{Inv, Pow, Zero};
 use std::collections::HashSet;
 
 use crate::auxiliary::geometry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
+    ElementOrder, FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
-    TRROT, TRSIG,
+    RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV, TRROT, TRSIG,
 };
 
 #[test]
@@ -6407,6 +6409,921 @@ fn test_symmetry_operation_su2_coaxial_composition() {
     assert_eq!(&c2z_nsr_p1 * &s4z_nsr_p1, s4z_nsr_pm1);
 }
 
+// #[test]
+// fn test_symmetry_operation_su2_coaxial_composition_debug() {
+//     let c3_111_nsr_element = SymmetryElement::builder()
+//         .threshold(1e-7)
+//         .proper_order(ElementOrder::Int(3))
+//         .proper_power(1)
+//         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+//         .kind(ROT)
+//         .rotation_group(RotationGroup::SU2(true))
+//         .build()
+//         .unwrap();
+//
+//     let c3_111_nsr_p1 = SymmetryOperation::builder()
+//         .generating_element(c3_111_nsr_element.clone())
+//         .power(1)
+//         .build()
+//         .unwrap();
+//
+//     let c3_111_nsr_pm1 = SymmetryOperation::builder()
+//         .generating_element(c3_111_nsr_element.clone())
+//         .power(2)
+//         .build()
+//         .unwrap();
+//
+//     let c3_m1m1m1_nsr_element = SymmetryElement::builder()
+//         .threshold(1e-7)
+//         .proper_order(ElementOrder::Int(3))
+//         .proper_power(1)
+//         .raw_axis(Vector3::new(-1.0, -1.0, -1.0))
+//         .kind(ROT)
+//         .rotation_group(RotationGroup::SU2(true))
+//         .build()
+//         .unwrap();
+//
+//     let c3_m1m1m1_nsr_p1 = SymmetryOperation::builder()
+//         .generating_element(c3_m1m1m1_nsr_element.clone())
+//         .power(1)
+//         .build()
+//         .unwrap();
+//
+//     assert_close_l2!(
+//         &(&c3_111_nsr_p1)
+//             .get_wigner_matrix(1, true)
+//             .unwrap()
+//             .dot(&c3_m1m1m1_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+//         &(Array2::<Complex64>::eye(2)),
+//         1e-14
+//     );
+// }
+
+#[test]
+fn test_symmetry_operation_su2_coaxial_composition_wigner_matrix() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+
+    // j = 1/2
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+        &(-Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+        &c2_nsr_p2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2_nsr_p2.get_wigner_matrix(1, true).unwrap()),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    // j = 1
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(2, true).unwrap()),
+        &c2_nsr_p2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2_nsr_p2.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    // j = 3/2
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(3, true).unwrap()),
+        &(-Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(3, true).unwrap()),
+        &c2_nsr_p2.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c2_nsr_p2.get_wigner_matrix(3, true).unwrap()),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    // j = 2
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(4, true).unwrap()),
+        &(Array2::<Complex64>::eye(5)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&c2_nsr_p1.get_wigner_matrix(4, true).unwrap()),
+        &c2_nsr_p2.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2_nsr_p2)
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&c2_nsr_p2.get_wigner_matrix(4, true).unwrap()),
+        &(Array2::<Complex64>::eye(5)),
+        1e-14
+    );
+
+    let c2_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+
+    let c2_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_isr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // j = 1/2
+    assert_close_l2!(
+        &(&c2_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2_isr_p1.get_wigner_matrix(1, true).unwrap()),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+
+    let c3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+
+    let c3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element)
+        .power(4)
+        .build()
+        .unwrap();
+
+    let c3_111_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c3_111_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c3_111_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c3_111_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c3_111_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    let c3_111_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(c3_111_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+
+    let c3_111_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(c3_111_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+
+    // j = 1/2
+    assert_close_l2!(
+        &(&c3_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_nsr_p2.get_wigner_matrix(1, true).unwrap()),
+        &(-Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_nsr_p2.get_wigner_matrix(1, true).unwrap()),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_nsr_p2)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_nsr_p2.get_wigner_matrix(1, true).unwrap()),
+        &c3_nsr_p4.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_nsr_p4.get_wigner_matrix(1, true).unwrap()),
+        &c3_nsr_p2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(1, true).unwrap()),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(1, true).unwrap()),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(1, true).unwrap()),
+        &(-Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3_111_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+        &c3_111_nsr_p5.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // j = 1
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(2, true).unwrap()),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3_111_nsr_p1.get_wigner_matrix(2, true).unwrap()),
+        &c3_111_nsr_p5.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // j = 3/2
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(3, true).unwrap()),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p1)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(3, true).unwrap()),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_pm1.get_wigner_matrix(3, true).unwrap()),
+        &(-Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3_111_nsr_p4)
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&c3_111_nsr_p1.get_wigner_matrix(3, true).unwrap()),
+        &c3_111_nsr_p5.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    let c4_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c4_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(c4_nsr_element)
+        .power(-1)
+        .build()
+        .unwrap();
+    let c2_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+    let c4_nsr_p2 = (&c4_nsr_p1).pow(2);
+    let c4_nsr_pm2 = c4_nsr_pm1.pow(2);
+
+    // j = 5/2
+    assert_close_l2!(
+        &c4_nsr_p2.get_wigner_matrix(5, true).unwrap(),
+        &c2_nsr_p1.get_wigner_matrix(5, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c4_nsr_pm2.get_wigner_matrix(5, true).unwrap(),
+        &c2_nsr_p3.get_wigner_matrix(5, true).unwrap(),
+        1e-14
+    );
+
+    let c4b_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(-Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4b_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4b_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c4b_nsr_p2 = (&c4b_nsr_p1).pow(2);
+
+    // j = 1/2
+    assert_close_l2!(
+        &(&c4_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c4b_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+        &Array2::eye(2),
+        1e-14
+    );
+    // j = 5/2
+    assert_close_l2!(
+        &(&c4_nsr_p1)
+            .get_wigner_matrix(5, true)
+            .unwrap()
+            .dot(&c4b_nsr_p1.get_wigner_matrix(5, true).unwrap()),
+        &Array2::eye(6),
+        1e-14
+    );
+    assert_close_l2!(
+        &c4b_nsr_p2.get_wigner_matrix(5, true).unwrap(),
+        &c2_nsr_p3.get_wigner_matrix(5, true).unwrap(),
+        1e-14
+    );
+
+    let c4c_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4c_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4c_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c4d_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(-Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4d_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4d_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // j = 1/2
+    assert_close_l2!(
+        &(&c4c_nsr_p1)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c4d_nsr_p1.get_wigner_matrix(1, true).unwrap()),
+        &Array2::eye(2),
+        1e-14
+    );
+    // j = 5/2
+    assert_close_l2!(
+        &(&c4c_nsr_p1)
+            .get_wigner_matrix(5, true)
+            .unwrap()
+            .dot(&c4d_nsr_p1.get_wigner_matrix(5, true).unwrap()),
+        &Array2::eye(6),
+        1e-14
+    );
+
+    let c5_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c5_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c5_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    let c5_nsr_p9 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+
+    // j = 7/2
+    assert_close_l2!(
+        &c5_nsr_pm1.get_wigner_matrix(7, true).unwrap(),
+        &c5_nsr_p9.get_wigner_matrix(7, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(7, true)
+            .unwrap()
+            .dot(&c5_nsr_pm1.get_wigner_matrix(7, true).unwrap()),
+        &(Array2::<Complex64>::eye(8)),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(7, true)
+            .unwrap()
+            .dot(&c5_nsr_p9.get_wigner_matrix(7, true).unwrap()),
+        &(Array2::<Complex64>::eye(8)),
+        1e-14
+    );
+
+    let c5_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    let c5_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+
+    // j = 7/2
+    assert_close_l2!(
+        &(&c5_nsr_p2)
+            .get_wigner_matrix(7, true)
+            .unwrap()
+            .dot(&c5_nsr_p3.get_wigner_matrix(7, true).unwrap()),
+        &(-Array2::<Complex64>::eye(8)),
+        1e-14
+    );
+
+    let c5_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+
+    let c5_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c5_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    // j = 7/2
+    assert_close_l2!(
+        &(&c5_nsr_p2)
+            .get_wigner_matrix(7, true)
+            .unwrap()
+            .dot(&c5_nsr_p4.get_wigner_matrix(7, true).unwrap()),
+        &c5_isr_p1.get_wigner_matrix(7, true).unwrap(),
+        1e-14
+    );
+
+    let c7_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+
+    let c7_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c7_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c35_pp12_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(35))
+        .proper_power(12)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+    let c35_pp12_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c35_pp12_isr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // j = 9/2
+    assert_close_l2!(
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(9, true)
+            .unwrap()
+            .dot(&c7_isr_p1.get_wigner_matrix(9, true).unwrap()),
+        &c35_pp12_isr_p1.get_wigner_matrix(9, true).unwrap(),
+        1e-14
+    );
+
+    let c7_isr_pm1 = SymmetryOperation::builder()
+        .generating_element(c7_isr_element)
+        .power(-1)
+        .build()
+        .unwrap();
+    let c35_pp2_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(35))
+        .proper_power(2)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+    let c35_pp2_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c35_pp2_isr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // j = 9/2
+    assert_close_l2!(
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(9, true)
+            .unwrap()
+            .dot(&c7_isr_pm1.get_wigner_matrix(9, true).unwrap()),
+        &c35_pp2_isr_p1.get_wigner_matrix(9, true).unwrap(),
+        1e-14
+    );
+
+    let c10_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(10))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c10_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c10_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    let c10_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(c10_nsr_element)
+        .power(6)
+        .build()
+        .unwrap();
+
+    // j = 9/2
+    assert_close_l2!(
+        &(&c5_nsr_p1)
+            .get_wigner_matrix(9, true)
+            .unwrap()
+            .dot(&c10_nsr_p4.get_wigner_matrix(9, true).unwrap()),
+        &c10_nsr_p6.get_wigner_matrix(9, true).unwrap(),
+        1e-14
+    );
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let s2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element)
+        .power(2)
+        .build()
+        .unwrap();
+
+    // j = 1/2
+    assert_close_l2!(
+        &s2_nsr_p1.get_wigner_matrix(1, true).unwrap(),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    assert_close_l2!(
+        &s2_nsr_p2.get_wigner_matrix(1, true).unwrap(),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+    // j = 1
+    assert_close_l2!(
+        &s2_nsr_p1.get_wigner_matrix(2, true).unwrap(),
+        &(-Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &s2_nsr_p2.get_wigner_matrix(2, true).unwrap(),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+
+    let s5_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s5_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c5_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element)
+        .power(7)
+        .build()
+        .unwrap();
+
+    // j = 5
+    assert_close_l2!(
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(10, true)
+            .unwrap()
+            .dot(&s5_nsr_p1.get_wigner_matrix(10, true).unwrap()),
+        &c5_nsr_p7.get_wigner_matrix(10, true).unwrap(),
+        1e-14
+    );
+    // j = 11/2
+    assert_close_l2!(
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(11, true)
+            .unwrap()
+            .dot(&s5_nsr_p1.get_wigner_matrix(11, true).unwrap()),
+        &c5_nsr_p7.get_wigner_matrix(11, true).unwrap(),
+        1e-14
+    );
+
+    let s5_pp2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(2)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s5_pp2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s5_pp2_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // j = 5
+    assert_close_l2!(
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(10, true)
+            .unwrap()
+            .dot(&c5_nsr_p1.get_wigner_matrix(10, true).unwrap()),
+        &s5_pp2_nsr_p1.get_wigner_matrix(10, true).unwrap(),
+        1e-14
+    );
+    // j = 11/2
+    assert_close_l2!(
+        &(&s5_nsr_p1)
+            .get_wigner_matrix(11, true)
+            .unwrap()
+            .dot(&c5_nsr_p1.get_wigner_matrix(11, true).unwrap()),
+        &s5_pp2_nsr_p1.get_wigner_matrix(11, true).unwrap(),
+        1e-14
+    );
+
+    // =======================================
+    // Proper and improper symmetry operations
+    // =======================================
+    let c2z_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2z_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2z_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let s4z_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let s4z_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s4z_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let s4z_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(s4z_nsr_element)
+        .power(-1)
+        .build()
+        .unwrap();
+
+    // j = 5
+    assert_close_l2!(
+        &(&c2z_nsr_p1)
+            .get_wigner_matrix(10, true)
+            .unwrap()
+            .dot(&s4z_nsr_p1.get_wigner_matrix(10, true).unwrap()),
+        &s4z_nsr_pm1.get_wigner_matrix(10, true).unwrap(),
+        1e-14
+    );
+    // j = 11/2
+    assert_close_l2!(
+        &(&c2z_nsr_p1)
+            .get_wigner_matrix(11, true)
+            .unwrap()
+            .dot(&s4z_nsr_p1.get_wigner_matrix(11, true).unwrap()),
+        &s4z_nsr_pm1.get_wigner_matrix(11, true).unwrap(),
+        1e-14
+    );
+}
+
 #[test]
 fn test_symmetry_operation_su2_noncoaxial_composition() {
     // ----------------------------------------------------------------------------------------
@@ -6754,7 +7671,1305 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
 }
 
 #[test]
-fn test_symmetry_operation_time_reversal() {
+fn test_symmetry_operation_su2_noncoaxial_composition_wigner_matrix() {
+    // ----------------------------------------------------------------------------------------
+    // D2*
+    //
+    // Reference: Table 8-6.2, Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+    // Publications, Inc., 2005).
+    // ----------------------------------------------------------------------------------------
+    let c2x_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let e_nsr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element.clone())
+        .power(0)
+        .build()
+        .unwrap();
+    let e_isr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    let c2x_nsr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2x_isr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c2y_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2y_nsr = SymmetryOperation::builder()
+        .generating_element(c2y_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2y_isr = SymmetryOperation::builder()
+        .generating_element(c2y_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c2z_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2z_nsr = SymmetryOperation::builder()
+        .generating_element(c2z_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2z_isr = SymmetryOperation::builder()
+        .generating_element(c2z_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    // e_nsr
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c2x_nsr
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c2y_nsr
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c2z_nsr
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // e_isr
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c2x_isr
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2x_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c2y_isr
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2y_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c2z_isr
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2z_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2x_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2y_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2y_isr.get_wigner_matrix(1, true).unwrap()),
+        &c2x_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c2z_isr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c2z_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // --------------------------------------------------------------------------------------------
+    // D3*
+    //
+    // We stick to the standard definition of the positive hemisphere here, instead of the modified
+    // one used for Table 15-5.2 in Altmann, S. L. Rotations, Quaternions, and Double Groups.
+    // (Dover Publications, Inc., 2005). The multiplications that we obtain will therefore be
+    // different from the reference results in the homotopy classes of some of the the resultant C2
+    // operations.
+    //
+    // The following tests are for development monitoring purposes. Should we manage to implement a
+    // way to determine positive hemispheres consistently in the future, these tests can be used to
+    // verify how the implementation changes the multiplication structure.
+    // --------------------------------------------------------------------------------------------
+    let c3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c3p1_nsr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c3pm1_nsr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    let c3p1_isr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    let c3pm1_isr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element)
+        .power(-4)
+        .build()
+        .unwrap();
+
+    let c21_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c21_nsr = SymmetryOperation::builder()
+        .generating_element(c21_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c21_isr = SymmetryOperation::builder()
+        .generating_element(c21_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c22_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.5, -(3.0f64.sqrt()) / 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c22_nsr = SymmetryOperation::builder()
+        .generating_element(c22_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c22_isr = SymmetryOperation::builder()
+        .generating_element(c22_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c23_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.5, 3.0f64.sqrt() / 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c23_nsr = SymmetryOperation::builder()
+        .generating_element(c23_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c23_isr = SymmetryOperation::builder()
+        .generating_element(c23_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    // e_nsr
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c21_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr * &c22_nsr).get_wigner_matrix(1, true).unwrap(),
+        &c22_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c23_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_isr.get_wigner_matrix(1, true).unwrap()),
+        &c21_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_isr.get_wigner_matrix(1, true).unwrap()),
+        &c22_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&e_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_isr.get_wigner_matrix(1, true).unwrap()),
+        &c23_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c3p1_nsr
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c23_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c21_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c22_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_isr.get_wigner_matrix(1, true).unwrap()),
+        &c23_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_isr.get_wigner_matrix(1, true).unwrap()),
+        &c21_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3p1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_isr.get_wigner_matrix(1, true).unwrap()),
+        &c22_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c3pm1_nsr
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c22_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c23_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c21_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_isr.get_wigner_matrix(1, true).unwrap()),
+        &c22_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_isr.get_wigner_matrix(1, true).unwrap()),
+        &c23_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c3pm1_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_isr.get_wigner_matrix(1, true).unwrap()),
+        &c21_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c21_nsr
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c21_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c22_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c23_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c21_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c22_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c23_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c21_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c22_nsr
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c22_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c23_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c21_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c22_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c23_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c21_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c22_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    // c23_nsr
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c23_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c21_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c22_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_nsr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_nsr.get_wigner_matrix(1, true).unwrap()),
+        &e_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&e_isr.get_wigner_matrix(1, true).unwrap()),
+        &c23_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3p1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c21_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c3pm1_isr.get_wigner_matrix(1, true).unwrap()),
+        &c22_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c21_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3p1_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c22_isr.get_wigner_matrix(1, true).unwrap()),
+        &c3pm1_isr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &(&c23_nsr)
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&c23_isr.get_wigner_matrix(1, true).unwrap()),
+        &e_nsr.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+}
+
+#[test]
+fn test_symmetry_operation_time_reversal_composition_wigner_matrix() {
+    // ----------
+    // C2x & θC2x
+    // ----------
     let tc2x_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -6764,16 +8979,86 @@ fn test_symmetry_operation_time_reversal() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-
     let tc2x = SymmetryOperation::builder()
         .generating_element(tc2x_element)
         .power(1)
         .build()
         .unwrap();
+    let tc2x_su2 = tc2x.to_su2_class_0();
     assert_eq!(tc2x.order(), 2);
     assert!(tc2x.contains_time_reversal());
     assert!((&tc2x * &tc2x).is_identity());
 
+    // -----------
+    // θC2x ⋅ θC2x
+    // -----------
+    // From Table 8-6.2 of Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+    // Publications, Inc., 2005), in SU(2), C2x ⋅ C2x = E(QΣ), so θC2x ⋅ θC2x = E(Σ). Note that
+    // since θC2x is antiunitary, corepresentation theory is required.
+    assert!(tc2x.get_wigner_matrix(1, true).is_err());
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(3)),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(4)),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(4, true).unwrap().map(|x| x.conj())),
+        &(Array2::<Complex64>::eye(5)),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(4, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(4, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &(Array2::<Complex64>::eye(5)),
+        1e-14
+    );
+
+    // ----------
+    // θC2x ⋅ C2x
+    // ----------
     let c2x_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -6788,15 +9073,155 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let c2x_su2 = c2x.to_su2_class_0();
     assert!(!c2x.contains_time_reversal());
 
     let t = &tc2x * &c2x;
+    let t_su2 = t.to_su2_class_0();
     assert_eq!(t.order(), 2);
     assert!(t.contains_time_reversal());
     assert!(!t.is_identity());
     assert!(t.is_time_reversal());
     assert!((&t * &t).is_identity());
 
+    let t_su2_qe = &tc2x_su2 * &c2x_su2;
+    assert_eq!(t_su2_qe.order(), 4);
+    assert!(t_su2_qe.contains_time_reversal());
+    assert!(!t_su2_qe.is_identity());
+    assert!(!t_su2_qe.is_time_reversal());
+    assert!(!(&t_su2_qe * &t_su2_qe).is_identity());
+
+    assert!(c2x.get_wigner_matrix(1, true).is_err());
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2x.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &t.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &tc2x
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&c2x.get_wigner_matrix(4, true).unwrap().map(|x| x.conj())),
+        &t.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2x_su2.get_wigner_matrix(4, true).unwrap().dot(
+            &c2x_su2
+                .get_wigner_matrix(4, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2_qe.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2x ⋅ θC2x
+    // ----------
+    let t2 = &c2x * &tc2x;
+    assert_eq!(t2.order(), 2);
+    assert!(t2.contains_time_reversal());
+    assert!(!t2.is_identity());
+    assert!(t2.is_time_reversal());
+    assert!((&t2 * &t2).is_identity());
+
+    let t2_su2_qe = &c2x_su2 * &tc2x_su2;
+    assert_eq!(t2_su2_qe.order(), 4);
+    assert!(t2_su2_qe.contains_time_reversal());
+    assert!(!t2_su2_qe.is_identity());
+    assert!(!t2_su2_qe.is_time_reversal());
+    assert!(!(&t2_su2_qe * &t2_su2_qe).is_identity());
+
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(1, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &c2x.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap()),
+        &t2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(2, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(3, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    assert_close_l2!(
+        &c2x.get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(4, true).unwrap()),
+        &t2.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2x_su2
+            .get_wigner_matrix(4, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(4, true).unwrap()),
+        &t2_su2_qe.get_wigner_matrix(4, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2y & θC2y
+    // ----------
     let tc2y_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -6812,6 +9237,7 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let tc2y_su2 = tc2y.to_su2_class_0();
 
     let c2y_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -6827,17 +9253,352 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let c2y_su2 = c2y.to_su2_class_0();
+    let c2y_su2_qe = c2y.to_su2_class_0().pow(3);
 
     assert_eq!(tc2y.order(), 2);
     assert_eq!(c2y.order(), 2);
+
+    // -------
+    // θ ⋅ C2y
+    // -------
     assert_eq!(&t * &c2y, tc2y);
+    assert_eq!(&t_su2 * &c2y_su2, tc2y_su2);
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &c2y_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc2y_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c2y.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &tc2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &c2y_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc2y_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // -------
+    // C2y ⋅ θ
+    // -------
     assert_eq!(&c2y * &t, tc2y);
+    assert_eq!(&c2y_su2 * &t_su2, tc2y_su2);
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap()),
+        &tc2y_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap()),
+        &tc2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap()),
+        &tc2y_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // --------
+    // θ ⋅ θC2y
+    // --------
     assert_eq!(&t * &tc2y, c2y);
+    assert_eq!(&t_su2 * &tc2y_su2, c2y_su2_qe);
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2y_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2y_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2y.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &tc2y_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2y_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // --------
+    // θC2y ⋅ θ
+    // --------
     assert_eq!(&tc2y * &t, c2y);
+    assert_eq!(&tc2y_su2 * &t_su2, c2y_su2_qe);
+    assert_close_l2!(
+        &tc2y_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap().map(|x| x.conj())),
+        &c2y_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2y.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2y_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2z & θC2z
+    // ----------
+    let tc2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let tc2z = SymmetryOperation::builder()
+        .generating_element(tc2z_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let c2z = SymmetryOperation::builder()
+        .generating_element(c2z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c2z_su2 = c2z.to_su2_class_0();
+    let c2z_su2_qe = c2z.to_su2_class_0().pow(3);
+    let tc2z_su2_qe = &t_su2 * &c2z_su2_qe;
+
+    // -----------
+    // θC2y ⋅ θC2x
+    // -----------
     assert!(!(&tc2y * &tc2x).contains_time_reversal());
+    assert_eq!(&tc2y * &tc2x, c2z);
+    assert_eq!(&tc2y_su2 * &tc2x_su2, c2z_su2);
+    assert_close_l2!(
+        &tc2y_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2z_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &c2z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tc2y_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &c2z_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // ----------
+    // C2y ⋅ θC2x
+    // ----------
     assert!((&c2y * &tc2x).contains_time_reversal());
     assert!(!(&c2y * &tc2x).is_time_reversal());
+    assert_eq!(&c2y * &tc2x, tc2z);
+    assert_eq!(&c2y_su2 * &tc2x_su2, tc2z_su2_qe);
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(1, true).unwrap()),
+        &tc2z_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x.get_wigner_matrix(2, true).unwrap()),
+        &tc2z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(2, true).unwrap()),
+        &tc2z_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c2y_su2
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&tc2x_su2.get_wigner_matrix(3, true).unwrap()),
+        &tc2z_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
 
+    // ----------
+    // C3z & θC3z
+    // ----------
+    let tc3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let tc3z = SymmetryOperation::builder()
+        .generating_element(tc3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let tc3z_su2 = tc3z.to_su2_class_0();
+
+    let c3z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let c3z = SymmetryOperation::builder()
+        .generating_element(c3z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let c3z_su2 = c3z.to_su2_class_0();
+
+    assert_eq!(tc3z.order(), 6);
+    assert_eq!(c3z.order(), 3);
+
+    // -------
+    // θ ⋅ C3z
+    // -------
+    assert_eq!(&t * &c3z, tc3z);
+    assert_eq!(&t_su2 * &c3z_su2, tc3z_su2);
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &c3z_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc3z_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&c3z.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &tc3z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &t_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &c3z_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &tc3z_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // -------
+    // C3z ⋅ θ
+    // -------
+    assert_eq!(&c3z * &t, tc3z);
+    assert_eq!(&c3z_su2 * &t_su2, tc3z_su2);
+    assert_close_l2!(
+        &c3z_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap()),
+        &tc3z_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c3z.get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap()),
+        &tc3z.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &c3z_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap()),
+        &tc3z_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+
+    // --------
+    // Ṡ1 & θṠ1
+    // --------
     let sd1_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
@@ -6853,6 +9614,7 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let sd1_su2 = sd1.to_su2_class_0();
     assert_eq!(sd1.order(), 2);
     assert!(!sd1.contains_time_reversal());
 
@@ -6871,12 +9633,95 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    let tsd1_su2 = tsd1.to_su2_class_0();
     assert_eq!(tsd1.order(), 2);
     assert!(tsd1.contains_time_reversal());
     assert!(!tsd1.is_inversion());
     assert!(!tsd1.is_identity());
+
+    // --------
+    // θṠ1 ⋅ Ṡ1
+    // --------
     assert!((&tsd1 * &sd1).is_time_reversal());
-    assert!((&tsd1 * &t).is_inversion());
+    assert!((&tsd1_su2 * &sd1_su2).is_time_reversal());
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &sd1_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&sd1.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &t.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(2, true).unwrap().dot(
+            &sd1_su2
+                .get_wigner_matrix(2, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2.get_wigner_matrix(3, true).unwrap().dot(
+            &sd1_su2
+                .get_wigner_matrix(3, true)
+                .unwrap()
+                .map(|x| x.conj())
+        ),
+        &t_su2.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
+
+    // -------
+    // θṠ1 ⋅ θ
+    // -------
+    let inv = &tsd1 * &t;
+    let inv_su2_qe = &tsd1_su2 * &t_su2;
+    assert!(inv.is_inversion());
+    assert!(inv_su2_qe.is_su2_class_1());
+    assert_close_l2!(
+        &tsd1_su2
+            .get_wigner_matrix(1, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(1, true).unwrap().map(|x| x.conj())),
+        &inv_su2_qe.get_wigner_matrix(1, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &inv.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2
+            .get_wigner_matrix(2, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(2, true).unwrap().map(|x| x.conj())),
+        &inv_su2_qe.get_wigner_matrix(2, true).unwrap(),
+        1e-14
+    );
+    assert_close_l2!(
+        &tsd1_su2
+            .get_wigner_matrix(3, true)
+            .unwrap()
+            .dot(&t_su2.get_wigner_matrix(3, true).unwrap().map(|x| x.conj())),
+        &inv_su2_qe.get_wigner_matrix(3, true).unwrap(),
+        1e-14
+    );
 }
 
 #[test]

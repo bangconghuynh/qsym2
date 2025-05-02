@@ -4,15 +4,18 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Mul;
 
+use anyhow::{self, format_err};
 use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
+use num::Complex;
 use num_traits::{Inv, Pow, Zero};
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 
+use crate::angmom::spinor_rotation_3d::dmat_angleaxis_gen_single;
 use crate::auxiliary::geometry::{
     self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
 };
@@ -907,6 +910,59 @@ impl SymmetryOperation {
         }
     }
 
+    /// Returns the representation matrix for this symmetry operation in a $`j`$-adapted basis.
+    ///
+    /// This representation matrix is in the basis of $`\ket{j, m_j}`$. For improper rotations in
+    /// half-odd-integer $`j`$ bases, the Pauli gauge is used where the inversion operation is
+    /// represented by a trivial identity matrix.
+    ///
+    /// # Arguments
+    ///
+    /// * `two_j` - The value of $`2j`$ for the basis.
+    /// * `increasingm` - A boolean indicating if the $`\ket{j, m_j}`$ kets are arranged in
+    /// increasing $`m_j`$ values.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if `two_j` indicates a half-odd-integer spinor basis but the
+    /// symmetry operation is one in $`\mathsf{SO}(3)`$.
+    #[must_use]
+    pub fn get_wigner_matrix(
+        &self,
+        two_j: u32,
+        increasingm: bool,
+    ) -> Result<Array2<Complex<f64>>, anyhow::Error> {
+        let spinor_basis = two_j.rem_euclid(2) == 1;
+        if spinor_basis && !self.is_su2() {
+            Err(format_err!(
+                "Unable to construct a Wigner matrix for an SO(3) rotation in a spinor basis."
+            ))
+        } else {
+            let odd_sh_basis = (!spinor_basis) && two_j.rem_euclid(4) == 2;
+            let dmat_rotation = {
+                let angle = self.calc_pole_angle();
+                let axis = self.calc_pole().coords;
+                if (spinor_basis && self.is_su2_class_1()) || (odd_sh_basis && !self.is_proper()) {
+                    -dmat_angleaxis_gen_single(two_j, angle, axis, increasingm)
+                } else {
+                    dmat_angleaxis_gen_single(two_j, angle, axis, increasingm)
+                }
+            };
+            if self.contains_time_reversal() {
+                // The complex conjugation is required by corepresentation theory.
+                Ok(dmat_angleaxis_gen_single(
+                    two_j,
+                    std::f64::consts::PI,
+                    Vector3::y(),
+                    increasingm,
+                )
+                .dot(&dmat_rotation.map(|x| x.conj())))
+            } else {
+                Ok(dmat_rotation)
+            }
+        }
+    }
+
     /// Convert the proper rotation of the current operation to one in hopotopy class 0 of
     /// $`\mathsf{SU}(2)`$.
     ///
@@ -1144,8 +1200,8 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         self.generating_element.rotation_group.is_su2()
     }
 
-    /// Checks if the proper rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
-    /// connected to the identity via a homotopy path of class 1.
+    /// Checks if the proper rotation part of the symmetry operation (in the inversion convention)
+    /// is in $`\mathsf{SU}(2)`$ and connected to the identity via a homotopy path of class 1.
     ///
     /// # Returns
     ///

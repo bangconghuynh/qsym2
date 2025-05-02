@@ -25,6 +25,7 @@ from qsym2 import (
     PySlaterDeterminantReal,
     PySlaterDeterminantComplex,
     SymmetryTransformationKind,
+    ShellType,
 )
 
 
@@ -35,9 +36,11 @@ class MyFilter(object):
     def filter(self, logRecord):
         return logRecord.levelno == self.__level
 
+
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter
-): pass
+):
+    pass
 
 
 ANGS = ["S", "P", "D", "F", "G", "H"]
@@ -100,7 +103,7 @@ def orca_rep_analyse_slater_determinant(
         """
         l = ANGS.index(l_symbol)
         ms = []
-        for m in range(l+1):
+        for m in range(l + 1):
             if m == 0:
                 ms.append(m)
             else:
@@ -113,9 +116,16 @@ def orca_rep_analyse_slater_determinant(
     bao = [
         (
             mendeleev.element(int(atomic_number)).symbol,
-            [(bshl[0], False, pure_order(bshl[0])) for bshl in batm]
+            [
+                (
+                    bshl[0],
+                    ShellType.Pure,
+                    (pure_order(bshl[0]), ANGS.index(bshl[0]) % 2 == 0),
+                )
+                for bshl in batm
+            ],
         )
-         for atomic_number, batm in zip(data.atomnos, data.gbasis)
+        for atomic_number, batm in zip(data.atomnos, data.gbasis)
     ]
     pybao = PyBasisAngularOrder(bao)
 
@@ -132,7 +142,7 @@ def orca_rep_analyse_slater_determinant(
     else:
         os = [
             np.array([float(i < na) for i in range(data.nmo)]),
-            np.array([float(i < nb) for i in range(data.nmo)])
+            np.array([float(i < nb) for i in range(data.nmo)]),
         ]
 
     scf_energies = data.scfenergies[-1] * EV_TO_HARTREE
@@ -142,15 +152,7 @@ def orca_rep_analyse_slater_determinant(
     else:
         spincons = PySpinConstraint.Unrestricted
 
-    pydet_r = PySlaterDeterminantReal(
-        spincons,
-        False,
-        cs,
-        os,
-        1e-13,
-        es,
-        scf_energies
-    )
+    pydet_r = PySlaterDeterminantReal(spincons, False, cs, os, 1e-13, es, scf_energies)
 
     rep_analyse_slater_determinant(
         inp_sym=f"mol",
@@ -184,37 +186,48 @@ def main():
             in order for this script to work. If the output file contains
             multiple SCF results for multiple geometries, only the last set
             of results are analysed by QSym².
-            """
-        ),
-        formatter_class=RawTextArgumentDefaultsHelpFormatter
+            """),
+        formatter_class=RawTextArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-f", "--file", help="Orca output file to be parsed", type=str,
-        required=True
+        "-f", "--file", help="Orca output file to be parsed", type=str, required=True
     )
     parser.add_argument(
-        "-o", "--output", help="QSym² output file to be written", type=str,
-        required=True
+        "-o",
+        "--output",
+        help="QSym² output file to be written",
+        type=str,
+        required=True,
     )
     parser.add_argument(
-        "-m", "--moi_thresholds", nargs='*', type=float,
+        "-m",
+        "--moi_thresholds",
+        nargs="*",
+        type=float,
         default=[1e-2, 1e-4, 1e-6],
-        help="Thresholds for moment-of-inertia comparisons (multiple values can be specified separated by spaces)"
+        help="Thresholds for moment-of-inertia comparisons (multiple values can be specified separated by spaces)",
     )
     parser.add_argument(
-        "-d", "--distance_thresholds", nargs='*', type=float,
+        "-d",
+        "--distance_thresholds",
+        nargs="*",
+        type=float,
         default=[1e-2, 1e-4, 1e-6],
-        help="Thresholds for distance comparisons (multiple values can be specified separated by spaces)"
+        help="Thresholds for distance comparisons (multiple values can be specified separated by spaces)",
     )
     parser.add_argument(
-        "-l", "--linear_independence_threshold", type=float,
+        "-l",
+        "--linear_independence_threshold",
+        type=float,
         default=1e-6,
-        help="Threshold for determining linearly independent symmetry-equivalent partners and projecting out the null space"
+        help="Threshold for determining linearly independent symmetry-equivalent partners and projecting out the null space",
     )
     parser.add_argument(
-        "-i", "--integrality_threshold", type=float,
+        "-i",
+        "--integrality_threshold",
+        type=float,
         default=1e-7,
-        help="Threshold for determining integrality of irreducible (co)representation multiplicities"
+        help="Threshold for determining integrality of irreducible (co)representation multiplicities",
     )
     args = parser.parse_args()
 

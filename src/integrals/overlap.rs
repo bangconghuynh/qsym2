@@ -623,7 +623,7 @@ macro_rules! impl_shell_tuple_overlap {
                                     )
                                 }
                             })
-                            .into_shape(shape)
+                            .into_shape_with_order(shape)
                             .expect("Unable to convert transformed `z` to {$RANK} dimensions.");
                             acc * z_transformed
                         });
@@ -772,7 +772,8 @@ macro_rules! impl_shell_tuple_overlap {
                                         .basis_shell()
                                         .shell_order {
                                             ShellOrder::Pure(po) => CartOrder::lex(po.lpure),
-                                            ShellOrder::Cart(co) => co.clone()
+                                            ShellOrder::Cart(co) => co.clone(),
+                                            ShellOrder::Spinor(_) => panic!("Cartesian orders cannot be constructed for a spinor shell.")
                                         };
                                     *cart_power = cart_order
                                         .cart_tuples[cart_indices[shell_index]]

@@ -94,12 +94,12 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
     ];
     let oalpha = array![1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0];
     let obeta = array![1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-    let det = SlaterDeterminant::<f64>::builder()
+    let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
         .bao(&bao_bh3)
         .mol(&mol_bh3)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-7)
         .build()
@@ -357,12 +357,12 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
     ];
     let oalpha = array![1.0];
     let obeta = array![1.0];
-    let det = SlaterDeterminant::<f64>::builder()
+    let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
         .bao(&bao_h2)
         .mol(&mol_h2)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-7)
         .build()

@@ -16,7 +16,7 @@ check:
   before_script:
     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
     - apt-get update
-    - apt-get install gfortran build-essential cmake -y
+    - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
     - cargo check --release --verbose --features full,sandbox --color always
   rules:
@@ -31,7 +31,7 @@ unit_tests:
     - archon
   before_script:
     - apt-get update
-    - apt-get install gfortran build-essential cmake -y
+    - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
     - cargo test -r --features full,sandbox -- --include-ignored
   rules:
@@ -48,7 +48,7 @@ tarpaulin:
   before_script:
     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
     - apt-get update
-    - apt-get install gfortran build-essential cmake -y
+    - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
     - cargo install cargo-tarpaulin
     - cargo tarpaulin -t 1800 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
@@ -136,7 +136,7 @@ pages:
     RUSTDOCFLAGS: --html-in-header katex.html
   before_script:
     - apt-get update
-    - apt-get install gfortran build-essential cmake -y
+    - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
     - cargo doc --no-deps --features full,python,sandbox
     - mv target/doc public/api
