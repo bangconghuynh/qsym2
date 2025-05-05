@@ -1,7 +1,7 @@
 symmetry_group_detection: !Parameters
 
 analysis_targets:
-  - !SlaterDeterminant
+  - !RealSlaterDeterminant
     source: !Binaries
       xyz: path/to/xyz
       sao: path/to/sao
@@ -35,7 +35,7 @@ analysis_targets:
           shell_order: !PureDecreasingm
         - l: 2
           shell_order: !CartQChem
-      - atom: [1, "H"]
+      - atom: [2, "H"]
         basis_shells:
         - l: 0
           shell_order: !PureIncreasingm

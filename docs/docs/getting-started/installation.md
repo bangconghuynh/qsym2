@@ -77,9 +77,9 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
 
 1. Follow steps 1 to 4 under the [**Binary compilation**](#binary-compilation) section above to install the required prerequisites.
 2. Make sure that the Anaconda package manager is available on your system. Instructions for installing Anaconda on a Linux system can be found [here](https://docs.anaconda.com/free/anaconda/install/linux/).
-3. Create a new conda environment named `qsym2-python` (or a different name of your choice) running Python 3.11 (or a different version of your choice):
+3. Create a new conda environment named `qsym2-python` (or a different name of your choice) running Python 3.13 (or a different version of your choice):
     ```bash
-    conda create -n qsym2-python python="3.11"
+    conda create -n qsym2-python python="3.13"
     ```
     and then activate this environment:
     ```bash

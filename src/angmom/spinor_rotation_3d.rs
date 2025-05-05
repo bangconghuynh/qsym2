@@ -12,8 +12,8 @@ use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-use crate::auxiliary::geometry::normalise_rotation_angle;
 use crate::basis::ao::BasisAngularOrder;
+use crate::auxiliary::geometry::normalise_rotation_angle;
 
 #[cfg(test)]
 #[path = "spinor_rotation_3d_tests.rs"]

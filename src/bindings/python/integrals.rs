@@ -426,7 +426,7 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
 }
 
 /// Python-exposed enumerated type to marshall basis spin--orbit-coupled layout in the coupled
-/// treatment of spin and spatial degrees of freedome between Rust and Python.
+/// treatment of spin and spatial degrees of freedom between Rust and Python.
 #[pyclass(eq, eq_int)]
 #[derive(Clone, PartialEq)]
 pub enum PySpinOrbitCoupled {

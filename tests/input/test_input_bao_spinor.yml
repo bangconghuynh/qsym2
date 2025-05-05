@@ -1,0 +1,36 @@
+symmetry_group_detection: !Parameters
+
+analysis_targets:
+  - !RealSlaterDeterminant
+    source: !Binaries
+      xyz: path/to/xyz
+      sao: path/to/sao
+      coefficients: [path/to/ca, path/to/cb]
+      occupations: [path/to/occa, path/to/occb]
+      spin_constraint: !Unrestricted
+      - 2
+      - false
+      matrix_order: RowMajor
+      byte_order: LittleEndian
+      bao:
+      - atom: [0, "O"]
+        basis_shells:
+        - l: 1
+          shell_order: !SpinorIncreasingm true
+        - l: 3
+          shell_order: !SpinorDecreasingm false
+        - l: 5
+          shell_order: !SpinorCustom
+          - true
+          - [1, -1, 3, -3, 5, -5]
+      - atom: [1, "H"]
+        basis_shells:
+        - l: 1
+          shell_order: !SpinorIncreasingm false
+      - atom: [2, "H"]
+        basis_shells:
+        - l: 1
+          shell_order: !SpinorIncreasingm false
+    control:
+      integrality_threshold: 1e-7
+      linear_independence_threshold: 1e-7

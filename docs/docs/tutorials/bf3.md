@@ -185,16 +185,16 @@ The required basis set information can therefore be extracted by adding the foll
     === "Cartesian ordering"
 
         ```py title="bf3.py"
-        import copy
         import itertools
         import re
-        from qsym2 import PyBasisAngularOrder, PyBasisShellContraction
+        from qsym2 import PyBasisAngularOrder, PyBasisShellContraction, ShellType
 
         def extract_basis_information(mol: gto.Mole) -> tuple[
             PyBasisAngularOrder, list[list[PyBasisShellContraction]]
         ]:
             r"""Extracts AO basis information from PySCF.
             """
+            ANGMOM = ["S", "P", "D", "F", "G", "H", "I"]
             parsed_labels = []
             for label in mol.ao_labels():
                 [i, atom, bas] = label.split()
@@ -217,9 +217,9 @@ The required basis set information can therefore be extracted by adding the foll
                     shell_code = atom_shell[2]
                     angmom_opt = re.search(r"\d+([a-z])", shell_code)
                     assert angmom_opt is not None
-                    angmom = angmom_opt.group(1)
-                    basis_shell = (angmom.upper(), True, None) #(1)!
-                    atom_shell_tuples.append(copy.deepcopy(basis_shell))
+                    angmom = int(ANGMOM.index(angmom_opt.group(1).upper()))
+                    basis_shell = (angmom, ShellType.Cartesian, None) #(1)!
+                    atom_shell_tuples.append(basis_shell)
                     
                     bsc = PyBasisShellContraction(
                         basis_shell=basis_shell,
@@ -245,7 +245,6 @@ The required basis set information can therefore be extracted by adding the foll
     === "Spherical ordering"
 
         ```py title="bf3.py"
-        import copy
         import itertools
         import re
         from qsym2 import PyBasisAngularOrder, PyBasisShellContraction
@@ -255,6 +254,7 @@ The required basis set information can therefore be extracted by adding the foll
         ]:
             r"""Extracts AO basis information from PySCF.
             """
+            ANGMOM = ["S", "P", "D", "F", "G", "H", "I"]
             parsed_labels = []
             for label in mol.ao_labels():
                 [i, atom, bas] = label.split()
@@ -277,12 +277,12 @@ The required basis set information can therefore be extracted by adding the foll
                     shell_code = atom_shell[2]
                     angmom_opt = re.search(r"\d+([a-z])", shell_code)
                     assert angmom_opt is not None
-                    angmom = angmom_opt.group(1)
-                    if angmom.upper() == "P": #(1)!
-                        basis_shell = (angmom.upper(), False, [+1, -1, 0])
+                    angmom = int(ANGMOM.index(angmom_opt.group(1).upper()))
+                    if angmom == 1: #(1)!
+                        basis_shell = (angmom, ShellType.Pure, ([+1, -1, 0], False))
                     else:
-                        basis_shell = (angmom.upper(), False, True)
-                    atom_shell_tuples.append(copy.deepcopy(basis_shell))
+                        basis_shell = (angmom.upper(), ShellType.Pure, (True, angmom % 2 == 0))
+                    atom_shell_tuples.append(basis_shell)
                     
                     bsc = PyBasisShellContraction(
                         basis_shell=basis_shell,
@@ -338,7 +338,7 @@ The required basis set information can therefore be extracted by adding the foll
     from qsym2 import PySpinConstraint, PySlaterDeterminantReal
 
     pydet = PySlaterDeterminantReal( #(1)!
-        spin_constraint=PySpinConstraint.Unrestricted,
+        structure_constraint=PySpinConstraint.Unrestricted,
         complex_symmetric=False,
         coefficients=[ca, cb],
         occupations=[occa, occb],
@@ -366,8 +366,8 @@ The required basis set information can therefore be extracted by adding the foll
         inp_sym="mol", #(2)!
         pydet=pydet,
         pybao=pybao,
-        sao_spatial=sao_spatial,
-        sao_spatial_h=None,
+        sao=sao_spatial,
+        sao_h=None,
         sao_spatial_4c=sao_spatial_4c, #(3)!
         sao_spatial_4c_h=None,
         # Thresholds
@@ -377,6 +377,7 @@ The required basis set information can therefore be extracted by adding the foll
         # Analysis options
         use_magnetic_group=None,
         use_double_group=False,
+        use_cayley_table=True,
         symmetry_transformation_kind=SymmetryTransformationKind.Spatial,
         infinite_order_to_finite=None,
         # Other options
@@ -468,6 +469,7 @@ However, we would also like to run a CCSD calculation based on the obtained UHF 
         # Analysis options
         use_magnetic_group=None,
         use_double_group=False,
+        use_cayley_table=True,
         symmetry_transformation_kind=SymmetryTransformationKind.Spatial,
         infinite_order_to_finite=None,
         # Other options
