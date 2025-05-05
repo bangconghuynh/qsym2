@@ -34,7 +34,7 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
         assert!(false);
     }
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         let inp_rep_params = &sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-8);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
@@ -67,7 +67,7 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
         assert!(false);
     }
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         let inp_rep_params = &sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
@@ -99,7 +99,7 @@ fn test_interfaces_input_bao() {
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         if let SlaterDeterminantSource::Binaries(binaries_source) = &sd_control.source {
             let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 41);
@@ -157,7 +157,7 @@ fn test_interfaces_input_bao_spinor() {
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         if let SlaterDeterminantSource::Binaries(binaries_source) = &sd_control.source {
             let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 16);

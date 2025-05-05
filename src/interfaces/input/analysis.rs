@@ -41,7 +41,7 @@ pub enum AnalysisTarget {
 
     /// Variant representing the choice of Slater determinant as the target for representation
     /// analysis. The associated structure contains the control parameters for this.
-    SlaterDeterminant(SlaterDeterminantControl),
+    RealSlaterDeterminant(SlaterDeterminantControl),
 
     /// Variant representing the choice of vibrational coordinates as the target for representation
     /// analysis. The associated structure contains the control parameters for this.
@@ -58,7 +58,7 @@ impl AnalysisTarget {
                 xyz: PathBuf::from("path/to/xyz"),
                 symmetrisation: Some(MoleculeSymmetrisationBootstrapParams::default()),
             },
-            AnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default()),
+            AnalysisTarget::RealSlaterDeterminant(SlaterDeterminantControl::default()),
             #[cfg(feature = "qchem")]
             AnalysisTarget::VibrationalCoordinates(VibrationalCoordinateControl::default()),
         ]
@@ -67,7 +67,7 @@ impl AnalysisTarget {
 
 impl Default for AnalysisTarget {
     fn default() -> Self {
-        AnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default())
+        AnalysisTarget::RealSlaterDeterminant(SlaterDeterminantControl::default())
     }
 }
 

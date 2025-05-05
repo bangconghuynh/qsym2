@@ -154,7 +154,7 @@ impl InputHandle for Input {
                     pd_res
                 }
             }
-            AnalysisTarget::SlaterDeterminant(sd_control) => {
+            AnalysisTarget::RealSlaterDeterminant(sd_control) => {
                 qsym2_output!("");
                 log::debug!("Analysis target: Slater determinant");
                 let sd_source = &sd_control.source;
