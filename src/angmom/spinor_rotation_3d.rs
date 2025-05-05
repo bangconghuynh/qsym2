@@ -12,6 +12,7 @@ use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
+use crate::basis::ao::BasisAngularOrder;
 use crate::auxiliary::geometry::normalise_rotation_angle;
 
 #[cfg(test)]
