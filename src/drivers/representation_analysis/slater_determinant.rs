@@ -1,5 +1,6 @@
 //! Driver for symmetry analysis of Slater determinants.
 
+use std::collections::HashMap;
 use std::fmt;
 use std::ops::Mul;
 
@@ -21,7 +22,8 @@ use crate::analysis::{
 };
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
-use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_symbols::ReducibleLinearSpaceSymbol;
+use crate::chartab::{CharacterTable, SubspaceDecomposable};
 use crate::drivers::representation_analysis::angular_function::{
     find_angular_function_representation, find_spinor_function_representation,
     AngularFunctionRepAnalysisParams,
@@ -43,7 +45,7 @@ use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
 use crate::symmetry::symmetry_symbols::{
-    deduce_mirror_parities, MirrorParity, SymmetryClassSymbol,
+    deduce_mirror_parities, MirrorParity, MullikenIrcorepSymbol, SymmetryClassSymbol,
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::density::density_analysis::DensitySymmetryOrbit;
@@ -90,6 +92,11 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[builder(default = "false")]
     #[serde(default)]
     pub analyse_mo_mirror_parities: bool,
+
+    /// Boolean indicating if symmetry projection should be performed for molecular orbitals.
+    #[builder(default = "false")]
+    #[serde(default)]
+    pub analyse_mo_symmetry_projections: bool,
 
     /// Boolean indicating if density symmetries are to be analysed alongside wavefunction symmetries
     /// for this determinant.
@@ -196,6 +203,16 @@ where
         )?;
         writeln!(
             f,
+            "Analyse molecular orbital symmetry projection: {}",
+            nice_bool(self.analyse_mo_symmetry_projections)
+        )?;
+        writeln!(
+            f,
+            "Analyse molecular orbital mirror parity: {}",
+            nice_bool(self.analyse_mo_mirror_parities)
+        )?;
+        writeln!(
+            f,
             "Analyse density symmetry: {}",
             nice_bool(self.analyse_density_symmetries)
         )?;
@@ -274,6 +291,20 @@ where
     /// The deduced symmetries of the molecular orbitals constituting the determinant, if required.
     mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 
+    /// The deduced symmetry projections of the molecular orbitals constituting the determinant, if required.
+    mo_symmetry_projections: Option<
+        Vec<
+            Vec<
+                Option<
+                    Vec<(
+                        <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+                        Complex<f64>,
+                    )>,
+                >,
+            >,
+        >,
+    >,
+
     /// The deduced mirror parities of the molecular orbitals constituting the determinant, if required.
     mo_mirror_parities:
         Option<Vec<Vec<Option<IndexMap<SymmetryClassSymbol<SymmetryOperation>, MirrorParity>>>>>,
@@ -338,6 +369,24 @@ where
         &self,
     ) -> &Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>> {
         &self.mo_symmetries
+    }
+
+    /// Returns the deduced symmetry projections of the molecular orbitals constituting the determinant, if required.
+    pub fn mo_symmetry_projections(
+        &self,
+    ) -> &Option<
+        Vec<
+            Vec<
+                Option<
+                    Vec<(
+                        <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+                        Complex<f64>,
+                    )>,
+                >,
+            >,
+        >,
+    > {
+        &self.mo_symmetry_projections
     }
 
     /// Returns the deduced symmetries of the various densities constructible from the determinant,
@@ -505,6 +554,77 @@ where
                 })
                 .unwrap_or(10);
 
+            let mo_sym_projections_str_opt =
+                self.mo_symmetry_projections
+                    .as_ref()
+                    .map(|mo_sym_projectionss| {
+                        mo_sym_projectionss
+                            .iter()
+                            .enumerate()
+                            .map(|(ispin, mo_sym_projections)| {
+                                mo_sym_projections
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(imo, mo_sym_projection)| {
+                                        mo_sym_projection
+                                            .as_ref()
+                                            .map(|sym_proj| {
+                                                if let Some(mo_symmetriess) = self.mo_symmetries() {
+                                                    if let Some(sym) = &mo_symmetriess[ispin][imo] {
+                                                        let sym_proj_hashmap = sym_proj
+                                                            .iter()
+                                                            .cloned()
+                                                            .collect::<HashMap<_, _>>();
+                                                        sym.subspaces()
+                                                            .iter()
+                                                            .map(|(subspace, _)| {
+                                                                format!(
+                                                                    "{subspace}: {}",
+                                                                    sym_proj_hashmap
+                                                                        .get(subspace)
+                                                                        .map(|composition| format!(
+                                                                            "{composition:+.3}"
+                                                                        ))
+                                                                        .unwrap_or(
+                                                                            "--".to_string()
+                                                                        )
+                                                                )
+                                                            })
+                                                            .join(", ")
+                                                    } else {
+                                                        "--".to_string()
+                                                    }
+                                                } else {
+                                                    "--".to_string()
+                                                }
+                                            })
+                                            .unwrap_or("--".to_string())
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                            .collect::<Vec<_>>()
+                    });
+            let mo_sym_projections_length_opt =
+                mo_sym_projections_str_opt
+                    .as_ref()
+                    .map(|mo_sym_projectionss| {
+                        mo_sym_projectionss
+                            .iter()
+                            .flat_map(|mo_sym_projections| {
+                                mo_sym_projections
+                                    .iter()
+                                    .map(|mo_sym_projection| mo_sym_projection.chars().count())
+                            })
+                            .max()
+                            .unwrap_or(18)
+                            .max(18)
+                    });
+            let mo_sym_projections_length = mo_sym_projections_length_opt.unwrap_or(0);
+            let mo_sym_projections_gap = mo_sym_projections_length_opt.map(|_| 2).unwrap_or(0);
+            let mo_sym_projections_heading = mo_sym_projections_length_opt
+                .map(|_| "MO sym. projection")
+                .unwrap_or("");
+
             let mirrors = self
                 .group
                 .filter_cc_symbols(|cc| cc.is_spatial_reflection());
@@ -562,6 +682,8 @@ where
                 + mo_mirror_parities_length
                 + mo_eig_above_length
                 + mo_eig_below_length
+                + mo_sym_projections_gap
+                + mo_sym_projections_length
                 + mo_density_gap
                 + mo_density_length;
 
@@ -585,21 +707,41 @@ where
                 )?;
             }
             writeln!(f, "{}", "┈".repeat(table_width))?;
-            writeln!(
-                f,
-                " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{}",
-                "Spin",
-                "MO",
-                "Occ.",
-                "Energy",
-                "Symmetry",
-                " ".repeat(mo_mirror_parities_gap),
-                mo_mirror_parities_heading,
-                "Eig. above",
-                "Eig. below",
-                " ".repeat(mo_density_gap),
-                mo_density_heading
-            )?;
+            if mo_density_length > 0 {
+                writeln!(
+                    f,
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{:mo_sym_projections_length$}{}{}",
+                    "Spin",
+                    "MO",
+                    "Occ.",
+                    "Energy",
+                    "Symmetry",
+                    " ".repeat(mo_mirror_parities_gap),
+                    mo_mirror_parities_heading,
+                    "Eig. above",
+                    "Eig. below",
+                    " ".repeat(mo_sym_projections_gap),
+                    mo_sym_projections_heading,
+                    " ".repeat(mo_density_gap),
+                    mo_density_heading
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{}",
+                    "Spin",
+                    "MO",
+                    "Occ.",
+                    "Energy",
+                    "Symmetry",
+                    " ".repeat(mo_mirror_parities_gap),
+                    mo_mirror_parities_heading,
+                    "Eig. above",
+                    "Eig. below",
+                    " ".repeat(mo_sym_projections_gap),
+                    mo_sym_projections_heading,
+                )?;
+            };
             writeln!(f, "{}", "┈".repeat(table_width))?;
 
             let empty_string = String::new();
@@ -688,6 +830,17 @@ where
                         })
                         .unwrap_or(("--".to_string(), "--".to_string()));
 
+                    let mo_symmetry_projections_str = mo_sym_projections_str_opt
+                        .as_ref()
+                        .and_then(|mo_symmetry_projectionss| {
+                            mo_symmetry_projectionss.get(spini).and_then(
+                                |spin_mo_symmetry_projections| {
+                                    spin_mo_symmetry_projections.get(moi)
+                                },
+                            )
+                        })
+                        .unwrap_or(&empty_string);
+
                     let mo_density_symmetries_str = mo_den_symss_str_opt
                         .as_ref()
                         .and_then(|mo_density_symmetriess| {
@@ -697,35 +850,71 @@ where
                         })
                         .unwrap_or(&empty_string);
 
-                    if mo_density_length == 0 {
-                        writeln!(
-                            f,
-                            " {spini:>mo_spin_index_length$}  \
-                            {moi:>mo_index_length$}  \
-                            {occ_str:<mo_occ_length$}  \
-                            {mo_energy_str:<mo_energy_length$}  \
-                            {mo_sym_str:<mo_symmetry_length$}\
-                            {}{:mo_mirror_parities_length$}  \
-                            {eig_above_str:<mo_eig_above_length$}  \
-                            {eig_below_str}",
-                            " ".repeat(mo_mirror_parities_gap),
-                            mo_mirror_parities_str,
-                        )?;
-                    } else {
-                        writeln!(
-                            f,
-                            " {spini:>mo_spin_index_length$}  \
-                            {moi:>mo_index_length$}  \
-                            {occ_str:<mo_occ_length$}  \
-                            {mo_energy_str:<mo_energy_length$}  \
-                            {mo_sym_str:<mo_symmetry_length$}\
-                            {}{:mo_mirror_parities_length$}  \
-                            {eig_above_str:<mo_eig_above_length$}  \
-                            {eig_below_str:<mo_eig_below_length$}  \
-                            {mo_density_symmetries_str}",
-                            " ".repeat(mo_mirror_parities_gap),
-                            mo_mirror_parities_str,
-                        )?;
+                    match (mo_density_length, mo_sym_projections_length) {
+                        (0, 0) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
+                        (_, 0) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str:<mo_eig_below_length$}  \
+                                {mo_density_symmetries_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
+                        (0, _) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str:<mo_eig_below_length$}  \
+                                {mo_symmetry_projections_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
+                        (_, _) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str:<mo_eig_below_length$}  \
+                                {mo_symmetry_projections_str}  \
+                                {mo_density_symmetries_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
                     }
                 }
             }
@@ -1027,6 +1216,15 @@ where
                     .log_output_display();
                 qsym2_output!("");
             ]
+            calc_mo_projections_ [
+                let mo_projectionss = mo_orbitss.iter().map(|mo_orbits| {
+                    mo_orbits
+                        .iter()
+                        .map(|mo_orbit| mo_orbit.calc_projection_compositions().ok())
+                        .collect::<Vec<_>>()
+                }).collect::<Vec<_>>();
+                Some(mo_projectionss)
+            ]
         ]
     }
     duplicate!{
@@ -1044,6 +1242,9 @@ where
             analyse_fn_ [ analyse_corepresentation ]
             construct_group_ [ self.construct_magnetic_group()? ]
             calc_projections_ [ ]
+            calc_mo_projections_ [
+                None::<Vec<Vec<Option<Vec<(MullikenIrcorepSymbol, Complex<f64>)>>>>>
+            ]
         ]
     }
 )]
@@ -1061,9 +1262,13 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
         log_bao(self.determinant.bao());
 
         // Determinant and orbital symmetries
-        let (det_symmetry, mo_symmetries, mo_mirror_parities, mo_symmetries_thresholds) = if params
-            .analyse_mo_symmetries
-        {
+        let (
+            det_symmetry,
+            mo_symmetries,
+            mo_symmetry_projections,
+            mo_mirror_parities,
+            mo_symmetries_thresholds,
+        ) = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
                 self.determinant,
@@ -1109,7 +1314,13 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                 })
                 .collect::<Vec<_>>();
 
-            let mo_mirror_parities = if params.analyse_mo_mirror_parities {
+            let mo_symmetry_projections_opt = if params.analyse_mo_symmetry_projections {
+                calc_mo_projections_
+            } else {
+                None
+            };
+
+            let mo_mirror_parities_opt = if params.analyse_mo_mirror_parities {
                 Some(
                     mo_symmetries
                         .iter()
@@ -1195,9 +1406,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
             (
                 det_symmetry,
                 Some(mo_symmetries),
-                mo_mirror_parities,
+                mo_symmetry_projections_opt,
+                mo_mirror_parities_opt,
                 Some(mo_symmetries_thresholds),
-            )
+            ) // det_symmetry, mo_symmetries, mo_symmetry_projections, mo_mirror_parities, mo_symmetries_thresholds
         } else {
             let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
                 .group(&group)
@@ -1231,7 +1443,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                 calc_projections_
             }
 
-            (det_symmetry, None, None, None)
+            (det_symmetry, None, None, None, None) // det_symmetry, mo_symmetries, mo_symmetry_projections, mo_mirror_parities, mo_symmetries_thresholds
         };
 
         // Density and orbital density symmetries
@@ -1447,6 +1659,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
             .determinant_symmetry(det_symmetry)
             .determinant_density_symmetries(den_symmetries)
             .mo_symmetries(mo_symmetries)
+            .mo_symmetry_projections(mo_symmetry_projections)
             .mo_mirror_parities(mo_mirror_parities)
             .mo_symmetries_thresholds(mo_symmetries_thresholds)
             .mo_density_symmetries(mo_den_symmetries)

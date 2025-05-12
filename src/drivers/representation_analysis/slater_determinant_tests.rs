@@ -453,6 +453,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
+        .analyse_mo_symmetry_projections(true)
         .use_magnetic_group(None)
         .use_double_group(true)
         .use_cayley_table(true)
@@ -492,6 +493,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
+        .analyse_mo_symmetry_projections(true)
         .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
         .use_double_group(true)
         .use_cayley_table(true)
@@ -532,6 +534,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
+        .analyse_mo_symmetry_projections(true)
         .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
         .use_double_group(true)
         .use_cayley_table(true)
@@ -561,8 +564,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
             .determinant_symmetry
             .as_ref()
             .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E|| ⊕ ||T|_(1)| ⊕ ||T|_(2)|")
-            .unwrap()
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E|| ⊕ ||T|_(1)| ⊕ ||T|_(2)|").unwrap()
     );
 }
 
