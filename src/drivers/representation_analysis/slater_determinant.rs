@@ -5,6 +5,7 @@ use std::fmt;
 use std::ops::Mul;
 
 use anyhow::{self, bail, format_err};
+use approx::abs_diff_eq;
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
@@ -582,9 +583,21 @@ where
                                                                     "{subspace}: {}",
                                                                     sym_proj_hashmap
                                                                         .get(subspace)
-                                                                        .map(|composition| format!(
-                                                                            "{composition:+.3}"
-                                                                        ))
+                                                                        .map(|composition| {
+                                                                            if abs_diff_eq!(
+                                                                                composition.im,
+                                                                                0.0,
+                                                                                epsilon = 5.0e-4
+                                                                            ) {
+                                                                                format!(
+                                                                                    "{:+.3}",
+                                                                                    composition.re
+                                                                                )
+                                                                            } else {
+                                                                                format!(
+                                                                            "{composition:+.3}")
+                                                                            }
+                                                                        })
                                                                         .unwrap_or(
                                                                             "--".to_string()
                                                                         )
@@ -665,8 +678,8 @@ where
                             .map(|mo_den_sym| mo_den_sym.chars().count())
                     })
                     .max()
-                    .unwrap_or(13)
-                    .max(13)
+                    .unwrap_or(12)
+                    .max(12)
             });
             let mo_density_length = mo_density_length_opt.unwrap_or(0);
             let mo_density_gap = mo_density_length_opt.map(|_| 2).unwrap_or(0);
@@ -909,7 +922,7 @@ where
                                 {}{:mo_mirror_parities_length$}  \
                                 {eig_above_str:<mo_eig_above_length$}  \
                                 {eig_below_str:<mo_eig_below_length$}  \
-                                {mo_symmetry_projections_str}  \
+                                {mo_symmetry_projections_str:<mo_sym_projections_length$}  \
                                 {mo_density_symmetries_str}",
                                 " ".repeat(mo_mirror_parities_gap),
                                 mo_mirror_parities_str,

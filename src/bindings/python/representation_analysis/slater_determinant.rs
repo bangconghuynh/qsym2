@@ -499,6 +499,8 @@ pub enum PySlaterDeterminant {
 /// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
+/// * `analyse_mo_symmetry_projections` - A boolean indicating if the symmetry projections of
+/// individual molecular orbitals are to be analysed. Python type: `bool`.
 /// * `analyse_mo_mirror_parities` - A boolean indicating if the mirror parities of individual
 /// molecular orbitals are to be printed. Python type: `bool`.
 /// * `analyse_density_symmetries` - A boolean indicating if the symmetries of densities are to be
@@ -540,6 +542,7 @@ pub enum PySlaterDeterminant {
     sao_spatial_4c=None,
     sao_spatial_4c_h=None,
     analyse_mo_symmetries=true,
+    analyse_mo_symmetry_projections=true,
     analyse_mo_mirror_parities=false,
     analyse_density_symmetries=false,
     write_overlap_eigenvalues=true,
@@ -566,6 +569,7 @@ pub fn rep_analyse_slater_determinant(
     sao_spatial_4c: Option<PyArray4RC>,
     sao_spatial_4c_h: Option<PyArray4RC>,
     analyse_mo_symmetries: bool,
+    analyse_mo_symmetry_projections: bool,
     analyse_mo_mirror_parities: bool,
     analyse_density_symmetries: bool,
     write_overlap_eigenvalues: bool,
@@ -612,6 +616,7 @@ pub fn rep_analyse_slater_determinant(
         .symmetry_transformation_kind(symmetry_transformation_kind)
         .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
         .analyse_mo_symmetries(analyse_mo_symmetries)
+        .analyse_mo_symmetry_projections(analyse_mo_symmetry_projections)
         .analyse_mo_mirror_parities(analyse_mo_mirror_parities)
         .analyse_density_symmetries(analyse_density_symmetries)
         .write_overlap_eigenvalues(write_overlap_eigenvalues)
