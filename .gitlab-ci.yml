@@ -64,7 +64,7 @@ cibuildwheel-linux:
     - archon
   image: python:3.13
   services:
-    - name: docker:dind
+    - name: docker:27.2.0-dind
       entrypoint: ["env", "-u", "DOCKER_HOST"]
       command: ["dockerd-entrypoint.sh"]
   variables:
