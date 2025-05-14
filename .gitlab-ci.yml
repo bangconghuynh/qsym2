@@ -62,9 +62,9 @@ cibuildwheel-linux:
   stage: Deploy
   tags:
     - archon
-  image: python:3.11
+  image: python:3.13
   services:
-    - name: docker:20.10.16-dind
+    - name: docker:28.1.1-dind
       entrypoint: ["env", "-u", "DOCKER_HOST"]
       command: ["dockerd-entrypoint.sh"]
   variables:
@@ -77,7 +77,7 @@ cibuildwheel-linux:
     - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
   script:
     - curl -sSL https://get.docker.com/ | sh
-    - python -m pip install cibuildwheel==2.20.0
+    - python -m pip install cibuildwheel==2.23.0
     - cibuildwheel --platform linux --output-dir wheelhouse
     - tar -czvf qsym2-$TAG-wheels.tar.gz wheelhouse/*
   artifacts:
