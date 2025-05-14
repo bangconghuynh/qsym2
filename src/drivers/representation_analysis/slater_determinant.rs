@@ -12,7 +12,9 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array4};
 use ndarray_linalg::types::Lapack;
+use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};
+use num_traits::real::Real;
 use num_traits::Float;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -555,6 +557,11 @@ where
                 })
                 .unwrap_or(10);
 
+            let precision = Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
+                self.parameters.linear_independence_threshold,
+            )))
+            .to_usize()
+            .expect("Unable to convert the linear independence threshold exponent to `usize`.");
             let mo_sym_projections_str_opt =
                 self.mo_symmetry_projections
                     .as_ref()
@@ -587,15 +594,15 @@ where
                                                                             if abs_diff_eq!(
                                                                                 composition.im,
                                                                                 0.0,
-                                                                                epsilon = 5.0e-4
+                                                                                epsilon = self.parameters.linear_independence_threshold.to_f64().expect("Unable to convert the linear independence threshold to `f64`.")
                                                                             ) {
                                                                                 format!(
-                                                                                    "{:+.3}",
+                                                                                    "{:+.precision$}",
                                                                                     composition.re
                                                                                 )
                                                                             } else {
                                                                                 format!(
-                                                                            "{composition:+.3}")
+                                                                            "{composition:+.precision$}")
                                                                             }
                                                                         })
                                                                         .unwrap_or(
