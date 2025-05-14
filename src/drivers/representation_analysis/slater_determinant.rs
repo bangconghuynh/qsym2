@@ -745,7 +745,7 @@ where
                     " ".repeat(mo_density_gap),
                     mo_density_heading
                 )?;
-            } else {
+            } else if mo_sym_projections_length > 0 {
                 writeln!(
                     f,
                     " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{}",
@@ -760,6 +760,20 @@ where
                     "Eig. below",
                     " ".repeat(mo_sym_projections_gap),
                     mo_sym_projections_heading,
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {}",
+                    "Spin",
+                    "MO",
+                    "Occ.",
+                    "Energy",
+                    "Symmetry",
+                    " ".repeat(mo_mirror_parities_gap),
+                    mo_mirror_parities_heading,
+                    "Eig. above",
+                    "Eig. below",
                 )?;
             };
             writeln!(f, "{}", "┈".repeat(table_width))?;
