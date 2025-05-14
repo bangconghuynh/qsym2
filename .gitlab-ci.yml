@@ -98,7 +98,7 @@ release_job:
     - echo "Running release job for $CI_COMMIT_TAG..."
   release:
     name: "Release $CI_COMMIT_TAG"
-    description: "Release $TAG created using glab CLI provided by GitLab."
+    description: "Release $CI_COMMIT_TAG created using glab CLI provided by GitLab."
     ref: "$CI_COMMIT_SHA"
     tag_name: "$CI_COMMIT_TAG"
   rules:
