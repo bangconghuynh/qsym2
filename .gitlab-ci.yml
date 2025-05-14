@@ -89,18 +89,18 @@ tarpaulin:
 #   rules:
 #     - if: $CI_COMMIT_TAG
 
-release:
+release_job:
   stage: Deploy
   tags:
     - archon
   image: registry.gitlab.com/gitlab-org/cli:latest
   script:
-    - echo "Running `release` job for $TAG..."
+    - echo "Running release job for $CI_COMMIT_TAG..."
   release:
-    name: "Release $TAG"
-    description: "Release $TAG created using the release-cli provided by GitLab."
+    name: "Release $CI_COMMIT_TAG"
+    description: "Release $TAG created using glab CLI provided by GitLab."
     ref: "$CI_COMMIT_SHA"
-    tag_name: "$TAG"
+    tag_name: "$CI_COMMIT_TAG"
   rules:
     - if: $CI_COMMIT_TAG
 
