@@ -539,8 +539,8 @@ where
         .iter()
         .flat_map(|syms| syms.iter().map(|sym| sym.chars().count()))
         .max()
-        .unwrap_or(9)
-        .max(9);
+        .unwrap_or(11)
+        .max(11);
 
     let j_width = (2 * lmax).to_string().chars().count() + 2;
     let mj_width = (j_width + 1).max(6);
@@ -583,7 +583,7 @@ where
                     };
 
                     let spinor_str = if i_spinor < n_spinor {
-                        let spinor_str_temp = format!("{two_mj}/2");
+                        let spinor_str_temp = format!("{two_mj:+}/2");
                         let spinor_str = format!(
                             "{spinor_str_temp:>mj_width$}  {:<}",
                             spinor_sym_strss
