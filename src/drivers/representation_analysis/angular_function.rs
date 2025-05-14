@@ -1,19 +1,20 @@
 //! Driver for symmetry analysis of angular functions.
 
-use anyhow::{self, format_err};
+use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array1, Array2};
-use num_complex::ComplexFloat;
+use num_complex::{Complex, ComplexFloat};
 use rayon::prelude::*;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::sh_conversion::sh_cart2rl_mat;
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+    SpinorOrder,
 };
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -91,7 +92,7 @@ where
         .clone()
         .into_iter()
         .next()
-        .expect("No symmetry operation found.")
+        .ok_or_else(|| format_err!("No symmetry operation found."))?
         .generating_element
         .threshold();
     let mol = Molecule::from_atoms(
@@ -116,11 +117,13 @@ where
                     &mol.atoms[0],
                     &[BasisShell::new(l, shell_order.clone())],
                 )]);
-                let n_spatial = bao.n_funcs();
-                let cs = vec![Array2::<f64>::eye(n_spatial)];
-                let occs = vec![Array1::<f64>::ones(n_spatial)];
+                let nbas = bao.n_funcs();
+                let cs = vec![Array2::<f64>::eye(nbas)];
+                let occs = vec![Array1::<f64>::ones(nbas)];
                 let sao = match shell_order {
-                    ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
+                    ShellOrder::Pure(_) | ShellOrder::Spinor(_) => {
+                        Array2::<f64>::eye(bao.n_funcs())
+                    }
                     ShellOrder::Cart(cartorder) => {
                         let cart2rl =
                             sh_cart2rl_mat(l, l, cartorder, true, &PureOrder::increasingm(l));
@@ -128,8 +131,8 @@ where
                     }
                 };
 
-                let mo_symmetries = SlaterDeterminant::<f64>::builder()
-                    .spin_constraint(SpinConstraint::Restricted(1))
+                let mo_symmetries = SlaterDeterminant::<f64, SpinConstraint>::builder()
+                    .structure_constraint(SpinConstraint::Restricted(1))
                     .bao(&bao)
                     .complex_symmetric(false)
                     .mol(&mol)
@@ -165,6 +168,7 @@ where
                 match shell_order {
                     ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
                     ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
+                    ShellOrder::Spinor(_) => todo!(),
                 }
             });
             acc
@@ -223,7 +227,10 @@ where
                 .eigenvalue_comparison_mode(EigenvalueComparisonMode::Real)
                 .build()
                 .map_err(|err| format_err!(err))?;
-            let _ = orbit_rv.calc_smat(None, None, true).unwrap().calc_xmat(false);
+            let _ = orbit_rv
+                .calc_smat(None, None, true)
+                .unwrap()
+                .calc_xmat(false);
             orbit_rv
                 .analyse_rep()
                 .map(|sym| sym.to_string())
@@ -416,6 +423,183 @@ where
             )
         );
     }
+    qsym2_output!("");
+
+    Ok(())
+}
+
+/// Determines the (co)representations of a group spanned by the spinor functions.
+///
+/// # Arguments
+///
+/// * `group` - A symmetry group.
+/// * `params` - A parameter structure controlling the determination of spinor function
+/// symmetries.
+pub(crate) fn find_spinor_function_representation<G>(
+    group: &G,
+    params: &AngularFunctionRepAnalysisParams,
+) -> Result<(), anyhow::Error>
+where
+    G: SymmetryGroupProperties + Clone + Send + Sync,
+    G::CharTab: SubspaceDecomposable<Complex<f64>>,
+    <<G as CharacterProperties>::CharTab as SubspaceDecomposable<Complex<f64>>>::Decomposition:
+        Send + Sync,
+{
+    ensure!(
+        group.is_double_group(),
+        "The specified group is not a double group."
+    );
+
+    let emap = ElementMap::new();
+    let thresh = group
+        .elements()
+        .clone()
+        .into_iter()
+        .next()
+        .ok_or_else(|| format_err!("No symmetry operation found."))?
+        .generating_element
+        .threshold();
+    let mol = Molecule::from_atoms(
+        &[Atom::new_ordinary("H", Point3::origin(), &emap, thresh)],
+        thresh,
+    );
+    let lmax = params.max_angular_momentum;
+
+    let spinor_symss = (1..2 * lmax).step_by(2).fold(
+        Vec::with_capacity(usize::try_from(lmax)?),
+        |mut acc, two_j| {
+            let shell_order = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, true));
+            let bao = BasisAngularOrder::new(&[BasisAtom::new(
+                &mol.atoms[0],
+                &[BasisShell::new(two_j, shell_order.clone())],
+            )]);
+            let nbas = bao.n_funcs();
+            let cs = vec![Array2::<Complex<f64>>::eye(nbas)];
+            let occs = vec![Array1::<f64>::ones(nbas)];
+            let sao = Array2::<Complex<f64>>::eye(bao.n_funcs());
+
+            let mo_symmetries = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+                .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+                .bao(&bao)
+                .complex_symmetric(false)
+                .mol(&mol)
+                .coefficients(&cs)
+                .occupations(&occs)
+                .threshold(params.linear_independence_threshold)
+                .build()
+                .map_err(|err| format_err!(err))
+                .and_then(|det| {
+                    let mos = det.to_orbitals();
+                    generate_det_mo_orbits(
+                        &det,
+                        &mos,
+                        group,
+                        &sao,
+                        None, // Is this right for complex spherical harmonics?
+                        params.integrality_threshold,
+                        params.linear_independence_threshold,
+                        SymmetryTransformationKind::SpinSpatial,
+                        EigenvalueComparisonMode::Modulus,
+                        true,
+                    )
+                    .map(|(_, mut mo_orbitss)| {
+                        mo_orbitss[0]
+                            .par_iter_mut()
+                            .map(|mo_orbit| {
+                                mo_orbit.calc_xmat(false)?;
+                                mo_orbit.analyse_rep().map_err(|err| format_err!(err))
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                });
+            acc.push(mo_symmetries);
+            acc
+        },
+    );
+
+    let spinor_sym_strss = spinor_symss
+        .into_iter()
+        .map(|l_spinor_syms_opt| {
+            l_spinor_syms_opt
+                .map(|l_spinor_syms| {
+                    l_spinor_syms
+                        .into_iter()
+                        .map(|sym_opt| {
+                            sym_opt
+                                .map(|sym| sym.to_string())
+                                .unwrap_or_else(|err| err.to_string())
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|err| vec![err.to_string()])
+        })
+        .collect::<Vec<_>>();
+
+    let spinor_sym_width = spinor_sym_strss
+        .iter()
+        .flat_map(|syms| syms.iter().map(|sym| sym.chars().count()))
+        .max()
+        .unwrap_or(11)
+        .max(11);
+
+    let j_width = (2 * lmax).to_string().chars().count() + 2;
+    let mj_width = (j_width + 1).max(6);
+
+    log_subtitle(&format!(
+        "Space-fixed spinor function symmetries in {}",
+        group.finite_subgroup_name().unwrap_or(&group.name())
+    ));
+    qsym2_output!("");
+    qsym2_output!("{}", "┈".repeat(j_width + mj_width + spinor_sym_width + 6));
+    qsym2_output!(
+        " {:>j_width$}  {:>mj_width$}  {:<}",
+        "j",
+        "Spinor",
+        "Spinor sym.",
+    );
+    qsym2_output!("{}", "┈".repeat(j_width + mj_width + spinor_sym_width + 6));
+
+    let empty_str = String::new();
+    (1..usize::try_from(2 * lmax)?)
+        .step_by(2)
+        .enumerate()
+        .for_each(|(i_two_j, two_j)| {
+            if two_j > 1 {
+                qsym2_output!("");
+            }
+            let n_spinor = two_j + 1;
+
+            let two_j_u32 = u32::try_from(two_j).unwrap_or_else(|err| panic!("{err}"));
+            let spinororder = SpinorOrder::increasingm(two_j_u32, true);
+            spinororder
+                .iter()
+                .enumerate()
+                .for_each(|(i_spinor, two_mj)| {
+                    let j_str = if i_spinor == 0 {
+                        let j_str_temp = format!("{two_j}/2");
+                        format!("{j_str_temp:>j_width$}")
+                    } else {
+                        " ".repeat(j_width)
+                    };
+
+                    let spinor_str = if i_spinor < n_spinor {
+                        let spinor_str_temp = format!("{two_mj:+}/2");
+                        let spinor_str = format!(
+                            "{spinor_str_temp:>mj_width$}  {:<}",
+                            spinor_sym_strss
+                                .get(i_two_j)
+                                .and_then(|l_spinor_sym_strs| l_spinor_sym_strs.get(i_spinor))
+                                .unwrap_or(&empty_str)
+                        );
+                        spinor_str
+                    } else {
+                        " ".repeat(mj_width + spinor_sym_width + 2)
+                    };
+
+                    qsym2_output!(" {j_str}  {spinor_str}");
+                });
+        });
+    qsym2_output!("{}", "┈".repeat(j_width + mj_width + spinor_sym_width + 6));
     qsym2_output!("");
 
     Ok(())

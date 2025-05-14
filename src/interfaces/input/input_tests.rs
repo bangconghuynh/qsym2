@@ -34,7 +34,7 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
         assert!(false);
     }
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         let inp_rep_params = &sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-8);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
@@ -67,7 +67,7 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
         assert!(false);
     }
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         let inp_rep_params = &sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
@@ -99,7 +99,7 @@ fn test_interfaces_input_bao() {
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         if let SlaterDeterminantSource::Binaries(binaries_source) = &sd_control.source {
             let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 41);
@@ -110,7 +110,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Cart (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
+                "Cart (u) (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -119,7 +119,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Cart (xx, xy, yy, xz, yz, zz)"
+                "Cart (g) (xx, xy, yy, xz, yz, zz)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -128,7 +128,7 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Cart (xx, xy, xz, yy, yz, zz)"
+                "Cart (g) (xx, xy, xz, yy, yz, zz)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -137,7 +137,69 @@ fn test_interfaces_input_bao() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Pure (0, 1, -1, 2, -2, 3, -3)"
+                "Pure (u) (0, 1, -1, 2, -2, 3, -3)"
+            );
+        } else {
+            assert!(false);
+        }
+    } else {
+        assert!(false);
+    };
+}
+
+#[test]
+fn test_interfaces_input_bao_spinor() {
+    use super::analysis::SlaterDeterminantSource;
+    use crate::auxiliary::molecule::Molecule;
+
+    let name = format!("{ROOT}/tests/input/test_input_bao_spinor.yml");
+    let xyz = format!("{ROOT}/tests/xyz/water.xyz");
+    let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
+    let mol = Molecule::from_xyz(&xyz, 1e-7);
+
+    if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
+        if let SlaterDeterminantSource::Binaries(binaries_source) = &sd_control.source {
+            let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
+            assert_eq!(bao.n_funcs(), 16);
+            assert_eq!(
+                bao.basis_shells().next().unwrap().shell_order.to_string(),
+                "Spinor (g) (-1/2, 1/2)"
+            );
+            assert_eq!(
+                bao.basis_shells()
+                    .skip(1)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
+                "Spinor (u) (3/2, 1/2, -1/2, -3/2)"
+            );
+            assert_eq!(
+                bao.basis_shells()
+                    .skip(2)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
+                "Spinor (g) (1/2, -1/2, 3/2, -3/2, 5/2, -5/2)"
+            );
+            assert_eq!(
+                bao.basis_shells()
+                    .skip(3)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
+                "Spinor (u) (-1/2, 1/2)"
+            );
+            assert_eq!(
+                bao.basis_shells()
+                    .skip(4)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
+                "Spinor (u) (-1/2, 1/2)"
             );
         } else {
             assert!(false);

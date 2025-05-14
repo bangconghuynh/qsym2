@@ -1,16 +1,20 @@
 //! Driver for symmetry analysis of Slater determinants.
 
+use std::collections::HashMap;
 use std::fmt;
 use std::ops::Mul;
 
 use anyhow::{self, bail, format_err};
+use approx::abs_diff_eq;
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array4};
 use ndarray_linalg::types::Lapack;
+use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};
+use num_traits::real::Real;
 use num_traits::Float;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -19,11 +23,13 @@ use crate::analysis::{
     log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
     RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
-use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_symbols::ReducibleLinearSpaceSymbol;
+use crate::chartab::{CharacterTable, SubspaceDecomposable};
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, AngularFunctionRepAnalysisParams,
+    find_angular_function_representation, find_spinor_function_representation,
+    AngularFunctionRepAnalysisParams,
 };
 use crate::drivers::representation_analysis::{
     fn_construct_magnetic_group, fn_construct_unitary_group, log_bao, log_cc_transversal,
@@ -42,11 +48,10 @@ use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
 use crate::symmetry::symmetry_symbols::{
-    deduce_mirror_parities, MirrorParity, SymmetryClassSymbol,
+    deduce_mirror_parities, MirrorParity, MullikenIrcorepSymbol, SymmetryClassSymbol,
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::density::density_analysis::DensitySymmetryOrbit;
-use crate::target::density::Density;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
@@ -90,6 +95,11 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[builder(default = "false")]
     #[serde(default)]
     pub analyse_mo_mirror_parities: bool,
+
+    /// Boolean indicating if symmetry projection should be performed for molecular orbitals.
+    #[builder(default = "false")]
+    #[serde(default)]
+    pub analyse_mo_symmetry_projections: bool,
 
     /// Boolean indicating if density symmetries are to be analysed alongside wavefunction symmetries
     /// for this determinant.
@@ -196,6 +206,16 @@ where
         )?;
         writeln!(
             f,
+            "Analyse molecular orbital symmetry projection: {}",
+            nice_bool(self.analyse_mo_symmetry_projections)
+        )?;
+        writeln!(
+            f,
+            "Analyse molecular orbital mirror parity: {}",
+            nice_bool(self.analyse_mo_mirror_parities)
+        )?;
+        writeln!(
+            f,
             "Analyse density symmetry: {}",
             nice_bool(self.analyse_density_symmetries)
         )?;
@@ -250,11 +270,12 @@ where
 
 /// Structure to contain Slater determinant representation analysis results.
 #[derive(Clone, Builder)]
-pub struct SlaterDeterminantRepAnalysisResult<'a, G, T>
+pub struct SlaterDeterminantRepAnalysisResult<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters used to obtain this set of Slater determinant representation
@@ -262,7 +283,7 @@ where
     parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant being analysed.
-    determinant: &'a SlaterDeterminant<'a, T>,
+    determinant: &'a SlaterDeterminant<'a, T, SC>,
 
     /// The group used for the representation analysis.
     group: G,
@@ -272,6 +293,20 @@ where
 
     /// The deduced symmetries of the molecular orbitals constituting the determinant, if required.
     mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
+
+    /// The deduced symmetry projections of the molecular orbitals constituting the determinant, if required.
+    mo_symmetry_projections: Option<
+        Vec<
+            Vec<
+                Option<
+                    Vec<(
+                        <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+                        Complex<f64>,
+                    )>,
+                >,
+            >,
+        >,
+    >,
 
     /// The deduced mirror parities of the molecular orbitals constituting the determinant, if required.
     mo_mirror_parities:
@@ -297,19 +332,29 @@ where
         Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 }
 
-impl<'a, G, T> SlaterDeterminantRepAnalysisResult<'a, G, T>
+impl<'a, G, T, SC> SlaterDeterminantRepAnalysisResult<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a new [`SlaterDeterminantRepAnalysisResultBuilder`]
     /// structure.
-    fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T> {
+    fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T, SC> {
         SlaterDeterminantRepAnalysisResultBuilder::default()
     }
+}
 
+impl<'a, G, T, SC> SlaterDeterminantRepAnalysisResult<'a, G, T, SC>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+{
     /// Returns the group used for the representation analysis.
     pub fn group(&self) -> &G {
         &self.group
@@ -327,6 +372,24 @@ where
         &self,
     ) -> &Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>> {
         &self.mo_symmetries
+    }
+
+    /// Returns the deduced symmetry projections of the molecular orbitals constituting the determinant, if required.
+    pub fn mo_symmetry_projections(
+        &self,
+    ) -> &Option<
+        Vec<
+            Vec<
+                Option<
+                    Vec<(
+                        <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+                        Complex<f64>,
+                    )>,
+                >,
+            >,
+        >,
+    > {
+        &self.mo_symmetry_projections
     }
 
     /// Returns the deduced symmetries of the various densities constructible from the determinant,
@@ -352,11 +415,12 @@ where
     }
 }
 
-impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisResult<'a, G, T>
+impl<'a, G, T, SC> fmt::Display for SlaterDeterminantRepAnalysisResult<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -493,6 +557,94 @@ where
                 })
                 .unwrap_or(10);
 
+            let precision = Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
+                self.parameters.linear_independence_threshold,
+            )))
+            .to_usize()
+            .expect("Unable to convert the linear independence threshold exponent to `usize`.");
+            let mo_sym_projections_str_opt =
+                self.mo_symmetry_projections
+                    .as_ref()
+                    .map(|mo_sym_projectionss| {
+                        mo_sym_projectionss
+                            .iter()
+                            .enumerate()
+                            .map(|(ispin, mo_sym_projections)| {
+                                mo_sym_projections
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(imo, mo_sym_projection)| {
+                                        mo_sym_projection
+                                            .as_ref()
+                                            .map(|sym_proj| {
+                                                if let Some(mo_symmetriess) = self.mo_symmetries() {
+                                                    if let Some(sym) = &mo_symmetriess[ispin][imo] {
+                                                        let sym_proj_hashmap = sym_proj
+                                                            .iter()
+                                                            .cloned()
+                                                            .collect::<HashMap<_, _>>();
+                                                        sym.subspaces()
+                                                            .iter()
+                                                            .map(|(subspace, _)| {
+                                                                format!(
+                                                                    "{subspace}: {}",
+                                                                    sym_proj_hashmap
+                                                                        .get(subspace)
+                                                                        .map(|composition| {
+                                                                            if abs_diff_eq!(
+                                                                                composition.im,
+                                                                                0.0,
+                                                                                epsilon = self.parameters.linear_independence_threshold.to_f64().expect("Unable to convert the linear independence threshold to `f64`.")
+                                                                            ) {
+                                                                                format!(
+                                                                                    "{:+.precision$}",
+                                                                                    composition.re
+                                                                                )
+                                                                            } else {
+                                                                                format!(
+                                                                            "{composition:+.precision$}")
+                                                                            }
+                                                                        })
+                                                                        .unwrap_or(
+                                                                            "--".to_string()
+                                                                        )
+                                                                )
+                                                            })
+                                                            .join(", ")
+                                                    } else {
+                                                        "--".to_string()
+                                                    }
+                                                } else {
+                                                    "--".to_string()
+                                                }
+                                            })
+                                            .unwrap_or("--".to_string())
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                            .collect::<Vec<_>>()
+                    });
+            let mo_sym_projections_length_opt =
+                mo_sym_projections_str_opt
+                    .as_ref()
+                    .map(|mo_sym_projectionss| {
+                        mo_sym_projectionss
+                            .iter()
+                            .flat_map(|mo_sym_projections| {
+                                mo_sym_projections
+                                    .iter()
+                                    .map(|mo_sym_projection| mo_sym_projection.chars().count())
+                            })
+                            .max()
+                            .unwrap_or(18)
+                            .max(18)
+                    });
+            let mo_sym_projections_length = mo_sym_projections_length_opt.unwrap_or(0);
+            let mo_sym_projections_gap = mo_sym_projections_length_opt.map(|_| 2).unwrap_or(0);
+            let mo_sym_projections_heading = mo_sym_projections_length_opt
+                .map(|_| "MO sym. projection")
+                .unwrap_or("");
+
             let mirrors = self
                 .group
                 .filter_cc_symbols(|cc| cc.is_spatial_reflection());
@@ -533,8 +685,8 @@ where
                             .map(|mo_den_sym| mo_den_sym.chars().count())
                     })
                     .max()
-                    .unwrap_or(13)
-                    .max(13)
+                    .unwrap_or(12)
+                    .max(12)
             });
             let mo_density_length = mo_density_length_opt.unwrap_or(0);
             let mo_density_gap = mo_density_length_opt.map(|_| 2).unwrap_or(0);
@@ -550,15 +702,17 @@ where
                 + mo_mirror_parities_length
                 + mo_eig_above_length
                 + mo_eig_below_length
+                + mo_sym_projections_gap
+                + mo_sym_projections_length
                 + mo_density_gap
                 + mo_density_length;
 
             writeln!(f, "> Molecular orbital results")?;
             writeln!(
                 f,
-                "  Spin constraint: {}",
+                "  Structure constraint: {}",
                 self.determinant
-                    .spin_constraint()
+                    .structure_constraint()
                     .to_string()
                     .to_lowercase()
             )?;
@@ -573,21 +727,55 @@ where
                 )?;
             }
             writeln!(f, "{}", "┈".repeat(table_width))?;
-            writeln!(
-                f,
-                " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{}",
-                "Spin",
-                "MO",
-                "Occ.",
-                "Energy",
-                "Symmetry",
-                " ".repeat(mo_mirror_parities_gap),
-                mo_mirror_parities_heading,
-                "Eig. above",
-                "Eig. below",
-                " ".repeat(mo_density_gap),
-                mo_density_heading
-            )?;
+            if mo_density_length > 0 {
+                writeln!(
+                    f,
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{:mo_sym_projections_length$}{}{}",
+                    "Spin",
+                    "MO",
+                    "Occ.",
+                    "Energy",
+                    "Symmetry",
+                    " ".repeat(mo_mirror_parities_gap),
+                    mo_mirror_parities_heading,
+                    "Eig. above",
+                    "Eig. below",
+                    " ".repeat(mo_sym_projections_gap),
+                    mo_sym_projections_heading,
+                    " ".repeat(mo_density_gap),
+                    mo_density_heading
+                )?;
+            } else if mo_sym_projections_length > 0 {
+                writeln!(
+                    f,
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{}",
+                    "Spin",
+                    "MO",
+                    "Occ.",
+                    "Energy",
+                    "Symmetry",
+                    " ".repeat(mo_mirror_parities_gap),
+                    mo_mirror_parities_heading,
+                    "Eig. above",
+                    "Eig. below",
+                    " ".repeat(mo_sym_projections_gap),
+                    mo_sym_projections_heading,
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {}",
+                    "Spin",
+                    "MO",
+                    "Occ.",
+                    "Energy",
+                    "Symmetry",
+                    " ".repeat(mo_mirror_parities_gap),
+                    mo_mirror_parities_heading,
+                    "Eig. above",
+                    "Eig. below",
+                )?;
+            };
             writeln!(f, "{}", "┈".repeat(table_width))?;
 
             let empty_string = String::new();
@@ -676,6 +864,17 @@ where
                         })
                         .unwrap_or(("--".to_string(), "--".to_string()));
 
+                    let mo_symmetry_projections_str = mo_sym_projections_str_opt
+                        .as_ref()
+                        .and_then(|mo_symmetry_projectionss| {
+                            mo_symmetry_projectionss.get(spini).and_then(
+                                |spin_mo_symmetry_projections| {
+                                    spin_mo_symmetry_projections.get(moi)
+                                },
+                            )
+                        })
+                        .unwrap_or(&empty_string);
+
                     let mo_density_symmetries_str = mo_den_symss_str_opt
                         .as_ref()
                         .and_then(|mo_density_symmetriess| {
@@ -685,35 +884,71 @@ where
                         })
                         .unwrap_or(&empty_string);
 
-                    if mo_density_length == 0 {
-                        writeln!(
-                            f,
-                            " {spini:>mo_spin_index_length$}  \
-                            {moi:>mo_index_length$}  \
-                            {occ_str:<mo_occ_length$}  \
-                            {mo_energy_str:<mo_energy_length$}  \
-                            {mo_sym_str:<mo_symmetry_length$}\
-                            {}{:mo_mirror_parities_length$}  \
-                            {eig_above_str:<mo_eig_above_length$}  \
-                            {eig_below_str}",
-                            " ".repeat(mo_mirror_parities_gap),
-                            mo_mirror_parities_str,
-                        )?;
-                    } else {
-                        writeln!(
-                            f,
-                            " {spini:>mo_spin_index_length$}  \
-                            {moi:>mo_index_length$}  \
-                            {occ_str:<mo_occ_length$}  \
-                            {mo_energy_str:<mo_energy_length$}  \
-                            {mo_sym_str:<mo_symmetry_length$}\
-                            {}{:mo_mirror_parities_length$}  \
-                            {eig_above_str:<mo_eig_above_length$}  \
-                            {eig_below_str:<mo_eig_below_length$}  \
-                            {mo_density_symmetries_str}",
-                            " ".repeat(mo_mirror_parities_gap),
-                            mo_mirror_parities_str,
-                        )?;
+                    match (mo_density_length, mo_sym_projections_length) {
+                        (0, 0) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
+                        (_, 0) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str:<mo_eig_below_length$}  \
+                                {mo_density_symmetries_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
+                        (0, _) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str:<mo_eig_below_length$}  \
+                                {mo_symmetry_projections_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
+                        (_, _) => {
+                            writeln!(
+                                f,
+                                " {spini:>mo_spin_index_length$}  \
+                                {moi:>mo_index_length$}  \
+                                {occ_str:<mo_occ_length$}  \
+                                {mo_energy_str:<mo_energy_length$}  \
+                                {mo_sym_str:<mo_symmetry_length$}\
+                                {}{:mo_mirror_parities_length$}  \
+                                {eig_above_str:<mo_eig_above_length$}  \
+                                {eig_below_str:<mo_eig_below_length$}  \
+                                {mo_symmetry_projections_str:<mo_sym_projections_length$}  \
+                                {mo_density_symmetries_str}",
+                                " ".repeat(mo_mirror_parities_gap),
+                                mo_mirror_parities_str,
+                            )?;
+                        }
                     }
                 }
             }
@@ -726,11 +961,12 @@ where
     }
 }
 
-impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisResult<'a, G, T>
+impl<'a, G, T, SC> fmt::Debug for SlaterDeterminantRepAnalysisResult<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -749,32 +985,38 @@ where
 /// Driver structure for performing representation analysis on Slater determinants.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T>
+pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters for Slater determinant representation analysis.
     parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant to be analysed.
-    determinant: &'a SlaterDeterminant<'a, T>,
+    determinant: &'a SlaterDeterminant<'a, T, SC>,
 
     /// The result from symmetry-group detection on the underlying molecular structure of the
     /// Slater determinant.
     symmetry_group: &'a SymmetryGroupDetectionResult,
 
-    /// The atomic-orbital spatial overlap matrix of the underlying basis set used to describe the
-    /// determinant.
-    sao_spatial: &'a Array2<T>,
+    /// The atomic-orbital overlap matrix of the underlying basis set used to describe the
+    /// determinant. This is either for a single component corresponding to the basis functions
+    /// specified by the basis angular order structure in [`Self::determinant`], or for *all*
+    /// explicit components specified by the coefficients in [`Self::determinant`].
+    sao: &'a Array2<T>,
 
-    /// The complex-symmetric atomic-orbital spatial overlap matrix of the underlying basis set used
-    /// to describe the determinant. This is required if antiunitary symmetry operations are
-    /// involved. If none is provided, this will be assumed to be the same as [`Self::sao_spatial`].
+    /// The complex-symmetric atomic-orbital overlap matrix of the underlying basis set used to
+    /// describe the determinant. This is either for a single component corresponding to the basis
+    /// functions specified by the basis angular order structure in [`Self::determinant`], or for
+    /// *all* explicit components specified by the coefficients in [`Self::determinant`]. This is
+    /// required if antiunitary symmetry operations are involved. If none is provided, this will be
+    /// assumed to be the same as [`Self::sao`].
     #[builder(default = "None")]
-    sao_spatial_h: Option<&'a Array2<T>>,
+    sao_h: Option<&'a Array2<T>>,
 
     /// The atomic-orbital four-centre spatial overlap matrix of the underlying basis set used to
     /// describe the determinant. This is only required for density symmetry analysis.
@@ -793,14 +1035,15 @@ where
 
     /// The result of the Slater determinant representation analysis.
     #[builder(setter(skip), default = "None")]
-    result: Option<SlaterDeterminantRepAnalysisResult<'a, G, T>>,
+    result: Option<SlaterDeterminantRepAnalysisResult<'a, G, T, SC>>,
 }
 
-impl<'a, G, T> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T>
+impl<'a, G, T, SC> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn validate(&self) -> Result<(), String> {
@@ -812,15 +1055,11 @@ where
             .symmetry_group
             .ok_or("No symmetry group information found.".to_string())?;
 
-        let sao_spatial = self
-            .sao_spatial
-            .ok_or("No spatial SAO matrix found.".to_string())?;
+        let sao = self.sao.ok_or("No SAO matrix found.".to_string())?;
 
-        if let Some(sao_spatial_h) = self.sao_spatial_h.flatten() {
-            if sao_spatial_h.shape() != sao_spatial.shape() {
-                return Err(
-                    "Mismatched shapes between `sao_spatial` and `sao_spatial_h`.".to_string(),
-                );
+        if let Some(sao_h) = self.sao_h.flatten() {
+            if sao_h.shape() != sao.shape() {
+                return Err("Mismatched shapes between `sao` and `sao_h`.".to_string());
             }
         }
 
@@ -863,10 +1102,19 @@ where
                     sym.group_name.as_ref().expect("No symmetry group name found.")
                 )
             )
-        } else if det.bao().n_funcs() != sao_spatial.nrows()
-            || det.bao().n_funcs() != sao_spatial.ncols()
+        } else if (det.bao().n_funcs() != sao.nrows() || det.bao().n_funcs() != sao.ncols())
+            && (det.bao().n_funcs()
+                * det
+                    .structure_constraint()
+                    .n_explicit_comps_per_coefficient_matrix()
+                != sao.nrows()
+                || det.bao().n_funcs()
+                    * det
+                        .structure_constraint()
+                        .n_explicit_comps_per_coefficient_matrix()
+                    != sao.ncols())
         {
-            Err("The dimensions of the spatial SAO matrix do not match the number of spatial AO basis functions.".to_string())
+            Err("The dimensions of the SAO matrix do not match either the number of spatial AO basis functions or the number of spatial AO basis functions multiplied by the number of explicit components per coefficient matrix.".to_string())
         } else {
             Ok(())
         }
@@ -877,76 +1125,73 @@ where
 // Struct implementations
 // ~~~~~~~~~~~~~~~~~~~~~~
 
-// Generic for all symmetry groups G and determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Generic for all symmetry groups G, determinant numeric type T, and structure constraint SC
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T> SlaterDeterminantRepAnalysisDriver<'a, G, T>
+impl<'a, G, T, SC> SlaterDeterminantRepAnalysisDriver<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisDriver`] structure.
-    pub fn builder() -> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T> {
+    pub fn builder() -> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T, SC> {
         SlaterDeterminantRepAnalysisDriverBuilder::default()
     }
 
-    /// Constructs the appropriate atomic-orbital overlap matrix based on the spin constraint of
-    /// the determinant.
+    /// Constructs the appropriate atomic-orbital overlap matrix based on the structure constraint
+    /// of the determinant and the specified overlap matrix.
     fn construct_sao(&self) -> Result<(Array2<T>, Option<Array2<T>>), anyhow::Error> {
-        let sao = match self.determinant.spin_constraint() {
-            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                self.sao_spatial.clone()
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                let nspins_usize = usize::from(*nspins);
-                let nspatial = self.sao_spatial.nrows();
-                let mut sao_g = Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
-                (0..nspins_usize).for_each(|ispin| {
-                    let start = ispin * nspatial;
-                    let end = (ispin + 1) * nspatial;
-                    sao_g
+        let nbas = self.determinant.bao().n_funcs();
+        let ncomps = self
+            .determinant
+            .structure_constraint()
+            .n_explicit_comps_per_coefficient_matrix();
+        let provided_dim = self.sao.nrows();
+
+        if provided_dim == nbas {
+            let sao = {
+                let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                (0..ncomps).for_each(|icomp| {
+                    let start = icomp * nbas;
+                    let end = (icomp + 1) * nbas;
+                    sao_mut
                         .slice_mut(s![start..end, start..end])
-                        .assign(self.sao_spatial);
+                        .assign(self.sao);
                 });
-                sao_g
-            }
-        };
+                sao_mut
+            };
 
-        let sao_h =
-            self.sao_spatial_h
-                .map(|sao_spatial_h| match self.determinant.spin_constraint() {
-                    SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                        sao_spatial_h.clone()
-                    }
-                    SpinConstraint::Generalised(nspins, _) => {
-                        let nspins_usize = usize::from(*nspins);
-                        let nspatial = sao_spatial_h.nrows();
-                        let mut sao_g =
-                            Array2::zeros((nspins_usize * nspatial, nspins_usize * nspatial));
-                        (0..nspins_usize).for_each(|ispin| {
-                            let start = ispin * nspatial;
-                            let end = (ispin + 1) * nspatial;
-                            sao_g
-                                .slice_mut(s![start..end, start..end])
-                                .assign(sao_spatial_h);
-                        });
-                        sao_g
-                    }
+            let sao_h = self.sao_h.map(|sao_h| {
+                let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                (0..ncomps).for_each(|icomp| {
+                    let start = icomp * nbas;
+                    let end = (icomp + 1) * nbas;
+                    sao_h_mut
+                        .slice_mut(s![start..end, start..end])
+                        .assign(sao_h);
                 });
+                sao_h_mut
+            });
 
-        Ok((sao, sao_h))
+            Ok((sao, sao_h))
+        } else {
+            assert_eq!(provided_dim, nbas * ncomps);
+            Ok((self.sao.clone(), self.sao_h.cloned()))
+        }
     }
 }
 
-// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T and structure constraint SC
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
+impl<'a, T, SC> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T, SC>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
+    SC: StructureConstraint + fmt::Display,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     fn_construct_unitary_group!(
@@ -956,13 +1201,14 @@ where
     );
 }
 
-// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T and structure constraint SC
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
+impl<'a, T, SC> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T, SC>
 where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
+    SC: StructureConstraint + fmt::Display,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     fn_construct_magnetic_group!(
@@ -977,10 +1223,16 @@ where
 
 #[duplicate_item(
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         [
             gtype_ [ UnitaryRepresentedSymmetryGroup ]
             dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
             doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
             analyse_fn_ [ analyse_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
@@ -998,21 +1250,39 @@ where
                     .log_output_display();
                 qsym2_output!("");
             ]
+            calc_mo_projections_ [
+                let mo_projectionss = mo_orbitss.iter().map(|mo_orbits| {
+                    mo_orbits
+                        .iter()
+                        .map(|mo_orbit| mo_orbit.calc_projection_compositions().ok())
+                        .collect::<Vec<_>>()
+                }).collect::<Vec<_>>();
+                Some(mo_projectionss)
+            ]
         ]
     }
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         [
             gtype_ [ MagneticRepresentedSymmetryGroup ]
             dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
             doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
             analyse_fn_ [ analyse_corepresentation ]
             construct_group_ [ self.construct_magnetic_group()? ]
             calc_projections_ [ ]
+            calc_mo_projections_ [
+                None::<Vec<Vec<Option<Vec<(MullikenIrcorepSymbol, Complex<f64>)>>>>>
+            ]
         ]
     }
 )]
-impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
     #[doc = doc_sub_]
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
@@ -1020,12 +1290,19 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
         let group = construct_group_;
         log_cc_transversal(&group);
         let _ = find_angular_function_representation(&group, self.angular_function_parameters);
+        if group.is_double_group() {
+            let _ = find_spinor_function_representation(&group, self.angular_function_parameters);
+        }
         log_bao(self.determinant.bao());
 
         // Determinant and orbital symmetries
-        let (det_symmetry, mo_symmetries, mo_mirror_parities, mo_symmetries_thresholds) = if params
-            .analyse_mo_symmetries
-        {
+        let (
+            det_symmetry,
+            mo_symmetries,
+            mo_symmetry_projections,
+            mo_mirror_parities,
+            mo_symmetries_thresholds,
+        ) = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
                 self.determinant,
@@ -1071,7 +1348,13 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 })
                 .collect::<Vec<_>>();
 
-            let mo_mirror_parities = if params.analyse_mo_mirror_parities {
+            let mo_symmetry_projections_opt = if params.analyse_mo_symmetry_projections {
+                calc_mo_projections_
+            } else {
+                None
+            };
+
+            let mo_mirror_parities_opt = if params.analyse_mo_mirror_parities {
                 Some(
                     mo_symmetries
                         .iter()
@@ -1157,9 +1440,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
             (
                 det_symmetry,
                 Some(mo_symmetries),
-                mo_mirror_parities,
+                mo_symmetry_projections_opt,
+                mo_mirror_parities_opt,
                 Some(mo_symmetries_thresholds),
-            )
+            ) // det_symmetry, mo_symmetries, mo_symmetry_projections, mo_mirror_parities, mo_symmetries_thresholds
         } else {
             let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
                 .group(&group)
@@ -1193,7 +1477,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 calc_projections_
             }
 
-            (det_symmetry, None, None, None)
+            (det_symmetry, None, None, None, None) // det_symmetry, mo_symmetries, mo_symmetry_projections, mo_mirror_parities, mo_symmetries_thresholds
         };
 
         // Density and orbital density symmetries
@@ -1232,26 +1516,15 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                         )
                     })
                     .collect::<Vec<_>>();
-                let mut extra_den_syms = match self.determinant.spin_constraint() {
-                    SpinConstraint::Restricted(_) => {
-                        vec![("Total density".to_string(), spin_den_syms[0].1.clone())]
-                    }
-                    SpinConstraint::Unrestricted(nspins, _)
-                    | SpinConstraint::Generalised(nspins, _) => {
-                        let total_den_sym_res = || {
-                            let nspatial = self.determinant.bao().n_funcs();
-                            let zero_den = Density::<dtype_>::builder()
-                                .density_matrix(Array2::<dtype_>::zeros((nspatial, nspatial)))
-                                .bao(self.determinant.bao())
-                                .mol(self.determinant.mol())
-                                .complex_symmetric(self.determinant.complex_symmetric())
-                                .threshold(self.determinant.threshold())
-                                .build()?;
-                            let total_den =
-                                densities.iter().fold(zero_den, |acc, denmat| acc + denmat);
-                            let mut total_den_orbit = DensitySymmetryOrbit::builder()
+                let mut extra_den_syms = densities
+                    .calc_extra_densities()
+                    .expect("Unable to calculate extra densities.")
+                    .iter()
+                    .map(|(label, den)| {
+                        let den_sym_res = || {
+                            let mut den_orbit = DensitySymmetryOrbit::builder()
                                 .group(&group)
-                                .origin(&total_den)
+                                .origin(den)
                                 .integrality_threshold(params.integrality_threshold)
                                 .linear_independence_threshold(params.linear_independence_threshold)
                                 .symmetry_transformation_kind(
@@ -1261,59 +1534,100 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     params.eigenvalue_comparison_mode.clone(),
                                 )
                                 .build()?;
-                            total_den_orbit
+                            den_orbit
                                 .calc_smat(
                                     self.sao_spatial_4c,
                                     self.sao_spatial_4c_h,
                                     params.use_cayley_table,
                                 )?
                                 .calc_xmat(false)?;
-                            total_den_orbit
-                                .analyse_rep()
-                                .map_err(|err| format_err!(err))
+                            den_orbit.analyse_rep().map_err(|err| format_err!(err))
                         };
-                        let mut extra_syms = vec![(
-                            "Total density".to_string(),
-                            total_den_sym_res().map_err(|err| err.to_string()),
-                        )];
-                        extra_syms.extend((0..usize::from(*nspins)).combinations(2).map(
-                            |indices| {
-                                let i = indices[0];
-                                let j = indices[1];
-                                let den_ij = &densities[i] - &densities[j];
-                                let den_ij_sym_res = || {
-                                    let mut den_ij_orbit = DensitySymmetryOrbit::builder()
-                                        .group(&group)
-                                        .origin(&den_ij)
-                                        .integrality_threshold(params.integrality_threshold)
-                                        .linear_independence_threshold(
-                                            params.linear_independence_threshold,
-                                        )
-                                        .symmetry_transformation_kind(
-                                            params.symmetry_transformation_kind.clone(),
-                                        )
-                                        .eigenvalue_comparison_mode(
-                                            params.eigenvalue_comparison_mode.clone(),
-                                        )
-                                        .build()?;
-                                    den_ij_orbit
-                                        .calc_smat(
-                                            self.sao_spatial_4c,
-                                            self.sao_spatial_4c_h,
-                                            params.use_cayley_table,
-                                        )?
-                                        .calc_xmat(false)?;
-                                    den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
-                                };
-                                (
-                                    format!("Spin-polarised density {i} - {j}"),
-                                    den_ij_sym_res().map_err(|err| err.to_string()),
-                                )
-                            },
-                        ));
-                        extra_syms
-                    }
-                };
+                        (label.clone(), den_sym_res().map_err(|err| err.to_string()))
+                    })
+                    .collect_vec();
+                // let mut extra_den_syms = match self.determinant.structure_constraint() {
+                //     SpinConstraint::Restricted(_) => {
+                //         vec![("Total density".to_string(), spin_den_syms[0].1.clone())]
+                //     }
+                //     SpinConstraint::Unrestricted(nspins, _)
+                //     | SpinConstraint::Generalised(nspins, _) => {
+                //         let total_den_sym_res = || {
+                //             let nspatial = self.determinant.bao().n_funcs();
+                //             let zero_den = Density::<dtype_>::builder()
+                //                 .density_matrix(Array2::<dtype_>::zeros((nspatial, nspatial)))
+                //                 .bao(self.determinant.bao())
+                //                 .mol(self.determinant.mol())
+                //                 .complex_symmetric(self.determinant.complex_symmetric())
+                //                 .threshold(self.determinant.threshold())
+                //                 .build()?;
+                //             let total_den =
+                //                 densities.iter().fold(zero_den, |acc, denmat| acc + denmat);
+                //             let mut total_den_orbit = DensitySymmetryOrbit::builder()
+                //                 .group(&group)
+                //                 .origin(&total_den)
+                //                 .integrality_threshold(params.integrality_threshold)
+                //                 .linear_independence_threshold(params.linear_independence_threshold)
+                //                 .symmetry_transformation_kind(
+                //                     params.symmetry_transformation_kind.clone(),
+                //                 )
+                //                 .eigenvalue_comparison_mode(
+                //                     params.eigenvalue_comparison_mode.clone(),
+                //                 )
+                //                 .build()?;
+                //             total_den_orbit
+                //                 .calc_smat(
+                //                     self.sao_spatial_4c,
+                //                     self.sao_spatial_4c_h,
+                //                     params.use_cayley_table,
+                //                 )?
+                //                 .calc_xmat(false)?;
+                //             total_den_orbit
+                //                 .analyse_rep()
+                //                 .map_err(|err| format_err!(err))
+                //         };
+                //         let mut extra_syms = vec![(
+                //             "Total density".to_string(),
+                //             total_den_sym_res().map_err(|err| err.to_string()),
+                //         )];
+                //         extra_syms.extend((0..usize::from(*nspins)).combinations(2).map(
+                //             |indices| {
+                //                 let i = indices[0];
+                //                 let j = indices[1];
+                //                 let den_ij = &densities[i] - &densities[j];
+                //                 let den_ij_sym_res = || {
+                //                     let mut den_ij_orbit = DensitySymmetryOrbit::builder()
+                //                         .group(&group)
+                //                         .origin(&den_ij)
+                //                         .integrality_threshold(params.integrality_threshold)
+                //                         .linear_independence_threshold(
+                //                             params.linear_independence_threshold,
+                //                         )
+                //                         .symmetry_transformation_kind(
+                //                             params.symmetry_transformation_kind.clone(),
+                //                         )
+                //                         .eigenvalue_comparison_mode(
+                //                             params.eigenvalue_comparison_mode.clone(),
+                //                         )
+                //                         .build()?;
+                //                     den_ij_orbit
+                //                         .calc_smat(
+                //                             self.sao_spatial_4c,
+                //                             self.sao_spatial_4c_h,
+                //                             params.use_cayley_table,
+                //                         )?
+                //                         .calc_xmat(false)?;
+                //                     den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
+                //                 };
+                //                 (
+                //                     format!("Spin-polarised density {i} - {j}"),
+                //                     den_ij_sym_res().map_err(|err| err.to_string()),
+                //                 )
+                //             },
+                //         ));
+                //         extra_syms
+                //     }
+                // };
                 spin_den_syms.append(&mut extra_den_syms);
                 spin_den_syms
             });
@@ -1379,6 +1693,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
             .determinant_symmetry(det_symmetry)
             .determinant_density_symmetries(den_symmetries)
             .mo_symmetries(mo_symmetries)
+            .mo_symmetry_projections(mo_symmetry_projections)
             .mo_mirror_parities(mo_mirror_parities)
             .mo_symmetries_thresholds(mo_symmetries_thresholds)
             .mo_density_symmetries(mo_den_symmetries)
@@ -1396,11 +1711,12 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, G, T>
+impl<'a, G, T, SC> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1411,11 +1727,12 @@ where
     }
 }
 
-impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, G, T>
+impl<'a, G, T, SC> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, G, T, SC>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1428,26 +1745,38 @@ where
 
 #[duplicate_item(
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         [
             gtype_ [ UnitaryRepresentedSymmetryGroup ]
             dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
             analyse_fn_ [ analyse_representation ]
         ]
     }
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         [
             gtype_ [ MagneticRepresentedSymmetryGroup ]
             dtype_ [ dtype_nested ]
+            sctype_ [ sctype_nested ]
             analyse_fn_ [ analyse_corepresentation ]
         ]
     }
 )]
-impl<'a> QSym2Driver for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
+impl<'a> QSym2Driver for SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
     type Params = SlaterDeterminantRepAnalysisParams<f64>;
 
-    type Outcome = SlaterDeterminantRepAnalysisResult<'a, gtype_, dtype_>;
+    type Outcome = SlaterDeterminantRepAnalysisResult<'a, gtype_, dtype_, sctype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result.as_ref().ok_or_else(|| {

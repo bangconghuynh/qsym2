@@ -24,6 +24,28 @@ use crate::group::{class::ClassProperties, GroupProperties};
 use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
 
+// ======
+// Metric
+// ======
+
+/// Structure to handle various choices for the specification of the metric matrices.
+#[derive(Clone)]
+pub(crate) struct Metric<'a, T, D: Dimension> {
+    /// The  Hermitian atomic-orbital overlap matrix of the underlying basis set used to describe
+    /// the determinant. For restricted, unrestricted, and generalised spin constraints, only the
+    /// spatial overlap matrix is required for the full overlap matrix to be deduced. For
+    /// relativistic SOC spin constraint, the full overlap matrix must be specified.
+    hermitian: &'a Array<T, D>,
+
+    /// The full (w.r.t. the pertinent spin constraint) complex-symmetric atomic-orbital overlap
+    /// matrix of the underlying basis set used to describe the determinant. For restricted,
+    /// unrestricted, and generalised spin constraints, only the spatial overlap matrix is required
+    /// for the full overlap matrix to be deduced. For relativistic SOC spin constraint, the full
+    /// overlap matrix must be specified.
+    complex_symmetric: Option<&'a Array<T, D>>,
+}
+
+
 // =======
 // Overlap
 // =======
@@ -157,8 +179,8 @@ where
 
 /// Enumerated type specifying the comparison mode for filtering out orbit overlap
 /// eigenvalues.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 pub enum EigenvalueComparisonMode {
     /// Compares the eigenvalues using only their real parts.
     Real,
@@ -372,10 +394,10 @@ where
         let nspatial = norm.len();
         let norm_col = norm
             .clone()
-            .into_shape([nspatial, 1])
+            .into_shape_with_order([nspatial, 1])
             .map_err(|err| format_err!(err))?;
         let norm_row = norm
-            .into_shape([1, nspatial])
+            .into_shape_with_order([1, nspatial])
             .map_err(|err| format_err!(err))?;
         let norm_mat = norm_col.dot(&norm_row);
         let normalised_smat = smat / norm_mat;

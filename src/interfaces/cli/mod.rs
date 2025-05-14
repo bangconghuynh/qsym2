@@ -120,7 +120,7 @@ pub fn qsym2_output_heading() {
     qsym2_output!("│              Q:::::Q                  y:::::y                                                       │");
     qsym2_output!("│               QQQQQQ                 y:::::y                A program for Quantum Symbolic Symmetry │");
     qsym2_output!("│                                     y:::::y                                                         │");
-    qsym2_output!("│                                    y:::::y                                     {version:>13} (2024) │");
+    qsym2_output!("│                                    y:::::y                                     {version:>13} (2025) │");
     qsym2_output!("│                                   yyyyyyy                                     Author: Bang C. Huynh │");
     qsym2_output!("╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯");
     qsym2_output!("       developed with support from the ERC's topDFT project at the University of Nottingham, UK");

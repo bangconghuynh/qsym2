@@ -97,12 +97,18 @@ pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "O + θ·O",
     "Oh + θ·Oh",
     "Td + θ·Td",
+    "u[O + θ·O]",
+    "u[Oh + θ·Oh]",
+    "u[Td + θ·Td]",
     "O*",
     "Oh*",
     "Td*",
     "(O + θ·O)*",
     "(Oh + θ·Oh)*",
     "(Td + θ·Td)*",
+    "u[(O + θ·O)*]",
+    "u[(Oh + θ·Oh)*]",
+    "u[(Td + θ·Td)*]",
 };
 
 // ==================

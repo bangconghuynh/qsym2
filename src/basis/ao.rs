@@ -20,9 +20,9 @@ use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 #[path = "ao_tests.rs"]
 mod ao_tests;
 
-// ---------
-// CartOrder
-// ---------
+// -------------------
+// Shell order structs
+// -------------------
 
 // ~~~~~~~~~
 // PureOrder
@@ -37,6 +37,11 @@ pub struct PureOrder {
 
     /// The rank of the pure Gaussians.
     pub lpure: u32,
+
+    /// The spatial parity of the pure Gaussians: `true` if even under spatial inversion and
+    /// `false` if odd. By default, this is the same as the parity of `Self::lpure`.
+    #[builder(default = "self.default_even()?")]
+    pub even: bool,
 }
 
 impl PureOrderBuilder {
@@ -53,6 +58,13 @@ impl PureOrderBuilder {
         self.mls = Some(mls.to_vec());
         self
     }
+
+    fn default_even(&self) -> Result<bool, String> {
+        let lpure = self
+            .lpure
+            .ok_or_else(|| "`lpure` has not been set.".to_string())?;
+        Ok(lpure % 2 == 0)
+    }
 }
 
 impl PureOrder {
@@ -61,7 +73,8 @@ impl PureOrder {
         PureOrderBuilder::default()
     }
 
-    /// Constructs a new [`PureOrder`] structure from its constituting $`m_l`$ values.
+    /// Constructs a new [`PureOrder`] structure from its constituting $`m_l`$ values. The spatial
+    /// inversion parity is determined by the parity of the deduced $`l`$ value.
     pub fn new(mls: &[i32]) -> Result<Self, anyhow::Error> {
         let lpure = mls
             .iter()
@@ -78,6 +91,7 @@ impl PureOrder {
     }
 
     /// Constructs a new [`PureOrder`] structure for a specified rank with increasing-$`m`$ order.
+    /// The spatial inversion parity is determined by the parity of the deduced $`l`$ value.
     ///
     /// # Arguments
     ///
@@ -98,6 +112,7 @@ impl PureOrder {
     }
 
     /// Constructs a new [`PureOrder`] structure for a specified rank with decreasing-$`m`$ order.
+    /// The spatial inversion parity is determined by the parity of the deduced $`l`$ value.
     ///
     /// # Arguments
     ///
@@ -117,7 +132,8 @@ impl PureOrder {
             .expect("Unable to construct a `PureOrder` structure with decreasing-m order.")
     }
 
-    /// Constructs a new [`PureOrder`] structure for a specified rank with Molden order.
+    /// Constructs a new [`PureOrder`] structure for a specified rank with Molden order. The spatial
+    /// inversion parity is determined by the parity of the deduced $`l`$ value.
     ///
     /// # Arguments
     ///
@@ -546,6 +562,254 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
     }
 }
 
+// ~~~~~~~~~~~
+// SpinorOrder
+// ~~~~~~~~~~~
+
+/// Structure to contain information about the ordering of spinors of a certain rank.
+#[derive(Clone, Builder, PartialEq, Eq, Hash)]
+pub struct SpinorOrder {
+    /// The angular momentum (times two) of the spinor Gaussians. This must be an odd integer.
+    #[builder(setter(custom))]
+    pub two_j: u32,
+
+    /// A sequence of $`2m_j`$ values giving the ordering of the spinor Gaussians.
+    #[builder(setter(custom))]
+    two_mjs: Vec<i32>,
+
+    /// The spatial inversion parity of the spinor Gaussians: `true` if even under spatial inversion
+    /// and `false` if odd.
+    pub even: bool,
+}
+
+impl SpinorOrderBuilder {
+    fn two_j(&mut self, two_j: u32) -> &mut Self {
+        if two_j.rem_euclid(2) != 1 {
+            panic!("`two_j` must be odd.")
+        }
+        self.two_j = Some(two_j);
+        self
+    }
+
+    fn two_mjs(&mut self, two_mjs: &[i32]) -> &mut Self {
+        let two_j = self.two_j.expect("`two_j` has not been set.");
+        let max_two_m = two_mjs
+            .iter()
+            .map(|two_m| two_m.unsigned_abs())
+            .max()
+            .expect("The maximum |2m| value could not be determined.");
+        assert_eq!(
+            max_two_m, two_j,
+            "The maximum |2m| value does not equal 2j = {two_j}."
+        );
+        assert_eq!(
+            two_mjs.len(),
+            (two_j + 1) as usize,
+            "The number of 2m values specified does not equal 2j + 1 = {}",
+            two_j + 1
+        );
+        self.two_mjs = Some(two_mjs.to_vec());
+        self
+    }
+}
+
+impl SpinorOrder {
+    /// Returns a builder to construct a new [`SpinorOrder`] structure.
+    fn builder() -> SpinorOrderBuilder {
+        SpinorOrderBuilder::default()
+    }
+
+    /// Constructs a new [`SpinorOrder`] structure from its constituting $`2m_j`$ values and a
+    /// specified spatial parity.
+    pub fn new(two_mjs: &[i32], even: bool) -> Result<Self, anyhow::Error> {
+        let two_j = two_mjs
+            .iter()
+            .map(|two_m| two_m.unsigned_abs())
+            .max()
+            .ok_or_else(|| format_err!("The maximum |2m| value could not be determined."))?;
+        let spinor_order = SpinorOrder::builder()
+            .two_j(two_j)
+            .two_mjs(two_mjs)
+            .even(even)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        ensure!(spinor_order.verify(), "Invalid `SpinorOrder`.");
+        Ok(spinor_order)
+    }
+
+    /// Constructs a new [`SpinorOrder`] structure for a specified angular momentum with
+    /// increasing-$`m`$ order.
+    ///
+    /// # Arguments
+    ///
+    /// * `two_j` - The required spinor angular momentum (times two).
+    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
+    /// inversion.
+    ///
+    /// # Returns
+    ///
+    /// A [`SpinorOrder`] struct for a specified angular momentum with increasing-$`m`$ order.
+    #[must_use]
+    pub fn increasingm(two_j: u32, even: bool) -> Self {
+        let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
+        let two_mjs = (-two_j_i32..=two_j_i32).step_by(2).collect_vec();
+        Self::builder()
+            .two_j(two_j)
+            .two_mjs(&two_mjs)
+            .even(even)
+            .build()
+            .expect("Unable to construct a `SpinorOrder` structure with increasing-m order.")
+    }
+
+    /// Constructs a new [`SpinorOrder`] structure for a specified angular momentum with
+    /// decreasing-$`m`$ order.
+    ///
+    /// # Arguments
+    ///
+    /// * `two_j` - The required spinor angular momentum (times two).
+    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
+    /// inversion.
+    ///
+    /// # Returns
+    ///
+    /// A [`SpinorOrder`] struct for a specified angular momentum with decreasing-$`m`$ order.
+    #[must_use]
+    pub fn decreasingm(two_j: u32, even: bool) -> Self {
+        let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
+        let two_mjs = (-two_j_i32..=two_j_i32).rev().step_by(2).collect_vec();
+        Self::builder()
+            .two_j(two_j)
+            .two_mjs(&two_mjs)
+            .even(even)
+            .build()
+            .expect("Unable to construct a `SpinorOrder` structure with decreasing-m order.")
+    }
+
+    /// Constructs a new [`SpinorOrder`] structure for a specified angular momentum with Molden order.
+    ///
+    /// # Arguments
+    ///
+    /// * `two_j` - The required spinor angular momentum (times two).
+    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
+    /// inversion.
+    ///
+    /// # Returns
+    ///
+    /// A [`SpinorOrder`] struct for a specified angular momentum with Molden order.
+    #[must_use]
+    pub fn molden(two_j: u32, even: bool) -> Self {
+        let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
+        let two_mjs = (1..=two_j_i32)
+            .step_by(2)
+            .flat_map(|abs_twom| vec![abs_twom, -abs_twom])
+            .collect_vec();
+        Self::builder()
+            .two_j(two_j)
+            .two_mjs(&two_mjs)
+            .even(even)
+            .build()
+            .expect("Unable to construct a `SpinorOrder` structure with Molden order.")
+    }
+
+    /// Verifies if this [`SpinorOrder`] struct is valid.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if this [`SpinorOrder`] struct is valid.
+    #[must_use]
+    pub fn verify(&self) -> bool {
+        let two_mjs_set = self.two_mjs.iter().collect::<HashSet<_>>();
+        let two_j = self.two_j;
+        two_mjs_set.len() == self.ncomps()
+            && two_mjs_set
+                .iter()
+                .all(|two_m| two_m.unsigned_abs() <= two_j)
+    }
+
+    /// Iterates over the constituent $`2m_j`$ values.
+    pub fn iter(&self) -> Iter<i32> {
+        self.two_mjs.iter()
+    }
+
+    /// Returns the number of pure components in the shell.
+    pub fn ncomps(&self) -> usize {
+        let two_j = usize::try_from(self.two_j).unwrap_or_else(|_| {
+            panic!(
+                "Unable to convert the two-j value {} to `usize`.",
+                self.two_j
+            )
+        });
+        two_j + 1
+    }
+
+    /// Returns the $`2m`$ value with a specified index in this shell.
+    pub fn get_two_m_with_index(&self, i: usize) -> Option<i32> {
+        self.two_mjs.get(i).cloned()
+    }
+}
+
+impl fmt::Display for SpinorOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "Angular momentum: {}/2 ({})",
+            self.two_j,
+            if self.even { "g" } else { "u" }
+        )?;
+        writeln!(f, "Order:")?;
+        for two_m in self.iter() {
+            writeln!(f, "  {two_m}/2")?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for SpinorOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "Angular momentum: {}/2 ({})",
+            self.two_j,
+            if self.even { "g" } else { "u" }
+        )?;
+        writeln!(f, "Order:")?;
+        for two_m in self.iter() {
+            writeln!(f, "  {two_m:?}/2")?;
+        }
+        Ok(())
+    }
+}
+
+impl PermutableCollection for SpinorOrder {
+    type Rank = usize;
+
+    fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
+        let o_two_mjs: HashMap<&i32, usize> = other
+            .two_mjs
+            .iter()
+            .enumerate()
+            .map(|(i, o_two_m)| (o_two_m, i))
+            .collect();
+        let image_opt: Option<Vec<Self::Rank>> = self
+            .two_mjs
+            .iter()
+            .map(|s_two_m| o_two_mjs.get(s_two_m).copied())
+            .collect();
+        image_opt.and_then(|image| Permutation::from_image(image).ok())
+    }
+
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Result<Self, anyhow::Error> {
+        let mut p_pureorder = self.clone();
+        p_pureorder.permute_mut(perm)?;
+        Ok(p_pureorder)
+    }
+
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
+        permute_inplace(&mut self.two_mjs, perm);
+        Ok(())
+    }
+}
+
 // ----------
 // ShellOrder
 // ----------
@@ -561,6 +825,10 @@ pub enum ShellOrder {
     /// This variant indicates that the angular functions are Cartesian functions. The associated
     /// value is a [`CartOrder`] struct containing the order of these functions.
     Cart(CartOrder),
+
+    /// This variant indicates that the angular functions are spinors. The associated
+    /// value is a [`SpinorOrder`] struct containing the order of these functions.
+    Spinor(SpinorOrder),
 }
 
 impl fmt::Display for ShellOrder {
@@ -568,15 +836,26 @@ impl fmt::Display for ShellOrder {
         match self {
             ShellOrder::Pure(pure_order) => write!(
                 f,
-                "Pure ({})",
+                "Pure ({}) ({})",
+                if pure_order.even { "g" } else { "u" },
                 pure_order.iter().map(|m| m.to_string()).join(", ")
             ),
             ShellOrder::Cart(cart_order) => write!(
                 f,
-                "Cart ({})",
+                "Cart ({}) ({})",
+                if cart_order.lcart % 2 == 0 { "g" } else { "u" },
                 cart_order
                     .iter()
                     .map(|cart_tuple| { cart_tuple_to_str(cart_tuple, true) })
+                    .join(", ")
+            ),
+            ShellOrder::Spinor(spinor_order) => write!(
+                f,
+                "Spinor ({}) ({})",
+                if spinor_order.even { "g" } else { "u" },
+                spinor_order
+                    .iter()
+                    .map(|two_m| format!("{two_m}/2"))
                     .join(", ")
             ),
         }
@@ -590,7 +869,10 @@ impl fmt::Display for ShellOrder {
 /// Structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisShell {
-    /// A non-negative integer indicating the rank of the shell.
+    /// A non-negative integer indicating the rank of the shell. If this shell is pure, the rank
+    /// equals its angular momentum. If this shell is Cartesian, the rank is the sum of the
+    /// exponents of the Cartesian coordinates. If this shell is a spinor, the rank is twice its
+    /// angular momentum.
     #[builder(setter(custom))]
     pub l: u32,
 
@@ -601,17 +883,23 @@ pub struct BasisShell {
 
 impl BasisShellBuilder {
     fn l(&mut self, l: u32) -> &mut Self {
-        if let Some(ShellOrder::Cart(cart_order)) = self.shell_order.as_ref() {
-            assert_eq!(cart_order.lcart, l);
+        match self.shell_order.as_ref() {
+            Some(ShellOrder::Pure(pure_order)) => assert_eq!(pure_order.lpure, l),
+            Some(ShellOrder::Cart(cart_order)) => assert_eq!(cart_order.lcart, l),
+            Some(ShellOrder::Spinor(spinor_order)) => assert_eq!(spinor_order.two_j, l),
+            None => {}
         }
         self.l = Some(l);
         self
     }
 
     fn shell_order(&mut self, shl_ord: ShellOrder) -> &mut Self {
-        if let (ShellOrder::Cart(cart_order), Some(l)) = (shl_ord.clone(), self.l) {
-            assert_eq!(cart_order.lcart, l);
-        };
+        match (&shl_ord, self.l) {
+            (ShellOrder::Pure(pure_order), Some(l)) => assert_eq!(pure_order.lpure, l),
+            (ShellOrder::Cart(cart_order), Some(l)) => assert_eq!(cart_order.lcart, l),
+            (ShellOrder::Spinor(spinor_order), Some(l)) => assert_eq!(spinor_order.two_j, l),
+            _ => {}
+        }
         self.shell_order = Some(shl_ord);
         self
     }
@@ -631,13 +919,15 @@ impl BasisShell {
     ///
     /// # Arguments
     ///
-    /// * `l` - The rank of this shell.
+    /// * `l` - The rank of this shell, which is equal to $`l_{\mathrm{pure}}`$ for a pure shell,
+    /// $`l_{\mathrm{cart}}`$ for a Cartesian shell, or $`2j`$ for a spinor shell.
     /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
     /// functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
         match &shl_ord {
-            ShellOrder::Cart(cartorder) => assert_eq!(cartorder.lcart, l),
             ShellOrder::Pure(pureorder) => assert_eq!(pureorder.lpure, l),
+            ShellOrder::Cart(cartorder) => assert_eq!(cartorder.lcart, l),
+            ShellOrder::Spinor(spinororder) => assert_eq!(spinororder.two_j, l),
         }
         BasisShell::builder()
             .l(l)
@@ -652,6 +942,7 @@ impl BasisShell {
         match self.shell_order {
             ShellOrder::Pure(_) => 2 * lsize + 1,
             ShellOrder::Cart(_) => ((lsize + 1) * (lsize + 2)).div_euclid(2),
+            ShellOrder::Spinor(_) => lsize + 1,
         }
     }
 }
@@ -957,10 +1248,14 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                         " {:>atom_index_length$}  {:<4}  {:<5}  {:<order_length$}",
                         atm_i,
                         atm.atomic_symbol,
-                        ANGMOM_LABELS
-                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
-                            .copied()
-                            .unwrap_or(&bshl.l.to_string()),
+                        match &bshl.shell_order {
+                            ShellOrder::Pure(_) | ShellOrder::Cart(_) => ANGMOM_LABELS
+                                .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                                .copied()
+                                .unwrap_or(&bshl.l.to_string())
+                                .to_string(),
+                            ShellOrder::Spinor(spinororder) => format!("{}/2", spinororder.two_j),
+                        },
                         bshl.shell_order
                     )?;
                 } else {
@@ -969,10 +1264,14 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                         " {:>atom_index_length$}  {:<4}  {:<5}  {:<order_length$}",
                         "",
                         "",
-                        ANGMOM_LABELS
-                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
-                            .copied()
-                            .unwrap_or(&bshl.l.to_string()),
+                        match &bshl.shell_order {
+                            ShellOrder::Pure(_) | ShellOrder::Cart(_) => ANGMOM_LABELS
+                                .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                                .copied()
+                                .unwrap_or(&bshl.l.to_string())
+                                .to_string(),
+                            ShellOrder::Spinor(spinororder) => format!("{}/2", spinororder.two_j),
+                        },
                         bshl.shell_order
                     )?;
                 }

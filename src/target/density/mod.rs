@@ -1,9 +1,11 @@
 //! Electron densities.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, Index, Sub};
 
+use anyhow::{ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -13,7 +15,7 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 
@@ -30,23 +32,25 @@ mod density_transformation;
 /// Wrapper structure to manage references to multiple densities of a single state.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct Densities<'a, T>
+pub struct Densities<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
-    /// The spin constraint associated with the multiple densities.
-    spin_constraint: SpinConstraint,
+    /// The structure constraint associated with the multiple densities.
+    structure_constraint: SC,
 
     /// A vector containing references to the multiple densities, one for each spin space.
     densities: Vec<&'a Density<'a, T>>,
 }
 
-impl<'a, T> Densities<'a, T>
+impl<'a, T, SC> Densities<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Returns a builder to construct a new `Densities`.
-    pub fn builder() -> DensitiesBuilder<'a, T> {
+    pub fn builder() -> DensitiesBuilder<'a, T, SC> {
         DensitiesBuilder::default()
     }
 
@@ -55,49 +59,44 @@ where
     }
 }
 
-impl<'a, T> DensitiesBuilder<'a, T>
+impl<'a, T, SC> DensitiesBuilder<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     fn validate(&self) -> Result<(), String> {
         let densities = self
             .densities
             .as_ref()
             .ok_or("No `densities` found.".to_string())?;
-        let spin_constraint = self
-            .spin_constraint
+        let structure_constraint = self
+            .structure_constraint
             .as_ref()
-            .ok_or("No spin constraint found.".to_string())?;
-        match spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                if densities.len() != 1 {
-                    Err(
-                        "Exactly one density is expected in restricted spin constraint."
-                            .to_string(),
-                    )
+            .ok_or("No structure constraint found.".to_string())?;
+        let num_dens = structure_constraint.n_coefficient_matrices()
+            * structure_constraint.n_explicit_comps_per_coefficient_matrix();
+        if densities.len() != num_dens {
+            Err(format!(
+                "{} {} expected in structure constraint {}, but {} found.",
+                num_dens,
+                structure_constraint,
+                if num_dens == 1 {
+                    "density"
                 } else {
-                    Ok(())
-                }
-            }
-            SpinConstraint::Unrestricted(nspins, _) | SpinConstraint::Generalised(nspins, _) => {
-                if densities.len() != usize::from(*nspins) {
-                    Err(format!(
-                        "{} {} expected in unrestricted or generalised spin constraint, but {} found.",
-                        nspins,
-                        if *nspins == 1 { "density" } else { "densities" },
-                        densities.len()
-                    ))
-                } else {
-                    Ok(())
-                }
-            }
+                    "densities"
+                },
+                densities.len()
+            ))
+        } else {
+            Ok(())
         }
     }
 }
 
-impl<'a, T> Index<usize> for Densities<'a, T>
+impl<'a, T, SC> Index<usize> for Densities<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     type Output = Density<'a, T>;
 
@@ -109,87 +108,154 @@ where
 /// Wrapper structure to manage multiple owned densities of a single state.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct DensitiesOwned<'a, T>
+pub struct DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
-    /// The spin constraint associated with the multiple densities.
-    spin_constraint: SpinConstraint,
+    /// The structure constraint associated with the multiple densities.
+    structure_constraint: SC,
 
     /// A vector containing the multiple densities, one for each spin space.
     densities: Vec<Density<'a, T>>,
 }
 
-impl<'a, T> DensitiesOwned<'a, T>
+impl<'a, T, SC> DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     /// Returns a builder to construct a new `DensitiesOwned`.
-    pub fn builder() -> DensitiesOwnedBuilder<'a, T> {
+    pub fn builder() -> DensitiesOwnedBuilder<'a, T, SC> {
         DensitiesOwnedBuilder::default()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Density<'a, T>> {
         self.densities.iter()
     }
+
+    /// Calculates the total density and the pairwise-component density differences.
+    pub fn calc_extra_densities<'b: 'a>(
+        &'b self,
+    ) -> Result<Vec<(String, Density<'a, T>)>, anyhow::Error> {
+        let nspatials = self
+            .iter()
+            .map(|den| den.bao().n_funcs())
+            .collect::<HashSet<usize>>();
+        ensure!(
+            nspatials.len() == 1,
+            "Inconsistent number of spatial functions."
+        );
+        let nspatial = *nspatials.iter().next().ok_or_else(|| {
+            format_err!(
+                "Unable to retrieve the number of spatial functions of the density matrices."
+            )
+        })?;
+
+        let den0 = self
+            .iter()
+            .next()
+            .ok_or_else(|| format_err!("Unable to retrieve the first density."))?;
+        ensure!(
+            nspatial == den0.density_matrix.nrows(),
+            "Unexpected density matrix dimension: {} != {}",
+            nspatial,
+            den0.density_matrix.nrows()
+        );
+
+        // Total density
+        let total_denmat = self
+            .iter()
+            .fold(Array2::<T>::zeros((nspatial, nspatial)), |acc, den| {
+                acc + den.density_matrix()
+            });
+        let total_den = Density::<T>::builder()
+            .density_matrix(total_denmat)
+            .bao(den0.bao())
+            .mol(den0.mol)
+            .complex_symmetric(den0.complex_symmetric())
+            .threshold(den0.threshold())
+            .build()?;
+
+        // Density differences
+        let extra_dens = vec![Ok(("Total density".to_string(), total_den))]
+            .into_iter()
+            .chain((0..self.densities.len()).combinations(2).map(|indices| {
+                let i0 = indices[0];
+                let i1 = indices[1];
+                let denmat_0 = self.densities[i0].density_matrix();
+                let denmat_1 = self.densities[i1].density_matrix();
+                let denmat_01 = denmat_0 - denmat_1;
+                let den_01 = Density::<T>::builder()
+                    .density_matrix(denmat_01)
+                    .bao(den0.bao())
+                    .mol(den0.mol)
+                    .complex_symmetric(den0.complex_symmetric())
+                    .threshold(den0.threshold())
+                    .build()?;
+                Ok((
+                    format!("Density (component {i0}) - Density (component {i1})"),
+                    den_01,
+                ))
+            }))
+            .collect::<Result<Vec<_>, _>>();
+
+        extra_dens
+    }
 }
 
-impl<'b, 'a: 'b, T> DensitiesOwned<'a, T>
+impl<'b, 'a: 'b, T, SC> DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
-    pub fn as_ref(&'a self) -> Densities<'b, T> {
+    pub fn as_ref(&'a self) -> Densities<'b, T, SC> {
         Densities::builder()
-            .spin_constraint(self.spin_constraint.clone())
+            .structure_constraint(self.structure_constraint.clone())
             .densities(self.iter().collect_vec())
             .build()
             .expect("Unable to convert `DensitiesOwned` to `Densities`.")
     }
 }
 
-impl<'a, T> DensitiesOwnedBuilder<'a, T>
+impl<'a, T, SC> DensitiesOwnedBuilder<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + Clone + fmt::Display,
 {
     fn validate(&self) -> Result<(), String> {
         let densities = self
             .densities
             .as_ref()
             .ok_or("No `densities` found.".to_string())?;
-        let spin_constraint = self
-            .spin_constraint
+        let structure_constraint = self
+            .structure_constraint
             .as_ref()
             .ok_or("No spin constraint found.".to_string())?;
-        match spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                if densities.len() != 1 {
-                    Err(
-                        "Exactly one density is expected in restricted spin constraint."
-                            .to_string(),
-                    )
+        let num_dens = structure_constraint.n_coefficient_matrices()
+            * structure_constraint.n_explicit_comps_per_coefficient_matrix();
+        if densities.len() != num_dens {
+            Err(format!(
+                "{} {} expected in structure constraint {}, but {} found.",
+                num_dens,
+                structure_constraint,
+                if num_dens == 1 {
+                    "density"
                 } else {
-                    Ok(())
-                }
-            }
-            SpinConstraint::Unrestricted(nspins, _) | SpinConstraint::Generalised(nspins, _) => {
-                if densities.len() != usize::from(*nspins) {
-                    Err(format!(
-                        "{} {} expected in unrestricted or generalised spin constraint, but {} found.",
-                        nspins,
-                        if *nspins == 1 { "density" } else { "densities" },
-                        densities.len()
-                    ))
-                } else {
-                    Ok(())
-                }
-            }
+                    "densities"
+                },
+                densities.len()
+            ))
+        } else {
+            Ok(())
         }
     }
 }
 
-impl<'a, T> Index<usize> for DensitiesOwned<'a, T>
+impl<'a, T, SC> Index<usize> for DensitiesOwned<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
+    SC: StructureConstraint + fmt::Display,
 {
     type Output = Density<'a, T>;
 
@@ -198,7 +264,8 @@ where
     }
 }
 
-/// Structure to manage particle spatial densities.
+/// Structure to manage particle densities in the simplest basis specified by a basis angular order
+/// structure.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Density<'a, T>

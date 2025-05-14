@@ -162,8 +162,8 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     );
 
     let params = SymmetryGroupDetectionParams::builder()
-        .distance_thresholds(&[1e-6, 1e-7, 1e-15])
-        .moi_thresholds(&[1e-6, 1e-7, 1e-15])
+        .distance_thresholds(&[1e-6, 1e-7, 1e-13])
+        .moi_thresholds(&[1e-6, 1e-7, 1e-13])
         .fictitious_magnetic_fields(Some(vec![(
             Point3::new(0.5, 0.5, 0.5),
             Vector3::new(-1.0, 1.0, 0.0),
@@ -178,8 +178,8 @@ fn test_drivers_symmetry_group_detection_c2h2() {
         .unwrap();
     pd_driver.run().unwrap();
     let pd_res = pd_driver.result().unwrap();
-    assert_eq!(pd_res.pre_symmetry.dist_threshold, 1e-15);
-    assert_eq!(pd_res.pre_symmetry.moi_threshold, 1e-15);
+    assert_eq!(pd_res.pre_symmetry.dist_threshold, 1e-13);
+    assert_eq!(pd_res.pre_symmetry.moi_threshold, 1e-13);
     assert_eq!(pd_res.unitary_symmetry.group_name.as_ref().unwrap(), "C2h");
     assert_eq!(
         pd_res

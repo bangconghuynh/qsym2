@@ -1,9 +1,13 @@
 //! Implementation of symmetry transformations for multi-determinantal wavefunctions.
 
+use std::fmt;
+use std::hash::Hash;
+
 use ndarray::Array2;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::group::GroupProperties;
 use crate::permutation::Permutation;
 use crate::symmetry::symmetry_element::{SpecialSymmetryTransformation, SymmetryOperation};
@@ -19,10 +23,11 @@ use crate::target::noci::multideterminant::MultiDeterminant;
 // SpatialUnitaryTransformable
 // ---------------------------
 
-impl<'a, T, B> SpatialUnitaryTransformable for MultiDeterminant<'a, T, B>
+impl<'a, T, B, SC> SpatialUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + SpatialUnitaryTransformable + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + SpatialUnitaryTransformable + Clone,
 {
     fn transform_spatial_mut(
         &mut self,
@@ -38,10 +43,11 @@ where
 // SpinUnitaryTransformable
 // ------------------------
 
-impl<'a, T, B> SpinUnitaryTransformable for MultiDeterminant<'a, T, B>
+impl<'a, T, B, SC> SpinUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + SpinUnitaryTransformable + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + SpinUnitaryTransformable + Clone,
 {
     fn transform_spin_mut(
         &mut self,
@@ -56,10 +62,11 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<'a, T, B> ComplexConjugationTransformable for MultiDeterminant<'a, T, B>
+impl<'a, T, B, SC> ComplexConjugationTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + ComplexConjugationTransformable + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + ComplexConjugationTransformable + Clone,
 {
     /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
@@ -74,10 +81,10 @@ where
 // DefaultTimeReversalTransformable
 // --------------------------------
 
-impl<'a, T, B> DefaultTimeReversalTransformable for MultiDeterminant<'a, T, B>
+impl<'a, T, B> DefaultTimeReversalTransformable for MultiDeterminant<'a, T, B, SpinConstraint>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T>> + DefaultTimeReversalTransformable + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SpinConstraint>> + DefaultTimeReversalTransformable + Clone,
 {
 }
 
@@ -86,11 +93,16 @@ where
 // ---------------------
 
 impl<'a, 'go, G, T> SymmetryTransformable
-    for MultiDeterminant<'a, T, OrbitBasis<'go, G, SlaterDeterminant<'a, T>>>
+    for MultiDeterminant<
+        'a,
+        T,
+        OrbitBasis<'go, G, SlaterDeterminant<'a, T, SpinConstraint>>,
+        SpinConstraint,
+    >
 where
     T: ComplexFloat + Lapack,
     G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    SlaterDeterminant<'a, T, SpinConstraint>: SymmetryTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,
@@ -152,10 +164,16 @@ where
     }
 }
 
-impl<'a, T> SymmetryTransformable for MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T>>>
+impl<'a, T> SymmetryTransformable
+    for MultiDeterminant<
+        'a,
+        T,
+        EagerBasis<SlaterDeterminant<'a, T, SpinConstraint>>,
+        SpinConstraint,
+    >
 where
     T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    SlaterDeterminant<'a, T, SpinConstraint>: SymmetryTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,

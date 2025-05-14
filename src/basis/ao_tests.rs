@@ -1,7 +1,7 @@
-use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-};
 use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::basis::ao::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+};
 use crate::permutation::PermutableCollection;
 
 #[test]
@@ -230,6 +230,30 @@ fn test_ao_basis_pureorder() {
 }
 
 #[test]
+fn test_ao_basis_spinororder() {
+    // ========
+    // twoj = 1
+    // ========
+    let spo_1g_increasingm = SpinorOrder::increasingm(1, true);
+    assert_eq!(spo_1g_increasingm.two_mjs, vec![-1, 1]);
+
+    let spo_1u_increasingm = SpinorOrder::increasingm(1, false);
+    assert_eq!(spo_1u_increasingm.two_mjs, vec![-1, 1]);
+
+    // ========
+    // twoj = 3
+    // ========
+    let spo_3g_increasingm = SpinorOrder::increasingm(3, true);
+    assert_eq!(spo_3g_increasingm.two_mjs, vec![-3, -1, 1, 3]);
+
+    // ========
+    // twoj = 5
+    // ========
+    let spo_5u_increasingm = SpinorOrder::increasingm(5, false);
+    assert_eq!(spo_5u_increasingm.two_mjs, vec![-5, -3, -1, 1, 3, 5]);
+}
+
+#[test]
 fn test_ao_basis_basisshell() {
     let bs0_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bs0_c = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
@@ -250,6 +274,9 @@ fn test_ao_basis_basisshell() {
     let bs3_c = BasisShell::new(3, ShellOrder::Cart(CartOrder::lex(3)));
     assert_eq!(bs3_p.n_funcs(), 7);
     assert_eq!(bs3_c.n_funcs(), 10);
+
+    let bs5g_sp = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
+    assert_eq!(bs5g_sp.n_funcs(), 6);
 }
 
 #[test]
@@ -263,13 +290,17 @@ fn test_ao_basis_basisatom() {
     let bs3s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bs3p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
     let bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+    let bs32_sp = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
 
-    let batm = BasisAtom::new(&atm, &[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c]);
+    let batm = BasisAtom::new(
+        &atm,
+        &[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c, bs32_sp],
+    );
 
-    assert_eq!(batm.n_funcs(), 15);
+    assert_eq!(batm.n_funcs(), 19);
     assert_eq!(
         batm.shell_boundary_indices(),
-        &[(0, 1), (1, 2), (2, 5), (5, 6), (6, 9), (9, 15),]
+        &[(0, 1), (1, 2), (2, 5), (5, 6), (6, 9), (9, 15), (15, 19),]
     );
 }
 

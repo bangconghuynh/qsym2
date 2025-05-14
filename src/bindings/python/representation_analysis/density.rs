@@ -113,7 +113,7 @@ impl PyDensityReal {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<Density<f64>, anyhow::Error> {
+    ) -> Result<Density<'b, f64>, anyhow::Error> {
         let den = Density::<f64>::builder()
             .bao(bao)
             .complex_symmetric(self.complex_symmetric)
@@ -202,7 +202,7 @@ impl PyDensityComplex {
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
-    ) -> Result<Density<C128>, anyhow::Error> {
+    ) -> Result<Density<'b, C128>, anyhow::Error> {
         let den = Density::<C128>::builder()
             .bao(bao)
             .complex_symmetric(self.complex_symmetric)

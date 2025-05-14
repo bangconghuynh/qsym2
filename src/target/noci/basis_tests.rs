@@ -61,12 +61,12 @@ fn test_orbit_basis_transformation_h2o_cs() {
     ];
     let oalpha = array![1.0];
     let obeta = array![1.0];
-    let det = SlaterDeterminant::<Complex64>::builder()
+    let det = SlaterDeterminant::<Complex64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
         .bao(&bao_h2o)
         .mol(&mol_h2o)
-        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-7)
         .build()
