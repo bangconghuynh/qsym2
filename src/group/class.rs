@@ -669,7 +669,6 @@ where
         Ok(())
     }
 
-    #[must_use]
     fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
         self.class_structure
             .as_ref()
@@ -678,7 +677,6 @@ where
             .get(cc_idx)
     }
 
-    #[must_use]
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -686,7 +684,6 @@ where
             .element_to_conjugacy_classes[e_idx]
     }
 
-    #[must_use]
     fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement> {
         self.class_structure
             .as_ref()
@@ -696,7 +693,6 @@ where
             .and_then(|&i| self.get_index(i))
     }
 
-    #[must_use]
     fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -705,7 +701,6 @@ where
             .get_index_of(cc_sym)
     }
 
-    #[must_use]
     fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol> {
         self.class_structure
             .as_ref()
@@ -715,7 +710,6 @@ where
             .map(|(cc_sym, _)| cc_sym.clone())
     }
 
-    #[must_use]
     fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
         &self,
         predicate: P,
@@ -737,7 +731,6 @@ where
             .set_class_symbols(cc_symbols);
     }
 
-    #[must_use]
     fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -747,7 +740,6 @@ where
             .cloned()
     }
 
-    #[must_use]
     fn class_number(&self) -> usize {
         self.class_structure
             .as_ref()
@@ -755,7 +747,6 @@ where
             .class_number()
     }
 
-    #[must_use]
     fn class_size(&self, cc_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -873,7 +864,6 @@ where
         Ok(())
     }
 
-    #[must_use]
     fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
         self.class_structure
             .as_ref()
@@ -882,7 +872,6 @@ where
             .get(cc_idx)
     }
 
-    #[must_use]
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -890,7 +879,6 @@ where
             .element_to_conjugacy_classes[e_idx]
     }
 
-    #[must_use]
     fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement> {
         self.class_structure
             .as_ref()
@@ -900,7 +888,6 @@ where
             .and_then(|&i| self.get_index(i))
     }
 
-    #[must_use]
     fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -909,7 +896,6 @@ where
             .get_index_of(cc_sym)
     }
 
-    #[must_use]
     fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol> {
         self.class_structure
             .as_ref()
@@ -919,7 +905,6 @@ where
             .map(|(cc_sym, _)| cc_sym.clone())
     }
 
-    #[must_use]
     fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
         &self,
         predicate: P,
@@ -941,7 +926,6 @@ where
             .set_class_symbols(cc_symbols);
     }
 
-    #[must_use]
     fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
@@ -951,7 +935,6 @@ where
             .cloned()
     }
 
-    #[must_use]
     fn class_number(&self) -> usize {
         self.class_structure
             .as_ref()
@@ -959,7 +942,6 @@ where
             .class_number()
     }
 
-    #[must_use]
     fn class_size(&self, cc_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
