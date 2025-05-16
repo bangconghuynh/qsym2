@@ -2,7 +2,7 @@ use byteorder::LittleEndian;
 use duplicate::duplicate_item;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, Array2, Array3};
-use ndarray_linalg::assert_close_l2;
+use ndarray_linalg::assert::close_l2;
 use num_complex::Complex;
 
 use crate::auxiliary::molecule::Molecule;
@@ -94,7 +94,7 @@ fn test_integrals_shell_tuple_collection_overlap_gao_2c_h2() {
     let ovs = stc.overlap([0, 0]);
 
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs[0],
         &array![
             [1.0000000, 0.7965883],
@@ -128,7 +128,7 @@ fn test_integrals_shell_tuple_collection_overlap_gao_2c_bf3() {
     .unwrap()
     .collect::<Vec<_>>();
     let sao = Array2::from_shape_vec((140, 140), sao_v).unwrap();
-    assert_close_l2!(&ovs[0], &sao, 1e-7);
+    close_l2(&ovs[0], &sao, 1e-7);
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn test_integrals_shell_tuple_collection_overlap_gao_2c_benzene() {
     .unwrap()
     .collect::<Vec<_>>();
     let sao = Array2::from_shape_vec((630, 630), sao_v).unwrap();
-    assert_close_l2!(&ovs[0], &sao, 3e-7);
+    close_l2(&ovs[0], &sao, 3e-7);
 }
 
 #[duplicate_item(
@@ -236,7 +236,7 @@ fn gao_3c_test_name() {
             .unwrap()
             .collect::<Vec<_>>();
             let sao_3c = Array3::from_shape_vec(ovs[0].raw_dim(), sao_v).unwrap();
-            assert_close_l2!(&ovs[0], &sao_3c, 1e-7);
+            close_l2(&ovs[0], &sao_3c, 1e-7);
         }
     }
 }
@@ -343,7 +343,7 @@ fn lao_2c_test_name() {
     let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/{mol_name}.xyz"), 1e-7);
 
     for cart in [true] {
-        for (bas_name, bas_sym) in [ bases ] {
+        for (bas_name, bas_sym) in [bases] {
             let mut bscs = BasisSet::<f64, f64>::from_bse(
                 &mol, bas_name, cart,  // cart
                 false, // optimised contraction
@@ -383,7 +383,7 @@ fn lao_2c_test_name() {
             .unwrap()
             .collect::<Vec<_>>();
             let sao_2c = Array2::from_shape_vec(ovs[0].raw_dim(), sao_v).unwrap();
-            assert_close_l2!(&ovs[0], &sao_2c, 1e-7);
+            close_l2(&ovs[0], &sao_2c, 1e-7);
         }
     }
 }

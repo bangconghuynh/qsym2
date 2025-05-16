@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
-use ndarray_linalg::assert_close_l2;
+use ndarray_linalg::assert::close_l2;
 use num_complex::Complex;
 use num_traits::Pow;
 
@@ -953,7 +953,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(2.0, -2.0)],
         [Complex::new(-1.0, 1.0)],
     ];
-    assert_close_l2!(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
+    close_l2(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
 
     // ---
     // C2y
@@ -979,7 +979,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(2.0, 2.0)],
         [Complex::new(-1.0, -1.0)],
     ];
-    assert_close_l2!(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
+    close_l2(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
 
     // -------
     // θ ⋅ C2y
@@ -994,7 +994,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(-1.0, 1.0)],
         [Complex::new(-2.0, 2.0)],
     ];
-    assert_close_l2!(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
+    close_l2(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
 
     // -------
     // C2y ⋅ θ
@@ -1009,7 +1009,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(-1.0, 1.0)],
         [Complex::new(-2.0, 2.0)],
     ];
-    assert_close_l2!(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
+    close_l2(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
 
     // ---
     // C3z
@@ -1036,7 +1036,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(1.0, 1.0) * Complex::new(pi3.cos(), pi3.sin())],
         [Complex::new(2.0, 2.0) * Complex::new(pi3.cos(), -pi3.sin())],
     ];
-    assert_close_l2!(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
+    close_l2(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
 
     // -------
     // θ ⋅ C3z
@@ -1050,7 +1050,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), pi3.sin())],
         [Complex::new(-1.0, 1.0) * Complex::new(pi3.cos(), -pi3.sin())],
     ];
-    assert_close_l2!(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
+    close_l2(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
 
     // -------
     // C3z ⋅ θ
@@ -1064,7 +1064,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), pi3.sin())],
         [Complex::new(-1.0, 1.0) * Complex::new(pi3.cos(), -pi3.sin())],
     ];
-    assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
+    close_l2(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
 
     // -------
     // C3(111)
@@ -1085,7 +1085,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
         .unwrap();
     let tdet_c3_111 = det.sym_transform_spin_spatial(&c3_111_su2).unwrap();
     let tdet_c3_111_ref = array![[Complex::new(2.0, 1.0)], [Complex::new(2.0, -1.0)],];
-    assert_close_l2!(&tdet_c3_111.coefficients()[0], &tdet_c3_111_ref, 1e-14);
+    close_l2(&tdet_c3_111.coefficients()[0], &tdet_c3_111_ref, 1e-14);
 }
 
 #[test]
@@ -1145,7 +1145,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(-2.0, 2.0)],
         [Complex::new(1.0, -1.0)],
     ];
-    assert_close_l2!(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
+    close_l2(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
 
     // ---
     // C2y
@@ -1172,7 +1172,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(-2.0, -2.0)],
         [Complex::new(1.0, 1.0)],
     ];
-    assert_close_l2!(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
+    close_l2(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
 
     // -------
     // θ ⋅ C2y
@@ -1188,7 +1188,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(2.0, -2.0)],
         [Complex::new(3.0, -3.0)],
     ];
-    assert_close_l2!(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
+    close_l2(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
 
     // -------
     // C2y ⋅ θ
@@ -1204,7 +1204,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(2.0, -2.0)],
         [Complex::new(3.0, -3.0)],
     ];
-    assert_close_l2!(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
+    close_l2(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
 
     // ---
     // C3z
@@ -1232,7 +1232,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(2.0, 2.0)],
         [Complex::new(3.0, 3.0) * Complex::new(-pi3.cos(), -pi3.sin())],
     ];
-    assert_close_l2!(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
+    close_l2(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
 
     // -------
     // θ ⋅ C3z
@@ -1247,7 +1247,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(-2.0, 2.0)],
         [Complex::new(1.0, -1.0) * Complex::new(-pi3.cos(), -pi3.sin())],
     ];
-    assert_close_l2!(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
+    close_l2(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
 
     // -------
     // C3z ⋅ θ
@@ -1262,7 +1262,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
         [Complex::new(-2.0, 2.0)],
         [Complex::new(1.0, -1.0) * Complex::new(-pi3.cos(), -pi3.sin())],
     ];
-    assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
+    close_l2(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
 }
 
 #[test]
@@ -1324,7 +1324,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(2.0, -2.0)],
         [Complex::new(-1.0, 1.0)],
     ];
-    assert_close_l2!(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
+    close_l2(&tdet_t.coefficients()[0], &tdet_t_c0_ref, 1e-14);
 
     // ---
     // C2y
@@ -1352,7 +1352,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(2.0, 2.0)],
         [Complex::new(-1.0, -1.0)],
     ];
-    assert_close_l2!(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
+    close_l2(&tdet_c2y.coefficients()[0], &tdet_c2y_c0_ref, 1e-14);
 
     // -------
     // θ ⋅ C2y
@@ -1369,7 +1369,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(-3.0, 3.0)],
         [Complex::new(-4.0, 4.0)],
     ];
-    assert_close_l2!(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
+    close_l2(&tdet_c2y_t.coefficients()[0], &tdet_c2y_t_c0_ref, 1e-14);
 
     // -------
     // C2y ⋅ θ
@@ -1386,7 +1386,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(-3.0, 3.0)],
         [Complex::new(-4.0, 4.0)],
     ];
-    assert_close_l2!(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
+    close_l2(&tdet_t_c2y.coefficients()[0], &tdet_t_c2y_c0_ref, 1e-14);
 
     // ---
     // C3z
@@ -1415,7 +1415,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(3.0, 3.0) * Complex::new(pi3.cos(), -pi3.sin())],
         [-Complex::new(4.0, 4.0)],
     ];
-    assert_close_l2!(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
+    close_l2(&tdet_c3z.coefficients()[0], &tdet_c3z_c0_ref, 1e-14);
 
     // -------
     // θ ⋅ C3z
@@ -1431,7 +1431,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), -pi3.sin())],
         [Complex::new(1.0, -1.0)],
     ];
-    assert_close_l2!(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
+    close_l2(&tdet_c3z_t.coefficients()[0], &tdet_c3z_t_c0_ref, 1e-14);
 
     // -------
     // C3z ⋅ θ
@@ -1447,7 +1447,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
         [Complex::new(2.0, -2.0) * Complex::new(pi3.cos(), -pi3.sin())],
         [Complex::new(1.0, -1.0)],
     ];
-    assert_close_l2!(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
+    close_l2(&tdet_t_c3z.coefficients()[0], &tdet_t_c3z_c0_ref, 1e-14);
 }
 
 #[test]
@@ -1920,7 +1920,7 @@ fn test_determinant_analysis_overlap() {
         [0.0000000, 0.0000000, 0.0000000, 0.0000000, 1.0000000, 0.1041424],
         [0.0050563, 0.7611240, 0.0576832, 0.0719396, 0.1041424, 1.0000000],
     ];
-    assert_close_l2!(&smat, &smat_ref, 1e-7);
+    close_l2(&smat, &smat_ref, 1e-7);
 
     // Real, GHF
     let nbas = sao.nrows();
@@ -1945,7 +1945,7 @@ fn test_determinant_analysis_overlap() {
                 smat_g[(j, i)] = detj.overlap(deti, Some(&sao_g), None).unwrap();
             }
         });
-    assert_close_l2!(&smat_g, &smat_ref, 1e-7);
+    close_l2(&smat_g, &smat_ref, 1e-7);
 
     // Complex, UHF
     let sao_c = sao.mapv(C128::from);
@@ -1966,7 +1966,7 @@ fn test_determinant_analysis_overlap() {
             }
         });
     let smat_c_ref = smat_ref.mapv(C128::from);
-    assert_close_l2!(&smat_c, &smat_c_ref, 1e-7);
+    close_l2(&smat_c, &smat_c_ref, 1e-7);
 
     // Complex, GHF
     let sao_cg = sao_g.mapv(C128::from);
@@ -1986,7 +1986,7 @@ fn test_determinant_analysis_overlap() {
                 smat_cg[(j, i)] = detj.overlap(deti, Some(&sao_cg), None).unwrap();
             }
         });
-    assert_close_l2!(&smat_cg, &smat_c_ref, 1e-7);
+    close_l2(&smat_cg, &smat_c_ref, 1e-7);
 }
 
 #[test]
@@ -2073,7 +2073,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 
     let os = xmat.t().dot(&smat).dot(xmat);
     assert_eq!(os.shape(), &[4, 4]);
-    assert_close_l2!(&os, &Array2::<f64>::eye(os.shape()[0]), 1e-7);
+    close_l2(&os, &Array2::<f64>::eye(os.shape()[0]), 1e-7);
 
     let det_c = SlaterDeterminant::<C128, SpinConstraint>::from(det.clone());
     let sao_c = sao.mapv(C128::from);
@@ -2095,9 +2095,9 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 
     let os_c = xmat_c.t().mapv(|x| x.conj()).dot(&smat_c).dot(xmat_c);
     assert_eq!(os_c.shape(), &[4, 4]);
-    assert_close_l2!(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
+    close_l2(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
 
-    assert_close_l2!(&os.map(C128::from), &os_c, 1e-7);
+    close_l2(&os.map(C128::from), &os_c, 1e-7);
 }
 
 #[test]

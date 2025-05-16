@@ -1,7 +1,7 @@
 use approx;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, Array2};
-use ndarray_linalg::assert_close_l2;
+use ndarray_linalg::assert::close_l2;
 
 use crate::basis::ao::*;
 use crate::basis::ao_integrals::*;
@@ -80,11 +80,11 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
 
     let st_00 = build_shell_tuple![(&bsc0, true), (&bsc0, false); f64];
     let ovs_00 = st_00.overlap([0, 0]);
-    assert_close_l2!(&ovs_00[0], &array![[1.0]], 1e-7);
+    close_l2(&ovs_00[0], &array![[1.0]], 1e-7);
 
     let st_01 = build_shell_tuple![(&bsc0, true), (&bsc1, false); f64];
     let ovs_01 = st_01.overlap([0, 0]);
-    assert_close_l2!(&ovs_01[0], &array![[0.796588301]], 1e-7);
+    close_l2(&ovs_01[0], &array![[0.796588301]], 1e-7);
 
     // ~~~~~~~~~~~~~~~~~
     // H2, 6-31G**
@@ -145,27 +145,27 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     // <01s|:>
     let st_01s01s = build_shell_tuple![(&bsc0_1s, true), (&bsc0_1s, false); f64];
     let ovs_01s01s = st_01s01s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s01s[0], &array![[1.0]], 1e-6);
+    close_l2(&ovs_01s01s[0], &array![[1.0]], 1e-6);
 
     let st_01s02s = build_shell_tuple![(&bsc0_1s, true), (&bsc0_2s, false); f64];
     let ovs_01s02s = st_01s02s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s02s[0], &array![[0.6582920]], 1e-6);
+    close_l2(&ovs_01s02s[0], &array![[0.6582920]], 1e-6);
 
     let st_01s02p = build_shell_tuple![(&bsc0_1s, true), (&bsc0_2p, false); f64];
     let ovs_01s02p = st_01s02p.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s02p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
+    close_l2(&ovs_01s02p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
 
     let st_01s11s = build_shell_tuple![(&bsc0_1s, true), (&bsc1_1s, false); f64];
     let ovs_01s11s = st_01s11s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s11s[0], &array![[0.3107063]], 1e-6);
+    close_l2(&ovs_01s11s[0], &array![[0.3107063]], 1e-6);
 
     let st_01s12s = build_shell_tuple![(&bsc0_1s, true), (&bsc1_2s, false); f64];
     let ovs_01s12s = st_01s12s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s12s[0], &array![[0.4437869]], 1e-6);
+    close_l2(&ovs_01s12s[0], &array![[0.4437869]], 1e-6);
 
     let st_01s12p = build_shell_tuple![(&bsc0_1s, true), (&bsc1_2p, false); f64];
     let ovs_01s12p = st_01s12p.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_01s12p[0],
         &array![[-0.2056149, -0.2056149, -0.2056149]],
         1e-6
@@ -174,23 +174,23 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     // <02s|:>
     let st_02s02s = build_shell_tuple![(&bsc0_2s, true), (&bsc0_2s, false); f64];
     let ovs_02s02s = st_02s02s.overlap([0, 0]);
-    assert_close_l2!(&ovs_02s02s[0], &array![[1.0]], 1e-6);
+    close_l2(&ovs_02s02s[0], &array![[1.0]], 1e-6);
 
     let st_02s02p = build_shell_tuple![(&bsc0_2s, true), (&bsc0_2p, false); f64];
     let ovs_02s02p = st_02s02p.overlap([0, 0]);
-    assert_close_l2!(&ovs_02s02p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
+    close_l2(&ovs_02s02p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
 
     let st_02s11s = build_shell_tuple![(&bsc0_2s, true), (&bsc1_1s, false); f64];
     let ovs_02s11s = st_02s11s.overlap([0, 0]);
-    assert_close_l2!(&ovs_02s11s[0], &array![[0.4437869]], 1e-6);
+    close_l2(&ovs_02s11s[0], &array![[0.4437869]], 1e-6);
 
     let st_02s12s = build_shell_tuple![(&bsc0_2s, true), (&bsc1_2s, false); f64];
     let ovs_02s12s = st_02s12s.overlap([0, 0]);
-    assert_close_l2!(&ovs_02s12s[0], &array![[0.7851216]], 1e-6);
+    close_l2(&ovs_02s12s[0], &array![[0.7851216]], 1e-6);
 
     let st_02s12p = build_shell_tuple![(&bsc0_2s, true), (&bsc1_2p, false); f64];
     let ovs_02s12p = st_02s12p.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_02s12p[0],
         &array![[-0.0960035, -0.0960035, -0.0960035]],
         1e-6
@@ -199,7 +199,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     // <02p|:>
     let st_02p02p = build_shell_tuple![(&bsc0_2p, true), (&bsc0_2p, false); f64];
     let ovs_02p02p = st_02p02p.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_02p02p[0],
         &array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0],],
         1e-6
@@ -207,7 +207,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
 
     let st_02p11s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_1s, false); f64];
     let ovs_02p11s = st_02p11s.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_02p11s[0],
         &array![[0.2056149], [0.2056149], [0.2056149],],
         1e-6
@@ -215,7 +215,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
 
     let st_02p12s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_2s, false); f64];
     let ovs_02p12s = st_02p12s.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_02p12s[0],
         &array![[0.0960035], [0.0960035], [0.0960035],],
         1e-6
@@ -224,7 +224,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     let st_02p12p = build_shell_tuple![(&bsc0_2p, true), (&bsc1_2p, false); f64];
     let ovs_02p12p = st_02p12p.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p12p[0],
         &array![
             [-0.0192050, -0.2112549, -0.2112549],
@@ -355,27 +355,27 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     // <01s|:>
     let st_01s01s = build_shell_tuple![(&bsc0_1s, true), (&bsc0_1s, false); f64];
     let ovs_01s01s = st_01s01s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s01s[0], &array![[1.0]], 1e-6);
+    close_l2(&ovs_01s01s[0], &array![[1.0]], 1e-6);
 
     let st_01s02s = build_shell_tuple![(&bsc0_1s, true), (&bsc0_2s, false); f64];
     let ovs_01s02s = st_01s02s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s02s[0], &array![[0.1452582]], 1e-6);
+    close_l2(&ovs_01s02s[0], &array![[0.1452582]], 1e-6);
 
     let st_01s02p = build_shell_tuple![(&bsc0_1s, true), (&bsc0_2p, false); f64];
     let ovs_01s02p = st_01s02p.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s02p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
+    close_l2(&ovs_01s02p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
 
     let st_01s03s = build_shell_tuple![(&bsc0_1s, true), (&bsc0_3s, false); f64];
     let ovs_01s03s = st_01s03s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s03s[0], &array![[0.1857425]], 1e-6);
+    close_l2(&ovs_01s03s[0], &array![[0.1857425]], 1e-6);
 
     let st_01s03p = build_shell_tuple![(&bsc0_1s, true), (&bsc0_3p, false); f64];
     let ovs_01s03p = st_01s03p.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s03p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
+    close_l2(&ovs_01s03p[0], &array![[0.0, 0.0, 0.0]], 1e-6);
 
     let st_01s03d = build_shell_tuple![(&bsc0_1s, true), (&bsc0_3d, false); f64];
     let ovs_01s03d = st_01s03d.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_01s03d[0],
         &array![[0.0996256, 0.0, 0.0996256, 0.0, 0.0, 0.0996256]],
         1e-6
@@ -383,27 +383,27 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
 
     let st_01s11s = build_shell_tuple![(&bsc0_1s, true), (&bsc1_1s, false); f64];
     let ovs_01s11s = st_01s11s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s11s[0], &array![[0.0545917]], 1e-6);
+    close_l2(&ovs_01s11s[0], &array![[0.0545917]], 1e-6);
 
     let st_01s12s = build_shell_tuple![(&bsc0_1s, true), (&bsc1_2s, false); f64];
     let ovs_01s12s = st_01s12s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s12s[0], &array![[0.2143351]], 1e-6);
+    close_l2(&ovs_01s12s[0], &array![[0.2143351]], 1e-6);
 
     let st_01s12p = build_shell_tuple![(&bsc0_1s, true), (&bsc1_2p, false); f64];
     let ovs_01s12p = st_01s12p.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s12p[0], &array![[-0.2452074, -0.1226037, 0.0]], 1e-6);
+    close_l2(&ovs_01s12p[0], &array![[-0.2452074, -0.1226037, 0.0]], 1e-6);
 
     let st_01s13s = build_shell_tuple![(&bsc0_1s, true), (&bsc1_3s, false); f64];
     let ovs_01s13s = st_01s13s.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s13s[0], &array![[0.1562076]], 1e-6);
+    close_l2(&ovs_01s13s[0], &array![[0.1562076]], 1e-6);
 
     let st_01s13p = build_shell_tuple![(&bsc0_1s, true), (&bsc1_3p, false); f64];
     let ovs_01s13p = st_01s13p.overlap([0, 0]);
-    assert_close_l2!(&ovs_01s13p[0], &array![[-0.1141146, -0.0570573, 0.0]], 1e-6);
+    close_l2(&ovs_01s13p[0], &array![[-0.1141146, -0.0570573, 0.0]], 1e-6);
 
     let st_01s13d = build_shell_tuple![(&bsc0_1s, true), (&bsc1_3d, false); f64];
     let ovs_01s13d = st_01s13d.overlap([0, 0]);
-    assert_close_l2!(
+    close_l2(
         &ovs_01s13d[0],
         &array![[0.3470063, 0.2615882, 0.1204642, 0.0, 0.0, 0.0449502]],
         1e-6
@@ -413,7 +413,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p02p = build_shell_tuple![(&bsc0_2p, true), (&bsc0_2p, false); f64];
     let ovs_02p02p = st_02p02p.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p02p[0],
         &array![
             [1.0, 0.0, 0.0],
@@ -426,7 +426,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p03s = build_shell_tuple![(&bsc0_2p, true), (&bsc0_3s, false); f64];
     let ovs_02p03s = st_02p03s.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p03s[0],
         &array![
             [0.0],
@@ -439,7 +439,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p03p = build_shell_tuple![(&bsc0_2p, true), (&bsc0_3p, false); f64];
     let ovs_02p03p = st_02p03p.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p03p[0],
         &array![
             [0.8020639, 0.0, 0.0],
@@ -452,7 +452,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p03d = build_shell_tuple![(&bsc0_2p, true), (&bsc0_3d, false); f64];
     let ovs_02p03d = st_02p03d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p03d[0],
         &array![
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -465,7 +465,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p11s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_1s, false); f64];
     let ovs_02p11s = st_02p11s.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p11s[0],
         &array![
             [0.2452074],
@@ -478,7 +478,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p12s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_2s, false); f64];
     let ovs_02p12s = st_02p12s.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p12s[0],
         &array![
             [0.4137897],
@@ -491,7 +491,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p12p = build_shell_tuple![(&bsc0_2p, true), (&bsc1_2p, false); f64];
     let ovs_02p12p = st_02p12p.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p12p[0],
         &array![
             [ 0.5209479, -0.1381780, 0.0000000],
@@ -504,7 +504,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p13s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_3s, false); f64];
     let ovs_02p13s = st_02p13s.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p13s[0],
         &array![
             [0.2685371],
@@ -517,7 +517,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p13p = build_shell_tuple![(&bsc0_2p, true), (&bsc1_3p, false); f64];
     let ovs_02p13p = st_02p13p.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p13p[0],
         &array![
             [ 0.5667930, -0.0706191, 0.0000000],
@@ -530,7 +530,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_02p13d = build_shell_tuple![(&bsc0_2p, true), (&bsc1_3d, false); f64];
     let ovs_02p13d = st_02p13d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_02p13d[0],
         &array![
             [0.1412689, -0.0692422, 0.4466108,  0.0000000,  0.0000000, 0.4175240],
@@ -544,7 +544,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_03d03d = build_shell_tuple![(&bsc0_3d, true), (&bsc0_3d, false); f64];
     let ovs_03d03d = st_03d03d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_03d03d[0],
         &array![
             [1.0000000, 0.0000000, 0.3333333, 0.0000000, 0.0000000, 0.3333333],
@@ -560,7 +560,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     let st_03d13d = build_shell_tuple![(&bsc0_3d, true), (&bsc1_3d, false); f64];
     let ovs_03d13d = st_03d13d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_03d13d[0],
         &array![
             [ 0.4124408, -0.0280145,  0.4367021,  0.0000000,  0.0000000, 0.3639184],
@@ -818,7 +818,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f03d = build_shell_tuple![(&bsc0_4f, true), (&bsc0_3d, false); f64];
     let ovs_04f03d = st_04f03d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f03d[0],
         &array![
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -835,7 +835,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f04d = build_shell_tuple![(&bsc0_4f, true), (&bsc0_4d, false); f64];
     let ovs_04f04d = st_04f04d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f04d[0],
         &array![
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -852,7 +852,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f04f = build_shell_tuple![(&bsc0_4f, true), (&bsc0_4f, false); f64];
     let ovs_04f04f = st_04f04f.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f04f[0],
         &Array2::<f64>::eye(7),
         1e-6
@@ -861,7 +861,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f15p = build_shell_tuple![(&bsc0_4f, true), (&bsc1_5p, false); f64];
     let ovs_04f15p = st_04f15p.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f15p[0],
         &array![
             [ 0.00072276, -0.00001720,  0.00000000],
@@ -878,7 +878,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f13d = build_shell_tuple![(&bsc0_4f, true), (&bsc1_3d, false); f64];
     let ovs_04f13d = st_04f13d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f13d[0],
         &array![
             [ 0.0435394,  0.1130559,  0.0776040,  0.0000000,  0.0000000,  0.2035663],
@@ -895,7 +895,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f14d = build_shell_tuple![(&bsc0_4f, true), (&bsc1_4d, false); f64];
     let ovs_04f14d = st_04f14d.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f14d[0],
         &array![
             [ 0.0234881,  0.1958447, -0.1643977,  0.0000000,  0.0000000,  0.0179388],
@@ -912,7 +912,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     let st_04f14f = build_shell_tuple![(&bsc0_4f, true), (&bsc1_4f, false); f64];
     let ovs_04f14f = st_04f14f.overlap([0, 0]);
     #[rustfmt::skip]
-    assert_close_l2!(
+    close_l2(
         &ovs_04f14f[0],
         &array![
             [-0.2360475, 0.0000000, -0.0816754,  0.0000000,  0.0853880,  0.0000000,  0.0383427],
@@ -952,7 +952,7 @@ fn test_integrals_shell_tuple_overlap_2c_optimised_contraction() {
 
     let st_00 = build_shell_tuple![(&bsc0, true), (&bsc0, false); f64];
     let ovs_00 = st_00.overlap([0, 0]);
-    assert_close_l2!(&ovs_00[0], &array![[1.0]], 1e-7);
+    close_l2(&ovs_00[0], &array![[1.0]], 1e-7);
 }
 
 #[test]
@@ -1004,9 +1004,9 @@ fn test_integrals_shell_tuple_overlap_2c_b_qchem() {
 
     let st_00 = build_shell_tuple![(&bsc0, true), (&bsc0, false); f64];
     let ovs_00 = st_00.overlap([0, 0]);
-    assert_close_l2!(&ovs_00[0], &array![[1.0]], 1e-7);
+    close_l2(&ovs_00[0], &array![[1.0]], 1e-7);
 
     let st_01 = build_shell_tuple![(&bsc0, true), (&bsc1, false); f64];
     let ovs_01 = st_01.overlap([0, 0]);
-    assert_close_l2!(&ovs_01[0], &array![[0.1087534]], 1e-6);
+    close_l2(&ovs_01[0], &array![[0.1087534]], 1e-6);
 }
