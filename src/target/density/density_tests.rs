@@ -2,7 +2,7 @@
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
-use ndarray_linalg::assert_close_l2;
+use ndarray_linalg::assert::close_l2;
 use num_complex::Complex;
 use serial_test::serial;
 
@@ -369,8 +369,8 @@ fn test_density_transformation_b3_real_timerev() {
     // time-reversal simply causes complex conjugation on them (which has no effects in this case
     // since they are all real). However, `detgen` has a spin structure, and time reversal brings
     // about spin flip.
-    assert_close_l2!(tden_a_tr.density_matrix(), &tdb_tr_ref, 1e-14);
-    assert_close_l2!(tden_b_tr.density_matrix(), &tda_tr_ref, 1e-14);
+    close_l2(tden_a_tr.density_matrix(), &tdb_tr_ref, 1e-14);
+    close_l2(tden_b_tr.density_matrix(), &tda_tr_ref, 1e-14);
 
     let tdetgen_c3p1_tr = detgen
         .sym_transform_spatial(&c3p1)
@@ -452,12 +452,12 @@ fn test_density_transformation_c2_complex_timerev() {
     // structure, and time reversal brings about spin flip.
     assert_eq!(tden_a_tr, den_a.transform_cc().unwrap());
     assert_eq!(tden_b_tr, den_b.transform_cc().unwrap());
-    assert_close_l2!(
+    close_l2(
         tden_b_tr.density_matrix(),
         &tdgen_tr_ref.slice(s![0..6, 0..6]),
         1e-14
     );
-    assert_close_l2!(
+    close_l2(
         tden_a_tr.density_matrix(),
         &tdgen_tr_ref.slice(s![6..12, 6..12]),
         1e-14

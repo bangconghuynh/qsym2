@@ -1,7 +1,7 @@
 // use env_logger;
 use hdf5;
 use nalgebra::{Point3, Vector3};
-use ndarray_linalg::assert_close_l2;
+use ndarray_linalg::assert::close_l2;
 
 use super::{QChemSlaterDeterminantH5Driver, QChemSlaterDeterminantH5SinglePointDriver};
 
@@ -116,7 +116,7 @@ fn test_interfaces_qchem_hdf5_sp_basis_set_extraction_benzene() {
         f64
     ];
     let sao_qsym2 = stc.overlap([0, 0]).pop().unwrap();
-    assert_close_l2!(&sao_qsym2, &sao_hdf5, 1e-7);
+    close_l2(&sao_qsym2, &sao_hdf5, 1e-7);
 }
 
 #[test]
@@ -161,7 +161,7 @@ fn test_interfaces_qchem_hdf5_sp_basis_set_extraction_c60() {
         f64
     ];
     let sao_qsym2 = stc.overlap([0, 0]).pop().unwrap();
-    assert_close_l2!(&sao_qsym2, &sao_hdf5, 1e-7);
+    close_l2(&sao_qsym2, &sao_hdf5, 1e-7);
 }
 
 #[test]
