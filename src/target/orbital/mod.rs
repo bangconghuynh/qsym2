@@ -6,7 +6,7 @@ use anyhow::{self, format_err};
 use approx;
 use derive_builder::Builder;
 use ndarray::{s, Array1, Array2, Ix2};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};

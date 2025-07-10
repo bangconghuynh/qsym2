@@ -9,7 +9,7 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use ndarray::{Array1, Array2, Array4, Axis, Ix4};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::{
     eig::Eig,
     eigh::Eigh,

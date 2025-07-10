@@ -9,7 +9,7 @@ use duplicate::duplicate_item;
 use itertools::Itertools;
 use log;
 use ndarray::{s, Array, Array1, Array2, Axis, Dimension, Ix0, Ix2};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};

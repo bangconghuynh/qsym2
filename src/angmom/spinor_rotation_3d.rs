@@ -40,15 +40,15 @@ pub trait StructureConstraint {
     /// The number of isostructural components implicitly specified by each coefficient matrix.
     fn n_implicit_comps_per_coefficient_matrix(&self) -> usize;
 
+    // ----------------
+    // Provided methods
+    // ----------------
     /// The total number of isostructural components given by the product of
     /// [`Self::n_coefficient_matrices`] and [`Self::n_implicit_comps_per_coefficient_matrix`].
     fn n_comps(&self) -> usize {
         self.n_coefficient_matrices() * self.n_implicit_comps_per_coefficient_matrix()
     }
 
-    // ----------------
-    // Provided methods
-    // ----------------
     /// The implicit factor given by the ratio between
     /// [`Self::n_implicit_comps_per_coefficient_matrix`] and
     /// [`Self::n_explicit_comps_per_coefficient_matrix`]. It will be checked that this ratio

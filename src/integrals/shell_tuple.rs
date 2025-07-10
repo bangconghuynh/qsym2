@@ -632,7 +632,7 @@ use duplicate::duplicate_item;
 use factorial::DoubleFactorial;
 use log;
 use ndarray::{s, Zip};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use num_complex::Complex;
 use num_traits::ToPrimitive;
 
