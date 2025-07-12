@@ -9,7 +9,7 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, Ix2};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::types::Lapack;
 use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};

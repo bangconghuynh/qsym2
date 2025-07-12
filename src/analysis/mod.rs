@@ -9,7 +9,7 @@ use duplicate::duplicate_item;
 use itertools::Itertools;
 use log;
 use ndarray::{s, Array, Array1, Array2, Axis, Dimension, Ix0, Ix2};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
@@ -269,13 +269,15 @@ where
     ///     = f \left( \langle \hat{\iota} \hat{g}_i^{-1} \mathbf{v}_w, \mathbf{v}_x \rangle \right).
     /// ```
     ///
-    /// Typically, if $`\hat{g}_i`$ is unitary, then $`f`$ is the identity, and if $`\hat{g}_i`$ is
-    /// antiunitary, then $`f`$ is the complex-conjugation operation. Either way, the norm of the
-    /// inner product is preserved.
+    /// Typically, for $`\hat{\iota} = \mathrm{id}`$, if $`\hat{g}_i`$ is unitary, then $`f`$ is the
+    /// identity, and if $`\hat{g}_i`$ is antiunitary, then $`f`$ is the complex-conjugation
+    /// operation. Either way, the norm of the inner product is preserved.
     ///
-    /// If the overlap between items is complex-symmetric (see [`Overlap::complex_symmetric`]), then
-    /// this map is currently unsupported because it is currently unclear if the unitary and
-    /// antiunitary symmetry operators in QSym² are .
+    /// If the overlap between items is complex-symmetric (*i.e.* $`\hat{\iota} = \hat{\kappa}`$,
+    /// see [`Overlap::complex_symmetric`]), then this map is currently unsupported because it is
+    /// currently unclear if the unitary and antiunitary symmetry operators in QSym² commute with
+    /// $`\hat{\kappa}`$. This thus precludes the use of the Cayley table to speed up the computation
+    /// of the orbit overlap matrix.
     #[must_use]
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error>;
 

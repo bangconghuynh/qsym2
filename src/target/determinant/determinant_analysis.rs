@@ -374,7 +374,7 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."))
         } else {
             if self
                 .group

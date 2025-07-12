@@ -9,7 +9,7 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use ndarray::{Array1, Array2, Array4, Axis, Ix4};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::{
     eig::Eig,
     eigh::Eigh,
@@ -404,7 +404,7 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
+            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."))
         } else {
             if self
                 .group
