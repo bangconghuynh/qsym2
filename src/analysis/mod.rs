@@ -45,7 +45,6 @@ pub(crate) struct Metric<'a, T, D: Dimension> {
     complex_symmetric: Option<&'a Array<T, D>>,
 }
 
-
 // =======
 // Overlap
 // =======
@@ -261,6 +260,9 @@ where
     #[must_use]
     fn xmat(&self) -> &Array2<T>;
 
+    #[must_use]
+    fn xmat_d(&self) -> &Array2<T>;
+
     /// Returns the norm-preserving scalar map $`f`$ for every element of the generating group
     /// defined by
     ///
@@ -466,13 +468,14 @@ where
     /// The matrix $`\mathbf{D}(g)`$.
     #[must_use]
     fn calc_dmat(&self, op: &G::GroupElement) -> Result<Array2<T>, anyhow::Error> {
-        let complex_symmetric = self.origin().complex_symmetric();
-        let xmath = if complex_symmetric {
-            self.xmat().t().to_owned()
-        } else {
-            self.xmat().t().mapv(|x| x.conj())
-        };
-        let smattilde = xmath
+        // let complex_symmetric = self.origin().complex_symmetric();
+        // let xmath = if complex_symmetric {
+        //     self.xmat().t().to_owned()
+        // } else {
+        //     self.xmat().t().mapv(|x| x.conj())
+        // };
+        let xmat_d = self.xmat_d();
+        let smattilde = xmat_d
             .dot(
                 self.smat()
                     .ok_or(format_err!("No orbit overlap matrix found."))?,
@@ -483,7 +486,7 @@ where
             .expect("The inverse of S~ could not be found.");
         let dmat = einsum(
             "ij,jk,kl,lm->im",
-            &[&smattilde_inv, &xmath, &self.calc_tmat(op)?, self.xmat()],
+            &[&smattilde_inv, xmat_d, &self.calc_tmat(op)?, self.xmat()],
         )
         .map_err(|err| format_err!(err))
         .with_context(|| "Unable to compute the matrix product [(S~)^(-1) X† T X].")?
@@ -509,13 +512,14 @@ where
     /// The character $`\chi(g)`$.
     #[must_use]
     fn calc_character(&self, op: &G::GroupElement) -> Result<T, anyhow::Error> {
-        let complex_symmetric = self.origin().complex_symmetric();
-        let xmath = if complex_symmetric {
-            self.xmat().t().to_owned()
-        } else {
-            self.xmat().t().mapv(|x| x.conj())
-        };
-        let smattilde = xmath
+        // let complex_symmetric = self.origin().complex_symmetric();
+        // let xmath = if complex_symmetric {
+        //     self.xmat().t().to_owned()
+        // } else {
+        //     self.xmat().t().mapv(|x| x.conj())
+        // };
+        let xmat_d = self.xmat_d();
+        let smattilde = xmat_d
             .dot(
                 self.smat()
                     .ok_or(format_err!("No orbit overlap matrix found."))?,
@@ -526,7 +530,7 @@ where
             .expect("The inverse of S~ could not be found.");
         let chi = einsum(
             "ij,jk,kl,li",
-            &[&smattilde_inv, &xmath, &self.calc_tmat(op)?, self.xmat()],
+            &[&smattilde_inv, xmat_d, &self.calc_tmat(op)?, self.xmat()],
         )
         .map_err(|err| format_err!(err))
         .with_context(|| "Unable to compute the trace of the matrix product [(S~)^(-1) X† T X].")?
@@ -550,13 +554,14 @@ where
     fn calc_characters(
         &self,
     ) -> Result<Vec<(<G as ClassProperties>::ClassSymbol, T)>, anyhow::Error> {
-        let complex_symmetric = self.origin().complex_symmetric();
-        let xmath = if complex_symmetric {
-            self.xmat().t().to_owned()
-        } else {
-            self.xmat().t().mapv(|x| x.conj())
-        };
-        let smattilde = xmath
+        // let complex_symmetric = self.origin().complex_symmetric();
+        // let xmath = if complex_symmetric {
+        //     self.xmat().t().to_owned()
+        // } else {
+        //     self.xmat().t().mapv(|x| x.conj())
+        // };
+        let xmat_d = self.xmat_d();
+        let smattilde = xmat_d
             .dot(
                 self.smat()
                     .ok_or(format_err!("No orbit overlap matrix found."))?,
@@ -570,7 +575,7 @@ where
             let op = self.group().get_cc_transversal(cc_i).unwrap();
             let chi = einsum(
                 "ij,jk,kl,li",
-                &[&smattilde_inv, &xmath, &self.calc_tmat(&op)?, self.xmat()],
+                &[&smattilde_inv, xmat_d, &self.calc_tmat(&op)?, self.xmat()],
             )
             .map_err(|err| format_err!(err))
             .with_context(|| "Unable to compute the trace of the matrix product [(S~)^(-1) X† T X].")?
@@ -857,14 +862,18 @@ macro_rules! fn_calc_xmat_real {
                 let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
                 let nonzero_umat = umat.select(Axis(1), &nonzero_s_indices);
                 let nullity = smat.shape()[0] - nonzero_s_indices.len();
-                let xmat = if nullity == 0 && preserves_full_rank {
-                    Array2::eye(smat.shape()[0])
+                let (xmat, xmat_d) = if nullity == 0 && preserves_full_rank {
+                    (Array2::eye(smat.shape()[0]), Array2::eye(smat.shape()[0]))
                 } else {
                     let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
-                    nonzero_umat.dot(&s_s)
+                    (
+                        nonzero_umat.dot(&s_s),
+                        s_s.dot(&nonzero_umat.t()),
+                    )
                 };
                 self.smat_eigvals = Some(s_eig);
                 self.xmat = Some(xmat);
+                self.xmat_d = Some(xmat_d);
                 Ok(self)
             }
         }
@@ -916,16 +925,29 @@ macro_rules! fn_calc_xmat_complex {
             )?;
 
             let nullity = smat.shape()[0] - nonzero_s_indices.len();
-            let xmat = if nullity == 0 && preserves_full_rank {
-                Array2::<Complex<T>>::eye(smat.shape()[0])
+            let (xmat, xmat_d) = if nullity == 0 && preserves_full_rank {
+                (Array2::<Complex<T>>::eye(smat.shape()[0]), Array2::<Complex<T>>::eye(smat.shape()[0]))
             } else {
                 let s_s = Array2::<Complex<T>>::from_diag(
                     &nonzero_s_eig.mapv(|x| Complex::<T>::from(T::one()) / x.sqrt()),
                 );
-                nonzero_umat.dot(&s_s)
+                // (
+                //     nonzero_umat.dot(&s_s),
+                //     s_s.dot(&nonzero_umat.map(|v| v.conj()).t()),
+                // )
+                let complex_symmetric = self.origin().complex_symmetric();
+                if complex_symmetric {
+                    (nonzero_umat.dot(&s_s), s_s.dot(&nonzero_umat.t()))
+                } else {
+                    (
+                        nonzero_umat.dot(&s_s),
+                        s_s.dot(&nonzero_umat.map(|v| v.conj()).t()),
+                    )
+                }
             };
             self.smat_eigvals = Some(s_eig);
             self.xmat = Some(xmat);
+            self.xmat_d = Some(xmat_d);
             Ok(self)
         }
     }

@@ -250,6 +250,13 @@ where
     #[builder(setter(skip), default = "None")]
     xmat: Option<Array2<T>>,
 
+    /// The $`\mathbf{X}^{\ddagger}`$ matrix for the overlap matrix between the symmetry-equivalent
+    /// densities in the orbit.
+    ///
+    /// See [`RepAnalysis::xmat_d`] for further information.
+    #[builder(setter(skip), default = "None")]
+    xmat_d: Option<Array2<T>>,
+
     /// An enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
@@ -399,7 +406,13 @@ where
     fn xmat(&self) -> &Array2<T> {
         self.xmat
             .as_ref()
-            .expect("Orbit overlap orthogonalisation matrix not found.")
+            .expect("Orbit overlap orthogonalisation matrix X not found.")
+    }
+
+    fn xmat_d(&self) -> &Array2<T> {
+        self.xmat_d
+            .as_ref()
+            .expect("Orbit overlap orthogonalisation matrix X‡ not found.")
     }
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
