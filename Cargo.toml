@@ -31,7 +31,7 @@ log4rs = { version = "1.3", features = ["file_appender", "pattern_encoder"] }
 nalgebra = { version = "0.33", features = ["serde-serialize"] }
 ndarray = { version = "0.16", features = ["rayon", "serde"] }
 ndarray-einsum = "0.8.0"
-ndarray-linalg = { version = "0.17", default-features = false }
+ndarray-linalg = { git = "https://github.com/bangconghuynh/ndarray-linalg", branch = "bch/implement_eig_generalized", default-features = false }
 num = "0.4"
 num-complex = "0.4"
 num-modular = "0.6"
