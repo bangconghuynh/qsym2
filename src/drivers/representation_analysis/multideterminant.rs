@@ -558,7 +558,7 @@ where
                 )
             )
         } else if (n_spatial != sao.nrows() || n_spatial != sao.ncols())
-            || (n_spatial * n_comps != sao.nrows() || n_spatial * n_comps != sao.ncols())
+            && (n_spatial * n_comps != sao.nrows() || n_spatial * n_comps != sao.ncols())
         {
             Err("The dimensions of the SAO matrix do not match either the number of spatial AO basis functions or the number of spatial AO basis functions multiplied by the number of explicit components per coefficient matrix.".to_string())
         } else {
