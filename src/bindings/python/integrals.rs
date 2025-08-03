@@ -352,7 +352,7 @@ impl PyBasisAngularOrder {
     ///
     /// Errors if the number of atoms or the atom elements in `mol` do not match the number of
     /// atoms and atom elements in `self`, or if incorrect shell order types are specified.
-    pub(crate) fn to_qsym2<'b, 'a: 'b>(
+    pub fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
     ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
