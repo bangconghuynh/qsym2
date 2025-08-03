@@ -286,7 +286,10 @@ impl PyBasisAngularOrder {
                             basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
                                 l,
                                 ShellType::Pure,
-                                PyShellOrder::PureSpinorOrder(PyPureSpinorOrder::Standard((true, l % 2 == 0))),
+                                PyShellOrder::PureSpinorOrder(PyPureSpinorOrder::Standard((
+                                    true,
+                                    l % 2 == 0,
+                                ))),
                             ));
                         }
                     },
@@ -386,7 +389,7 @@ impl PyBasisAngularOrder {
 /// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
@@ -428,7 +431,7 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
 /// Python-exposed enumerated type to marshall basis spin--orbit-coupled layout in the coupled
 /// treatment of spin and spatial degrees of freedom between Rust and Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum PySpinOrbitCoupled {
     /// Variant for $`j`$-adapted basis functions. Only two relativistic components are exposed.
     JAdapted,
@@ -457,7 +460,7 @@ impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
 
 /// Python-exposed enumerated type to handle the union type `PySpinConstraint | PySpinOrbitCoupled`
 /// in Python.
-#[derive(FromPyObject, Clone, Hash)]
+#[derive(FromPyObject, Clone, PartialEq, Eq, Hash)]
 pub enum PyStructureConstraint {
     /// Variant for Python-exposed spin constraint layout.
     SpinConstraint(PySpinConstraint),
