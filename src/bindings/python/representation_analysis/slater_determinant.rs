@@ -228,7 +228,7 @@ impl PySlaterDeterminantReal {
         det
     }
 
-    pub fn structure_constraint<'py>(&self) -> &PyStructureConstraint {
+    pub fn structure_constraint(&self) -> &PyStructureConstraint {
         &self.structure_constraint
     }
 }
@@ -417,7 +417,7 @@ impl PySlaterDeterminantComplex {
         det
     }
 
-    pub fn structure_constraint<'py>(&self) -> &PyStructureConstraint {
+    pub fn structure_constraint(&self) -> &PyStructureConstraint {
         &self.structure_constraint
     }
 }
