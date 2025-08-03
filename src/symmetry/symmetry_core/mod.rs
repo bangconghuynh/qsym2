@@ -49,28 +49,28 @@ impl Error for PointGroupDetectionError {}
 pub struct PreSymmetry {
     /// The original molecule.
     #[builder(setter(custom))]
-    pub(crate) original_molecule: Molecule,
+    pub original_molecule: Molecule,
 
     /// The recentred molecule to be symmetry-analysed.
     #[builder(setter(custom))]
-    pub(crate) recentred_molecule: Molecule,
+    pub recentred_molecule: Molecule,
 
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
-    pub(crate) moi_threshold: f64,
+    pub moi_threshold: f64,
 
     /// The rotational symmetry of [`Self::recentred_molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
-    pub(crate) rotational_symmetry: RotationalSymmetry,
+    pub rotational_symmetry: RotationalSymmetry,
 
     /// The groups of symmetry-equivalent atoms in [`Self::recentred_molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
-    pub(crate) sea_groups: Vec<Vec<Atom>>,
+    pub sea_groups: Vec<Vec<Atom>>,
 
     /// Threshold for relative distance comparisons.
     #[builder(setter(skip), default = "self.get_dist_threshold()")]
-    pub(crate) dist_threshold: f64,
+    pub dist_threshold: f64,
 }
 
 impl PreSymmetryBuilder {

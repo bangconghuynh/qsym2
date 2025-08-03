@@ -159,6 +159,10 @@ impl PySlaterDeterminantReal {
         det
     }
 
+    pub fn structure_constraint<'py>(&self, _py: Python<'py>) -> PyResult<PyStructureConstraint> {
+        Ok(self.structure_constraint)
+    }
+
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         Ok(self.complex_symmetric)
     }
@@ -342,6 +346,10 @@ impl PySlaterDeterminantComplex {
             energy,
         };
         det
+    }
+
+    pub fn structure_constraint<'py>(&self, _py: Python<'py>) -> PyResult<PyStructureConstraint> {
+        Ok(self.structure_constraint)
     }
 
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
