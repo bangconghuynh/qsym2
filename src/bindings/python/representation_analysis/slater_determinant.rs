@@ -159,10 +159,6 @@ impl PySlaterDeterminantReal {
         det
     }
 
-    pub fn structure_constraint<'py>(&self, _py: Python<'py>) -> PyResult<PyStructureConstraint> {
-        Ok(self.structure_constraint)
-    }
-
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         Ok(self.complex_symmetric)
     }
@@ -230,6 +226,10 @@ impl PySlaterDeterminantReal {
             .build()
             .map_err(|err| format_err!(err));
         det
+    }
+
+    pub fn structure_constraint<'py>(&self, _py: Python<'py>) -> &PyStructureConstraint {
+        &self.structure_constraint
     }
 }
 
@@ -348,10 +348,6 @@ impl PySlaterDeterminantComplex {
         det
     }
 
-    pub fn structure_constraint<'py>(&self, _py: Python<'py>) -> PyResult<PyStructureConstraint> {
-        Ok(self.structure_constraint)
-    }
-
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         Ok(self.complex_symmetric)
     }
@@ -419,6 +415,10 @@ impl PySlaterDeterminantComplex {
             .build()
             .map_err(|err| format_err!(err));
         det
+    }
+
+    pub fn structure_constraint<'py>(&self, _py: Python<'py>) -> &PyStructureConstraint {
+        &self.structure_constraint
     }
 }
 
