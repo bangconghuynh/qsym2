@@ -127,6 +127,5 @@ pub const ORDER_1: ElementOrder = ElementOrder::Int(1);
 /// Element integer order 2.
 pub const ORDER_2: ElementOrder = ElementOrder::Int(2);
 
-
 /// Element infinite order.
 pub const ORDER_I: ElementOrder = ElementOrder::Inf;

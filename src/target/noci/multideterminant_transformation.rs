@@ -7,13 +7,14 @@ use ndarray::Array2;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::group::GroupProperties;
 use crate::permutation::Permutation;
 use crate::symmetry::symmetry_element::{SpecialSymmetryTransformation, SymmetryOperation};
 use crate::symmetry::symmetry_transformation::{
     ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
-    SpinUnitaryTransformable, SymmetryTransformable, TransformationError,
+    SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
+    TransformationError,
 };
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
@@ -81,28 +82,72 @@ where
 // DefaultTimeReversalTransformable
 // --------------------------------
 
-impl<'a, T, B> DefaultTimeReversalTransformable for MultiDeterminant<'a, T, B, SpinConstraint>
+impl<'a, T, B, SC> DefaultTimeReversalTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T, SpinConstraint>> + DefaultTimeReversalTransformable + Clone,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + DefaultTimeReversalTransformable + Clone,
 {
+}
+
+// ---------------------------------------
+// TimeReversalTransformable (non-default)
+// ---------------------------------------
+// `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
+// `DefaultTimeReversalTransformable` and so the surrounding `OrbitBasis` does not get a blanket
+// implementation of `TimeReversalTransformable`, and neither does the surrounding
+// `MultiDeterminant`.
+impl<'a, 'g, G> TimeReversalTransformable
+    for MultiDeterminant<
+        'a,
+        Complex<f64>,
+        OrbitBasis<'g, G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
+        SpinOrbitCoupled,
+    >
+where
+    G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
+{
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.basis.transform_timerev_mut()?;
+        self.coefficients.mapv_inplace(|v| v.conj());
+        self.complex_conjugated = !self.complex_conjugated;
+        Ok(self)
+    }
+}
+
+// `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
+// `DefaultTimeReversalTransformable` and so the surrounding `EagerBasis` does not get a blanket
+// implementation of `TimeReversalTransformable`, and neither does the surrounding
+// `MultiDeterminant`.
+impl<'a> TimeReversalTransformable
+    for MultiDeterminant<
+        'a,
+        Complex<f64>,
+        EagerBasis<SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
+        SpinOrbitCoupled,
+    >
+{
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.basis.transform_timerev_mut()?;
+        self.coefficients.mapv_inplace(|v| v.conj());
+        self.complex_conjugated = !self.complex_conjugated;
+        Ok(self)
+    }
 }
 
 // ---------------------
 // SymmetryTransformable
 // ---------------------
 
-impl<'a, 'go, G, T> SymmetryTransformable
-    for MultiDeterminant<
-        'a,
-        T,
-        OrbitBasis<'go, G, SlaterDeterminant<'a, T, SpinConstraint>>,
-        SpinConstraint,
-    >
+impl<'a, 'go, G, T, SC> SymmetryTransformable
+    for MultiDeterminant<'a, T, OrbitBasis<'go, G, SlaterDeterminant<'a, T, SC>>, SC>
 where
     T: ComplexFloat + Lapack,
     G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
-    SlaterDeterminant<'a, T, SpinConstraint>: SymmetryTransformable,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
+    Self: TimeReversalTransformable,
+    OrbitBasis<'go, G, SlaterDeterminant<'a, T, SC>>: TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,
@@ -164,16 +209,14 @@ where
     }
 }
 
-impl<'a, T> SymmetryTransformable
-    for MultiDeterminant<
-        'a,
-        T,
-        EagerBasis<SlaterDeterminant<'a, T, SpinConstraint>>,
-        SpinConstraint,
-    >
+impl<'a, T, SC> SymmetryTransformable
+    for MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>
 where
     T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T, SpinConstraint>: SymmetryTransformable,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
+    Self: TimeReversalTransformable,
+    EagerBasis<SlaterDeterminant<'a, T, SC>>: TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,

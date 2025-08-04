@@ -85,7 +85,10 @@ fn test_permutation_lehmer() {
 
     let p012345678 = Permutation::<u8>::from_image(vec![0, 1, 2, 3, 4, 5, 6, 7, 8]).unwrap();
     assert_eq!(p012345678.lehmer_index(None), 0);
-    assert_eq!(Permutation::<u8>::from_lehmer_index(0, 9).unwrap(), p012345678);
+    assert_eq!(
+        Permutation::<u8>::from_lehmer_index(0, 9).unwrap(),
+        p012345678
+    );
 
     let p2154603d = Permutation::<u8>::from_lehmer(p2154603.lehmer(None)).unwrap();
     assert_eq!(p2154603, p2154603d);

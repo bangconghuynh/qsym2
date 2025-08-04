@@ -45,7 +45,6 @@ pub(crate) struct Metric<'a, T, D: Dimension> {
     complex_symmetric: Option<&'a Array<T, D>>,
 }
 
-
 // =======
 // Overlap
 // =======

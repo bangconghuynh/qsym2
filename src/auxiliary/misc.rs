@@ -214,7 +214,7 @@ where
             log::error!("{}", err);
             GramSchmidtError {
                 mat: Some(vmat),
-                vecs: None
+                vecs: None,
             }
         })
     } else {

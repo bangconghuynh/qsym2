@@ -168,7 +168,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     close_l2(
         &ovs_01s12p[0],
         &array![[-0.2056149, -0.2056149, -0.2056149]],
-        1e-6
+        1e-6,
     );
 
     // <02s|:>
@@ -193,7 +193,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     close_l2(
         &ovs_02s12p[0],
         &array![[-0.0960035, -0.0960035, -0.0960035]],
-        1e-6
+        1e-6,
     );
 
     // <02p|:>
@@ -202,7 +202,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     close_l2(
         &ovs_02p02p[0],
         &array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0],],
-        1e-6
+        1e-6,
     );
 
     let st_02p11s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_1s, false); f64];
@@ -210,7 +210,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     close_l2(
         &ovs_02p11s[0],
         &array![[0.2056149], [0.2056149], [0.2056149],],
-        1e-6
+        1e-6,
     );
 
     let st_02p12s = build_shell_tuple![(&bsc0_2p, true), (&bsc1_2s, false); f64];
@@ -218,7 +218,7 @@ fn test_integrals_shell_tuple_overlap_2c_h2() {
     close_l2(
         &ovs_02p12s[0],
         &array![[0.0960035], [0.0960035], [0.0960035],],
-        1e-6
+        1e-6,
     );
 
     let st_02p12p = build_shell_tuple![(&bsc0_2p, true), (&bsc1_2p, false); f64];
@@ -378,7 +378,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     close_l2(
         &ovs_01s03d[0],
         &array![[0.0996256, 0.0, 0.0996256, 0.0, 0.0, 0.0996256]],
-        1e-6
+        1e-6,
     );
 
     let st_01s11s = build_shell_tuple![(&bsc0_1s, true), (&bsc1_1s, false); f64];
@@ -406,7 +406,7 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
     close_l2(
         &ovs_01s13d[0],
         &array![[0.3470063, 0.2615882, 0.1204642, 0.0, 0.0, 0.0449502]],
-        1e-6
+        1e-6,
     );
 
     // <02p|:>
@@ -977,13 +977,13 @@ fn test_integrals_shell_tuple_overlap_2c_b_qchem() {
     };
     let gc_b_ccpvtz_2s = GaussianContraction::<f64, f64> {
         primitives: vec![
-            (5.47300000e+03,  1.83000000e-06),
-            (8.20900000e+02,  1.14100000e-05),
+            (5.47300000e+03, 1.83000000e-06),
+            (8.20900000e+02, 1.14100000e-05),
             (5.28300000e+01, -5.72750000e-04),
             (1.70800000e+01, -6.49550000e-03),
             (5.99900000e+00, -3.99012300e-02),
             (2.20800000e+00, -1.27115170e-01),
-            (2.41500000e-01,  7.86849720e-01),
+            (2.41500000e-01, 7.86849720e-01),
         ],
     };
 

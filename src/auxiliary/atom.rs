@@ -38,11 +38,13 @@ impl ElementMap<'static> {
     #[must_use]
     pub fn new() -> ElementMap<'static> {
         let elements = periodic_table::periodic_table();
-        let map = elements.iter().map(|element| {
-            let mass = parse_atomic_mass(element.atomic_mass);
-            (element.symbol, (element.atomic_number, mass))
-        })
-        .collect::<HashMap<_, _>>();
+        let map = elements
+            .iter()
+            .map(|element| {
+                let mass = parse_atomic_mass(element.atomic_mass);
+                (element.symbol, (element.atomic_number, mass))
+            })
+            .collect::<HashMap<_, _>>();
         ElementMap { map }
     }
 

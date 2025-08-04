@@ -5856,13 +5856,17 @@ fn verify_bw_cs_c1(presym: &PreSymmetry) {
     magsym.analyse(presym, true).unwrap();
     assert_eq!(magsym.group_name, Some("Cs".to_owned()));
     assert_eq!(
-        magsym.get_elements(&TRSIG).expect("No time-reversed improper elements found.")[&ORDER_1].len(),
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len(),
         1
     );
     assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
 
     assert_eq!(
-        magsym.get_generators(&TRSIG)
+        magsym
+            .get_generators(&TRSIG)
             .expect("No time-reversed improper generators found.")[&ORDER_1]
             .len(),
         1
