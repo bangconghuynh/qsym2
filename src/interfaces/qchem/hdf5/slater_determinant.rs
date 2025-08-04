@@ -518,7 +518,10 @@ where
     }
 
     /// Extracts the full basis set information from the single-point H5 group.
-    pub fn extract_basis_set(&self, mol: &'a Molecule) -> Result<BasisSet<f64, f64>, anyhow::Error> {
+    pub fn extract_basis_set(
+        &self,
+        mol: &'a Molecule,
+    ) -> Result<BasisSet<f64, f64>, anyhow::Error> {
         let shell_types = self
             .sp_group
             .dataset("aobasis/shell_types")?

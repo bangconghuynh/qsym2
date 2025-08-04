@@ -71,59 +71,60 @@ impl Symmetry {
             ElementOrder::Inf => None,
         }
         .ok_or_else(|| format_err!("`{max_ord}` has an unexpected order value."))?;
-        let dihedral =
-            {
-                log::debug!("Checking dihedrality by counting C2 axes...");
-                if self
-                    .get_elements(&ROT)
+        let dihedral = {
+            log::debug!("Checking dihedrality by counting C2 axes...");
+            if self
+                .get_elements(&ROT)
+                .unwrap_or(&HashMap::new())
+                .contains_key(&ORDER_2)
+                || self
+                    .get_elements(&TRROT)
                     .unwrap_or(&HashMap::new())
                     .contains_key(&ORDER_2)
-                    || self
-                        .get_elements(&TRROT)
-                        .unwrap_or(&HashMap::new())
-                        .contains_key(&ORDER_2)
-                {
-                    if max_ord > ORDER_2 {
-                        ensure!(
-                            self.get_proper(&max_ord)
-                                .ok_or_else(|| format_err!(
-                                    "No proper elements of order `{max_ord}` found."
-                                ))?
-                                .len()
-                                == 1,
-                            "More than one principal elements of order greater than 2 found."
-                        );
+            {
+                if max_ord > ORDER_2 {
+                    ensure!(
+                        self.get_proper(&max_ord)
+                            .ok_or_else(|| format_err!(
+                                "No proper elements of order `{max_ord}` found."
+                            ))?
+                            .len()
+                            == 1,
+                        "More than one principal elements of order greater than 2 found."
+                    );
 
-                        let principal_axis = self.get_proper_principal_element().raw_axis();
-                        let n_c2_perp = self
+                    let principal_axis = self.get_proper_principal_element().raw_axis();
+                    let n_c2_perp = self
+                        .get_proper(&ORDER_2)
+                        .ok_or_else(|| {
+                            format_err!("No proper elements of order `{ORDER_2}` found.")
+                        })?
+                        .iter()
+                        .filter(|c2_ele| {
+                            c2_ele.raw_axis().dot(principal_axis).abs() < presym.dist_threshold
+                        })
+                        .count();
+                    log::debug!("Principal axis is C{max_ord}. Expected {max_ord} perpendicular C2 axes, found {n_c2_perp}.");
+                    ElementOrder::Int(
+                        n_c2_perp.try_into().map_err(|_| {
+                            format_err!("Unable to convert `{n_c2_perp}` to `u32`.")
+                        })?,
+                    ) == max_ord
+                } else {
+                    log::debug!("Principal axis is C2. Expected 3 C2 axes.");
+                    max_ord == ORDER_2
+                        && self
                             .get_proper(&ORDER_2)
                             .ok_or_else(|| {
                                 format_err!("No proper elements of order `{ORDER_2}` found.")
                             })?
-                            .iter()
-                            .filter(|c2_ele| {
-                                c2_ele.raw_axis().dot(principal_axis).abs() < presym.dist_threshold
-                            })
-                            .count();
-                        log::debug!("Principal axis is C{max_ord}. Expected {max_ord} perpendicular C2 axes, found {n_c2_perp}.");
-                        ElementOrder::Int(n_c2_perp.try_into().map_err(|_| {
-                            format_err!("Unable to convert `{n_c2_perp}` to `u32`.")
-                        })?) == max_ord
-                    } else {
-                        log::debug!("Principal axis is C2. Expected 3 C2 axes.");
-                        max_ord == ORDER_2
-                            && self
-                                .get_proper(&ORDER_2)
-                                .ok_or_else(|| {
-                                    format_err!("No proper elements of order `{ORDER_2}` found.")
-                                })?
-                                .len()
-                                == 3
-                    }
-                } else {
-                    false
+                            .len()
+                            == 3
                 }
-            };
+            } else {
+                false
+            }
+        };
 
         if dihedral {
             // Dihedral family

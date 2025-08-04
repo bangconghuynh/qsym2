@@ -570,9 +570,9 @@ where
     }
 }
 
-// -------------------------
-// TimeReversalTransformable
-// -------------------------
+// ---------------------------------------
+// TimeReversalTransformable (non-default)
+// ---------------------------------------
 impl<'a> TimeReversalTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled> {
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
         let t_element = SymmetryElement::builder()

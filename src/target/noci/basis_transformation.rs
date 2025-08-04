@@ -4,21 +4,27 @@
 use std::collections::{HashSet, VecDeque};
 
 use anyhow::format_err;
+use nalgebra::Vector3;
 use ndarray::Array2;
 use num_complex::Complex;
 
+use crate::angmom::spinor_rotation_3d::SpinOrbitCoupled;
 use crate::group::GroupProperties;
 use crate::permutation::Permutation;
-use crate::symmetry::symmetry_element::SymmetryOperation;
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryOperation, TRROT};
+use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_transformation::{
     ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
     SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
     TransformationError,
 };
+use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 
 // ~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~
 // Lazy basis from orbits
+// ~~~~~~~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~
 
 // ---------------------------
@@ -80,6 +86,56 @@ where
     G: GroupProperties + Clone,
     I: DefaultTimeReversalTransformable,
 {
+}
+
+// ---------------------------------------
+// TimeReversalTransformable (non-default)
+// ---------------------------------------
+// `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
+// `DefaultTimeReversalTransformable` and so the surrounding `OrbitBasis` does not get a blanket
+// implementation of `TimeReversalTransformable`.
+impl<'a, 'g, G> TimeReversalTransformable
+    for OrbitBasis<'g, G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>
+where
+    G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
+{
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        let t_element = SymmetryElement::builder()
+            .threshold(1e-14)
+            .proper_order(ElementOrder::Int(1))
+            .proper_power(1)
+            .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+            .kind(TRROT)
+            .rotation_group(RotationGroup::SU2(true))
+            .build()
+            .map_err(|err| TransformationError(err.to_string()))?;
+        let t = SymmetryOperation::builder()
+            .generating_element(t_element)
+            .power(1)
+            .build()
+            .map_err(|err| TransformationError(err.to_string()))?;
+        if let Some(prefactors) = self.prefactors.as_mut() {
+            prefactors.push_front((t.clone(), |g, item| {
+                item.sym_transform_spin_spatial(g)
+                    .map_err(|err| format_err!(err))
+            }));
+        } else {
+            let mut v = VecDeque::<(
+                G::GroupElement,
+                fn(
+                    &G::GroupElement,
+                    &SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>,
+                )
+                    -> Result<SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>, anyhow::Error>,
+            )>::new();
+            v.push_front((t.clone(), |g, item| {
+                item.sym_transform_spin_spatial(g)
+                    .map_err(|err| format_err!(err))
+            }));
+            self.prefactors = Some(v);
+        }
+        Ok(self)
+    }
 }
 
 // ---------------------
@@ -206,7 +262,9 @@ where
 }
 
 // ~~~~~~~~~~~
+// ~~~~~~~~~~~
 // Eager basis
+// ~~~~~~~~~~~
 // ~~~~~~~~~~~
 
 // ---------------------------
@@ -271,6 +329,23 @@ where
 impl<I> DefaultTimeReversalTransformable for EagerBasis<I> where
     I: DefaultTimeReversalTransformable + Clone
 {
+}
+
+// ---------------------------------------
+// TimeReversalTransformable (non-default)
+// ---------------------------------------
+// `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
+// `DefaultTimeReversalTransformable` and so the surrounding `EagerBasis` does not get a blanket
+// implementation of `TimeReversalTransformable`.
+impl<'a> TimeReversalTransformable
+    for EagerBasis<SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>
+{
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        for det in self.elements.iter_mut() {
+            det.transform_timerev_mut()?;
+        }
+        Ok(self)
+    }
 }
 
 // ---------------------

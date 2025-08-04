@@ -93,7 +93,7 @@ where
 
 impl<'a, T> QChemVibrationH5Driver<'a, T>
 where
-    T: Clone
+    T: Clone,
 {
     /// Returns a builder to construct a [`QChemVibrationH5Driver`].
     pub(crate) fn builder() -> QChemVibrationH5DriverBuilder<'a, T> {
