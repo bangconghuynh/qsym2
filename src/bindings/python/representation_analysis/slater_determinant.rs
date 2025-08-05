@@ -227,6 +227,10 @@ impl PySlaterDeterminantReal {
             .map_err(|err| format_err!(err));
         det
     }
+
+    pub fn structure_constraint(&self) -> &PyStructureConstraint {
+        &self.structure_constraint
+    }
 }
 
 // ~~~~~~~
@@ -411,6 +415,10 @@ impl PySlaterDeterminantComplex {
             .build()
             .map_err(|err| format_err!(err));
         det
+    }
+
+    pub fn structure_constraint(&self) -> &PyStructureConstraint {
+        &self.structure_constraint
     }
 }
 

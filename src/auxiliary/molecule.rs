@@ -480,15 +480,10 @@ impl Molecule {
             }
         }
 
-        let dist_elements_f = dist_columns
-            .iter()
-            .flatten()
-            .cloned()
-            .collect::<Vec<_>>();
+        let dist_elements_f = dist_columns.iter().flatten().cloned().collect::<Vec<_>>();
         let n_atoms = all_atoms.len();
-        let dist_matrix =
-            Array2::<f64>::from_shape_vec((n_atoms, n_atoms).f(), dist_elements_f)
-                .expect("Unable to collect the interatomic distances into a square matrix.");
+        let dist_matrix = Array2::<f64>::from_shape_vec((n_atoms, n_atoms).f(), dist_elements_f)
+            .expect("Unable to collect the interatomic distances into a square matrix.");
 
         (dist_matrix, equiv_indicess)
     }

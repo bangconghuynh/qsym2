@@ -455,12 +455,12 @@ fn test_density_transformation_c2_complex_timerev() {
     close_l2(
         tden_b_tr.density_matrix(),
         &tdgen_tr_ref.slice(s![0..6, 0..6]),
-        1e-14
+        1e-14,
     );
     close_l2(
         tden_a_tr.density_matrix(),
         &tdgen_tr_ref.slice(s![6..12, 6..12]),
-        1e-14
+        1e-14,
     );
 }
 

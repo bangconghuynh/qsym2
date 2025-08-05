@@ -204,15 +204,19 @@ fn test_drivers_multideterminant_analysis_bh3() {
         .build()
         .unwrap();
 
-    let mut mda_driver =
-        MultiDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64, _, SpinConstraint>::builder()
-            .parameters(&mda_params)
-            .angular_function_parameters(&afa_params)
-            .multidets(vec![&a1_multidet, &ex_multidet, &ey_multidet])
-            .sao(&sao_spatial)
-            .symmetry_group(pd_res)
-            .build()
-            .unwrap();
+    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        f64,
+        _,
+        SpinConstraint,
+    >::builder()
+    .parameters(&mda_params)
+    .angular_function_parameters(&afa_params)
+    .multidets(vec![&a1_multidet, &ex_multidet, &ey_multidet])
+    .sao(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
     assert!(mda_driver.run().is_ok());
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[0],

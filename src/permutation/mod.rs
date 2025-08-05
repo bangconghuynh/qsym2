@@ -234,7 +234,9 @@ impl<T: PermutationRank> Permutation<T> {
             i += 1;
         }
         if lehmer.len() > rank.into() {
-            Err(format_err!("The Lehmer encode length is larger than the rank of the permutation."))
+            Err(format_err!(
+                "The Lehmer encode length is larger than the rank of the permutation."
+            ))
         } else {
             while lehmer.len() < rank.into() {
                 lehmer.push_front(T::zero());

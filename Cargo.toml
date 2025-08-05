@@ -20,8 +20,8 @@ divisors = "0.2"
 duplicate = "2.0"
 factorial = "0.4"
 fraction = { version = "0.15", features = ["with-serde-support"] }
-hdf5 = { version = "0.8", git = "https://github.com/tzachar/hdf5-rust", branch = "bump-ndarray", optional = true }
-# hdf5-sys = { version = "0.8", features = ["static"], optional = true }
+hdf5 = { package = "hdf5-metno", version = "0.10", optional = true }
+hdf5-sys = { package = "hdf5-metno-sys", version = "0.10", features = ["static"] }
 numeric-sort = "0.1"
 itertools = "0.14"
 indexmap = { version = "2.7", features = ["rayon", "serde"] }

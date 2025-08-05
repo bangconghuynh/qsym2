@@ -827,14 +827,18 @@ where
                     let sginv = ctb[[s, ginv]];
                     let ctb_xs = ctb.slice(s![.., s]);
                     ctb_xs.iter().position(|&x| x == sginv).ok_or_else(|| {
-                        format_err!("No element `{sginv}` can be found in column `{s}` of Cayley table.")
+                        format_err!(
+                            "No element `{sginv}` can be found in column `{s}` of Cayley table."
+                        )
                     })?
                 } else {
                     // s denotes u.
                     let sg = ctb[[s, g]];
                     let ctb_xs = ctb.slice(s![.., s]);
                     ctb_xs.iter().position(|&x| x == sg).ok_or_else(|| {
-                        format_err!("No element `{sg}` can be found in column `{s}` of Cayley table.")
+                        format_err!(
+                            "No element `{sg}` can be found in column `{s}` of Cayley table."
+                        )
                     })?
                 };
                 if remaining_unitary_elements.contains(&h) {

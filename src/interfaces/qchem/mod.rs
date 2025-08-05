@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
-use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::vibrational_coordinate::VibrationalCoordinateRepAnalysisParams;
+use crate::drivers::QSym2Driver;
 use crate::interfaces::input::analysis::{
     SlaterDeterminantSourceHandle, VibrationalCoordinateSourceHandle,
 };
