@@ -1,27 +1,31 @@
 //! Python bindings for QSym² symmetry analysis of Slater determinants.
 
 use std::collections::HashSet;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::hash::Hash;
 use std::path::PathBuf;
 
 use anyhow::{bail, format_err, Context};
+use itertools::Itertools;
 use ndarray::{Array1, Array2};
-use num_complex::Complex;
+use ndarray_linalg::Lapack;
+use num_complex::{Complex, ComplexFloat};
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
-use pyo3::exceptions::{PyIOError, PyRuntimeError};
+use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
 };
-use crate::bindings::python::representation_analysis::{PyArray1RC, PyArray2RC};
+use crate::bindings::python::representation_analysis::{
+    PyArray1RC, PyArray2RC, PyArray4RC, PyScalarRC,
+};
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
@@ -38,6 +42,9 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::noci::backend::matelem::hamiltonian::HamiltonianAO;
+use crate::target::noci::backend::matelem::overlap::OverlapAO;
+use crate::target::noci::backend::solver::noci::NOCISolvable;
 use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
@@ -417,6 +424,52 @@ pub enum PyMultiDeterminants {
 // Functions definitions
 // =====================
 
+// ~~~~~~~~~~~~~
+// Macro helpers
+// ~~~~~~~~~~~~~
+macro_rules! generate_noci_solver {
+    ($noci_solver_name:ident, $py_solver_func:ident, $pysd:ty, $t:ty, $sc:ty) => {
+        let $noci_solver_name = |multidets: &Vec<SlaterDeterminant<$t, $sc>>| {
+            Python::with_gil(|py_inner| {
+                let pymultidets = multidets
+                    .iter()
+                    .map(|det| {
+                        let pysc = det.structure_constraint().clone().try_into()?;
+                        Ok(<$pysd>::new(
+                            pysc,
+                            det.complex_symmetric(),
+                            det.coefficients()
+                                .iter()
+                                .map(|arr| PyArray2::from_array(py_inner, arr))
+                                .collect::<Vec<_>>(),
+                            det.occupations()
+                                .iter()
+                                .map(|arr| PyArray1::from_array(py_inner, arr))
+                                .collect::<Vec<_>>(),
+                            det.threshold(),
+                            det.mo_energies().map(|mo_energies| {
+                                mo_energies
+                                    .iter()
+                                    .map(|arr| PyArray1::from_array(py_inner, arr))
+                                    .collect::<Vec<_>>()
+                            }),
+                            det.energy().ok().cloned(),
+                        ))
+                    })
+                    .collect::<Result<Vec<_>, anyhow::Error>>()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                $py_solver_func
+                    .call1(py_inner, (pymultidets,))
+                    .and_then(|res| res.extract::<(Vec<$t>, Vec<Vec<$t>>)>(py_inner))
+            })
+        };
+    };
+}
+
+// ~~~~~~~~~
+// Functions
+// ~~~~~~~~~
+
 /// Python-exposed function to perform representation symmetry analysis for real and complex
 /// multi-determinantal wavefunctions constructed from group-generated orbits and log the result via
 /// the `qsym2-output` logger at the `INFO` level.
@@ -502,7 +555,7 @@ pub enum PyMultiDeterminants {
     angular_function_linear_independence_threshold=1e-7,
     angular_function_max_angular_momentum=2
 ))]
-pub fn rep_analyse_multideterminants_orbit_basis(
+pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     py: Python<'_>,
     inp_sym: PathBuf,
     pyorigins: Vec<PySlaterDeterminant>,
@@ -573,74 +626,88 @@ pub fn rep_analyse_multideterminants_orbit_basis(
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
     // Set up NOCI function
-    let noci_solver_r = |multidets: &Vec<SlaterDeterminant<f64, SpinConstraint>>| {
-        Python::with_gil(|py_inner| {
-            let pymultidets = multidets
-                .iter()
-                .map(|det| {
-                    let pysc = det.structure_constraint().clone().try_into()?;
-                    Ok(PySlaterDeterminantReal::new(
-                        pysc,
-                        det.complex_symmetric(),
-                        det.coefficients()
-                            .iter()
-                            .map(|arr| PyArray2::from_array(py_inner, arr))
-                            .collect::<Vec<_>>(),
-                        det.occupations()
-                            .iter()
-                            .map(|arr| PyArray1::from_array(py_inner, arr))
-                            .collect::<Vec<_>>(),
-                        det.threshold(),
-                        det.mo_energies().map(|mo_energies| {
-                            mo_energies
-                                .iter()
-                                .map(|arr| PyArray1::from_array(py_inner, arr))
-                                .collect::<Vec<_>>()
-                        }),
-                        det.energy().ok().cloned(),
-                    ))
-                })
-                .collect::<Result<Vec<_>, anyhow::Error>>()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            py_noci_solver
-                .call1(py_inner, (pymultidets,))
-                .and_then(|res| res.extract::<(Vec<f64>, Vec<Vec<f64>>)>(py_inner))
-        })
-    };
-    let noci_solver_c = |multidets: &Vec<SlaterDeterminant<C128, SpinConstraint>>| {
-        Python::with_gil(|py_inner| {
-            let pymultidets = multidets
-                .iter()
-                .map(|det| {
-                    let pysc = det.structure_constraint().clone().try_into()?;
-                    Ok(PySlaterDeterminantComplex::new(
-                        pysc,
-                        det.complex_symmetric(),
-                        det.coefficients()
-                            .iter()
-                            .map(|arr| PyArray2::from_array(py_inner, arr))
-                            .collect::<Vec<_>>(),
-                        det.occupations()
-                            .iter()
-                            .map(|arr| PyArray1::from_array(py_inner, arr))
-                            .collect::<Vec<_>>(),
-                        det.threshold(),
-                        det.mo_energies().map(|mo_energies| {
-                            mo_energies
-                                .iter()
-                                .map(|arr| PyArray1::from_array(py_inner, arr))
-                                .collect::<Vec<_>>()
-                        }),
-                        det.energy().ok().cloned(),
-                    ))
-                })
-                .collect::<Result<Vec<_>, anyhow::Error>>()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            py_noci_solver
-                .call1(py_inner, (pymultidets,))
-                .and_then(|res| res.extract::<(Vec<C128>, Vec<Vec<C128>>)>(py_inner))
-        })
-    };
+    // let noci_solver_r = |multidets: &Vec<SlaterDeterminant<f64, SpinConstraint>>| {
+    //     Python::with_gil(|py_inner| {
+    //         let pymultidets = multidets
+    //             .iter()
+    //             .map(|det| {
+    //                 let pysc = det.structure_constraint().clone().try_into()?;
+    //                 Ok(PySlaterDeterminantReal::new(
+    //                     pysc,
+    //                     det.complex_symmetric(),
+    //                     det.coefficients()
+    //                         .iter()
+    //                         .map(|arr| PyArray2::from_array(py_inner, arr))
+    //                         .collect::<Vec<_>>(),
+    //                     det.occupations()
+    //                         .iter()
+    //                         .map(|arr| PyArray1::from_array(py_inner, arr))
+    //                         .collect::<Vec<_>>(),
+    //                     det.threshold(),
+    //                     det.mo_energies().map(|mo_energies| {
+    //                         mo_energies
+    //                             .iter()
+    //                             .map(|arr| PyArray1::from_array(py_inner, arr))
+    //                             .collect::<Vec<_>>()
+    //                     }),
+    //                     det.energy().ok().cloned(),
+    //                 ))
+    //             })
+    //             .collect::<Result<Vec<_>, anyhow::Error>>()
+    //             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    //         py_noci_solver
+    //             .call1(py_inner, (pymultidets,))
+    //             .and_then(|res| res.extract::<(Vec<f64>, Vec<Vec<f64>>)>(py_inner))
+    //     })
+    // };
+    generate_noci_solver!(
+        noci_solver_r,
+        py_noci_solver,
+        PySlaterDeterminantReal,
+        f64,
+        SpinConstraint
+    );
+    // let noci_solver_c = |multidets: &Vec<SlaterDeterminant<C128, SpinConstraint>>| {
+    //     Python::with_gil(|py_inner| {
+    //         let pymultidets = multidets
+    //             .iter()
+    //             .map(|det| {
+    //                 let pysc = det.structure_constraint().clone().try_into()?;
+    //                 Ok(PySlaterDeterminantComplex::new(
+    //                     pysc,
+    //                     det.complex_symmetric(),
+    //                     det.coefficients()
+    //                         .iter()
+    //                         .map(|arr| PyArray2::from_array(py_inner, arr))
+    //                         .collect::<Vec<_>>(),
+    //                     det.occupations()
+    //                         .iter()
+    //                         .map(|arr| PyArray1::from_array(py_inner, arr))
+    //                         .collect::<Vec<_>>(),
+    //                     det.threshold(),
+    //                     det.mo_energies().map(|mo_energies| {
+    //                         mo_energies
+    //                             .iter()
+    //                             .map(|arr| PyArray1::from_array(py_inner, arr))
+    //                             .collect::<Vec<_>>()
+    //                     }),
+    //                     det.energy().ok().cloned(),
+    //                 ))
+    //             })
+    //             .collect::<Result<Vec<_>, anyhow::Error>>()
+    //             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    //         py_noci_solver
+    //             .call1(py_inner, (pymultidets,))
+    //             .and_then(|res| res.extract::<(Vec<C128>, Vec<Vec<C128>>)>(py_inner))
+    //     })
+    // };
+    generate_noci_solver!(
+        noci_solver_c,
+        py_noci_solver,
+        PySlaterDeterminantComplex,
+        C128,
+        SpinConstraint
+    );
 
     let all_real = pyorigins
         .iter()
@@ -1653,5 +1720,660 @@ pub fn rep_analyse_multideterminants_eager_basis(
             }
         }
     }
+    Ok(())
+}
+
+#[pyfunction]
+#[pyo3(signature = (
+    inp_sym,
+    pyorigins,
+    pybao,
+    sao,
+    enuc,
+    onee,
+    twoe,
+    thresh_offdiag,
+    thresh_zeroov,
+    integrality_threshold,
+    linear_independence_threshold,
+    use_magnetic_group,
+    use_double_group,
+    use_cayley_table,
+    symmetry_transformation_kind,
+    eigenvalue_comparison_mode,
+    sao_h=None,
+    write_overlap_eigenvalues=true,
+    write_character_table=true,
+    infinite_order_to_finite=None,
+    angular_function_integrality_threshold=1e-7,
+    angular_function_linear_independence_threshold=1e-7,
+    angular_function_max_angular_momentum=2
+))]
+pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
+    py: Python<'_>,
+    inp_sym: PathBuf,
+    pyorigins: Vec<PySlaterDeterminant>,
+    pybao: &PyBasisAngularOrder,
+    sao: PyArray2RC,
+    enuc: PyScalarRC,
+    onee: PyArray2RC,
+    twoe: PyArray4RC,
+    thresh_offdiag: f64,
+    thresh_zeroov: f64,
+    integrality_threshold: f64,
+    linear_independence_threshold: f64,
+    use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
+    use_double_group: bool,
+    use_cayley_table: bool,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao_h: Option<PyArray2RC>,
+    write_overlap_eigenvalues: bool,
+    write_character_table: bool,
+    infinite_order_to_finite: Option<u32>,
+    angular_function_integrality_threshold: f64,
+    angular_function_linear_independence_threshold: f64,
+    angular_function_max_angular_momentum: u32,
+) -> PyResult<()> {
+    // Read in point-group detection results
+    let pd_res: SymmetryGroupDetectionResult =
+        read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
+            .map_err(|err| PyIOError::new_err(err.to_string()))?;
+
+    let mut file_name = inp_sym.to_path_buf();
+    file_name.set_extension(QSym2FileType::Sym.ext());
+    qsym2_output!(
+        "Symmetry-group detection results read in from {}.",
+        file_name.display(),
+    );
+    qsym2_output!("");
+
+    // Set up basic parameters
+    let mol = &pd_res.pre_symmetry.recentred_molecule;
+    let bao = pybao
+        .to_qsym2(mol)
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let augment_to_generalised = match symmetry_transformation_kind {
+        SymmetryTransformationKind::SpatialWithSpinTimeReversal
+        | SymmetryTransformationKind::Spin
+        | SymmetryTransformationKind::SpinSpatial => true,
+        SymmetryTransformationKind::Spatial => false,
+    };
+    let afa_params = AngularFunctionRepAnalysisParams::builder()
+        .integrality_threshold(angular_function_integrality_threshold)
+        .linear_independence_threshold(angular_function_linear_independence_threshold)
+        .max_angular_momentum(angular_function_max_angular_momentum)
+        .build()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(integrality_threshold)
+        .linear_independence_threshold(linear_independence_threshold)
+        .use_magnetic_group(use_magnetic_group.clone())
+        .use_double_group(use_double_group)
+        .use_cayley_table(use_cayley_table)
+        .symmetry_transformation_kind(symmetry_transformation_kind.clone())
+        .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
+        .write_overlap_eigenvalues(write_overlap_eigenvalues)
+        .write_character_table(if write_character_table {
+            Some(CharacterTableDisplay::Symbolic)
+        } else {
+            None
+        })
+        .infinite_order_to_finite(infinite_order_to_finite)
+        .build()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+    let all_real_origins = pyorigins
+        .iter()
+        .all(|pyorigin| matches!(pyorigin, PySlaterDeterminant::Real(_)));
+    let all_real_integrals = matches!(sao, PyArray2RC::Real(_))
+        && matches!(enuc, PyScalarRC::Real(_))
+        && matches!(onee, PyArray2RC::Real(_))
+        && matches!(twoe, PyArray4RC::Real(_));
+    let all_real = all_real_origins && all_real_integrals;
+
+    let structure_constraints_set = pyorigins
+        .iter()
+        .map(|pyorigin| match pyorigin {
+            PySlaterDeterminant::Real(pydet) => pydet.structure_constraint().clone(),
+            PySlaterDeterminant::Complex(pydet) => pydet.structure_constraint().clone(),
+        })
+        .collect::<HashSet<_>>();
+    if structure_constraints_set.len() != 1 {
+        return Err(PyRuntimeError::new_err(
+            "Inconsistent structure constraints across origin determinants.`",
+        ));
+    };
+    let structure_constraint = structure_constraints_set
+        .iter()
+        .next()
+        .ok_or_else(|| PyRuntimeError::new_err("Unable to retrieve the structure constraint."))?;
+
+    if all_real {
+        // Real numeric data type
+        // Only SpinConstraint is supported for real numeric data type.
+
+        if matches!(
+            structure_constraint,
+            PyStructureConstraint::SpinOrbitCoupled(_)
+        ) {
+            return Err(PyRuntimeError::new_err(
+                "Real determinants cannot support spin--orbit-coupled structure constraint.",
+            ));
+        }
+
+        // Preparation
+        let sao_r = match sao {
+            PyArray2RC::Real(pysao_r) => Ok(pysao_r.to_owned_array()),
+            PyArray2RC::Complex(_) => Err(PyTypeError::new_err(
+                "Unexpected complex type for the SAO matrix.",
+            )),
+        }?;
+        let enuc_r = match enuc {
+            PyScalarRC::Real(enuc_r) => Ok(enuc_r),
+            PyScalarRC::Complex(_) => Err(PyTypeError::new_err(
+                "Unexpected complex type for the nuclear repulsion energy.",
+            )),
+        }?;
+        let onee_r = match onee {
+            PyArray2RC::Real(pyonee_r) => Ok(pyonee_r.to_owned_array()),
+            PyArray2RC::Complex(_) => Err(PyTypeError::new_err(
+                "Unexpected complex type for the one-electron integral matrix.",
+            )),
+        }?;
+        let twoe_r = match twoe {
+            PyArray4RC::Real(pytwoe_r) => Ok(pytwoe_r.to_owned_array()),
+            PyArray4RC::Complex(_) => Err(PyTypeError::new_err(
+                "Unexpected complex type for the two-electron integral tensor.",
+            )),
+        }?;
+        let overlap_ao = OverlapAO::<f64, SpinConstraint>::builder()
+            .sao(sao_r.view())
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        let hamiltonian_ao = HamiltonianAO::<f64, SpinConstraint>::builder()
+            .enuc(enuc_r)
+            .onee(onee_r.view())
+            .twoe(twoe_r.view())
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+        let origins_r = if augment_to_generalised {
+            pyorigins
+                .iter()
+                .map(|pydet| {
+                    if let PySlaterDeterminant::Real(pydet_r) = pydet {
+                        pydet_r
+                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .map(|det_r| det_r.to_generalised())
+                    } else {
+                        bail!("Unexpected complex type for an origin Slater determinant.")
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()
+        } else {
+            pyorigins
+                .iter()
+                .map(|pydet| {
+                    if let PySlaterDeterminant::Real(pydet_r) = pydet {
+                        pydet_r.to_qsym2::<SpinConstraint>(&bao, mol)
+                    } else {
+                        bail!("Unexpected complex type for an origin Slater determinant.")
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()
+        }
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+        match &use_magnetic_group {
+            Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                // Magnetic groups with corepresentations
+                let group = py
+                    .allow_threads(|| {
+                        let magsym = pd_res
+                            .magnetic_symmetry
+                            .as_ref()
+                            .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?;
+                        if use_double_group {
+                            MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                magsym,
+                                infinite_order_to_finite,
+                            )
+                            .and_then(|grp| grp.to_double_group())
+                        } else {
+                            MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                magsym,
+                                infinite_order_to_finite,
+                            )
+                        }
+                    })
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                // Run NOCI
+                let system = (&hamiltonian_ao, &overlap_ao);
+                let multidets = system
+                    .solve_symmetry_noci(
+                        &origins_r.iter().collect_vec(),
+                        &group,
+                        symmetry_transformation_kind,
+                        thresh_offdiag,
+                        thresh_zeroov,
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                // Symmetry analysis for NOCI states
+                let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                    MagneticRepresentedSymmetryGroup,
+                    f64,
+                    _,
+                    SpinConstraint,
+                >::builder()
+                .parameters(&mda_params)
+                .angular_function_parameters(&afa_params)
+                .multidets(multidets.iter().collect::<Vec<_>>())
+                .sao(&sao_r)
+                .sao_h(None) // Real SAO.
+                .symmetry_group(&pd_res)
+                .build()
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                py.allow_threads(|| {
+                    mda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                })?
+            }
+            Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                // Unitary groups or magnetic groups with representations
+                let group = py
+                    .allow_threads(|| {
+                        let sym = if use_magnetic_group.is_some() {
+                            pd_res
+                                .magnetic_symmetry
+                                .as_ref()
+                                .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?
+                        } else {
+                            &pd_res.unitary_symmetry
+                        };
+                        if use_double_group {
+                            UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                sym,
+                                infinite_order_to_finite,
+                            )
+                            .and_then(|grp| grp.to_double_group())
+                        } else {
+                            UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                sym,
+                                infinite_order_to_finite,
+                            )
+                        }
+                    })
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                // Run NOCI
+                let system = (&hamiltonian_ao, &overlap_ao);
+                let multidets = system
+                    .solve_symmetry_noci(
+                        &origins_r.iter().collect_vec(),
+                        &group,
+                        symmetry_transformation_kind,
+                        thresh_offdiag,
+                        thresh_zeroov,
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                // Symmetry analysis for NOCI states
+                let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                    UnitaryRepresentedSymmetryGroup,
+                    f64,
+                    _,
+                    SpinConstraint,
+                >::builder()
+                .parameters(&mda_params)
+                .angular_function_parameters(&afa_params)
+                .multidets(multidets.iter().collect::<Vec<_>>())
+                .sao(&sao_r)
+                .sao_h(None) // Real SAO.
+                .symmetry_group(&pd_res)
+                .build()
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                py.allow_threads(|| {
+                    mda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                })?
+            }
+        };
+    } else {
+        // Some complex numeric data type
+
+        // Preparation
+        let sao_c = match sao {
+            PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
+            PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
+        };
+        let sao_h_c = match sao_h {
+            Some(PyArray2RC::Real(pysao_r)) => Some(pysao_r.to_owned_array().mapv(Complex::from)),
+            Some(PyArray2RC::Complex(pysao_c)) => Some(pysao_c.to_owned_array()),
+            None => None,
+        };
+        let enuc_c = match enuc {
+            PyScalarRC::Real(enuc_r) => Complex::from(enuc_r),
+            PyScalarRC::Complex(enuc_c) => enuc_c,
+        };
+        let onee_c = match onee {
+            PyArray2RC::Real(pyonee_r) => pyonee_r.to_owned_array().mapv(Complex::from),
+            PyArray2RC::Complex(pyonee_c) => pyonee_c.to_owned_array(),
+        };
+        let twoe_c = match twoe {
+            PyArray4RC::Real(pytwoe_r) => pytwoe_r.to_owned_array().mapv(Complex::from),
+            PyArray4RC::Complex(pytwoe_c) => pytwoe_c.to_owned_array(),
+        };
+
+        match structure_constraint {
+            PyStructureConstraint::SpinConstraint(_) => {
+                let overlap_ao = OverlapAO::<Complex<f64>, SpinConstraint>::builder()
+                    .sao(sao_c.view())
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                let hamiltonian_ao = HamiltonianAO::<Complex<f64>, SpinConstraint>::builder()
+                    .enuc(enuc_c)
+                    .onee(onee_c.view())
+                    .twoe(twoe_c.view())
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                let origins_c = if augment_to_generalised {
+                    pyorigins
+                        .iter()
+                        .map(|pydet| match pydet {
+                            PySlaterDeterminant::Real(pydet_r) => pydet_r
+                                .to_qsym2::<SpinConstraint>(&bao, mol)
+                                .map(|det_r| det_r.to_generalised().into()),
+                            PySlaterDeterminant::Complex(pydet_c) => pydet_c
+                                .to_qsym2::<SpinConstraint>(&bao, mol)
+                                .map(|det_c| det_c.to_generalised()),
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                } else {
+                    pyorigins
+                        .iter()
+                        .map(|pydet| match pydet {
+                            PySlaterDeterminant::Real(pydet_r) => pydet_r
+                                .to_qsym2::<SpinConstraint>(&bao, mol)
+                                .map(|det_r| det_r.into()),
+                            PySlaterDeterminant::Complex(pydet_c) => {
+                                pydet_c.to_qsym2::<SpinConstraint>(&bao, mol)
+                            }
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                }
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                match &use_magnetic_group {
+                    Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                        // Magnetic groups with corepresentations
+                        let group = py
+                            .allow_threads(|| {
+                                let magsym = pd_res
+                                    .magnetic_symmetry
+                                    .as_ref()
+                                    .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?;
+                                if use_double_group {
+                                    MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        magsym,
+                                        infinite_order_to_finite,
+                                    )
+                                    .and_then(|grp| grp.to_double_group())
+                                } else {
+                                    MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        magsym,
+                                        infinite_order_to_finite,
+                                    )
+                                }
+                            })
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Run NOCI
+                        let system = (&hamiltonian_ao, &overlap_ao);
+                        let multidets = system
+                            .solve_symmetry_noci(
+                                &origins_c.iter().collect_vec(),
+                                &group,
+                                symmetry_transformation_kind,
+                                thresh_offdiag,
+                                thresh_zeroov,
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Symmetry analysis for NOCI states
+                        let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                            MagneticRepresentedSymmetryGroup,
+                            Complex<f64>,
+                            _,
+                            SpinConstraint,
+                        >::builder()
+                        .parameters(&mda_params)
+                        .angular_function_parameters(&afa_params)
+                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .sao(&sao_c)
+                        .sao_h(sao_h_c.as_ref())
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        py.allow_threads(|| {
+                            mda_driver
+                                .run()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                        })?
+                    }
+                    Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                        // Unitary groups or magnetic groups with representations
+                        let group = py
+                            .allow_threads(|| {
+                                let sym = if use_magnetic_group.is_some() {
+                                    pd_res
+                                        .magnetic_symmetry
+                                        .as_ref()
+                                        .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?
+                                } else {
+                                    &pd_res.unitary_symmetry
+                                };
+                                if use_double_group {
+                                    UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        sym,
+                                        infinite_order_to_finite,
+                                    )
+                                    .and_then(|grp| grp.to_double_group())
+                                } else {
+                                    UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        sym,
+                                        infinite_order_to_finite,
+                                    )
+                                }
+                            })
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Run NOCI
+                        let system = (&hamiltonian_ao, &overlap_ao);
+                        let multidets = system
+                            .solve_symmetry_noci(
+                                &origins_c.iter().collect_vec(),
+                                &group,
+                                symmetry_transformation_kind,
+                                thresh_offdiag,
+                                thresh_zeroov,
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Symmetry analysis for NOCI states
+                        let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                            UnitaryRepresentedSymmetryGroup,
+                            Complex<f64>,
+                            _,
+                            SpinConstraint,
+                        >::builder()
+                        .parameters(&mda_params)
+                        .angular_function_parameters(&afa_params)
+                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .sao(&sao_c)
+                        .sao_h(sao_h_c.as_ref())
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        py.allow_threads(|| {
+                            mda_driver
+                                .run()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                        })?
+                    }
+                };
+            }
+            PyStructureConstraint::SpinOrbitCoupled(_) => {
+                let overlap_ao = OverlapAO::<Complex<f64>, SpinOrbitCoupled>::builder()
+                    .sao(sao_c.view())
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                let hamiltonian_ao = HamiltonianAO::<Complex<f64>, SpinOrbitCoupled>::builder()
+                    .enuc(enuc_c)
+                    .onee(onee_c.view())
+                    .twoe(twoe_c.view())
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                let origins_c = pyorigins
+                    .iter()
+                    .map(|pydet| match pydet {
+                        PySlaterDeterminant::Real(pydet_r) => pydet_r
+                            .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                            .map(|det_r| det_r.into()),
+                        PySlaterDeterminant::Complex(pydet_c) => {
+                            pydet_c.to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                        }
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                match &use_magnetic_group {
+                    Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                        // Magnetic groups with corepresentations
+                        let group = py
+                            .allow_threads(|| {
+                                let magsym = pd_res
+                                    .magnetic_symmetry
+                                    .as_ref()
+                                    .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?;
+                                if use_double_group {
+                                    MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        magsym,
+                                        infinite_order_to_finite,
+                                    )
+                                    .and_then(|grp| grp.to_double_group())
+                                } else {
+                                    MagneticRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        magsym,
+                                        infinite_order_to_finite,
+                                    )
+                                }
+                            })
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Run NOCI
+                        let system = (&hamiltonian_ao, &overlap_ao);
+                        let multidets = system
+                            .solve_symmetry_noci(
+                                &origins_c.iter().collect_vec(),
+                                &group,
+                                symmetry_transformation_kind,
+                                thresh_offdiag,
+                                thresh_zeroov,
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Symmetry analysis for NOCI states
+                        let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                            MagneticRepresentedSymmetryGroup,
+                            Complex<f64>,
+                            _,
+                            SpinOrbitCoupled,
+                        >::builder()
+                        .parameters(&mda_params)
+                        .angular_function_parameters(&afa_params)
+                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .sao(&sao_c)
+                        .sao_h(sao_h_c.as_ref())
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        py.allow_threads(|| {
+                            mda_driver
+                                .run()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                        })?
+                    }
+                    Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                        // Unitary groups or magnetic groups with representations
+                        let group = py
+                            .allow_threads(|| {
+                                let sym = if use_magnetic_group.is_some() {
+                                    pd_res
+                                        .magnetic_symmetry
+                                        .as_ref()
+                                        .ok_or(format_err!("Magnetic group required for orbit construction, but no magnetic symmetry found."))?
+                                } else {
+                                    &pd_res.unitary_symmetry
+                                };
+                                if use_double_group {
+                                    UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        sym,
+                                        infinite_order_to_finite,
+                                    )
+                                    .and_then(|grp| grp.to_double_group())
+                                } else {
+                                    UnitaryRepresentedSymmetryGroup::from_molecular_symmetry(
+                                        sym,
+                                        infinite_order_to_finite,
+                                    )
+                                }
+                            })
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Run NOCI
+                        let system = (&hamiltonian_ao, &overlap_ao);
+                        let multidets = system
+                            .solve_symmetry_noci(
+                                &origins_c.iter().collect_vec(),
+                                &group,
+                                symmetry_transformation_kind,
+                                thresh_offdiag,
+                                thresh_zeroov,
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+                        // Symmetry analysis for NOCI states
+                        let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+                            UnitaryRepresentedSymmetryGroup,
+                            Complex<f64>,
+                            _,
+                            SpinOrbitCoupled,
+                        >::builder()
+                        .parameters(&mda_params)
+                        .angular_function_parameters(&afa_params)
+                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .sao(&sao_c)
+                        .sao_h(sao_h_c.as_ref())
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        py.allow_threads(|| {
+                            mda_driver
+                                .run()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                        })?
+                    }
+                };
+            }
+        }
+    }
+
     Ok(())
 }

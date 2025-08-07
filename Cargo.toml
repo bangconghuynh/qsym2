@@ -20,7 +20,7 @@ divisors = "0.2"
 duplicate = "2.0"
 factorial = "0.4"
 fraction = { version = "0.15", features = ["with-serde-support"] }
-hdf5 = { package = "hdf5-metno", version = "0.10", optional = true }
+hdf5 = { package = "hdf5-metno", version = "0.10" }
 hdf5-sys = { package = "hdf5-metno-sys", version = "0.10", features = ["static"] }
 numeric-sort = "0.1"
 itertools = "0.14"
@@ -32,7 +32,7 @@ nalgebra = { version = "0.34", features = ["serde-serialize"] }
 ndarray = { version = "0.16", features = ["rayon", "serde"] }
 ndarray-einsum = "0.8.0"
 # ndarray-linalg = { version = "0.17", default-features = false }
-ndarray-linalg = { git = "https://github.com/bangconghuynh/ndarray-linalg", branch = "bch/implement_eig_generalized", default-features = false }
+ndarray-linalg = { git = "https://github.com/rust-ndarray/ndarray-linalg", branch = "master", default-features = false }
 num = "0.4"
 num-complex = "0.4"
 num-modular = "0.6"
@@ -67,7 +67,7 @@ openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 python = ["dep:numpy", "dep:pyo3", "dep:pyo3-log"]
 integrals = ["dep:reqwest"]
-qchem = ["dep:hdf5", "dep:hdf5"]
+qchem = []
 sandbox = []
 
 standard = ["openblas-static", "qchem"]

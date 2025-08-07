@@ -383,9 +383,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-upgrades"
-version = "2.2.2"
+version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "561025f2f3e63479df7d77eaa50a4479a8d5f79d51f2f7eca4f7046f12a1a2ac"
+checksum = "c0a2a647f5d8a2b278a7f5e4d995bd5ac29dc1cc569b4bb0a5cce855595e32a1"
 dependencies = [
  "cargo_metadata",
  "crates-index",
@@ -401,15 +401,15 @@ dependencies = [
 
 [[package]]
 name = "cargo-util-schemas"
-version = "0.2.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63d2780ac94487eb9f1fea7b0d56300abc9eb488800854ca217f102f5caccca"
+checksum = "7dc1a6f7b5651af85774ae5a34b4e8be397d9cf4bc063b7e6dbd99a841837830"
 dependencies = [
  "semver",
  "serde",
  "serde-untagged",
  "serde-value",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "toml 0.8.23",
  "unicode-xid",
  "url",
@@ -417,9 +417,9 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f7835cfc6135093070e95eb2b53e5d9b5c403dc3a6be6040ee026270aa82502"
+checksum = "5cfca2aaa699835ba88faf58a06342a314a950d2b9686165e038286c30316868"
 dependencies = [
  "camino",
  "cargo-platform",
@@ -501,9 +501,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.42"
+version = "4.5.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed87a9d530bb41a67537289bafcac159cb3ee28460e0a4571123d2a778a6a882"
+checksum = "50fd97c9dc2399518aa331917ac6f274280ec5eb34e555dd291899745c48ec6f"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -511,9 +511,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.42"
+version = "4.5.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64f4f3f3c77c94aff3c7e9aac9a2ca1974a5adf392a8bb751e827d6d127ab966"
+checksum = "c35b5830294e1fa0462034af85cc95225a4cb07092c088c55bda3147cfcd8f65"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1250,9 +1250,9 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
 name = "h2"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17da50a276f1e01e0ba6c029e47b7100754904ee8a278f886546e98575380785"
+checksum = "f3c0b69cfcb4e1b9f1bf2f53f95f766e4661169728ec61cd3fe5a0166f2d1386"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -1827,7 +1827,7 @@ dependencies = [
 [[package]]
 name = "lax"
 version = "0.17.0"
-source = "git+https://github.com/bangconghuynh/ndarray-linalg?branch=bch%2Fimplement_eig_generalized#3b555d5d4a9646ea9c31ebb26aceaace469694b9"
+source = "git+https://github.com/rust-ndarray/ndarray-linalg?branch=master#e4bfc4289f91a8c4249e3ab4649a28145419a747"
 dependencies = [
  "cauchy",
  "intel-mkl-src",
@@ -2117,7 +2117,7 @@ dependencies = [
 [[package]]
 name = "ndarray-linalg"
 version = "0.17.0"
-source = "git+https://github.com/bangconghuynh/ndarray-linalg?branch=bch%2Fimplement_eig_generalized#3b555d5d4a9646ea9c31ebb26aceaace469694b9"
+source = "git+https://github.com/rust-ndarray/ndarray-linalg?branch=master#e4bfc4289f91a8c4249e3ab4649a28145419a747"
 dependencies = [
  "cauchy",
  "katexit",
@@ -4743,9 +4743,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec"
-version = "0.11.3"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdbb9122ea75b11bf96e7492afb723e8a7fbe12c67417aa95e7e3d18144d37cd"
+checksum = "e7aa2bd55086f1ab526693ecbe444205da57e25f4489879da80635a46d90e73b"
 dependencies = [
  "yoke",
  "zerofrom",
