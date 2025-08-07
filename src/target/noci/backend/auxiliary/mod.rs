@@ -75,6 +75,11 @@ where
     T: ComplexFloat,
 {
     /// Obtains the molecule from the HDF5 data file.
+    ///
+    /// # Arguments
+    ///
+    /// * `emap` - A periodic table.
+    /// * `thresh` - A threshold for atom and molecule comparison.
     pub(crate) fn get_mol(
         &self,
         emap: &ElementMap,
@@ -105,6 +110,10 @@ where
     }
 
     /// Obtains the basis angular order information from the HDF5 data file.
+    ///
+    /// # Arguments
+    ///
+    /// * `mol` - The associated molecule.
     pub(crate) fn get_bao<'a, 'b: 'a>(
         &'a self,
         mol: &'b Molecule,
@@ -172,6 +181,13 @@ where
     }
 
     /// Extracts the Slater determinant from the HDF5 data file.
+    ///
+    /// # Arguments
+    ///
+    /// * `mol` - The associated molecule.
+    /// * `bao` - The associated basis angular order information.
+    /// * `sc` - The structure constraint.
+    /// * `threshold` - A threshold for comparisons.
     pub(crate) fn get_slater_determinant<
         'a,
         'b: 'a,
