@@ -1,24 +1,9 @@
-use anyhow::format_err;
 use approx::assert_abs_diff_eq;
-use itertools::Itertools;
 
-use crate::analysis::EigenvalueComparisonMode;
-use crate::analysis::Orbit;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::ElementMap;
-use crate::drivers::symmetry_group_detection::{
-    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
-};
-use crate::drivers::QSym2Driver;
-use crate::group::UnitaryRepresentedGroup;
-use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
-use crate::target::noci::basis::OrbitBasis;
 
 use crate::target::noci::backend::auxiliary::extract_pyscf_scf_data;
-use crate::target::noci::backend::matelem::OrbitMatrix;
-use crate::target::noci::backend::solver::GeneralisedEigenvalueSolvable;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -91,5 +76,5 @@ fn test_hamiltonian_scf_energy_ch4p_sto3g() {
     // PySCF reference values
     assert_abs_diff_eq!(zeroe, hamiltonian_ao.enuc, epsilon = 1e-7);
     assert_abs_diff_eq!(onee, pyscf_data.scf_e_1, epsilon = 1e-7);
-    // assert_abs_diff_eq!(twoe, pyscf_data.scf_e_2, epsilon = 1e-4);
+    assert_abs_diff_eq!(twoe, pyscf_data.scf_e_2, epsilon = 1e-3);
 }

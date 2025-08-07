@@ -43,7 +43,11 @@ impl<T> PyScfData<T>
 where
     T: ComplexFloat,
 {
-    pub(crate) fn get_mol(&self, emap: &ElementMap, thresh: f64) -> Result<Molecule, anyhow::Error> {
+    pub(crate) fn get_mol(
+        &self,
+        emap: &ElementMap,
+        thresh: f64,
+    ) -> Result<Molecule, anyhow::Error> {
         let atoms = self
             .mol_atoms
             .iter()
