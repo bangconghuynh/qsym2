@@ -7,7 +7,7 @@ use ndarray::Array2;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinOrbitCoupled, StructureConstraint};
 use crate::group::GroupProperties;
 use crate::permutation::Permutation;
 use crate::symmetry::symmetry_element::{SpecialSymmetryTransformation, SymmetryOperation};
