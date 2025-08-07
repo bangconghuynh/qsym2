@@ -20,22 +20,53 @@ use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::backend::matelem::hamiltonian::HamiltonianAO;
 use crate::target::noci::backend::matelem::overlap::OverlapAO;
 
+/// Structure to store data from a `PySCF` SCF calculation.
 pub(crate) struct PyScfData<T>
 where
     T: ComplexFloat,
 {
+    /// The raw basis angular order of the basis. Each row contains the following:
+    /// - atom index,
+    /// - shell index
+    /// - l
+    /// - shell type: 0 (pure), 1 (Cartesian), or 2 (spinor)
+    /// - even spatial part: 0 (false) or 1 (true)
     pub(crate) basis_bao: Array2<usize>,
+
+    /// The one-electron integral matrix in the AO basis.
     pub(crate) integrals_onee_h: Array2<T>,
+
+    /// The two-electron integral tensor in the AO basis.
     pub(crate) integrals_twoe_h: Array4<T>,
+
+    /// The overlap matrix in the AO basis.
     pub(crate) integrals_sao: Array2<T>,
+
+    /// The atoms in the molecule. Each element gives the atomic number of an atom.
     pub(crate) mol_atoms: Array1<usize>,
+
+    /// The corresponding Cartesian coordinates of the atoms.
     pub(crate) mol_coords: Array2<f64>,
+
+    /// The nuclear repulsion energy of the molecule.
     pub(crate) mol_enuc: T::Real,
+
+    /// The SCF MO coefficients.
     pub(crate) scf_cs: Array3<T>,
+
+    /// The occupation numbers of the MOs.
     pub(crate) scf_occs: Array2<T::Real>,
+
+    /// The MO energies.
     pub(crate) scf_mo_energies: Array2<T>,
+
+    /// The reference one-electron energy.
     pub(crate) scf_e_1: T,
+
+    /// The reference two-electron energy.
     pub(crate) scf_e_2: T,
+
+    /// The reference SCF energy.
     pub(crate) scf_e_scf: T,
 }
 
@@ -43,6 +74,7 @@ impl<T> PyScfData<T>
 where
     T: ComplexFloat,
 {
+    /// Obtains the molecule from the HDF5 data file.
     pub(crate) fn get_mol(
         &self,
         emap: &ElementMap,
@@ -72,6 +104,7 @@ where
         Ok(mol)
     }
 
+    /// Obtains the basis angular order information from the HDF5 data file.
     pub(crate) fn get_bao<'a, 'b: 'a>(
         &'a self,
         mol: &'b Molecule,
@@ -121,6 +154,7 @@ impl<T> PyScfData<T>
 where
     T: ComplexFloat + Lapack + TryFrom<<T as ComplexFloat>::Real>,
 {
+    /// Extracts the integrals from the HDF5 data file.
     pub(crate) fn get_integrals<SC: StructureConstraint + Clone>(
         &self,
     ) -> Result<(OverlapAO<T, SC>, HamiltonianAO<T, SC>), anyhow::Error> {
@@ -137,6 +171,7 @@ where
         Ok((overlap_ao, hamiltonian_ao))
     }
 
+    /// Extracts the Slater determinant from the HDF5 data file.
     pub(crate) fn get_slater_determinant<
         'a,
         'b: 'a,
@@ -173,6 +208,7 @@ where
     }
 }
 
+/// Reads a HDF5 data file and extracts the data into a `PyScfData` struct.
 pub(crate) fn extract_pyscf_scf_data<P, T>(filename: P) -> Result<PyScfData<T>, anyhow::Error>
 where
     P: AsRef<Path>,
