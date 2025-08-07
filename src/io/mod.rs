@@ -59,7 +59,8 @@ where
     let mut path = name.as_ref().to_path_buf();
     path.set_extension(file_type.ext());
     let mut reader = BufReader::new(File::open(path).map_err(|err| format_err!(err))?);
-    bincode::deserialize_from(&mut reader).map_err(|err| format_err!(err))
+    bincode::serde::decode_from_std_read(&mut reader, bincode::config::legacy())
+        .map_err(|err| format_err!(err))
 }
 
 /// Serialises a structure and writes into a `QSym2` binary file.
@@ -76,14 +77,15 @@ pub fn write_qsym2_binary<T, P: AsRef<Path>>(
     name: P,
     file_type: QSym2FileType,
     value: &T,
-) -> Result<(), anyhow::Error>
+) -> Result<usize, anyhow::Error>
 where
     T: Serialize,
 {
     let mut path = name.as_ref().to_path_buf();
     path.set_extension(file_type.ext());
     let mut writer = BufWriter::new(File::create(path)?);
-    bincode::serialize_into(&mut writer, value).map_err(|err| format_err!(err))
+    bincode::serde::encode_into_std_write(value, &mut writer, bincode::config::legacy())
+        .map_err(|err| format_err!(err))
 }
 
 /// Reads a `QSym2` configuration YAML file and deserialises it into an appropriate structure.
