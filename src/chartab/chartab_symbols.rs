@@ -136,7 +136,7 @@ where
     fn main(&self) -> String {
         self.subspaces()
             .iter()
-            .map(|(irrep, &mult)| {
+            .map(|&(ref irrep, &mult)| {
                 format!(
                     "{}{irrep}",
                     if mult != 1 {
@@ -191,7 +191,7 @@ where
     fn dimensionality(&self) -> usize {
         self.subspaces()
             .iter()
-            .map(|(symbol, &mult)| symbol.dimensionality() * mult)
+            .map(|&(ref symbol, &mult)| symbol.dimensionality() * mult)
             .sum()
     }
 
