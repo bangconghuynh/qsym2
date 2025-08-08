@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "qsym2"
-version = "0.10.1"
+version = "0.11.0"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Rust",
@@ -13,56 +13,3 @@ classifiers = [
 
 [tool.maturin]
 features = ["openblas-static", "integrals", "python"]
-
-[tool.cibuildwheel]
-build = "*"
-skip = ["pp*", "cp36*", "cp313*", "*i686"]
-test-skip = ""
-
-archs = ["auto"]
-build-frontend = "default"
-config-settings = {}
-dependency-versions = "pinned"
-environment = { PATH = "$HOME/.cargo/bin:$PATH", OPENBLAS_ARGS = "DYNAMIC_ARCH=1 DYNAMIC_OLDER=1" }
-environment-pass = []
-build-verbosity = ""
-
-before-all = ""
-before-build = ""
-repair-wheel-command = ""
-
-test-command = ""
-before-test = ""
-test-requires = []
-test-extras = []
-
-container-engine = "docker"
-
-manylinux-x86_64-image = "manylinux_2_28"
-manylinux-i686-image = "manylinux_2_28"
-manylinux-aarch64-image = "manylinux_2_28"
-manylinux-ppc64le-image = "manylinux_2_28"
-manylinux-s390x-image = "manylinux_2_28"
-manylinux-pypy_x86_64-image = "manylinux_2_28"
-manylinux-pypy_i686-image = "manylinux_2_28"
-manylinux-pypy_aarch64-image = "manylinux_2_28"
-
-musllinux-x86_64-image = "musllinux_1_2"
-musllinux-i686-image = "musllinux_1_2"
-musllinux-aarch64-image = "musllinux_1_2"
-musllinux-ppc64le-image = "musllinux_1_2"
-musllinux-s390x-image = "musllinux_1_2"
-
-
-[tool.cibuildwheel.linux]
-before-all = ["dnf install -y openssl-devel", "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"]
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-musllinux*"
-before-all = ["apk add openssl-dev", "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"]
-
-[tool.cibuildwheel.macos]
-repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
-
-[tool.cibuildwheel.windows]

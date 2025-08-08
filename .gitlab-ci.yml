@@ -58,37 +58,6 @@ tarpaulin:
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# cibuildwheel-linux:
-#   stage: Deploy
-#   tags:
-#     - archon
-#   image: python:3.13
-#   services:
-#     - name: docker:27.2.0-dind
-#       entrypoint: ["env", "-u", "DOCKER_HOST"]
-#       command: ["dockerd-entrypoint.sh"]
-#   variables:
-#     DOCKER_HOST: tcp://docker:2375/
-#     DOCKER_DRIVER: overlay2
-#     DOCKER_TLS_CERTDIR: ""
-#   before_script:
-#     - export TAG=$(git describe --tags --abbrev=0)
-#     - echo TAG=$TAG >> cibuildwheel_linux.env
-#     - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
-#   script:
-#     - curl -sSL https://get.docker.com/ | sh
-#     - python -m pip install cibuildwheel==2.23.0
-#     - cibuildwheel --platform linux --output-dir wheelhouse
-#     - tar -czvf qsym2-$TAG-wheels.tar.gz wheelhouse/*
-#   artifacts:
-#     paths:
-#       - qsym2-*-wheels.tar.gz
-#     expire_in: never
-#     reports:
-#       dotenv: cibuildwheel_linux.env
-#   rules:
-#     - if: $CI_COMMIT_TAG
-
 release_job:
   stage: Deploy
   tags:
