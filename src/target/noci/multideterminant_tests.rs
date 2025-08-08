@@ -508,6 +508,7 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
 
     // -Ag
     let sqrt2inv = 1.0 / (2.0f64.sqrt());
+    #[rustfmt::skip]
     let a1_multidet_d2h_grey_u = MultiDeterminant::builder()
         .basis(orbit_basis_d2h_grey_u.clone())
         .coefficients(array![
@@ -552,13 +553,12 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_a1_multidet_d2h_grey_m
-            .analyse_rep()
-            .unwrap(),
+        orbit_a1_multidet_d2h_grey_m.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)|").unwrap()
     );
 
     // +B1u
+    #[rustfmt::skip]
     let b1u_multidet_d2h_grey_u = MultiDeterminant::builder()
         .basis(orbit_basis_d2h_grey_u.clone())
         .coefficients(array![
@@ -583,7 +583,9 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_b1u_multidet_d2h_grey_u_optimised.analyse_rep().unwrap(),
+        orbit_b1u_multidet_d2h_grey_u_optimised
+            .analyse_rep()
+            .unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("|^(+)|B|_(1u)|").unwrap()
     );
 

@@ -18,7 +18,7 @@ use crate::analysis::{
     log_overlap_eigenvalues, EigenvalueComparisonMode, Overlap, ProjectionDecomposition,
     RepAnalysis,
 };
-use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -558,7 +558,7 @@ where
                 )
             )
         } else if (n_spatial != sao.nrows() || n_spatial != sao.ncols())
-            || (n_spatial * n_comps != sao.nrows() || n_spatial * n_comps != sao.ncols())
+            && (n_spatial * n_comps != sao.nrows() || n_spatial * n_comps != sao.ncols())
         {
             Err("The dimensions of the SAO matrix do not match either the number of spatial AO basis functions or the number of spatial AO basis functions multiplied by the number of explicit components per coefficient matrix.".to_string())
         } else {
@@ -704,75 +704,79 @@ where
 
 #[duplicate_item(
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            duplicate!{
+            [
                 [
-                    [
-                        btype_nested [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
-                        calc_smat_nested [calc_smat_optimised]
-                    ]
-                    [
-                        btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
-                        calc_smat_nested [calc_smat]
-                    ]
+                    btype_nested [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                    calc_smat_nested [calc_smat_optimised]
                 ]
                 [
-                    gtype_ [ UnitaryRepresentedSymmetryGroup ]
-                    dtype_ [ dtype_nested ]
-                    btype_ [ btype_nested ]
-                    sctype_ [ sctype_nested ]
-                    doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
-                    analyse_fn_ [ analyse_representation ]
-                    construct_group_ [ self.construct_unitary_group()? ]
-                    calc_smat_ [ calc_smat_nested ]
-                    calc_projections_ [
-                        log_subtitle("Multi-determinantal wavefunction projection decompositions");
-                        qsym2_output!("");
-                        qsym2_output!("  Projections are defined w.r.t. the following inner product:");
-                        qsym2_output!("    {}", multidet_orbit.origin().overlap_definition());
-                        qsym2_output!("");
-                        multidet_orbit
-                            .projections_to_string(
-                                &multidet_orbit.calc_projection_compositions()?,
-                                params.integrality_threshold,
-                            )
-                            .log_output_display();
-                        qsym2_output!("");
-                    ]
+                    btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                    calc_smat_nested [calc_smat]
                 ]
-            }
+            ]
+            [
+                gtype_ [ UnitaryRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                sctype_ [ sctype_nested ]
+                doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
+                analyse_fn_ [ analyse_representation ]
+                construct_group_ [ self.construct_unitary_group()? ]
+                calc_smat_ [ calc_smat_nested ]
+                calc_projections_ [
+                    log_subtitle("Multi-determinantal wavefunction projection decompositions");
+                    qsym2_output!("");
+                    qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                    qsym2_output!("    {}", multidet_orbit.origin().overlap_definition());
+                    qsym2_output!("");
+                    multidet_orbit
+                        .projections_to_string(
+                            &multidet_orbit.calc_projection_compositions()?,
+                            params.integrality_threshold,
+                        )
+                        .log_output_display();
+                    qsym2_output!("");
+                ]
+            ]
         }
     }
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            duplicate!{
+            [
                 [
-                    [
-                        btype_nested [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
-                        calc_smat_nested [calc_smat_optimised]
-                    ]
-                    [
-                        btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
-                        calc_smat_nested [calc_smat]
-                    ]
+                    btype_nested [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                    calc_smat_nested [calc_smat_optimised]
                 ]
                 [
-                    gtype_ [ MagneticRepresentedSymmetryGroup ]
-                    dtype_ [ dtype_nested ]
-                    btype_ [ btype_nested ]
-                    sctype_ [ sctype_nested ]
-                    doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
-                    analyse_fn_ [ analyse_corepresentation ]
-                    construct_group_ [ self.construct_magnetic_group()? ]
-                    calc_smat_ [ calc_smat_nested ]
-                    calc_projections_ [ ]
+                    btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                    calc_smat_nested [calc_smat]
                 ]
-            }
-    }
+            ]
+            [
+                gtype_ [ MagneticRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                sctype_ [ sctype_nested ]
+                doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
+                analyse_fn_ [ analyse_corepresentation ]
+                construct_group_ [ self.construct_magnetic_group()? ]
+                calc_smat_ [ calc_smat_nested ]
+                calc_projections_ [ ]
+            ]
+        }
     }
 )]
 impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> {
@@ -940,43 +944,47 @@ where
 
 #[duplicate_item(
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            duplicate!{
-                [
-                    btype_nested;
-                    [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
-                    [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
-                ]
-                [
-                    gtype_ [ UnitaryRepresentedSymmetryGroup ]
-                    dtype_ [ dtype_nested ]
-                    btype_ [ btype_nested ]
-                    sctype_ [ sctype_nested ]
-                    analyse_fn_ [ analyse_representation ]
-                ]
-            }
+            [
+                btype_nested;
+                [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+            ]
+            [
+                gtype_ [ UnitaryRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                sctype_ [ sctype_nested ]
+                analyse_fn_ [ analyse_representation ]
+            ]
         }
     }
     duplicate!{
-        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            dtype_nested sctype_nested;
+            [ f64 ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinConstraint ];
+            [ Complex<f64> ] [ SpinOrbitCoupled ];
+        ]
         duplicate!{
-            [ sctype_nested; [SpinConstraint] ]
-            duplicate!{
-                [
-                    btype_nested;
-                    [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
-                    [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
-                ]
-                [
-                    gtype_ [ MagneticRepresentedSymmetryGroup ]
-                    dtype_ [ dtype_nested ]
-                    btype_ [ btype_nested ]
-                    sctype_ [ sctype_nested ]
-                    analyse_fn_ [ analyse_corepresentation ]
-                ]
-            }
+            [
+                btype_nested;
+                [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+            ]
+            [
+                gtype_ [ MagneticRepresentedSymmetryGroup ]
+                dtype_ [ dtype_nested ]
+                btype_ [ btype_nested ]
+                sctype_ [ sctype_nested ]
+                analyse_fn_ [ analyse_corepresentation ]
+            ]
         }
     }
 )]

@@ -48,7 +48,7 @@ pub trait Basis<I> {
 // ~~~~~~~~~~~~~~~~~~~~~~
 
 #[derive(Builder, Clone)]
-pub(crate) struct OrbitBasis<'g, G, I>
+pub struct OrbitBasis<'g, G, I>
 where
     G: GroupProperties,
 {
@@ -79,7 +79,7 @@ where
     G: GroupProperties + Clone,
     I: Clone,
 {
-    pub(crate) fn builder() -> OrbitBasisBuilder<'g, G, I> {
+    pub fn builder() -> OrbitBasisBuilder<'g, G, I> {
         OrbitBasisBuilder::<G, I>::default()
     }
 
@@ -241,13 +241,13 @@ where
 // ~~~~~~~~~~~
 
 #[derive(Builder, Clone)]
-pub(crate) struct EagerBasis<I: Clone> {
+pub struct EagerBasis<I: Clone> {
     /// The elements in the basis.
     elements: Vec<I>,
 }
 
 impl<I: Clone> EagerBasis<I> {
-    pub(crate) fn builder() -> EagerBasisBuilder<I> {
+    pub fn builder() -> EagerBasisBuilder<I> {
         EagerBasisBuilder::default()
     }
 }

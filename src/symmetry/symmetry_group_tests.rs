@@ -254,7 +254,7 @@ fn verify_abstract_group(
                 .unwrap()
                 .iter()
                 .cartesian_product(group.get_cc_index(inv_class_i).unwrap().iter())
-                .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
+                .filter(|&(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
                 .collect::<Vec<_>>()
                 .len()
                 == group.get_cc_index(class_i).unwrap().len()

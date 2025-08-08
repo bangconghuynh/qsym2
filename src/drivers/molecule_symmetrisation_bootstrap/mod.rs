@@ -37,9 +37,7 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
-use crate::io::format::{
-    log_subtitle, log_title, nice_bool, qsym2_output, QSym2Output,
-};
+use crate::io::format::{log_subtitle, log_title, nice_bool, qsym2_output, QSym2Output};
 use crate::io::QSym2FileType;
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -672,10 +670,7 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                 .as_ref()
                 .and_then(|magsym| magsym.group_name.as_ref())
         } else {
-            verifying_pd_res
-                .unitary_symmetry
-                .group_name
-                .as_ref()
+            verifying_pd_res.unitary_symmetry.group_name.as_ref()
         };
         ensure!(
             prev_target_sym_group_name.as_ref() == verifying_group_name,

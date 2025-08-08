@@ -50,7 +50,11 @@ pub fn qsym2(_py: Python<'_>, m: Bound<'_, PyModule>) -> PyResult<()> {
         &m
     )?)?;
     m.add_function(wrap_pyfunction!(
-        representation_analysis::multideterminant::rep_analyse_multideterminants_orbit_basis,
+        representation_analysis::multideterminant::rep_analyse_multideterminants_orbit_basis_external_solver,
+        &m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        representation_analysis::multideterminant::rep_analyse_multideterminants_orbit_basis_internal_solver,
         &m
     )?)?;
     m.add_function(wrap_pyfunction!(
@@ -84,6 +88,8 @@ pub fn qsym2(_py: Python<'_>, m: Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<symmetry_group_detection::PySymmetryElementKind>()?;
     m.add_class::<representation_analysis::density::PyDensityReal>()?;
     m.add_class::<representation_analysis::density::PyDensityComplex>()?;
+    m.add_class::<representation_analysis::multideterminant::PyMultiDeterminantsReal>()?;
+    m.add_class::<representation_analysis::multideterminant::PyMultiDeterminantsComplex>()?;
     m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantReal>()?;
     m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantComplex>()?;
     m.add_class::<representation_analysis::vibrational_coordinate::PyVibrationalCoordinateCollectionReal>()?;

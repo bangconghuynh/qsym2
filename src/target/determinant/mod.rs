@@ -9,7 +9,7 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, Ix2};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use ndarray_linalg::types::Lapack;
 use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};
@@ -593,25 +593,32 @@ where
                     &[
                         &self.occupations[0].map(Complex::<T>::from).view(),
                         &self.coefficients[0].view(),
-                        &self.coefficients[0].map(Complex::conj).view()
-                    ]
+                        &self.coefficients[0].map(Complex::conj).view(),
+                    ],
                 )
-                .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
+                .expect(
+                    "Unable to construct a density matrix from a determinant coefficient matrix.",
+                )
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
                 let nspatial = self.bao.n_funcs();
-                (0..usize::from(ncomps)).map(|icomp| {
-                    let icomp_denmat = denmat.slice(
-                        s![icomp*nspatial..(icomp + 1)*nspatial, icomp*nspatial..(icomp + 1)*nspatial]
-                    ).to_owned();
-                    Density::<Complex<T>>::builder()
-                        .density_matrix(icomp_denmat)
-                        .bao(self.bao())
-                        .mol(self.mol())
-                        .complex_symmetric(self.complex_symmetric())
-                        .threshold(self.threshold())
-                        .build()
-                }).collect::<Result<Vec<_>, _>>()?
+                (0..usize::from(ncomps))
+                    .map(|icomp| {
+                        let icomp_denmat = denmat
+                            .slice(s![
+                                icomp * nspatial..(icomp + 1) * nspatial,
+                                icomp * nspatial..(icomp + 1) * nspatial
+                            ])
+                            .to_owned();
+                        Density::<Complex<T>>::builder()
+                            .density_matrix(icomp_denmat)
+                            .bao(self.bao())
+                            .mol(self.mol())
+                            .complex_symmetric(self.complex_symmetric())
+                            .threshold(self.threshold())
+                            .build()
+                    })
+                    .collect::<Result<Vec<_>, _>>()?
             }
         };
         DensitiesOwned::builder()

@@ -44,9 +44,9 @@ type C128 = Complex<f64>;
 // Slater determinant
 // ------------------
 
-// ~~~~~~~~~~~~
-// Real, no SOC
-// ~~~~~~~~~~~~
+// ~~~~
+// Real
+// ~~~~
 
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
@@ -127,7 +127,7 @@ impl PySlaterDeterminantReal {
     /// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
     #[new]
     #[pyo3(signature = (structure_constraint, complex_symmetric, coefficients, occupations, threshold, mo_energies=None, energy=None))]
-    pub(crate) fn new(
+    pub fn new(
         structure_constraint: PyStructureConstraint,
         complex_symmetric: bool,
         coefficients: Vec<Bound<'_, PyArray2<f64>>>,
@@ -159,8 +159,12 @@ impl PySlaterDeterminantReal {
         det
     }
 
+    pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
+        Ok(self.complex_symmetric)
+    }
+
     #[getter]
-    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
+    pub fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
         Ok(self
             .occupations
             .iter()
@@ -169,7 +173,7 @@ impl PySlaterDeterminantReal {
     }
 
     #[getter]
-    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<f64>>>> {
+    pub fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<f64>>>> {
         Ok(self
             .coefficients
             .iter()
@@ -195,7 +199,7 @@ impl PySlaterDeterminantReal {
     /// # Errors
     ///
     /// Errors if the [`SlaterDeterminant`] fails to build.
-    pub(crate) fn to_qsym2<'b, 'a: 'b, SC>(
+    pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
@@ -223,7 +227,15 @@ impl PySlaterDeterminantReal {
             .map_err(|err| format_err!(err));
         det
     }
+
+    pub fn structure_constraint(&self) -> &PyStructureConstraint {
+        &self.structure_constraint
+    }
 }
+
+// ~~~~~~~
+// Complex
+// ~~~~~~~
 
 /// Python-exposed structure to marshall complex Slater determinant information between Rust and
 /// Python.
@@ -295,7 +307,7 @@ impl PySlaterDeterminantComplex {
     /// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
     /// are complex-symmetric. Python type: `bool`.
     /// * `coefficients` - The complex coefficients for the molecular orbitals of this determinant.
-    /// Python type: `list[numpy.2darray[float]]`.
+    /// Python type: `list[numpy.2darray[complex]]`.
     /// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
     /// `list[numpy.1darray[float]]`.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
@@ -304,7 +316,7 @@ impl PySlaterDeterminantComplex {
     /// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
     #[new]
     #[pyo3(signature = (structure_constraint, complex_symmetric, coefficients, occupations, threshold, mo_energies=None, energy=None))]
-    pub(crate) fn new(
+    pub fn new(
         structure_constraint: PyStructureConstraint,
         complex_symmetric: bool,
         coefficients: Vec<Bound<'_, PyArray2<C128>>>,
@@ -336,8 +348,12 @@ impl PySlaterDeterminantComplex {
         det
     }
 
+    pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
+        Ok(self.complex_symmetric)
+    }
+
     #[getter]
-    fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
+    pub fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
         Ok(self
             .occupations
             .iter()
@@ -346,7 +362,7 @@ impl PySlaterDeterminantComplex {
     }
 
     #[getter]
-    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<C128>>>> {
+    pub fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<C128>>>> {
         Ok(self
             .coefficients
             .iter()
@@ -372,7 +388,7 @@ impl PySlaterDeterminantComplex {
     /// # Errors
     ///
     /// Errors if the [`SlaterDeterminant`] fails to build.
-    pub(crate) fn to_qsym2<'b, 'a: 'b, SC>(
+    pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
@@ -399,6 +415,10 @@ impl PySlaterDeterminantComplex {
             .build()
             .map_err(|err| format_err!(err));
         det
+    }
+
+    pub fn structure_constraint(&self) -> &PyStructureConstraint {
+        &self.structure_constraint
     }
 }
 

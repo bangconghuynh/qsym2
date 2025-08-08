@@ -13,6 +13,13 @@ pub mod vibrational_coordinate;
 
 type C128 = Complex<f64>;
 
+/// Python-exposed enumerated type to handle the union type of float and complex in Python.
+#[derive(FromPyObject)]
+pub enum PyScalarRC {
+    Real(f64),
+    Complex(C128),
+}
+
 /// Python-exposed enumerated type to handle the union type of numpy float 1d-arrays and numpy
 /// complex 1d-arrays in Python.
 #[derive(FromPyObject)]
