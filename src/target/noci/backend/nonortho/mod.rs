@@ -7,11 +7,11 @@ use duplicate::duplicate_item;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::{
-    stack, Array1, Array2, ArrayView1, ArrayView2, ArrayView4, Axis, Ix0, Ix2, ScalarOperand,
+    Array1, Array2, ArrayView1, ArrayView2, ArrayView4, Axis, Ix0, Ix2, ScalarOperand, stack,
 };
 use ndarray_einsum::einsum;
 use ndarray_linalg::types::Lapack;
-use ndarray_linalg::{Determinant, Eig, Eigh, Norm, Scalar, SVD, UPLO};
+use ndarray_linalg::{Determinant, Eig, Eigh, Norm, SVD, Scalar, UPLO};
 use num::{Complex, Float};
 use num_complex::ComplexFloat;
 
@@ -598,28 +598,32 @@ where
                     w_sigma_res.and_then(|w_sigma| {
                         p_mbar_sigma_res.and_then(|p_mbar_sigma| {
                             // i = μ, j = μ', k = ν, l = ν'
-                            let j_term_1 =
-                                einsum("ikjl,ji,lk->", &[o2, &w.view(), &p_mbar_sigma.view()])
-                                    .map_err(|err| format_err!(err))?
-                                    .into_dimensionality::<Ix0>()?
-                                    .into_iter()
-                                    .next()
-                                    .ok_or_else(|| {
-                                        format_err!(
+                            let j_term_1 = einsum(
+                                "ikjl,ji,lk->",
+                                &[o2, &w.view(), &p_mbar_sigma.view()],
+                            )
+                            .map_err(|err| format_err!(err))?
+                            .into_dimensionality::<Ix0>()?
+                            .into_iter()
+                            .next()
+                            .ok_or_else(|| {
+                                format_err!(
                                     "Unable to extract the result of the einsum contraction."
                                 )
-                                    })?;
-                            let j_term_2 =
-                                einsum("ikjl,ji,lk->", &[o2, &p_mbar_sigma.view(), &w.view()])
-                                    .map_err(|err| format_err!(err))?
-                                    .into_dimensionality::<Ix0>()?
-                                    .into_iter()
-                                    .next()
-                                    .ok_or_else(|| {
-                                        format_err!(
+                            })?;
+                            let j_term_2 = einsum(
+                                "ikjl,ji,lk->",
+                                &[o2, &p_mbar_sigma.view(), &w.view()],
+                            )
+                            .map_err(|err| format_err!(err))?
+                            .into_dimensionality::<Ix0>()?
+                            .into_iter()
+                            .next()
+                            .ok_or_else(|| {
+                                format_err!(
                                     "Unable to extract the result of the einsum contraction."
                                 )
-                                    })?;
+                            })?;
                             let k_term_1 = einsum(
                                 "ikjl,li,jk->",
                                 &[o2, &w_sigma.view(), &p_mbar_sigma.view()],
@@ -897,9 +901,10 @@ impl CanonicalOrthogonalisable for ArrayView2<'_, dtype_> {
         let smat = self;
 
         // Real, symmetric S
+        let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
         ensure!(
-            (smat.to_owned() - smat.t()).norm_l2() <= thresh_offdiag,
-            "Overlap matrix is not real-symmetric."
+            deviation_s <= thresh_offdiag,
+            "Overlap matrix is not real-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
         );
 
         // S is real-symmetric, so U is orthogonal, i.e. U^T = U^(-1).

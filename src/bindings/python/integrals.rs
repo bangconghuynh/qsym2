@@ -27,7 +27,7 @@ use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContra
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 #[cfg(feature = "qchem")]
-use crate::io::format::{log_title, qsym2_output, QSym2Output};
+use crate::io::format::{QSym2Output, log_title, qsym2_output};
 
 #[cfg(feature = "qchem")]
 lazy_static! {
@@ -433,14 +433,18 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
 #[pyclass(eq, eq_int)]
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum PySpinOrbitCoupled {
-    /// Variant for $`j`$-adapted basis functions. Only two relativistic components are exposed.
-    JAdapted,
+    /// Variant for two-component $`j`$-adapted basis functions.
+    JAdapted2C,
+
+    /// Variant for four-component $`j`$-adapted basis functions.
+    JAdapted4C,
 }
 
 impl From<PySpinOrbitCoupled> for SpinOrbitCoupled {
     fn from(pysoc: PySpinOrbitCoupled) -> Self {
         match pysoc {
-            PySpinOrbitCoupled::JAdapted => SpinOrbitCoupled::JAdapted(2),
+            PySpinOrbitCoupled::JAdapted2C => SpinOrbitCoupled::JAdapted(1),
+            PySpinOrbitCoupled::JAdapted4C => SpinOrbitCoupled::JAdapted(2),
         }
     }
 }
@@ -450,9 +454,10 @@ impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
 
     fn try_from(soc: SpinOrbitCoupled) -> Result<Self, Self::Error> {
         match soc {
-            SpinOrbitCoupled::JAdapted(2) => Ok(PySpinOrbitCoupled::JAdapted),
+            SpinOrbitCoupled::JAdapted(1) => Ok(PySpinOrbitCoupled::JAdapted2C),
+            SpinOrbitCoupled::JAdapted(2) => Ok(PySpinOrbitCoupled::JAdapted4C),
             _ => Err(format_err!(
-                "`PySpinOrbitCoupled` can only support two relativistic components."
+                "`PySpinOrbitCoupled` can only support two-component or four-component basis functions (i.e. one or two spinor blocks)."
             )),
         }
     }
@@ -508,11 +513,14 @@ impl TryFrom<SpinOrbitCoupled> for PyStructureConstraint {
 
     fn try_from(soc: SpinOrbitCoupled) -> Result<Self, Self::Error> {
         match soc {
+            SpinOrbitCoupled::JAdapted(1) => Ok(PyStructureConstraint::SpinOrbitCoupled(
+                PySpinOrbitCoupled::JAdapted2C,
+            )),
             SpinOrbitCoupled::JAdapted(2) => Ok(PyStructureConstraint::SpinOrbitCoupled(
-                PySpinOrbitCoupled::JAdapted,
+                PySpinOrbitCoupled::JAdapted4C,
             )),
             _ => Err(format_err!(
-                "`PySpinOrbitCoupled` can only support two relativistic components."
+                "`PySpinOrbitCoupled` can only support two-component or four-component basis functions (i.e. one or two spinor blocks)."
             )),
         }
     }

@@ -1,7 +1,7 @@
 use anyhow::{self, ensure, format_err};
 use duplicate::duplicate_item;
 use itertools::Itertools;
-use ndarray::{stack, Array1, Array2, ArrayView1, ArrayView2, Axis, Ix2, LinalgScalar};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis, Ix2, LinalgScalar, stack};
 use ndarray_einsum::einsum;
 use ndarray_linalg::{
     Eig, EigGeneralized, Eigh, GeneralizedEigenvalue, Lapack, Norm, Scalar, UPLO,
@@ -135,9 +135,10 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
         let (hmat, smat) = (self.0.to_owned(), self.1.to_owned());
 
         // Real, symmetric S and H
+        let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
         ensure!(
-            (hmat.to_owned() - hmat.t()).norm_l2() <= thresh_offdiag,
-            "Hamiltonian matrix is not real-symmetric."
+            deviation_h <= thresh_offdiag,
+            "Hamiltonian matrix is not real-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
         );
 
         // CanonicalOrthogonalisationResult::calc_canonical_orthogonal_matrix checks for
@@ -170,7 +171,7 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
             })?;
         ensure!(
             max_diff <= thresh_offdiag,
-            "The orthogonalised overlap matrix is not the identity matrix."
+            "The orthogonalised overlap matrix is not the identity matrix: the maximum absolute deviation is {max_diff:.3e} > {thresh_offdiag:.3e}."
         );
 
         let (eigvals_t, eigvecs_t) = hmat_t.eigh(UPLO::Lower)?;
@@ -207,13 +208,15 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
         let (hmat, smat) = (self.0.to_owned(), self.1.to_owned());
 
         // Real, symmetric S and H
+        let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
         ensure!(
-            (hmat.to_owned() - hmat.t()).norm_l2() <= thresh_offdiag,
-            "Hamiltonian matrix is not real-symmetric."
+            deviation_h <= thresh_offdiag,
+            "Hamiltonian matrix is not real-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
         );
+        let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
         ensure!(
-            (smat.to_owned() - smat.t()).norm_l2() <= thresh_offdiag,
-            "Overlap matrix is not real-symmetric."
+            deviation_s <= thresh_offdiag,
+            "Overlap matrix is not real-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
         );
 
         let (geneigvals, eigvecs) =
@@ -315,15 +318,17 @@ where
 
         if complex_symmetric {
             // Complex-symmetric H
+            let deviation = (hmat.to_owned() - hmat.t()).norm_l2();
             ensure!(
-                (hmat.to_owned() - hmat.t()).norm_l2() <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-symmetric."
+                deviation <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-symmetric: ||H - H^T|| = {deviation:.3e} > {thresh_offdiag:.3e}."
             );
         } else {
             // Complex-Hermitian H
+            let deviation = (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2();
             ensure!(
-                (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2() <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-Hermitian."
+                deviation <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†|| = {deviation:.3e} > {thresh_offdiag:.3e}."
             );
         }
 
@@ -399,23 +404,27 @@ where
 
         if complex_symmetric {
             // Complex-symmetric H and S
+            let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
             ensure!(
-                (hmat.to_owned() - hmat.t()).norm_l2() <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-symmetric."
+                deviation_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
             );
+            let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
             ensure!(
-                (smat.to_owned() - smat.t()).norm_l2() <= thresh_offdiag,
-                "Overlap matrix is not complex-symmetric."
+                deviation_s <= thresh_offdiag,
+                "Overlap matrix is not complex-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
             );
         } else {
             // Complex-Hermitian H and S
+            let deviation_h = (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2();
             ensure!(
-                (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2() <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-Hermitian."
+                deviation_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
             );
+            let deviation_s = (smat.to_owned() - smat.map(|v| v.conj()).t()).norm_l2();
             ensure!(
-                (smat.to_owned() - smat.map(|v| v.conj()).t()).norm_l2() <= thresh_offdiag,
-                "Overlap matrix is not complex-Hermitian."
+                deviation_s <= thresh_offdiag,
+                "Overlap matrix is not complex-Hermitian: ||S - S^†|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
             );
         }
 
@@ -576,7 +585,7 @@ fn normalise_eigenvectors_real<T>(
     thresh: T,
 ) -> Result<Array2<T>, anyhow::Error>
 where
-    T: LinalgScalar + Float,
+    T: LinalgScalar + Float + std::fmt::LowerExp,
 {
     let sq_norm = einsum("ji,jk,kl->il", &[eigvecs, smat, eigvecs])
         .map_err(|err| format_err!(err))?
@@ -597,7 +606,7 @@ where
 
     ensure!(
         max_diff <= thresh,
-        "The C^T.S.C matrix is not a diagonal matrix."
+        "The C^T.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thresh:.3e}."
     );
     ensure!(
         sq_norm.diag().iter().all(|v| *v > T::zero()),
@@ -627,7 +636,7 @@ fn normalise_eigenvectors_complex<T>(
 ) -> Result<Array2<T>, anyhow::Error>
 where
     T: LinalgScalar + ComplexFloat + std::fmt::Display,
-    T::Real: Float,
+    T::Real: Float + std::fmt::LowerExp,
 {
     let sq_norm = if complex_symmetric {
         einsum("ji,jk,kl->il", &[eigvecs, smat, eigvecs])
@@ -662,14 +671,17 @@ where
             }
         })?;
 
-    ensure!(
-        max_diff <= thresh,
-        if complex_symmetric {
-            "The C^T.S.C matrix is not a diagonal matrix."
-        } else {
-            "The C^†.S.C matrix is not a diagonal matrix."
-        }
-    );
+    if complex_symmetric {
+        ensure!(
+            max_diff <= thresh,
+            "The C^T.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thresh:.3e}."
+        )
+    } else {
+        ensure!(
+            max_diff <= thresh,
+            "The C^†.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thresh:.3e}."
+        )
+    };
     let eigvecs_normalised = eigvecs / sq_norm.diag().map(|v| v.sqrt());
     Ok(eigvecs_normalised)
 }

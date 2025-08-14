@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::{bail, format_err};
+use log;
 use itertools::Itertools;
 use num_complex::Complex;
 use numpy::PyArrayMethods;
@@ -353,6 +354,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         &origins_r.iter().collect_vec(),
                         &group,
                         symmetry_transformation_kind,
+                        use_cayley_table,
                         thresh_offdiag,
                         thresh_zeroov,
                     )
@@ -413,6 +415,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         &origins_r.iter().collect_vec(),
                         &group,
                         symmetry_transformation_kind,
+                        use_cayley_table,
                         thresh_offdiag,
                         thresh_zeroov,
                     )
@@ -537,6 +540,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
+                                use_cayley_table,
                                 thresh_offdiag,
                                 thresh_zeroov,
                             )
@@ -597,6 +601,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
+                                use_cayley_table,
                                 thresh_offdiag,
                                 thresh_zeroov,
                             )
@@ -650,6 +655,13 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
+                // DEBUG
+                let (zeroe, onee, twoe) = hamiltonian_ao
+                    .calc_hamiltonian_matrix_element_contributions(&origins_c[0], &origins_c[0], overlap_ao.sao(), 1e-10, 1e-7)
+                    .unwrap();
+                log::debug!("Origin energies:\n  {zeroe}\n  {onee}\n  {twoe}");
+                // END DEBUG
+
                 match &use_magnetic_group {
                     Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                         // Magnetic groups with corepresentations
@@ -681,6 +693,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
+                                use_cayley_table,
                                 thresh_offdiag,
                                 thresh_zeroov,
                             )
@@ -741,6 +754,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
+                                use_cayley_table,
                                 thresh_offdiag,
                                 thresh_zeroov,
                             )
