@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
-use ndarray::{array, concatenate, s, Array2, Axis};
+use ndarray::{Array2, Axis, array, concatenate, s};
 use ndarray_linalg::assert::close_l2;
 use num_complex::Complex;
 use num_traits::Pow;
@@ -18,7 +18,7 @@ use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresented
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
 use crate::symmetry::symmetry_element::{
-    RotationGroup, SpecialSymmetryTransformation, SymmetryElement, ROT, TRROT,
+    ROT, RotationGroup, SpecialSymmetryTransformation, SymmetryElement, TRROT,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
@@ -26,8 +26,8 @@ use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymb
 use crate::symmetry::symmetry_transformation::{
     SymmetryTransformable, SymmetryTransformationKind, TimeReversalTransformable,
 };
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 
 type C128 = Complex<f64>;
 
@@ -903,7 +903,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
+    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)));
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1half.clone()]);
     let bao_h = BasisAngularOrder::new(&[batm_h0]);
@@ -1270,7 +1270,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
+    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)));
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp3.clone()]);
     let bao_h = BasisAngularOrder::new(&[batm_h0]);
@@ -1460,7 +1460,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
+    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)));
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1half.clone()]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1half.clone()]);
@@ -1913,12 +1913,24 @@ fn test_determinant_analysis_overlap() {
             }
         });
     let smat_ref = array![
-        [1.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0050563],
-        [0.0000000, 1.0000000, 0.0000000, 0.0000000, 0.0000000, 0.7611240],
-        [0.0000000, 0.0000000, 1.0000000, 0.0000000, 0.0000000, 0.0576832],
-        [0.0000000, 0.0000000, 0.0000000, 1.0000000, 0.0000000, 0.0719396],
-        [0.0000000, 0.0000000, 0.0000000, 0.0000000, 1.0000000, 0.1041424],
-        [0.0050563, 0.7611240, 0.0576832, 0.0719396, 0.1041424, 1.0000000],
+        [
+            1.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0050563
+        ],
+        [
+            0.0000000, 1.0000000, 0.0000000, 0.0000000, 0.0000000, 0.7611240
+        ],
+        [
+            0.0000000, 0.0000000, 1.0000000, 0.0000000, 0.0000000, 0.0576832
+        ],
+        [
+            0.0000000, 0.0000000, 0.0000000, 1.0000000, 0.0000000, 0.0719396
+        ],
+        [
+            0.0000000, 0.0000000, 0.0000000, 0.0000000, 1.0000000, 0.1041424
+        ],
+        [
+            0.0050563, 0.7611240, 0.0576832, 0.0719396, 0.1041424, 1.0000000
+        ],
     ];
     close_l2(&smat, &smat_ref, 1e-7);
 
@@ -3028,9 +3040,11 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
-    assert!(orbit_cg_u_grey_d4h_double_spin_spatial_1e
-        .analyse_rep()
-        .is_err(),);
+    assert!(
+        orbit_cg_u_grey_d4h_double_spin_spatial_1e
+            .analyse_rep()
+            .is_err(),
+    );
 
     let mut orbit_cg_u_grey_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group_u_grey_d4h_double)
@@ -3272,9 +3286,11 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .calc_smat(Some(&sao_cg), None, true)
         .unwrap()
         .calc_xmat(false);
-    assert!(orbit_cg_u_bw_d4h_c4h_double_spin_spatial_1e
-        .analyse_rep()
-        .is_err());
+    assert!(
+        orbit_cg_u_bw_d4h_c4h_double_spin_spatial_1e
+            .analyse_rep()
+            .is_err()
+    );
 
     let mut orbit_cg_u_bw_d4h_c4h_double_spin_spatial_2e =
         SlaterDeterminantSymmetryOrbit::builder()
@@ -4096,10 +4112,22 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
-    let bs_sp5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
-    let bs_sp7 = BasisShell::new(7, ShellOrder::Spinor(SpinorOrder::increasingm(7, true)));
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
+    let bs_sp3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)),
+    );
+    let bs_sp5 = BasisShell::new(
+        5,
+        ShellOrder::Spinor(SpinorOrder::increasingm(5, true, None)),
+    );
+    let bs_sp7 = BasisShell::new(
+        7,
+        ShellOrder::Spinor(SpinorOrder::increasingm(7, true, None)),
+    );
 
     let batm_h0 = BasisAtom::new(
         &atm_h0,
@@ -4430,9 +4458,11 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
         .calc_xmat(false);
     // Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron
     // systems where spin is treated explicitly.
-    assert!(orbit_c_u_oh_gray_double_spinspatial_12
-        .analyse_rep()
-        .is_err());
+    assert!(
+        orbit_c_u_oh_gray_double_spinspatial_12
+            .analyse_rep()
+            .is_err()
+    );
 
     let mut orbit_c_u_oh_gray_double_spinspatial_1212 = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group_u_oh_gray_double)
@@ -4579,8 +4609,14 @@ fn test_determinant_orbit_rep_analysis_bh4_tet_jadapted() {
     let atm_h2 = Atom::from_xyz("H   -0.6405130    0.6405130    0.6405130", &emap, 1e-7).unwrap();
     let atm_h3 = Atom::from_xyz("H   -0.6405130   -0.6405130   -0.6405130", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
+    let bs_sp3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)),
+    );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp1.clone(), bs_sp3.clone()]);
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
@@ -4794,7 +4830,10 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     let atm_h2 = Atom::from_xyz("H -1.1811091  0.0000000 0.0000000", &emap, 1e-7).unwrap();
 
     let bs_p1 = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_p1.clone()]);
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1.clone()]);
@@ -5062,9 +5101,18 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
     let atm_c0 = Atom::from_xyz("C 0.0 0.0 1.0", &emap, 1e-7).unwrap();
     let atm_c1 = Atom::from_xyz("C 0.0 0.0 -1.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1g = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bs_sp1u = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, false)));
-    let bs_sp3u = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, false)));
+    let bs_sp1g = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
+    let bs_sp1u = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, false, None)),
+    );
+    let bs_sp3u = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, false, None)),
+    );
 
     let batm_c0 = BasisAtom::new(
         &atm_c0,

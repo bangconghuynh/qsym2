@@ -148,7 +148,7 @@ where
 
     /// Returns a shared reference to the [`BasisAngularOrder`] description of the basis in which
     /// the orbital coefficients are written.
-    pub fn bao(&self) -> &BasisAngularOrder {
+    pub fn bao(&'_ self) -> &'_ BasisAngularOrder<'_> {
         self.bao
     }
 

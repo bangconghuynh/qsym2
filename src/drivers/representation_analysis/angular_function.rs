@@ -468,7 +468,7 @@ where
     let spinor_symss = (1..2 * lmax).step_by(2).fold(
         Vec::with_capacity(usize::try_from(lmax)?),
         |mut acc, two_j| {
-            let shell_order = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, true));
+            let shell_order = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, true, None));
             let bao = BasisAngularOrder::new(&[BasisAtom::new(
                 &mol.atoms[0],
                 &[BasisShell::new(two_j, shell_order.clone())],
@@ -570,7 +570,7 @@ where
             let n_spinor = two_j + 1;
 
             let two_j_u32 = u32::try_from(two_j).unwrap_or_else(|err| panic!("{err}"));
-            let spinororder = SpinorOrder::increasingm(two_j_u32, true);
+            let spinororder = SpinorOrder::increasingm(two_j_u32, true, None);
             spinororder
                 .iter()
                 .enumerate()

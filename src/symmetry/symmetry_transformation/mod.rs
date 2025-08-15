@@ -6,7 +6,9 @@ use std::fmt;
 use anyhow::format_err;
 use itertools::Itertools;
 use nalgebra::Vector3;
-use ndarray::{Array, Array2, Axis, RemoveAxis};
+use ndarray::{Array, Array2, Axis, Ix2, RemoveAxis, s};
+use ndarray_einsum::einsum;
+use ndarray_linalg::Inverse;
 use num_complex::Complex;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -15,7 +17,10 @@ use serde::{Deserialize, Serialize};
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
-use crate::basis::ao::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder, SpinorOrder};
+use crate::basis::ao::{
+    BasisAngularOrder, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry,
+    SpinorBalanceSymmetryAux, SpinorOrder,
+};
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
@@ -528,7 +533,8 @@ where
         assert_eq!(
             arr.shape()[axis.0],
             bao.n_funcs(),
-            "The number of generalised rows along {axis:?} in the given array does not match the number of basis functions, {}.", bao.n_funcs()
+            "The number of generalised rows along {axis:?} in the given array does not match the number of basis functions, {}.",
+            bao.n_funcs()
         );
         r = r.select(*axis, &permuted_shell_indices);
     }
@@ -732,8 +738,10 @@ pub(crate) fn assemble_spinor_rotation_matrices(
         })
         .collect();
 
+    let shell_boundary_indices = pbao.shell_boundary_indices();
     let rmats_res = pbao.basis_shells()
-        .map(|shl| {
+        .zip(shell_boundary_indices.iter())
+        .map(|(shl, (shl_start, shl_end))| {
             let l =
                 usize::try_from(shl.l).unwrap_or_else(|_| {
                 panic!(
@@ -808,24 +816,46 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                 }
                 ShellOrder::Spinor(spinor_order) => {
                     // Spinor functions. l = two_j.
-                    let so_il = SpinorOrder::increasingm(shl.l, spinor_order.even);
-                    let r2j = r2js[l].clone();
-                    if *spinor_order != so_il {
+                    let so_il = SpinorOrder::increasingm(shl.l, spinor_order.even, spinor_order.balance_symmetry.clone());
+                    let r2j_raw = r2js[l].clone();
+                    let r2j = if *spinor_order != so_il {
                         // `rl` is in increasing-m order by default. See the function `rlmat` for
                         // the origin of this order.
                         let perm = spinor_order
                             .get_perm_of(&so_il)
                             .expect("Unable to obtain the permutation that maps `spinor_order` to the increasing order.");
                         if !so_il.even && !symop.is_proper() {
-                            Ok(-r2j.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                            -r2j_raw.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
                         } else {
-                            Ok(r2j.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                            r2j_raw.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
                         }
                     } else {
                         if !spinor_order.even && !symop.is_proper() {
-                            Ok(-r2j)
+                            -r2j_raw
                         } else {
-                            Ok(r2j)
+                            r2j_raw
+                        }
+                    };
+                    match (&spinor_order.balance_symmetry, pbao.balance_symmetry_aux()) {
+                        (None, _) => Ok(r2j),
+                        (Some(SpinorBalanceSymmetry::KineticBalance), Some(SpinorBalanceSymmetryAux::KineticBalance { spsp, spsipi })) => {
+                            let spsp_shl = spsp.slice(s![*shl_start..*shl_end, *shl_start..*shl_end]);
+                            let spsp_shl_inv = spsp_shl.inv()?;
+                            let spsipi_shl = spsipi.slice(s![.., *shl_start..*shl_end, *shl_start..*shl_end]);
+                            let rmat = symop
+                                .get_3d_spatial_matrix()
+                                .select(Axis(0), &[2, 0, 1])
+                                .select(Axis(1), &[2, 0, 1])
+                                .map(Complex::from);
+
+                            let r2j_sp = einsum("ik,mkl,mn,lj->ij", &[&spsp_shl_inv.view(), &spsipi_shl.view(), &rmat.view(), &r2j.view()])
+                                .map_err(|err| format_err!(err))?
+                                .into_dimensionality::<Ix2>()
+                                .map_err(|err| format_err!(err))?;
+                            Ok(r2j_sp)
+                        }
+                        _ => {
+                            Err(format_err!("Mismatched spinor balance symmetry and spinor balance symmetry auxiliary information."))
                         }
                     }
                 }

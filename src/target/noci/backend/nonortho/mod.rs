@@ -861,19 +861,19 @@ pub struct CanonicalOrthogonalisationResult<T> {
 
 impl<T> CanonicalOrthogonalisationResult<T> {
     /// Returns the eigenvalues of the input matrix.
-    pub fn eigenvalues(&self) -> ArrayView1<T> {
+    pub fn eigenvalues(&'_ self) -> ArrayView1<'_, T> {
         self.eigenvalues.view()
     }
 
     /// Returns the Löwdin canonical orthogonalisation matrix $`\mathbf{X}`$.
-    pub fn xmat(&self) -> ArrayView2<T> {
+    pub fn xmat(&'_ self) -> ArrayView2<'_, T> {
         self.xmat.view()
     }
 
     /// Returns the conjugate of the Löwdin canonical orthogonalisation matrix,
     /// $`\mathbf{X}^{\dagger\lozenge}`$, where $`\lozenge = \star`$ for complex-symmetric matrices
     /// and $`\lozenge = \hat{e}`$ otherwise.
-    pub fn xmat_d(&self) -> ArrayView2<T> {
+    pub fn xmat_d(&'_ self) -> ArrayView2<'_, T> {
         self.xmat_d.view()
     }
 }

@@ -139,7 +139,7 @@ where
 // Functions
 // ---------
 
-fn construct_vibration_bao(mol: &Molecule) -> BasisAngularOrder {
+fn construct_vibration_bao(mol: &'_ Molecule) -> BasisAngularOrder<'_> {
     let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
     let batms = mol
         .atoms

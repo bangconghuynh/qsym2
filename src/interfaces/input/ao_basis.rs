@@ -42,16 +42,16 @@ pub enum InputShellOrder {
     /// This variant indicates that the angular functions are spinors arranged in increasing $`m`$
     /// order. The associated boolean indicates whether the spinors are even with respect to
     /// spatial inversion.
-    SpinorIncreasingm(bool),
+    SpinorIncreasingm(bool, Option<SpinorBalanceSymmetry>),
 
     /// This variant indicates that the angular functions are spinors arranged in decreasing $`m`$
     /// order. The associated boolean indicates whether the spinors are even with respect to
     /// spatial inversion.
-    SpinorDecreasingm(bool),
+    SpinorDecreasingm(bool, Option<SpinorBalanceSymmetry>),
 
     /// This variant indicates that the angular functions are spinors arranged in a custom order
     /// specified by the $`m_l`$ values.
-    SpinorCustom(bool, Vec<i32>),
+    SpinorCustom(bool, Vec<i32>, Option<SpinorBalanceSymmetry>),
 }
 
 impl InputShellOrder {
@@ -68,14 +68,15 @@ impl InputShellOrder {
             InputShellOrder::CartCustom(cart_tuples) => ShellOrder::Cart(
                 CartOrder::new(cart_tuples).expect("Invalid Cartesian tuples provided."),
             ),
-            InputShellOrder::SpinorIncreasingm(even) => {
-                ShellOrder::Spinor(SpinorOrder::increasingm(l, *even))
+            InputShellOrder::SpinorIncreasingm(even, balance_symmetry) => {
+                ShellOrder::Spinor(SpinorOrder::increasingm(l, *even, balance_symmetry.clone()))
             }
-            InputShellOrder::SpinorDecreasingm(even) => {
-                ShellOrder::Spinor(SpinorOrder::decreasingm(l, *even))
+            InputShellOrder::SpinorDecreasingm(even, balance_symmetry) => {
+                ShellOrder::Spinor(SpinorOrder::decreasingm(l, *even, balance_symmetry.clone()))
             }
-            InputShellOrder::SpinorCustom(even, mls) => ShellOrder::Spinor(
-                SpinorOrder::new(mls, *even).expect("Invalid 2mj sequence specified."),
+            InputShellOrder::SpinorCustom(even, mls, balance_symmetry) => ShellOrder::Spinor(
+                SpinorOrder::new(mls, *even, balance_symmetry.clone())
+                    .expect("Invalid 2mj sequence specified."),
             ),
         }
     }
@@ -111,9 +112,9 @@ impl InputBasisShell {
             InputShellOrder::CartQChem
             | InputShellOrder::CartLexicographic
             | InputShellOrder::CartCustom(_) => ((lsize + 1) * (lsize + 2)).div_euclid(2),
-            InputShellOrder::SpinorIncreasingm(_)
-            | InputShellOrder::SpinorDecreasingm(_)
-            | InputShellOrder::SpinorCustom(_, _) => lsize + 1, // lsize = 2j
+            InputShellOrder::SpinorIncreasingm(..)
+            | InputShellOrder::SpinorDecreasingm(..)
+            | InputShellOrder::SpinorCustom(..) => lsize + 1, // lsize = 2j
         }
     }
 

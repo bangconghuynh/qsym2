@@ -103,12 +103,12 @@ pub struct GeneralisedEigenvalueResult<T> {
 
 impl<T> GeneralisedEigenvalueResult<T> {
     /// Returns the eigenvalues.
-    pub fn eigenvalues(&self) -> ArrayView1<T> {
+    pub fn eigenvalues(&'_ self) -> ArrayView1<'_, T> {
         self.eigenvalues.view()
     }
 
     /// Returns the eigenvectors.
-    pub fn eigenvectors(&self) -> ArrayView2<T> {
+    pub fn eigenvectors(&'_ self) -> ArrayView2<'_, T> {
         self.eigenvectors.view()
     }
 }

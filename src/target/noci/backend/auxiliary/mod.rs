@@ -145,7 +145,7 @@ where
                             ShellOrder::Cart(CartOrder::lex(l))
                         } else if row[3] == 2 {
                             let spatial_even = row[4];
-                            ShellOrder::Spinor(SpinorOrder::increasingm(l, spatial_even == 1))
+                            ShellOrder::Spinor(SpinorOrder::increasingm(l, spatial_even == 1, None))
                         } else {
                             panic!()
                         };
@@ -165,8 +165,8 @@ where
 {
     /// Extracts the integrals from the HDF5 data file.
     pub(crate) fn get_integrals<SC: StructureConstraint + Clone>(
-        &self,
-    ) -> Result<(OverlapAO<T, SC>, HamiltonianAO<T, SC>), anyhow::Error> {
+        &'_ self,
+    ) -> Result<(OverlapAO<'_, T, SC>, HamiltonianAO<'_, T, SC>), anyhow::Error> {
         let overlap_ao = OverlapAO::<T, SC>::builder()
             .sao(self.integrals_sao.view())
             .build()?;

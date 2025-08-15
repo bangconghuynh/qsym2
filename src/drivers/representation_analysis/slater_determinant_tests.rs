@@ -3,7 +3,7 @@ use std::path::Path;
 
 use byteorder::LittleEndian;
 use itertools::Itertools;
-use log4rs;
+// use log4rs;
 use nalgebra::Vector3;
 use ndarray::{array, Array1, Array2};
 use num_complex::Complex;
@@ -394,9 +394,9 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     let pd_res = pd_driver.result().unwrap();
     let mol_ch4 = &pd_res.pre_symmetry.recentred_molecule;
 
-    let bssp_1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bssp_3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
-    let bssp_5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
+    let bssp_1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)));
+    let bssp_3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)));
+    let bssp_5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true, None)));
 
     let batm_c0 = BasisAtom::new(
         &mol_ch4.atoms[0],

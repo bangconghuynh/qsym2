@@ -5,7 +5,7 @@ use std::ops::Mul;
 
 use approx;
 use nalgebra::Vector3;
-use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray::{Array2, Axis, LinalgScalar, ScalarOperand, array, concatenate, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
@@ -15,10 +15,10 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryOperation, TRROT};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, assemble_spinor_rotation_matrices, permute_array_by_atoms,
     ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
     SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
-    TransformationError,
+    TransformationError, assemble_sh_rotation_3d_matrices, assemble_spinor_rotation_matrices,
+    permute_array_by_atoms,
 };
 use crate::target::determinant::SlaterDeterminant;
 
@@ -686,7 +686,8 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
             .map_err(|err| TransformationError(err.to_string()))?;
 
         let tmats: Vec<Array2<Complex<f64>>> =
-            assemble_spinor_rotation_matrices(&pbao, symop, Some(&perm))
+            // assemble_spinor_rotation_matrices(&pbao, symop, Some(&perm))
+            assemble_spinor_rotation_matrices(&pbao, symop, None)
                 .map_err(|err| TransformationError(err.to_string()))?
                 .iter()
                 .map(|tmat| tmat.map(|&x| x.into()))

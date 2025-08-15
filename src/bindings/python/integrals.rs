@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry, SpinorOrder
 };
 #[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
@@ -75,14 +75,17 @@ pub enum PyShellOrder {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[pyclass(eq, eq_int)]
 pub enum ShellType {
-    /// Variant indicating that unitary representations should be used for magnetic symmetry
-    /// analysis.
+    /// Variant for a pure shell.
     Pure,
 
-    /// Variant indicating that magnetic corepresentations should be used for magnetic symmetry
-    /// analysis.
+    /// Variant for a spinor shell without any additional balance symmetries.
     Spinor,
 
+    /// Variant for a spinor shell with the kinetic balance symmetry due to
+    /// $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
+    SpinorKineticBalance,
+
+    /// Variant for a Cartesian shell.
     Cartesian,
 }
 
@@ -739,13 +742,35 @@ fn create_basis_shell(
             PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
                 PyPureSpinorOrder::Standard((increasingm, even)) => {
                     if *increasingm {
-                        ShellOrder::Spinor(SpinorOrder::increasingm(order, *even))
+                        ShellOrder::Spinor(SpinorOrder::increasingm(order, *even, None))
                     } else {
-                        ShellOrder::Spinor(SpinorOrder::decreasingm(order, *even))
+                        ShellOrder::Spinor(SpinorOrder::decreasingm(order, *even, None))
                     }
                 }
                 PyPureSpinorOrder::Custom((two_mjs, even)) => {
-                    ShellOrder::Spinor(SpinorOrder::new(two_mjs, *even)?)
+                    ShellOrder::Spinor(SpinorOrder::new(two_mjs, *even, None)?)
+                }
+            },
+            PyShellOrder::CartOrder(_) => {
+                log::error!(
+                    "Spinor shell order expected, but specification for Cartesian shell order found."
+                );
+                bail!(
+                    "Spinor shell order expected, but specification for Cartesian shell order found."
+                )
+            }
+        },
+        ShellType::SpinorKineticBalance => match shell_order {
+            PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
+                PyPureSpinorOrder::Standard((increasingm, even)) => {
+                    if *increasingm {
+                        ShellOrder::Spinor(SpinorOrder::increasingm(order, *even, Some(SpinorBalanceSymmetry::KineticBalance)))
+                    } else {
+                        ShellOrder::Spinor(SpinorOrder::decreasingm(order, *even, Some(SpinorBalanceSymmetry::KineticBalance)))
+                    }
+                }
+                PyPureSpinorOrder::Custom((two_mjs, even)) => {
+                    ShellOrder::Spinor(SpinorOrder::new(two_mjs, *even, Some(SpinorBalanceSymmetry::KineticBalance))?)
                 }
             },
             PyShellOrder::CartOrder(_) => {

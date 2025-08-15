@@ -347,7 +347,7 @@ where
 
     /// Returns the basis angular order information of the basis set in which the density matrix is
     /// expressed.
-    pub fn bao(&self) -> &BasisAngularOrder {
+    pub fn bao(&'_ self) -> &'_ BasisAngularOrder<'_> {
         self.bao
     }
 

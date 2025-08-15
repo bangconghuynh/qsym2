@@ -64,6 +64,7 @@ fn test_solver_noci_energy_ch4p_sto3g() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -166,6 +167,7 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -268,6 +270,7 @@ fn test_solver_noci_energy_h6_sto3g() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -381,6 +384,7 @@ fn test_solver_noci_energy_h6_631gdstar() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -493,6 +497,7 @@ fn test_solver_noci_energy_h4_sto3g() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -584,6 +589,7 @@ fn test_solver_noci_energy_h4_631gdstar() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -675,6 +681,7 @@ fn test_solver_noci_energy_c6h6p_sto3g() {
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )

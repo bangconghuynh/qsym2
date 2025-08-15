@@ -16,21 +16,22 @@ analysis_targets:
       - atom: [0, "O"]
         basis_shells:
         - l: 1
-          shell_order: !SpinorIncreasingm true
+          shell_order: !SpinorIncreasingm [true, null]
         - l: 3
-          shell_order: !SpinorDecreasingm false
+          shell_order: !SpinorDecreasingm [false, null]
         - l: 5
           shell_order: !SpinorCustom
           - true
           - [1, -1, 3, -3, 5, -5]
+          - null
       - atom: [1, "H"]
         basis_shells:
         - l: 1
-          shell_order: !SpinorIncreasingm false
+          shell_order: !SpinorIncreasingm [false, null]
       - atom: [2, "H"]
         basis_shells:
         - l: 1
-          shell_order: !SpinorIncreasingm false
+          shell_order: !SpinorIncreasingm [false, null]
     control:
       integrality_threshold: 1e-7
       linear_independence_threshold: 1e-7

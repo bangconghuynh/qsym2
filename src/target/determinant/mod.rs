@@ -17,7 +17,7 @@ use num_traits::float::{Float, FloatConst};
 
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
-use crate::basis::ao::BasisAngularOrder;
+use crate::basis::ao::{BasisAngularOrder, SpinorBalanceSymmetryAux};
 use crate::target::density::{DensitiesOwned, Density};
 use crate::target::orbital::MolecularOrbital;
 
@@ -258,7 +258,7 @@ where
 
     /// Returns the basis angular order information of the basis set in which the coefficients are
     /// expressed.
-    pub fn bao(&self) -> &BasisAngularOrder {
+    pub fn bao(&'_ self) -> &'_ BasisAngularOrder<'_> {
         self.bao
     }
 

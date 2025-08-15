@@ -4,17 +4,22 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::slice::Iter;
 
 use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
+use ndarray::{Array2, Array3, Axis};
+use num::Complex;
+use serde::{Deserialize, Serialize};
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::auxiliary::atom::Atom;
 use crate::auxiliary::misc::ProductRepeat;
-use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
+use crate::permutation::{PermutableCollection, Permutation, permute_inplace};
+use crate::symmetry::symmetry_transformation::permute_array_by_atoms;
 
 #[cfg(test)]
 #[path = "ao_tests.rs"]
@@ -174,7 +179,7 @@ impl PureOrder {
     }
 
     /// Iterates over the constituent $`m_l`$ values.
-    pub fn iter(&self) -> Iter<i32> {
+    pub fn iter(&'_ self) -> Iter<'_, i32> {
         self.mls.iter()
     }
 
@@ -453,7 +458,7 @@ impl CartOrder {
     }
 
     /// Iterates over the constituent tuples.
-    pub fn iter(&self) -> Iter<(u32, u32, u32)> {
+    pub fn iter(&'_ self) -> Iter<'_, (u32, u32, u32)> {
         self.cart_tuples.iter()
     }
 
@@ -566,6 +571,31 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 // SpinorOrder
 // ~~~~~~~~~~~
 
+// SpinorBalanceSymmetry enum
+// ..........................
+
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
+pub enum SpinorBalanceSymmetry {
+    KineticBalance,
+}
+
+impl fmt::Display for SpinorBalanceSymmetry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SpinorBalanceSymmetry::KineticBalance => {
+                writeln!(f, "σ·p")
+            }
+        }
+    }
+}
+
+// SpinorBalanceSymmetryAux enum
+// .............................
+#[derive(Clone)]
+pub enum SpinorBalanceSymmetryAux<T> {
+    KineticBalance { spsp: Array2<T>, spsipi: Array3<T> },
+}
+
 /// Structure to contain information about the ordering of spinors of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct SpinorOrder {
@@ -580,6 +610,9 @@ pub struct SpinorOrder {
     /// The spatial inversion parity of the spinor Gaussians: `true` if even under spatial inversion
     /// and `false` if odd.
     pub even: bool,
+
+    // #[builder(default = "None")]
+    pub balance_symmetry: Option<SpinorBalanceSymmetry>,
 }
 
 impl SpinorOrderBuilder {
@@ -621,7 +654,11 @@ impl SpinorOrder {
 
     /// Constructs a new [`SpinorOrder`] structure from its constituting $`2m_j`$ values and a
     /// specified spatial parity.
-    pub fn new(two_mjs: &[i32], even: bool) -> Result<Self, anyhow::Error> {
+    pub fn new(
+        two_mjs: &[i32],
+        even: bool,
+        balance_symmetry: Option<SpinorBalanceSymmetry>,
+    ) -> Result<Self, anyhow::Error> {
         let two_j = two_mjs
             .iter()
             .map(|two_m| two_m.unsigned_abs())
@@ -631,6 +668,7 @@ impl SpinorOrder {
             .two_j(two_j)
             .two_mjs(two_mjs)
             .even(even)
+            .balance_symmetry(balance_symmetry)
             .build()
             .map_err(|err| format_err!(err))?;
         ensure!(spinor_order.verify(), "Invalid `SpinorOrder`.");
@@ -650,13 +688,18 @@ impl SpinorOrder {
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with increasing-$`m`$ order.
     #[must_use]
-    pub fn increasingm(two_j: u32, even: bool) -> Self {
+    pub fn increasingm(
+        two_j: u32,
+        even: bool,
+        balance_symmetry: Option<SpinorBalanceSymmetry>,
+    ) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (-two_j_i32..=two_j_i32).step_by(2).collect_vec();
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
             .even(even)
+            .balance_symmetry(balance_symmetry)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with increasing-m order.")
     }
@@ -674,13 +717,18 @@ impl SpinorOrder {
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with decreasing-$`m`$ order.
     #[must_use]
-    pub fn decreasingm(two_j: u32, even: bool) -> Self {
+    pub fn decreasingm(
+        two_j: u32,
+        even: bool,
+        balance_symmetry: Option<SpinorBalanceSymmetry>,
+    ) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (-two_j_i32..=two_j_i32).rev().step_by(2).collect_vec();
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
             .even(even)
+            .balance_symmetry(balance_symmetry)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with decreasing-m order.")
     }
@@ -697,7 +745,7 @@ impl SpinorOrder {
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with Molden order.
     #[must_use]
-    pub fn molden(two_j: u32, even: bool) -> Self {
+    pub fn molden(two_j: u32, even: bool, balance_symmetry: Option<SpinorBalanceSymmetry>) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (1..=two_j_i32)
             .step_by(2)
@@ -707,6 +755,7 @@ impl SpinorOrder {
             .two_j(two_j)
             .two_mjs(&two_mjs)
             .even(even)
+            .balance_symmetry(balance_symmetry)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with Molden order.")
     }
@@ -727,7 +776,7 @@ impl SpinorOrder {
     }
 
     /// Iterates over the constituent $`2m_j`$ values.
-    pub fn iter(&self) -> Iter<i32> {
+    pub fn iter(&'_ self) -> Iter<'_, i32> {
         self.two_mjs.iter()
     }
 
@@ -752,9 +801,14 @@ impl fmt::Display for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({})",
+            "Angular momentum: {}/2 ({}){}",
             self.two_j,
-            if self.even { "g" } else { "u" }
+            if self.even { "g" } else { "u" },
+            if let Some(balance_sym) = &self.balance_symmetry {
+                &format!(" ({balance_sym})")
+            } else {
+                ""
+            }
         )?;
         writeln!(f, "Order:")?;
         for two_m in self.iter() {
@@ -768,9 +822,14 @@ impl fmt::Debug for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({})",
+            "Angular momentum: {}/2 ({}){}",
             self.two_j,
-            if self.even { "g" } else { "u" }
+            if self.even { "g" } else { "u" },
+            if let Some(balance_sym) = &self.balance_symmetry {
+                &format!(" ({balance_sym})")
+            } else {
+                ""
+            }
         )?;
         writeln!(f, "Order:")?;
         for two_m in self.iter() {
@@ -1019,11 +1078,14 @@ impl<'a> BasisAtom<'a> {
 
 /// Structure containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
-#[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Builder)]
 pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
     #[builder(setter(custom))]
     pub(crate) basis_atoms: Vec<BasisAtom<'a>>,
+
+    #[builder(default = "None")]
+    pub(crate) balance_symmetry_aux: Option<SpinorBalanceSymmetryAux<Complex<f64>>>,
 }
 
 impl<'a> BasisAngularOrderBuilder<'a> {
@@ -1054,6 +1116,10 @@ impl<'a> BasisAngularOrder<'a> {
             .basis_atoms(batms)
             .build()
             .expect("Unable to construct a `BasisAngularOrder`.")
+    }
+
+    pub fn balance_symmetry_aux(&self) -> Option<&SpinorBalanceSymmetryAux<Complex<f64>>> {
+        self.balance_symmetry_aux.as_ref()
     }
 
     /// The number of atoms in the basis.
@@ -1224,6 +1290,18 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
 
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.basis_atoms, perm);
+        let p_balance_symmetry_aux = match &self.balance_symmetry_aux {
+            Some(SpinorBalanceSymmetryAux::KineticBalance { spsp, spsipi }) => {
+                let p_spsp = permute_array_by_atoms(&spsp, perm, &[Axis(0), Axis(1)], self);
+                let p_spsipi = permute_array_by_atoms(&spsipi, perm, &[Axis(1), Axis(2)], self);
+                Some(SpinorBalanceSymmetryAux::KineticBalance {
+                    spsp: p_spsp,
+                    spsipi: p_spsipi,
+                })
+            }
+            None => None,
+        };
+        self.balance_symmetry_aux = p_balance_symmetry_aux;
         Ok(())
     }
 }
@@ -1279,5 +1357,25 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
         }
         writeln!(f, "{}", "┈".repeat(17 + atom_index_length + order_length))?;
         Ok(())
+    }
+}
+
+impl<'a> PartialEq for BasisAngularOrder<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.basis_atoms == other.basis_atoms
+    }
+}
+
+impl<'a> Eq for BasisAngularOrder<'a> {}
+
+impl<'a> Hash for BasisAngularOrder<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.basis_atoms.hash(state);
+    }
+}
+
+impl<'a> fmt::Debug for BasisAngularOrder<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{:?}", self.basis_atoms)
     }
 }

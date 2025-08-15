@@ -69,7 +69,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character>;
+    fn get_row(&'_ self, row: &Self::RowSymbol) -> ArrayView1<'_, Character>;
 
     /// Retrieves the characters of all rows in a particular column.
     ///
@@ -80,7 +80,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character>;
+    fn get_col(&'_ self, col: &Self::ColSymbol) -> ArrayView1<'_, Character>;
 
     /// Retrieves the symbols of all rows in the character table.
     fn get_all_rows(&self) -> IndexSet<Self::RowSymbol>;
@@ -317,7 +317,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, irrep: &Self::RowSymbol) -> ArrayView1<Character> {
+    fn get_row(&'_ self, irrep: &Self::RowSymbol) -> ArrayView1<'_, Character> {
         let row = self
             .irreps
             .get(irrep)
@@ -335,7 +335,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, class: &Self::ColSymbol) -> ArrayView1<Character> {
+    fn get_col(&'_ self, class: &Self::ColSymbol) -> ArrayView1<'_, Character> {
         let col = self
             .classes
             .get(class)
@@ -812,7 +812,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, ircorep: &Self::RowSymbol) -> ArrayView1<Character> {
+    fn get_row(&'_ self, ircorep: &Self::RowSymbol) -> ArrayView1<'_, Character> {
         let row = self
             .ircoreps
             .get(ircorep)
@@ -830,7 +830,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, class: &Self::ColSymbol) -> ArrayView1<Character> {
+    fn get_col(&'_ self, class: &Self::ColSymbol) -> ArrayView1<'_, Character> {
         let col = self
             .classes
             .get(class)
