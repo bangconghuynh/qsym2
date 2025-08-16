@@ -111,6 +111,7 @@ pub enum ShellType {
 ///   Python type:
 ///   `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
 #[pyclass]
+#[derive(Clone)]
 pub struct PyBasisAngularOrder {
     /// A vector of basis atoms. Each item in the vector is a tuple consisting of an atomic symbol
     /// and a vector of basis shell quartets whose components give:

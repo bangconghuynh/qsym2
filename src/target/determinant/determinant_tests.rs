@@ -11,7 +11,7 @@ use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry, SpinorOrder
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -85,7 +85,7 @@ fn test_determinant_transformation_bf4_sqpl() {
     let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha])
         .occupations(&[oalpha.clone()])
-        .bao(&bao_bf4)
+        .baos(vec![&bao_bf4])
         .mol(&mol_bf4)
         .structure_constraint(SpinConstraint::Restricted(2))
         .complex_symmetric(false)
@@ -124,7 +124,7 @@ fn test_determinant_transformation_bf4_sqpl() {
     let tdet_c4p1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcalpha_ref])
         .occupations(&[oalpha])
-        .bao(&bao_bf4)
+        .baos(vec![&bao_bf4])
         .mol(&mol_bf4)
         .structure_constraint(SpinConstraint::Restricted(2))
         .complex_symmetric(false)
@@ -191,7 +191,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let detunres = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha.clone(), obeta.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -217,7 +217,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetunres_c4p1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcalpha_ref, tcbeta_ref])
         .occupations(&[oalpha, obeta])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -249,7 +249,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let detgen = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[cgen.clone()])
         .occupations(&[ogen.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -263,7 +263,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetgen_c4p1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcgen_ref])
         .occupations(&[ogen.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -278,7 +278,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetgen_s1zp1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[-cgen.clone()])
         .occupations(&[ogen.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -293,7 +293,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetgen_s1yp1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[cgen.clone()])
         .occupations(&[ogen.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -308,7 +308,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetgen_s1xp1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[cgen.clone()])
         .occupations(&[ogen.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -323,7 +323,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetgen_ip1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[-cgen])
         .occupations(&[ogen.clone()])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -339,7 +339,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tdetgen_s4p1_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcgen_s4p1_ref])
         .occupations(&[ogen])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4, &bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -426,7 +426,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let detunres = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha.clone(), obeta.clone()])
-        .bao(&bao_b3)
+        .baos(vec![&bao_b3])
         .mol(&mol_b3)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -438,7 +438,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let tdetunres_tr_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[-cbeta.clone(), calpha.clone()])
         .occupations(&[obeta.clone(), oalpha.clone()])
-        .bao(&bao_b3)
+        .baos(vec![&bao_b3])
         .mol(&mol_b3)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -455,7 +455,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let tdetunres_c3p1_tr_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcalpha_ref.clone(), tcbeta_ref.clone()])
         .occupations(&[obeta, oalpha])
-        .bao(&bao_b3)
+        .baos(vec![&bao_b3])
         .mol(&mol_b3)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -471,7 +471,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let detgen = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[cgen])
         .occupations(&[ogen.clone()])
-        .bao(&bao_b3)
+        .baos(vec![&bao_b3, &bao_b3])
         .mol(&mol_b3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -484,7 +484,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let tdetgen_tr_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcgen_ref])
         .occupations(&[ogen.clone()])
-        .bao(&bao_b3)
+        .baos(vec![&bao_b3, &bao_b3])
         .mol(&mol_b3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -502,7 +502,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let tdetgen_c3p1_tr_ref = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[tcgen_ref])
         .occupations(&[ogen])
-        .bao(&bao_b3)
+        .baos(vec![&bao_b3, &bao_b3])
         .mol(&mol_b3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -545,7 +545,7 @@ fn test_determinant_transformation_c2_complex_timerev() {
     let detgen = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[cgen])
         .occupations(&[ogen.clone()])
-        .bao(&bao_c2)
+        .baos(vec![&bao_c2, &bao_c2])
         .mol(&mol_c2)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -559,7 +559,7 @@ fn test_determinant_transformation_c2_complex_timerev() {
     let tdetgen_tr_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[tcgen_ref])
         .occupations(&[ogen])
-        .bao(&bao_c2)
+        .baos(vec![&bao_c2, &bao_c2])
         .mol(&mol_c2)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -626,7 +626,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[cgen.clone()])
             .occupations(&[ogen.clone()])
-            .bao(&bao_c3)
+            .baos(vec![&bao_c3, &bao_c3])
             .mol(&mol_c3)
             .structure_constraint(SpinConstraint::Generalised(2, false))
             .complex_symmetric(false)
@@ -655,7 +655,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tdetgen_c2_nsr_p1_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[tcgen_ref.clone()])
         .occupations(&[ogen.clone()])
-        .bao(&bao_c3)
+        .baos(vec![&bao_c3, &bao_c3])
         .mol(&mol_c3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -670,7 +670,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[-cgen])
             .occupations(&[ogen.clone()])
-            .bao(&bao_c3)
+            .baos(vec![&bao_c3, &bao_c3])
             .mol(&mol_c3)
             .structure_constraint(SpinConstraint::Generalised(2, false))
             .complex_symmetric(false)
@@ -689,7 +689,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tdetgen_c2_nsr_p3_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[-tcgen_ref])
         .occupations(&[ogen.clone()])
-        .bao(&bao_c3)
+        .baos(vec![&bao_c3, &bao_c3])
         .mol(&mol_c3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -722,7 +722,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tdetgen_sxy_nsr_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[sxy_tcgen_ref.clone()])
         .occupations(&[ogen.clone()])
-        .bao(&bao_c3)
+        .baos(vec![&bao_c3, &bao_c3])
         .mol(&mol_c3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -738,7 +738,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tdetgen_sxy_nsr_p3_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[-sxy_tcgen_ref])
         .occupations(&[ogen.clone()])
-        .bao(&bao_c3)
+        .baos(vec![&bao_c3, &bao_c3])
         .mol(&mol_c3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -762,7 +762,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tdetgen_sxyz_nsr_p1_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[tcgen_sxyz_ref])
         .occupations(&[ogen])
-        .bao(&bao_c3)
+        .baos(vec![&bao_c3, &bao_c3])
         .mol(&mol_c3)
         .structure_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
@@ -843,7 +843,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[cgen])
             .occupations(&[ogen])
-            .bao(&bao_h4)
+            .baos(vec![&bao_h4, &bao_h4])
             .mol(&mol_h4)
             .structure_constraint(SpinConstraint::Generalised(2, false))
             .complex_symmetric(false)
@@ -903,7 +903,10 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)));
+    let bs_sp1half = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1half.clone()]);
     let bao_h = BasisAngularOrder::new(&[batm_h0]);
@@ -919,7 +922,7 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
     let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -1110,7 +1113,7 @@ fn test_determinant_transformation_h_jadapted_twoj_2() {
     let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -1270,7 +1273,10 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)));
+    let bs_sp3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)),
+    );
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp3.clone()]);
     let bao_h = BasisAngularOrder::new(&[batm_h0]);
@@ -1288,7 +1294,7 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
     let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -1460,7 +1466,10 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1half = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)));
+    let bs_sp1half = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1half.clone()]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1half.clone()]);
@@ -1494,7 +1503,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
         SlaterDeterminant::<f64, SpinOrbitCoupled>::builder()
             .coefficients(&[c])
             .occupations(&[occ.clone()])
-            .bao(&bao_bf4)
+            .baos(vec![&bao_bf4])
             .mol(&mol_bf4)
             .structure_constraint(SpinOrbitCoupled::JAdapted(1))
             .complex_symmetric(false)
@@ -1599,7 +1608,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     let tdet_c4p1_nsr_ref = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[tc_ref])
         .occupations(&[occ.clone()])
-        .bao(&bao_bf4)
+        .baos(vec![&bao_bf4])
         .mol(&mol_bf4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -1643,7 +1652,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     let tdet_c4pm1_nsr_ref = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[tc_ref])
         .occupations(&[occ.clone()])
-        .bao(&bao_bf4)
+        .baos(vec![&bao_bf4])
         .mol(&mol_bf4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -1790,7 +1799,7 @@ fn test_determinant_analysis_overlap() {
     let det0 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[ca0.clone(), ca0])
         .occupations(&[oa0.clone(), oa0])
-        .bao(&bao_h4)
+        .baos(vec![&bao_h4])
         .mol(&mol_h4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -1810,7 +1819,7 @@ fn test_determinant_analysis_overlap() {
     let det1 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[ca1.clone(), ca1])
         .occupations(&[oa1.clone(), oa1])
-        .bao(&bao_h4)
+        .baos(vec![&bao_h4])
         .mol(&mol_h4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -1830,7 +1839,7 @@ fn test_determinant_analysis_overlap() {
     let det2 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[ca2.clone(), ca2])
         .occupations(&[oa2.clone(), oa2])
-        .bao(&bao_h4)
+        .baos(vec![&bao_h4])
         .mol(&mol_h4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -1850,7 +1859,7 @@ fn test_determinant_analysis_overlap() {
     let det3 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[ca3.clone(), ca3])
         .occupations(&[oa3.clone(), oa3])
-        .bao(&bao_h4)
+        .baos(vec![&bao_h4])
         .mol(&mol_h4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -1870,7 +1879,7 @@ fn test_determinant_analysis_overlap() {
     let det4 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[ca4.clone(), ca4])
         .occupations(&[oa4.clone(), oa4])
-        .bao(&bao_h4)
+        .baos(vec![&bao_h4])
         .mol(&mol_h4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -1890,7 +1899,7 @@ fn test_determinant_analysis_overlap() {
     let det5 = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[ca5.clone(), ca5])
         .occupations(&[oa5.clone(), oa5])
-        .bao(&bao_h4)
+        .baos(vec![&bao_h4])
         .mol(&mol_h4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -2057,7 +2066,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
     let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
@@ -2199,7 +2208,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha.clone(), cbeta.clone()])
             .occupations(&[oalpha.clone(), obeta_empty])
-            .bao(&bao_s4)
+            .baos(vec![&bao_s4])
             .mol(&mol_s4)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -2218,7 +2227,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta_filled])
-            .bao(&bao_s4)
+            .baos(vec![&bao_s4])
             .mol(&mol_s4)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -3524,7 +3533,7 @@ fn test_determinant_orbit_rep_analysis_bh3_spintimerev_odd() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha.clone(), cbeta.clone()])
             .occupations(&[oalpha.clone(), obeta.clone()])
-            .bao(&bao_bh3)
+            .baos(vec![&bao_bh3])
             .mol(&mol_bh3)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -3696,7 +3705,7 @@ fn test_determinant_orbit_rep_analysis_bh3_spintimerev_even() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha.clone(), cbeta.clone()])
             .occupations(&[oalpha.clone(), obeta.clone()])
-            .bao(&bao_bh3)
+            .baos(vec![&bao_bh3])
             .mol(&mol_bh3)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -3944,7 +3953,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta_empty])
-            .bao(&bao_vf6)
+            .baos(vec![&bao_vf6])
             .mol(&mol_vf6)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -3973,7 +3982,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta_empty])
-            .bao(&bao_vf6)
+            .baos(vec![&bao_vf6])
             .mol(&mol_vf6)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -4170,7 +4179,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
     let det_12 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_12])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4206,7 +4215,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
     let det_32 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_32])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4242,7 +4251,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
     let det_52 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_52])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4278,7 +4287,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
     let det_72 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_72])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4315,7 +4324,7 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
     let det_1212 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_1212])
         .occupations(&[occ.clone()])
-        .bao(&bao_h)
+        .baos(vec![&bao_h])
         .mol(&mol_h)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4665,7 +4674,7 @@ fn test_determinant_orbit_rep_analysis_bh4_tet_jadapted() {
     let det_1212 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_1212])
         .occupations(&[occ])
-        .bao(&bao_bh4)
+        .baos(vec![&bao_bh4])
         .mol(&mol_bh4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4703,7 +4712,7 @@ fn test_determinant_orbit_rep_analysis_bh4_tet_jadapted() {
     let det_12m12 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_12m12])
         .occupations(&[occ])
-        .bao(&bao_bh4)
+        .baos(vec![&bao_bh4])
         .mol(&mol_bh4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4741,7 +4750,7 @@ fn test_determinant_orbit_rep_analysis_bh4_tet_jadapted() {
     let det_1232 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_1232])
         .occupations(&[occ])
-        .bao(&bao_bh4)
+        .baos(vec![&bao_bh4])
         .mol(&mol_bh4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -4881,7 +4890,7 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     let det_b12 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_b12])
         .occupations(&[occ.clone()])
-        .bao(&bao_bh3)
+        .baos(vec![&bao_bh3, &bao_bh3])
         .mol(&mol_bh3)
         .structure_constraint(SpinOrbitCoupled::JAdapted(2))
         .complex_symmetric(false)
@@ -4919,7 +4928,7 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     let det_b1z = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_b1z])
         .occupations(&[occ.clone()])
-        .bao(&bao_bh3)
+        .baos(vec![&bao_bh3, &bao_bh3])
         .mol(&mol_bh3)
         .structure_constraint(SpinOrbitCoupled::JAdapted(2))
         .complex_symmetric(false)
@@ -4957,7 +4966,7 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     let det_b11 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_b11])
         .occupations(&[occ.clone()])
-        .bao(&bao_bh3)
+        .baos(vec![&bao_bh3, &bao_bh3])
         .mol(&mol_bh3)
         .structure_constraint(SpinOrbitCoupled::JAdapted(2))
         .complex_symmetric(false)
@@ -4995,7 +5004,7 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     let det_h12 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c_h12])
         .occupations(&[occ.clone()])
-        .bao(&bao_bh3)
+        .baos(vec![&bao_bh3, &bao_bh3])
         .mol(&mol_bh3)
         .structure_constraint(SpinOrbitCoupled::JAdapted(2))
         .complex_symmetric(false)
@@ -5133,6 +5142,40 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
         ],
     );
     let bao_c2 = BasisAngularOrder::new(&[batm_c0, batm_c1]);
+
+    let bs_sp1g_sp = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, Some(SpinorBalanceSymmetry::KineticBalance))),
+    );
+    let bs_sp1u_sp = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, false, Some(SpinorBalanceSymmetry::KineticBalance))),
+    );
+    let bs_sp3u_sp = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, false, Some(SpinorBalanceSymmetry::KineticBalance))),
+    );
+
+    let batm_c0_sp = BasisAtom::new(
+        &atm_c0,
+        &[
+            bs_sp1g_sp.clone(),
+            bs_sp1g_sp.clone(),
+            bs_sp1u_sp.clone(),
+            bs_sp3u_sp.clone(),
+        ],
+    );
+    let batm_c1_sp = BasisAtom::new(
+        &atm_c1,
+        &[
+            bs_sp1g_sp.clone(),
+            bs_sp1g_sp.clone(),
+            bs_sp1u_sp.clone(),
+            bs_sp3u_sp.clone(),
+        ],
+    );
+    let bao_c2_sp = BasisAngularOrder::new(&[batm_c0_sp, batm_c1_sp]);
+
     let mol_c2 = Molecule::from_atoms(&[atm_c0.clone(), atm_c1.clone()], 1e-7);
 
     #[rustfmt::skip]
@@ -5187,7 +5230,7 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
     let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[c])
         .occupations(&[occ])
-        .bao(&bao_c2)
+        .baos(vec![&bao_c2, &bao_c2_sp])
         .mol(&mol_c2)
         .structure_constraint(SpinOrbitCoupled::JAdapted(2))
         .complex_symmetric(false)

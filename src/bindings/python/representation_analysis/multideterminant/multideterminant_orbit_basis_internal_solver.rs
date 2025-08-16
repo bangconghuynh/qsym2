@@ -5,8 +5,8 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::{bail, format_err};
-use log;
 use itertools::Itertools;
+use log;
 use num_complex::Complex;
 use numpy::PyArrayMethods;
 use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError};
@@ -17,6 +17,7 @@ use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC, PyScalarRC};
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
@@ -25,9 +26,8 @@ use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::io::format::qsym2_output;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
@@ -57,7 +57,8 @@ type C128 = Complex<f64>;
 /// serve as basis states for non-orthogonal configuration interaction to yield multi-determinantal
 /// wavefunctions, the symmetry of which will be analysed by this function.
 /// Python type: `list[PySlaterDeterminantReal | PySlaterDeterminantComplex]`.
-/// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
+/// * `pybaos` - Python-exposed Python-exposed structures containing basis angular order
+/// information, one for each explicit component per coefficient matrix.
 /// Python type: `PyBasisAngularOrder`.
 /// * `sao` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
@@ -106,7 +107,7 @@ type C128 = Complex<f64>;
 #[pyo3(signature = (
     inp_sym,
     pyorigins,
-    pybao,
+    pybaos,
     sao,
     enuc,
     onee,
@@ -132,7 +133,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     py: Python<'_>,
     inp_sym: PathBuf,
     pyorigins: Vec<PySlaterDeterminant>,
-    pybao: &PyBasisAngularOrder,
+    pybaos: Vec<PyBasisAngularOrder>,
     sao: PyArray2RC,
     enuc: PyScalarRC,
     onee: PyArray2RC,
@@ -169,9 +170,14 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
     // Set up basic parameters
     let mol = &pd_res.pre_symmetry.recentred_molecule;
-    let bao = pybao
-        .to_qsym2(mol)
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let baos = pybaos
+        .iter()
+        .map(|bao| {
+            bao.to_qsym2(mol)
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let baos_ref = baos.iter().collect::<Vec<_>>();
     let augment_to_generalised = match symmetry_transformation_kind {
         SymmetryTransformationKind::SpatialWithSpinTimeReversal
         | SymmetryTransformationKind::Spin
@@ -302,7 +308,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 .map(|pydet| {
                     if let PySlaterDeterminant::Real(pydet_r) = pydet {
                         pydet_r
-                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                             .map(|det_r| det_r.to_generalised())
                     } else {
                         bail!("Unexpected complex type for an origin Slater determinant.")
@@ -314,7 +320,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 .iter()
                 .map(|pydet| {
                     if let PySlaterDeterminant::Real(pydet_r) = pydet {
-                        pydet_r.to_qsym2::<SpinConstraint>(&bao, mol)
+                        pydet_r.to_qsym2::<SpinConstraint>(&baos_ref, mol)
                     } else {
                         bail!("Unexpected complex type for an origin Slater determinant.")
                     }
@@ -487,10 +493,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .iter()
                         .map(|pydet| match pydet {
                             PySlaterDeterminant::Real(pydet_r) => pydet_r
-                                .to_qsym2::<SpinConstraint>(&bao, mol)
+                                .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                                 .map(|det_r| det_r.to_generalised().into()),
                             PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                                .to_qsym2::<SpinConstraint>(&bao, mol)
+                                .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                                 .map(|det_c| det_c.to_generalised()),
                         })
                         .collect::<Result<Vec<_>, _>>()
@@ -499,10 +505,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .iter()
                         .map(|pydet| match pydet {
                             PySlaterDeterminant::Real(pydet_r) => pydet_r
-                                .to_qsym2::<SpinConstraint>(&bao, mol)
+                                .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                                 .map(|det_r| det_r.into()),
                             PySlaterDeterminant::Complex(pydet_c) => {
-                                pydet_c.to_qsym2::<SpinConstraint>(&bao, mol)
+                                pydet_c.to_qsym2::<SpinConstraint>(&baos_ref, mol)
                             }
                         })
                         .collect::<Result<Vec<_>, _>>()
@@ -646,10 +652,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     .iter()
                     .map(|pydet| match pydet {
                         PySlaterDeterminant::Real(pydet_r) => pydet_r
-                            .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                            .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                             .map(|det_r| det_r.into()),
                         PySlaterDeterminant::Complex(pydet_c) => {
-                            pydet_c.to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                            pydet_c.to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                         }
                     })
                     .collect::<Result<Vec<_>, _>>()
@@ -657,7 +663,13 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // DEBUG
                 let (zeroe, onee, twoe) = hamiltonian_ao
-                    .calc_hamiltonian_matrix_element_contributions(&origins_c[0], &origins_c[0], overlap_ao.sao(), 1e-10, 1e-7)
+                    .calc_hamiltonian_matrix_element_contributions(
+                        &origins_c[0],
+                        &origins_c[0],
+                        overlap_ao.sao(),
+                        1e-10,
+                        1e-7,
+                    )
                     .unwrap();
                 log::debug!("Origin energies:\n  {zeroe}\n  {onee}\n  {twoe}");
                 // END DEBUG

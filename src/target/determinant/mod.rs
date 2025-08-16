@@ -1,14 +1,15 @@
 //! Slater determinants.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::iter::Sum;
 
-use anyhow::{self, format_err};
+use anyhow::{self, ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, Ix2};
+use ndarray::{Array1, Array2, Ix2, s};
 use ndarray_einsum::*;
 use ndarray_linalg::types::Lapack;
 use num::ToPrimitive;
@@ -17,7 +18,7 @@ use num_traits::float::{Float, FloatConst};
 
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::auxiliary::molecule::Molecule;
-use crate::basis::ao::{BasisAngularOrder, SpinorBalanceSymmetryAux};
+use crate::basis::ao::BasisAngularOrder;
 use crate::target::density::{DensitiesOwned, Density};
 use crate::target::orbital::MolecularOrbital;
 
@@ -43,8 +44,9 @@ where
     structure_constraint: SC,
 
     /// The angular order of the basis functions with respect to which the coefficients are
-    /// expressed.
-    bao: &'a BasisAngularOrder<'a>,
+    /// expressed. Each [`BasisAngularOrder`] corresponds to one explicit component in the
+    /// coefficient matrix (see [`StructureConstraint::n_explicit_comps_per_coefficient_matrix`]).
+    baos: Vec<&'a BasisAngularOrder<'a>>,
 
     /// A boolean indicating if inner products involving this determinant should be the
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
@@ -94,38 +96,49 @@ where
     }
 
     fn validate(&self) -> Result<(), String> {
-        let bao = self
-            .bao
-            .ok_or("No `BasisAngularOrder` found.".to_string())?;
-        let nbas = bao.n_funcs();
-        let coefficients = self
-            .coefficients
-            .as_ref()
-            .ok_or("No coefficients found.".to_string())?;
         let structcons = self
             .structure_constraint
             .as_ref()
             .ok_or("No structure constraints found.".to_string())?;
+        let baos = self
+            .baos
+            .as_ref()
+            .ok_or("No `BasisAngularOrder`s found.".to_string())?;
+        let baos_length_check = baos.len() == structcons.n_explicit_comps_per_coefficient_matrix();
+        if !baos_length_check {
+            log::error!(
+                "The number of `BasisAngularOrder`s provided does not match the number of explicit components per coefficient matrix."
+            );
+        }
+
+        let nbas_tot = baos.iter().map(|bao| bao.n_funcs()).sum::<usize>();
+        let coefficients = self
+            .coefficients
+            .as_ref()
+            .ok_or("No coefficients found.".to_string())?;
         let coefficients_length_check = if coefficients.len() != structcons.n_coefficient_matrices()
         {
             log::error!(
-                    "Unexpected number of coefficient matrices: {} found, but {} expected for the structure constraint {}.",
-                    coefficients.len(),
-                    structcons.n_coefficient_matrices(),
-                    structcons
-                );
+                "Unexpected number of coefficient matrices: {} found, but {} expected for the structure constraint {}.",
+                coefficients.len(),
+                structcons.n_coefficient_matrices(),
+                structcons
+            );
             false
         } else {
             true
         };
         let coefficients_shape_check = {
-            let nrows = nbas * structcons.n_explicit_comps_per_coefficient_matrix();
+            let nrows = nbas_tot;
             if !coefficients.iter().all(|c| c.shape()[0] == nrows) {
                 log::error!(
                     "Unexpected shapes of coefficient matrices: {} {} expected for all coefficient matrices, but {} found.",
                     nrows,
-                    if nrows == 1 {"row"} else {"rows"},
-                    coefficients.iter().map(|c| c.shape()[0].to_string()).join(", ")
+                    if nrows == 1 { "row" } else { "rows" },
+                    coefficients
+                        .iter()
+                        .map(|c| c.shape()[0].to_string())
+                        .join(", ")
                 );
                 false
             } else {
@@ -167,12 +180,22 @@ where
         };
 
         let mol = self.mol.ok_or("No molecule found.".to_string())?;
-        let natoms_check = mol.atoms.len() == bao.n_atoms();
+        let natoms_set = baos.iter().map(|bao| bao.n_atoms()).collect::<HashSet<_>>();
+        if natoms_set.len() != 1 {
+            return Err("Inconsistent numbers of atoms between `BasisAngularOrder`s of different explicit components.".to_string());
+        };
+        let n_atoms = natoms_set.iter().next().ok_or_else(|| {
+            "Unable to retrieve the number of atoms from the `BasisAngularOrder`s.".to_string()
+        })?;
+        let natoms_check = mol.atoms.len() == *n_atoms;
         if !natoms_check {
-            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+            log::error!(
+                "The number of atoms in the molecule does not match the number of local sites in the basis."
+            );
         }
 
-        if coefficients_length_check
+        if baos_length_check
+            && coefficients_length_check
             && coefficients_shape_check
             && occupations_length_check
             && occupations_shape_check
@@ -180,7 +203,15 @@ where
         {
             Ok(())
         } else {
-            Err("Slater determinant validation failed.".to_string())
+            Err(format!(
+                "Slater determinant validation failed:
+                    baos_length ({baos_length_check}),
+                    coefficients_length ({coefficients_length_check}),
+                    coefficients_shape ({coefficients_shape_check}),
+                    occupations_length ({occupations_length_check}),
+                    occupations_shape ({occupations_shape_check}),
+                    natoms ({natoms_check})."
+            ))
         }
     }
 }
@@ -221,7 +252,7 @@ where
                         MolecularOrbital::builder()
                             .coefficients(c.to_owned())
                             .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
-                            .bao(self.bao)
+                            .baos(self.baos.clone())
                             .mol(self.mol)
                             .structure_constraint(self.structure_constraint.clone())
                             .component_index(spini)
@@ -256,10 +287,10 @@ where
         &self.structure_constraint
     }
 
-    /// Returns the basis angular order information of the basis set in which the coefficients are
+    /// Returns the basis angular order information of the basis sets in which the coefficients are
     /// expressed.
-    pub fn bao(&'_ self) -> &'_ BasisAngularOrder<'_> {
-        self.bao
+    pub fn baos(&'_ self) -> &Vec<&'_ BasisAngularOrder<'_>> {
+        &self.baos
     }
 
     /// Returns the molecule associated with this Slater determinant.
@@ -330,7 +361,8 @@ where
                 log::debug!(
                     "Restricted Slater determinant will be augmented to generalised Slater determinant."
                 );
-                let nbas = self.bao.n_funcs();
+                let bao = self.baos[0];
+                let nbas = bao.n_funcs();
 
                 let cr = &self.coefficients[0];
                 let occr = &self.occupations[0];
@@ -360,7 +392,7 @@ where
                     .occupations(&[occg])
                     .mo_energies(moeg_opt)
                     .energy(self.energy.clone())
-                    .bao(self.bao)
+                    .baos((0..n).map(|_| bao).collect::<Vec<_>>())
                     .mol(self.mol)
                     .structure_constraint(SpinConstraint::Generalised(n, false))
                     .complex_symmetric(self.complex_symmetric)
@@ -372,7 +404,8 @@ where
                 log::debug!(
                     "Unrestricted Slater determinant will be augmented to generalised Slater determinant."
                 );
-                let nbas = self.bao.n_funcs();
+                let bao = self.baos[0];
+                let nbas = bao.n_funcs();
                 let norb_tot = self.coefficients.iter().map(|c| c.ncols()).sum();
                 let mut cg = Array2::<T>::zeros((nbas * usize::from(n), norb_tot));
                 let mut occg = Array1::<<T as ComplexFloat>::Real>::zeros((norb_tot,));
@@ -408,7 +441,7 @@ where
                     .occupations(&[occg])
                     .mo_energies(moeg_opt)
                     .energy(self.energy.clone())
-                    .bao(self.bao)
+                    .baos((0..n).map(|_| bao).collect::<Vec<_>>())
                     .mol(self.mol)
                     .structure_constraint(SpinConstraint::Generalised(n, increasingm))
                     .complex_symmetric(self.complex_symmetric)
@@ -448,7 +481,7 @@ impl<'a> SlaterDeterminant<'a, f64, SpinConstraint> {
                     .expect("Unable to convert the resultant density matrix to two dimensions.");
                     Density::<f64>::builder()
                         .density_matrix(denmat)
-                        .bao(self.bao())
+                        .bao(self.baos()[0])
                         .mol(self.mol())
                         .complex_symmetric(self.complex_symmetric())
                         .threshold(self.threshold())
@@ -464,14 +497,19 @@ impl<'a> SlaterDeterminant<'a, f64, SpinConstraint> {
                 .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao.n_funcs();
+                let component_boundary_indices = self.baos
+                    .iter()
+                    .scan(0, |acc, bao| {
+                        let start_index = *acc;
+                        *acc += bao.n_funcs();
+                        Some((start_index, *acc))
+                    }).collect::<Vec<_>>();
                 (0..usize::from(nspins)).map(|ispin| {
-                    let ispin_denmat = denmat.slice(
-                        s![ispin*nspatial..(ispin + 1)*nspatial, ispin*nspatial..(ispin + 1)*nspatial]
-                    ).to_owned();
+                    let (start, end) = component_boundary_indices[ispin];
+                    let ispin_denmat = denmat.slice(s![start..end, start..end]).to_owned();
                     Density::<f64>::builder()
                         .density_matrix(ispin_denmat)
-                        .bao(self.bao())
+                        .bao(self.baos()[ispin])
                         .mol(self.mol())
                         .complex_symmetric(self.complex_symmetric())
                         .threshold(self.threshold())
@@ -523,7 +561,7 @@ where
                     .expect("Unable to convert the resultant density matrix to two dimensions.");
                     Density::<Complex<T>>::builder()
                         .density_matrix(denmat)
-                        .bao(self.bao())
+                        .bao(self.baos()[0])
                         .mol(self.mol())
                         .complex_symmetric(self.complex_symmetric())
                         .threshold(self.threshold())
@@ -543,14 +581,19 @@ where
                 .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao.n_funcs();
+                let component_boundary_indices = self.baos
+                    .iter()
+                    .scan(0, |acc, bao| {
+                        let start_index = *acc;
+                        *acc += bao.n_funcs();
+                        Some((start_index, *acc))
+                    }).collect::<Vec<_>>();
                 (0..usize::from(nspins)).map(|ispin| {
-                    let ispin_denmat = denmat.slice(
-                        s![ispin*nspatial..(ispin + 1)*nspatial, ispin*nspatial..(ispin + 1)*nspatial]
-                    ).to_owned();
+                    let (start, end) = component_boundary_indices[ispin];
+                    let ispin_denmat = denmat.slice(s![start..end, start..end]).to_owned();
                     Density::<Complex<T>>::builder()
                         .density_matrix(ispin_denmat)
-                        .bao(self.bao())
+                        .bao(self.baos()[ispin])
                         .mol(self.mol())
                         .complex_symmetric(self.complex_symmetric())
                         .threshold(self.threshold())
@@ -601,18 +644,22 @@ where
                 )
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao.n_funcs();
+                let component_boundary_indices = self
+                    .baos
+                    .iter()
+                    .scan(0, |acc, bao| {
+                        let start_index = *acc;
+                        *acc += bao.n_funcs();
+                        Some((start_index, *acc))
+                    })
+                    .collect::<Vec<_>>();
                 (0..usize::from(ncomps))
                     .map(|icomp| {
-                        let icomp_denmat = denmat
-                            .slice(s![
-                                icomp * nspatial..(icomp + 1) * nspatial,
-                                icomp * nspatial..(icomp + 1) * nspatial
-                            ])
-                            .to_owned();
+                        let (start, end) = component_boundary_indices[icomp];
+                        let icomp_denmat = denmat.slice(s![start..end, start..end]).to_owned();
                         Density::<Complex<T>>::builder()
                             .density_matrix(icomp_denmat)
-                            .bao(self.bao())
+                            .bao(self.baos()[icomp])
                             .mol(self.mol())
                             .complex_symmetric(self.complex_symmetric())
                             .threshold(self.threshold())
@@ -657,7 +704,7 @@ where
                     .map(|moe| moe.map(Complex::from))
                     .collect::<Vec<_>>()
             }))
-            .bao(value.bao)
+            .baos(value.baos.clone())
             .mol(value.mol)
             .structure_constraint(value.structure_constraint)
             .complex_symmetric(value.complex_symmetric)
@@ -706,7 +753,7 @@ where
                     )
                 });
         self.structure_constraint == other.structure_constraint
-            && self.bao == other.bao
+            && self.baos == other.baos
             && self.mol == other.mol
             && coefficients_eq
             && occs_eq
