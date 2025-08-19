@@ -355,7 +355,7 @@ where
                 .map(|x| x * nspins_t);
                 Density::<Complex<T>>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -375,7 +375,7 @@ where
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
                 Density::<Complex<T>>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -401,7 +401,7 @@ where
                     .collect::<HashSet<_>>();
                 ensure!(
                     nspatial_set.len() == 1,
-                    "Mismatched numbers of basis functions between the explicit components."
+                    "Mismatched numbers of basis functions between the explicit components in the generalised spin constraint."
                 );
                 let nspatial = *nspatial_set.iter().next().ok_or_else(|| {
                     format_err!(

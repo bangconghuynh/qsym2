@@ -1630,7 +1630,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
     let tdet_c4p1_isr_ref = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
         .coefficients(&[tc_ref])
         .occupations(&[occ.clone()])
-        .bao(&bao_bf4)
+        .baos(vec![&bao_bf4])
         .mol(&mol_bf4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)

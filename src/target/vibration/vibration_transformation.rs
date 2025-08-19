@@ -1,6 +1,6 @@
 //! Implementation of symmetry transformations for vibrational coordinates.
 
-use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray::{Array2, Axis, LinalgScalar, ScalarOperand, concatenate, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
@@ -9,9 +9,9 @@ use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, Shel
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
-    TimeReversalTransformable, TransformationError,
+    ComplexConjugationTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
+    SymmetryTransformable, TimeReversalTransformable, TransformationError,
+    assemble_sh_rotation_3d_matrices, permute_array_by_atoms,
 };
 use crate::target::vibration::VibrationalCoordinate;
 
@@ -29,11 +29,21 @@ where
         perm: Option<&Permutation<usize>>,
     ) -> Result<&mut Self, TransformationError> {
         let vib_bao = construct_vibration_bao(self.mol);
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&vib_bao, rmat, perm)
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&[&vib_bao], rmat, perm)
             .map_err(|err| TransformationError(err.to_string()))?
             .iter()
-            .map(|tmat| tmat.map(|&x| x.into()))
-            .collect();
+            .map(|tmats| {
+                tmats
+                    .iter()
+                    .map(|tmat| tmat.mapv(|x| x.into()))
+                    .collect::<Vec<_>>()
+            })
+            .next()
+            .ok_or_else(|| {
+                TransformationError(
+                    "Unable to obtain the spherical-harmonic transformation matrices.".to_string(),
+                )
+            })?;
         let pbao = if let Some(p) = perm {
             vib_bao
                 .permute(p)
@@ -130,8 +140,8 @@ where
         symop
             .act_permute(&self.mol.molecule_ordinary_atoms())
             .ok_or(TransformationError(format!(
-            "Unable to determine the atom permutation corresponding to the operation `{symop}`."
-        )))
+                "Unable to determine the atom permutation corresponding to the operation `{symop}`."
+            )))
     }
 }
 

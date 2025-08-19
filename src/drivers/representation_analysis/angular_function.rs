@@ -133,7 +133,7 @@ where
 
                 let mo_symmetries = SlaterDeterminant::<f64, SpinConstraint>::builder()
                     .structure_constraint(SpinConstraint::Restricted(1))
-                    .bao(&bao)
+                    .baos(vec![&bao])
                     .complex_symmetric(false)
                     .mol(&mol)
                     .coefficients(&cs)
@@ -480,7 +480,7 @@ where
 
             let mo_symmetries = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
                 .structure_constraint(SpinOrbitCoupled::JAdapted(1))
-                .bao(&bao)
+                .baos(vec![&bao])
                 .complex_symmetric(false)
                 .mol(&mol)
                 .coefficients(&cs)

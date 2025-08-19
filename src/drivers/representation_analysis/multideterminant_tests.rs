@@ -96,7 +96,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
     let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
-        .bao(&bao_bh3)
+        .baos(vec![&bao_bh3])
         .mol(&mol_bh3)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)

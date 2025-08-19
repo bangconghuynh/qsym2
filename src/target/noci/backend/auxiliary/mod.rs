@@ -214,7 +214,11 @@ where
         SlaterDeterminant::<T, SC>::builder()
             .coefficients(&cs)
             .occupations(&occs)
-            .bao(&bao)
+            .baos(
+                (0..sc.n_explicit_comps_per_coefficient_matrix())
+                    .map(|_| bao)
+                    .collect::<Vec<_>>(),
+            )
             .mol(&mol)
             .structure_constraint(sc)
             .complex_symmetric(false)

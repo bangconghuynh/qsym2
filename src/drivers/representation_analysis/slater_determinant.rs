@@ -1,45 +1,45 @@
 //! Driver for symmetry analysis of Slater determinants.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, bail, format_err};
+use anyhow::{self, bail, ensure, format_err};
 use approx::abs_diff_eq;
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use ndarray::{s, Array2, Array4};
+use ndarray::{Array2, Array4, s};
 use ndarray_linalg::types::Lapack;
 use num::ToPrimitive;
 use num_complex::{Complex, ComplexFloat};
-use num_traits::real::Real;
 use num_traits::Float;
+use num_traits::real::Real;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{
-    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
-    RepAnalysis,
+    EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition, RepAnalysis,
+    log_overlap_eigenvalues,
 };
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::ReducibleLinearSpaceSymbol;
 use crate::chartab::{CharacterTable, SubspaceDecomposable};
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, find_spinor_function_representation,
-    AngularFunctionRepAnalysisParams,
+    AngularFunctionRepAnalysisParams, find_angular_function_representation,
+    find_spinor_function_representation,
 };
 use crate::drivers::representation_analysis::{
-    fn_construct_magnetic_group, fn_construct_unitary_group, log_bao, log_cc_transversal,
-    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind, fn_construct_magnetic_group,
+    fn_construct_unitary_group, log_bao, log_cc_transversal,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+    QSym2Output, log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title,
 };
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
@@ -48,12 +48,12 @@ use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
 use crate::symmetry::symmetry_symbols::{
-    deduce_mirror_parities, MirrorParity, MullikenIrcorepSymbol, SymmetryClassSymbol,
+    MirrorParity, MullikenIrcorepSymbol, SymmetryClassSymbol, deduce_mirror_parities,
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::density::density_analysis::DensitySymmetryOrbit;
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
 
 #[cfg(test)]
@@ -1095,28 +1095,33 @@ where
         };
 
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
-            Err(
-                format!(
-                    "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+            Err(format!(
+                "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
                     Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
-                    sym.group_name.as_ref().expect("No symmetry group name found.")
-                )
-            )
-        } else if (det.bao().n_funcs() != sao.nrows() || det.bao().n_funcs() != sao.ncols())
-            && (det.bao().n_funcs()
-                * det
-                    .structure_constraint()
-                    .n_explicit_comps_per_coefficient_matrix()
-                != sao.nrows()
-                || det.bao().n_funcs()
-                    * det
-                        .structure_constraint()
-                        .n_explicit_comps_per_coefficient_matrix()
-                    != sao.ncols())
-        {
-            Err("The dimensions of the SAO matrix do not match either the number of spatial AO basis functions or the number of spatial AO basis functions multiplied by the number of explicit components per coefficient matrix.".to_string())
+                sym.group_name
+                    .as_ref()
+                    .expect("No symmetry group name found.")
+            ))
         } else {
-            Ok(())
+            let nfuncs_set = det
+                .baos()
+                .iter()
+                .map(|bao| bao.n_funcs())
+                .collect::<HashSet<_>>();
+            let uniform_component_check = nfuncs_set.len() == 1
+                && {
+                    let nfuncs = nfuncs_set.iter().next().ok_or_else(|| "Unable to extract the uniform number of basis functions per explicit component.".to_string())?;
+                    sao.nrows() == *nfuncs && sao.ncols() == *nfuncs
+                };
+            let total_component_check = {
+                let nfuncs_tot = det.baos().iter().map(|bao| bao.n_funcs()).sum::<usize>();
+                sao.nrows() == nfuncs_tot && sao.ncols() == nfuncs_tot
+            };
+            if !uniform_component_check && !total_component_check {
+                Err("The dimensions of the SAO matrix do not match either the uniform number of AO basis functions per explicit component or the total number of AO basis functions across all explicit components.".to_string())
+            } else {
+                Ok(())
+            }
         }
     }
 }
@@ -1144,41 +1149,59 @@ where
     /// Constructs the appropriate atomic-orbital overlap matrix based on the structure constraint
     /// of the determinant and the specified overlap matrix.
     fn construct_sao(&self) -> Result<(Array2<T>, Option<Array2<T>>), anyhow::Error> {
-        let nbas = self.determinant.bao().n_funcs();
+        let nbas_set = self
+            .determinant
+            .baos()
+            .iter()
+            .map(|bao| bao.n_funcs())
+            .collect::<HashSet<_>>();
+        let uniform_component = nbas_set.len() == 1;
         let ncomps = self
             .determinant
             .structure_constraint()
             .n_explicit_comps_per_coefficient_matrix();
         let provided_dim = self.sao.nrows();
 
-        if provided_dim == nbas {
-            let sao = {
-                let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
-                (0..ncomps).for_each(|icomp| {
-                    let start = icomp * nbas;
-                    let end = (icomp + 1) * nbas;
+        if uniform_component {
+            let nbas = nbas_set.iter().next().ok_or_else(|| format_err!("Unable to extract the uniform number of basis functions per explicit component."))?;
+            if provided_dim == *nbas {
+                let sao = {
+                    let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                    (0..ncomps).for_each(|icomp| {
+                        let start = icomp * nbas;
+                        let end = (icomp + 1) * nbas;
+                        sao_mut
+                            .slice_mut(s![start..end, start..end])
+                            .assign(self.sao);
+                    });
                     sao_mut
-                        .slice_mut(s![start..end, start..end])
-                        .assign(self.sao);
-                });
-                sao_mut
-            };
+                };
 
-            let sao_h = self.sao_h.map(|sao_h| {
-                let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
-                (0..ncomps).for_each(|icomp| {
-                    let start = icomp * nbas;
-                    let end = (icomp + 1) * nbas;
+                let sao_h = self.sao_h.map(|sao_h| {
+                    let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                    (0..ncomps).for_each(|icomp| {
+                        let start = icomp * nbas;
+                        let end = (icomp + 1) * nbas;
+                        sao_h_mut
+                            .slice_mut(s![start..end, start..end])
+                            .assign(sao_h);
+                    });
                     sao_h_mut
-                        .slice_mut(s![start..end, start..end])
-                        .assign(sao_h);
                 });
-                sao_h_mut
-            });
 
-            Ok((sao, sao_h))
+                Ok((sao, sao_h))
+            } else {
+                ensure!(provided_dim == nbas * ncomps);
+                Ok((self.sao.clone(), self.sao_h.cloned()))
+            }
         } else {
-            assert_eq!(provided_dim, nbas * ncomps);
+            let nbas_tot = self
+                .determinant
+                .baos()
+                .iter()
+                .map(|bao| bao.n_funcs())
+                .sum::<usize>();
+            ensure!(provided_dim == nbas_tot);
             Ok((self.sao.clone(), self.sao_h.cloned()))
         }
     }
@@ -1293,7 +1316,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
         if group.is_double_group() {
             let _ = find_spinor_function_representation(&group, self.angular_function_parameters);
         }
-        log_bao(self.determinant.bao());
+        for (bao_i, bao) in self.determinant.baos().iter().enumerate() {
+            log_bao(bao, Some(bao_i));
+        }
 
         // Determinant and orbital symmetries
         let (

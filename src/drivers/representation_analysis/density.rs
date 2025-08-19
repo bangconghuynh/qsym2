@@ -600,7 +600,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
             .ok_or_else(|| {
                 format_err!("Basis angular order information could not be extracted.")
             })?;
-        log_bao(bao);
+        log_bao(bao, None);
 
         let (den_symmetries, den_symmetries_thresholds): (Vec<_>, Vec<_>) =
             self.densities.iter().map(|(_, den)| {

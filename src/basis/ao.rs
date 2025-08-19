@@ -11,7 +11,7 @@ use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
 use itertools::{Itertools, izip};
-use ndarray::{Array2, Array3, Axis};
+use ndarray::{Array3, Axis};
 use num::Complex;
 use serde::{Deserialize, Serialize};
 
@@ -593,7 +593,7 @@ impl fmt::Display for SpinorBalanceSymmetry {
 // .............................
 #[derive(Clone)]
 pub enum SpinorBalanceSymmetryAux<T> {
-    KineticBalance { spsp: Array2<T>, spsipi: Array3<T> },
+    KineticBalance { spsipi: Array3<T> },
 }
 
 /// Structure to contain information about the ordering of spinors of a certain rank.
@@ -1291,11 +1291,9 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.basis_atoms, perm);
         let p_balance_symmetry_aux = match &self.balance_symmetry_aux {
-            Some(SpinorBalanceSymmetryAux::KineticBalance { spsp, spsipi }) => {
-                let p_spsp = permute_array_by_atoms(&spsp, perm, &[Axis(0), Axis(1)], self);
+            Some(SpinorBalanceSymmetryAux::KineticBalance { spsipi }) => {
                 let p_spsipi = permute_array_by_atoms(&spsipi, perm, &[Axis(1), Axis(2)], self);
                 Some(SpinorBalanceSymmetryAux::KineticBalance {
-                    spsp: p_spsp,
                     spsipi: p_spsipi,
                 })
             }

@@ -1,15 +1,15 @@
 //! Implementation of symmetry transformations for electron densities.
 
-use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray::{Array2, Axis, LinalgScalar, ScalarOperand, concatenate, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
-    SymmetryTransformable, TimeReversalTransformable, TransformationError,
+    ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
+    SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
+    TransformationError, assemble_sh_rotation_3d_matrices, permute_array_by_atoms,
 };
 use crate::target::density::Density;
 
@@ -26,11 +26,21 @@ where
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
     ) -> Result<&mut Self, TransformationError> {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&[self.bao], rmat, perm)
             .map_err(|err| TransformationError(err.to_string()))?
             .iter()
-            .map(|tmat| tmat.map(|&x| x.into()))
-            .collect();
+            .map(|tmats| {
+                tmats
+                    .iter()
+                    .map(|tmat| tmat.mapv(|x| x.into()))
+                    .collect::<Vec<_>>()
+            })
+            .next()
+            .ok_or_else(|| {
+                TransformationError(
+                    "Unable to obtain the spherical-harmonic transformation matrices.".to_string(),
+                )
+            })?;
         let pbao = if let Some(p) = perm {
             self.bao
                 .permute(p)
@@ -51,7 +61,7 @@ where
             .map(|((shl_start, shl_end), tmat)| {
                 tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<Array2<T>>>();
         let trow_p_coeff = concatenate(
             Axis(0),
             &trow_p_blocks
@@ -59,7 +69,11 @@ where
                 .map(|trow_p_block| trow_p_block.view())
                 .collect::<Vec<_>>(),
         )
-        .expect("Unable to concatenate the transformed rows for the various shells.");
+        .map_err(|err| {
+            TransformationError(format!(
+                "Unable to concatenate the transformed rows for the various shells: {err}."
+            ))
+        })?;
 
         let tcol_trow_p_blocks = pbao
             .shell_boundary_indices()
@@ -79,7 +93,11 @@ where
                 .map(|tcol_trow_p_block| tcol_trow_p_block.view())
                 .collect::<Vec<_>>(),
         )
-        .expect("Unable to concatenate the transformed columns for the various shells.");
+        .map_err(|err| {
+            TransformationError(format!(
+                "Unable to concatenate the transformed columns for the various shells: {err}."
+            ))
+        })?;
         self.density_matrix = new_denmat;
         Ok(self)
     }

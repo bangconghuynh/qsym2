@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::basis::ao::BasisAngularOrder;
 use crate::group::class::ClassPropertiesSummary;
-use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
+use crate::io::format::{QSym2Output, log_subtitle, qsym2_output};
 
 pub mod angular_function;
 pub mod density;
@@ -73,8 +73,15 @@ impl fmt::Display for MagneticSymmetryAnalysisKind {
 /// # Arguments
 ///
 /// * `bao` - The basis angular order information structure.
-fn log_bao(bao: &BasisAngularOrder) {
-    log_subtitle("Basis angular order");
+/// * `index` - The optional index for the explicit component to which the basis angular
+/// information corresponds. If `None`, then it is assumed that the basis angular order information
+/// is uniform across all explicit components.
+fn log_bao(bao: &BasisAngularOrder, index: Option<usize>) {
+    if let Some(i) = index {
+        log_subtitle(&format!("Basis angular order (explicit component {i})"));
+    } else {
+        log_subtitle("Basis angular order (uniform across all explicit components)");
+    }
     qsym2_output!("");
     "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
     It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\

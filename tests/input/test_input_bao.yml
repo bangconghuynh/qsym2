@@ -12,44 +12,45 @@ analysis_targets:
       - false
       matrix_order: RowMajor
       byte_order: LittleEndian
-      bao:
-      - atom: [0, "O"]
-        basis_shells:
-        - l: 0
-          shell_order: !PureIncreasingm
-        - l: 1
-          shell_order: !CartLexicographic
-        - l: 2
-          shell_order: !CartCustom
-          - [2, 0, 0]
-          - [1, 1, 0]
-          - [1, 0, 1]
-          - [0, 2, 0]
-          - [0, 1, 1]
-          - [0, 0, 2]
-        - l: 3
-          shell_order: !CartQChem
-      - atom: [1, "H"]
-        basis_shells:
-        - l: 0
-          shell_order: !PureDecreasingm
-        - l: 2
-          shell_order: !CartQChem
-      - atom: [2, "H"]
-        basis_shells:
-        - l: 0
-          shell_order: !PureIncreasingm
-        - l: 2
-          shell_order: !CartLexicographic
-        - l: 3
-          shell_order: !PureCustom
-          - 0
-          - 1
-          - -1
-          - 2
-          - -2
-          - 3
-          - -3
+      baos:
+      -
+        - atom: [0, "O"]
+          basis_shells:
+          - l: 0
+            shell_order: !PureIncreasingm
+          - l: 1
+            shell_order: !CartLexicographic
+          - l: 2
+            shell_order: !CartCustom
+            - [2, 0, 0]
+            - [1, 1, 0]
+            - [1, 0, 1]
+            - [0, 2, 0]
+            - [0, 1, 1]
+            - [0, 0, 2]
+          - l: 3
+            shell_order: !CartQChem
+        - atom: [1, "H"]
+          basis_shells:
+          - l: 0
+            shell_order: !PureDecreasingm
+          - l: 2
+            shell_order: !CartQChem
+        - atom: [2, "H"]
+          basis_shells:
+          - l: 0
+            shell_order: !PureIncreasingm
+          - l: 2
+            shell_order: !CartLexicographic
+          - l: 3
+            shell_order: !PureCustom
+            - 0
+            - 1
+            - -1
+            - 2
+            - -2
+            - 3
+            - -3
     control:
       integrality_threshold: 1e-7
       linear_independence_threshold: 1e-7

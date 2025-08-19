@@ -86,7 +86,7 @@ where
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
         ensure!(
-            self.bao == other.bao,
+            self.baos == other.baos,
             "Inconsistent basis angular order between `self` and `other`."
         );
 

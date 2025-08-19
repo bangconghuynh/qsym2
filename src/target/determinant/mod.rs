@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::iter::Sum;
 
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;

@@ -5,36 +5,36 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
-use anyhow::{self, bail, format_err};
+use anyhow::{self, bail, ensure, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
-use ndarray::{s, Array2};
+use ndarray::{Array2, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{
-    log_overlap_eigenvalues, EigenvalueComparisonMode, Overlap, ProjectionDecomposition,
-    RepAnalysis,
+    EigenvalueComparisonMode, Overlap, ProjectionDecomposition, RepAnalysis,
+    log_overlap_eigenvalues,
 };
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, find_spinor_function_representation,
-    AngularFunctionRepAnalysisParams,
+    AngularFunctionRepAnalysisParams, find_angular_function_representation,
+    find_spinor_function_representation,
 };
 use crate::drivers::representation_analysis::{
-    fn_construct_magnetic_group, fn_construct_unitary_group, log_bao, log_cc_transversal,
-    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind, fn_construct_magnetic_group,
+    fn_construct_unitary_group, log_bao, log_cc_transversal,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_micsec_begin, log_micsec_end, log_subtitle, nice_bool, qsym2_output, write_subtitle,
-    write_title, QSym2Output,
+    QSym2Output, log_micsec_begin, log_micsec_end, log_subtitle, nice_bool, qsym2_output,
+    write_subtitle, write_title,
 };
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
@@ -42,8 +42,8 @@ use crate::symmetry::symmetry_group::{
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
-use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 
 #[cfg(test)]
 #[path = "multideterminant_tests.rs"]
@@ -368,10 +368,7 @@ where
         writeln!(
             f,
             " {:>multidet_index_length$}  {:<multidet_energy_length$}  {:<multidet_symmetry_length$}  {:<multidet_eig_above_length$}  Eig. below",
-            "#",
-            "Energy",
-            "Symmetry",
-            "Eig. above",
+            "#", "Energy", "Symmetry", "Eig. above",
         )?;
         writeln!(f, "{}", "┈".repeat(table_width))?;
 
@@ -516,28 +513,31 @@ where
             .multidets
             .as_ref()
             .ok_or("No multi-determinantal wavefunctions found.".to_string())?;
-        let mut n_spatial_set = multidets
+        let mut nfuncs_ncomps_set = multidets
             .iter()
             .flat_map(|multidet| {
                 multidet.basis().iter().map(|det_res| {
                     det_res.map(|det| {
                         (
-                            det.bao().n_funcs(),
+                            det.baos()
+                                .iter()
+                                .map(|bao| bao.n_funcs())
+                                .collect::<Vec<_>>(),
                             det.structure_constraint()
                                 .n_explicit_comps_per_coefficient_matrix(),
                         )
                     })
                 })
             })
-            .collect::<Result<HashSet<(usize, usize)>, _>>()
+            .collect::<Result<HashSet<(Vec<usize>, usize)>, _>>()
             .map_err(|err| err.to_string())?;
-        let (n_spatial, n_comps) = if n_spatial_set.len() == 1 {
-            n_spatial_set
+        let (nfuncs, _) = if nfuncs_ncomps_set.len() == 1 {
+            nfuncs_ncomps_set
                 .drain()
                 .next()
-                .ok_or("Unable to retrieve the number of spatial AO basis functions and the number of explicit components.".to_string())
+                .ok_or("Unable to retrieve the number of AO basis functions and the number of explicit components.".to_string())
         } else {
-            Err("Inconsistent numbers of spatial AO basis functions and/or explicit components across multi-determinantal wavefunctions.".to_string())
+            Err("Inconsistent numbers of AO basis functions and/or explicit components across multi-determinantal wavefunctions.".to_string())
         }?;
 
         let sym = if params.use_magnetic_group.is_some() {
@@ -550,19 +550,29 @@ where
         };
 
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
-            Err(
-                format!(
-                    "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+            Err(format!(
+                "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
                     Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
-                    sym.group_name.as_ref().expect("No symmetry group name found.")
-                )
-            )
-        } else if (n_spatial != sao.nrows() || n_spatial != sao.ncols())
-            && (n_spatial * n_comps != sao.nrows() || n_spatial * n_comps != sao.ncols())
-        {
-            Err("The dimensions of the SAO matrix do not match either the number of spatial AO basis functions or the number of spatial AO basis functions multiplied by the number of explicit components per coefficient matrix.".to_string())
+                sym.group_name
+                    .as_ref()
+                    .expect("No symmetry group name found.")
+            ))
         } else {
-            Ok(())
+            let total_component_check = {
+                let nfuncs_tot = nfuncs.iter().sum::<usize>();
+                sao.nrows() == nfuncs_tot && sao.ncols() == nfuncs_tot
+            };
+            let nfuncs_set = nfuncs.into_iter().collect::<HashSet<_>>();
+            let uniform_component_check = nfuncs_set.len() == 1
+                && {
+                    let nfuncs = nfuncs_set.iter().next().ok_or_else(|| "Unable to extract the uniform number of basis functions per explicit component.".to_string())?;
+                    sao.nrows() == *nfuncs && sao.ncols() == *nfuncs
+                };
+            if !uniform_component_check && !total_component_check {
+                Err("The dimensions of the SAO matrix do not match either the uniform number of AO basis functions per explicit component or the total number of AO basis functions across all explicit components of the basis determinants.".to_string())
+            } else {
+                Ok(())
+            }
         }
     }
 }
@@ -606,7 +616,7 @@ where
             ))
         }?;
 
-        let mut nbas_set = self
+        let mut nfuncss_set = self
             .multidets
             .iter()
             .map(|multidet| {
@@ -614,12 +624,14 @@ where
                     .basis()
                     .first()
                     .expect("Unable to obtain the first determinant in the basis.")
-                    .bao()
-                    .n_funcs()
+                    .baos()
+                    .iter()
+                    .map(|bao| bao.n_funcs())
+                    .collect::<Vec<_>>()
             })
-            .collect::<HashSet<_>>();
-        let nbas = if nbas_set.len() == 1 {
-            nbas_set.drain().next().ok_or(format_err!(
+            .collect::<HashSet<Vec<usize>>>();
+        let nfuncs_vec = if nfuncss_set.len() == 1 {
+            nfuncss_set.drain().next().ok_or(format_err!(
                 "Unable to retrieve the number of basis functions describing the multi-determinantal wavefunctions."
             ))
         } else {
@@ -627,37 +639,55 @@ where
                 "Inconsistent numbers of basis functions across multi-determinantal wavefunctions."
             ))
         }?;
+        // let nbas_set = self
+        //     .multidets
+        //     .iter()
+        //     .next()
+        //     .ok_or_else(|| format_err!("Unable to retrieve "))
+        //     .baos()
+        //     .iter()
+        //     .map(|bao| bao.n_funcs())
+        //     .collect::<HashSet<_>>();
+        let nfuncs_set = nfuncs_vec.iter().cloned().collect::<HashSet<_>>();
+        let uniform_component = nfuncs_set.len() == 1;
         let ncomps = structure_constraint.n_explicit_comps_per_coefficient_matrix();
         let provided_dim = self.sao.nrows();
 
-        if provided_dim == nbas {
-            let sao = {
-                let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
-                (0..ncomps).for_each(|icomp| {
-                    let start = icomp * nbas;
-                    let end = (icomp + 1) * nbas;
+        if uniform_component {
+            let nfuncs = *nfuncs_set.iter().next().ok_or_else(|| format_err!("Unable to extract the uniform number of basis functions per explicit component."))?;
+            if provided_dim == nfuncs {
+                let sao = {
+                    let mut sao_mut = Array2::zeros((ncomps * nfuncs, ncomps * nfuncs));
+                    (0..ncomps).for_each(|icomp| {
+                        let start = icomp * nfuncs;
+                        let end = (icomp + 1) * nfuncs;
+                        sao_mut
+                            .slice_mut(s![start..end, start..end])
+                            .assign(self.sao);
+                    });
                     sao_mut
-                        .slice_mut(s![start..end, start..end])
-                        .assign(self.sao);
-                });
-                sao_mut
-            };
+                };
 
-            let sao_h = self.sao_h.map(|sao_h| {
-                let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
-                (0..ncomps).for_each(|icomp| {
-                    let start = icomp * nbas;
-                    let end = (icomp + 1) * nbas;
+                let sao_h = self.sao_h.map(|sao_h| {
+                    let mut sao_h_mut = Array2::zeros((ncomps * nfuncs, ncomps * nfuncs));
+                    (0..ncomps).for_each(|icomp| {
+                        let start = icomp * nfuncs;
+                        let end = (icomp + 1) * nfuncs;
+                        sao_h_mut
+                            .slice_mut(s![start..end, start..end])
+                            .assign(sao_h);
+                    });
                     sao_h_mut
-                        .slice_mut(s![start..end, start..end])
-                        .assign(sao_h);
                 });
-                sao_h_mut
-            });
 
-            Ok((sao, sao_h))
+                Ok((sao, sao_h))
+            } else {
+                ensure!(provided_dim == nfuncs * ncomps);
+                Ok((self.sao.clone(), self.sao_h.cloned()))
+            }
         } else {
-            assert_eq!(provided_dim, nbas * ncomps);
+            let nfuncs_tot = nfuncs_vec.iter().sum::<usize>();
+            ensure!(provided_dim == nfuncs_tot);
             Ok((self.sao.clone(), self.sao_h.cloned()))
         }
     }
@@ -795,7 +825,9 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
             .get(0)
             .and_then(|multidet| multidet.basis().first())
         {
-            log_bao(det.bao());
+            for (bao_i, bao) in det.baos().iter().enumerate() {
+                log_bao(bao, Some(bao_i));
+            }
         }
 
         let (multidet_symmetries, multidet_symmetries_thresholds): (Vec<_>, Vec<_>) = self.multidets
