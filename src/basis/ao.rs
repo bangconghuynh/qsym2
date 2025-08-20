@@ -607,8 +607,10 @@ pub struct SpinorOrder {
     #[builder(setter(custom))]
     two_mjs: Vec<i32>,
 
-    /// The spatial inversion parity of the spinor Gaussians: `true` if even under spatial inversion
-    /// and `false` if odd.
+    /// The spatial inversion parity of the large-component spinor Gaussians: `true` if even under
+    /// spatial inversion and `false` if odd. Note that the corresponding small-component spinor
+    /// Gaussians will have the opposite spatial inversion parity due to
+    /// $`\mathbf{\sigma} \cdot \hat{\mathbf{p}}`$.
     pub even: bool,
 
     // #[builder(default = "None")]
@@ -681,8 +683,10 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
-    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
-    /// inversion.
+    /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
+    /// spatial inversion.
+    /// * `balance_symmetry` - An option specifying the kind of additional symmetry introduced to the
+    /// spinors by additional operators to maintain a particular form of balance.
     ///
     /// # Returns
     ///
@@ -710,8 +714,10 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
-    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
-    /// inversion.
+    /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
+    /// spatial inversion.
+    /// * `balance_symmetry` - An option specifying the kind of additional symmetry introduced to the
+    /// spinors by additional operators to maintain a particular form of balance.
     ///
     /// # Returns
     ///
@@ -738,8 +744,10 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
-    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
-    /// inversion.
+    /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
+    /// spatial inversion.
+    /// * `balance_symmetry` - An option specifying the kind of additional symmetry introduced to the
+    /// spinors by additional operators to maintain a particular form of balance.
     ///
     /// # Returns
     ///
@@ -795,15 +803,49 @@ impl SpinorOrder {
     pub fn get_two_m_with_index(&self, i: usize) -> Option<i32> {
         self.two_mjs.get(i).cloned()
     }
+
+    /// Returns the angular momentum quantum number of the spatial part of the spinors in this
+    /// shell.
+    pub fn l(&self) -> u32 {
+        if self.two_j.rem_euclid(4) == 1 {
+            // even l is to the left of j, and odd l to the right
+            if self.even {
+                (self.two_j - 1).div_euclid(2)
+            } else {
+                (self.two_j + 1).div_euclid(2)
+            }
+        } else {
+            assert_eq!(self.two_j.rem_euclid(4), 3);
+            // even l is to the right of j, and odd l to the left
+            if self.even {
+                (self.two_j + 1).div_euclid(2)
+            } else {
+                (self.two_j - 1).div_euclid(2)
+            }
+        }
+    }
+
+    /// Returns the value of $`a = 2(j - l)`$.
+    pub fn a(&self) -> i8 {
+        if self.two_j.rem_euclid(4) == 1 {
+            // even l is to the left of j, and odd l to the right
+            if self.even { 1 } else { -1 }
+        } else {
+            assert_eq!(self.two_j.rem_euclid(4), 3);
+            // even l is to the right of j, and odd l to the left
+            if self.even { -1 } else { 1 }
+        }
+    }
 }
 
 impl fmt::Display for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({}){}",
+            "Angular momentum: {}/2 ({}; {}){}",
             self.two_j,
             if self.even { "g" } else { "u" },
+            self.l(),
             if let Some(balance_sym) = &self.balance_symmetry {
                 &format!(" ({balance_sym})")
             } else {
@@ -822,9 +864,10 @@ impl fmt::Debug for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({}){}",
+            "Angular momentum: {}/2 ({}; {}){}",
             self.two_j,
             if self.even { "g" } else { "u" },
+            self.l(),
             if let Some(balance_sym) = &self.balance_symmetry {
                 &format!(" ({balance_sym})")
             } else {
@@ -910,8 +953,9 @@ impl fmt::Display for ShellOrder {
             ),
             ShellOrder::Spinor(spinor_order) => write!(
                 f,
-                "Spinor ({}) ({})",
+                "Spinor ({}; {}) ({})",
                 if spinor_order.even { "g" } else { "u" },
+                spinor_order.l(),
                 spinor_order
                     .iter()
                     .map(|two_m| format!("{two_m}/2"))
@@ -1106,7 +1150,8 @@ impl<'a> BasisAngularOrder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
-    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s.
+    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s
+    /// without any additional balance symmetry auxiliary information.
     ///
     /// # Arguments
     ///
@@ -1116,6 +1161,23 @@ impl<'a> BasisAngularOrder<'a> {
             .basis_atoms(batms)
             .build()
             .expect("Unable to construct a `BasisAngularOrder`.")
+    }
+
+    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s
+    /// with additional balance symmetry auxiliary information.
+    ///
+    /// # Arguments
+    ///
+    /// * `batms` - The constituent [`BasisAtom`]s.
+    pub fn new_with_balance_symmetry_aux(
+        batms: &[BasisAtom<'a>],
+        balance_symmetry_aux: SpinorBalanceSymmetryAux<Complex<f64>>,
+    ) -> Self {
+        BasisAngularOrder::builder()
+            .basis_atoms(batms)
+            .balance_symmetry_aux(Some(balance_symmetry_aux))
+            .build()
+            .expect("Unable to construct a `BasisAngularOrder` with balance symmetry auxiliary information.")
     }
 
     pub fn balance_symmetry_aux(&self) -> Option<&SpinorBalanceSymmetryAux<Complex<f64>>> {
@@ -1293,9 +1355,7 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
         let p_balance_symmetry_aux = match &self.balance_symmetry_aux {
             Some(SpinorBalanceSymmetryAux::KineticBalance { spsipi }) => {
                 let p_spsipi = permute_array_by_atoms(&spsipi, perm, &[Axis(1), Axis(2)], self);
-                Some(SpinorBalanceSymmetryAux::KineticBalance {
-                    spsipi: p_spsipi,
-                })
+                Some(SpinorBalanceSymmetryAux::KineticBalance { spsipi: p_spsipi })
             }
             None => None,
         };

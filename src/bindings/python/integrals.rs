@@ -6,8 +6,9 @@ use lazy_static::lazy_static;
 use nalgebra::{Point3, Vector3};
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
+use numpy::PyArrayMethods;
 #[cfg(feature = "integrals")]
-use numpy::{IntoPyArray, PyArray2, PyArray4};
+use numpy::{IntoPyArray, PyArray2, PyArray3, PyArray4};
 use periodic_table;
 #[cfg(feature = "integrals")]
 use pyo3::exceptions::PyValueError;
@@ -20,7 +21,8 @@ use serde::{Deserialize, Serialize};
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
-    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry, SpinorOrder
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder,
 };
 #[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
@@ -70,8 +72,40 @@ pub enum PyShellOrder {
     CartOrder(Option<Vec<(u32, u32, u32)>>),
 }
 
-// /// Enumerated type indicating the type of magnetic symmetry to be used for representation
-// /// analysis.
+/// Python-exposed enumerated type to handle the `SpinorBalanceSymmetryAux` numpy complex 3d-arrays
+/// in Python.
+#[derive(Clone, FromPyObject)]
+pub enum PySpinorBalanceSymmetryAux<'a> {
+    /// Variant for kinetic balance auxiliary information.
+    ///
+    /// This is a three-dimensional array:
+    /// ```math
+    ///     S_{i,\mu \mu'} = \frac{1}{2c} \braket{ f_{\mu} | \sigma_i \hat{p}_i g_{\mu'} }
+    /// ```
+    /// where
+    /// ```math
+    ///     f_{\mu} = \frac{1}{2c} \sum_k \sigma_k \hat{p}_k g_{\mu}
+    /// ```
+    /// is the corresponding small-component spinor basis function of the large-component spinor
+    /// basis function $`g_{\mu}`$.
+    ///
+    /// Python type: numpy.3darray[complex].
+    KineticBalance(Bound<'a, PyArray3<Complex<f64>>>),
+}
+
+impl<'a> PySpinorBalanceSymmetryAux<'a> {
+    pub fn to_qsym2(&self) -> SpinorBalanceSymmetryAux<Complex<f64>> {
+        match self {
+            PySpinorBalanceSymmetryAux::KineticBalance(spsipi) => {
+                SpinorBalanceSymmetryAux::KineticBalance {
+                    spsipi: spsipi.to_owned_array(),
+                }
+            }
+        }
+    }
+}
+
+/// Python-exposed enumerated type indicating the shell type.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[pyclass(eq, eq_int)]
 pub enum ShellType {
@@ -362,6 +396,7 @@ impl PyBasisAngularOrder {
     pub fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
+        balance_symmetry_aux: Option<SpinorBalanceSymmetryAux<Complex<f64>>>,
     ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
@@ -386,7 +421,14 @@ impl PyBasisAngularOrder {
                 Ok(BasisAtom::new(atom, &bss))
             })
             .collect::<Vec<_>>();
-        Ok(BasisAngularOrder::new(&basis_atoms))
+        if let Some(bsa) = balance_symmetry_aux {
+            Ok(BasisAngularOrder::new_with_balance_symmetry_aux(
+                &basis_atoms,
+                bsa,
+            ))
+        } else {
+            Ok(BasisAngularOrder::new(&basis_atoms))
+        }
     }
 }
 
@@ -765,14 +807,24 @@ fn create_basis_shell(
             PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
                 PyPureSpinorOrder::Standard((increasingm, even)) => {
                     if *increasingm {
-                        ShellOrder::Spinor(SpinorOrder::increasingm(order, *even, Some(SpinorBalanceSymmetry::KineticBalance)))
+                        ShellOrder::Spinor(SpinorOrder::increasingm(
+                            order,
+                            *even,
+                            Some(SpinorBalanceSymmetry::KineticBalance),
+                        ))
                     } else {
-                        ShellOrder::Spinor(SpinorOrder::decreasingm(order, *even, Some(SpinorBalanceSymmetry::KineticBalance)))
+                        ShellOrder::Spinor(SpinorOrder::decreasingm(
+                            order,
+                            *even,
+                            Some(SpinorBalanceSymmetry::KineticBalance),
+                        ))
                     }
                 }
-                PyPureSpinorOrder::Custom((two_mjs, even)) => {
-                    ShellOrder::Spinor(SpinorOrder::new(two_mjs, *even, Some(SpinorBalanceSymmetry::KineticBalance))?)
-                }
+                PyPureSpinorOrder::Custom((two_mjs, even)) => ShellOrder::Spinor(SpinorOrder::new(
+                    two_mjs,
+                    *even,
+                    Some(SpinorBalanceSymmetry::KineticBalance),
+                )?),
             },
             PyShellOrder::CartOrder(_) => {
                 log::error!(
