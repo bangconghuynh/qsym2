@@ -12,7 +12,7 @@ use pyo3::prelude::*;
 use crate::analysis::EigenvalueComparisonMode;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinorBalanceSymmetryAux};
+use crate::bindings::python::integrals::PyBasisAngularOrder;
 use crate::bindings::python::representation_analysis::PyArray4RC;
 use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
@@ -247,8 +247,6 @@ pub enum PyDensity {
 /// Python type: `list[tuple[str, PyDensityReal | PyDensityComplex]]`.
 /// * `pybao` - Python-exposed structure containing basis angular order information for the density
 /// matrices. Python type: `PyBasisAngularOrder`.
-/// * `pybalance_symmetry_auxs` - The optional balance symmetry auxiliary information object.
-/// Python type: `numpy.3darray[complex] | None`
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -289,7 +287,6 @@ pub enum PyDensity {
     inp_sym,
     pydens,
     pybao,
-    pybalance_symmetry_aux,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -310,7 +307,6 @@ pub fn rep_analyse_densities(
     inp_sym: PathBuf,
     pydens: Vec<(String, PyDensity)>,
     pybao: &PyBasisAngularOrder,
-    pybalance_symmetry_aux: Option<PySpinorBalanceSymmetryAux>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -339,11 +335,8 @@ pub fn rep_analyse_densities(
     qsym2_output!("");
 
     let mol = &pd_res.pre_symmetry.recentred_molecule;
-    let bsa_opt = pybalance_symmetry_aux
-        .as_ref()
-        .map(|pybsa| pybsa.to_qsym2());
     let bao = pybao
-        .to_qsym2(mol, bsa_opt)
+        .to_qsym2(mol)
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     let afa_params = AngularFunctionRepAnalysisParams::builder()
         .integrality_threshold(angular_function_integrality_threshold)

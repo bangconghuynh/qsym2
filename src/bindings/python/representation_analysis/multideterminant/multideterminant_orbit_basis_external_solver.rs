@@ -14,7 +14,9 @@ use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinorBalanceSymmetryAux, PyStructureConstraint};
+use crate::bindings::python::integrals::{
+    PyBasisAngularOrder, PyStructureConstraint,
+};
 use crate::bindings::python::representation_analysis::PyArray2RC;
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
@@ -111,9 +113,6 @@ macro_rules! generate_noci_solver {
 /// Python type: `Callable[[list[PySlaterDeterminantReal | PySlaterDeterminantComplex]], tuple[list[float], list[list[float]]] | tuple[list[complex], list[list[complex]]]]`.
 /// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
 /// explicit component per coefficient matrix. Python type: `list[PyBasisAngularOrder]`.
-/// * `pybalance_symmetry_auxs` - Optional balance symmetry auxiliary information objects, each
-/// corresponding to a `pybao` structure specified.
-/// Python type: `list[numpy.3darray[complex] | None]`
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -158,7 +157,6 @@ macro_rules! generate_noci_solver {
     pyorigins,
     py_noci_solver,
     pybaos,
-    pybalance_symmetry_auxs,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -181,7 +179,6 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     pyorigins: Vec<PySlaterDeterminant>,
     py_noci_solver: Py<PyFunction>,
     pybaos: Vec<PyBasisAngularOrder>,
-    pybalance_symmetry_auxs: Vec<Option<PySpinorBalanceSymmetryAux>>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -214,17 +211,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     // Set up basic parameters
     let mol = &pd_res.pre_symmetry.recentred_molecule;
 
-    assert_eq!(
-        pybaos.len(),
-        pybalance_symmetry_auxs.len(),
-        "Mismatched numbers of `pybaos` and `pybalance_symmetry_auxs` items."
-    );
     let baos = pybaos
         .iter()
-        .zip(pybalance_symmetry_auxs.iter())
-        .map(|(bao, pybsa_opt)| {
-            let bsa_opt = pybsa_opt.as_ref().map(|pybsa| pybsa.to_qsym2());
-            bao.to_qsym2(mol, bsa_opt)
+        .map(|bao| {
+            bao.to_qsym2(mol)
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
         })
         .collect::<Result<Vec<_>, _>>()?;

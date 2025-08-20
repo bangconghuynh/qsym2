@@ -4,6 +4,7 @@ use anyhow::{self, bail, ensure, format_err};
 use lazy_static::lazy_static;
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
+use ndarray::Array3;
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
 use numpy::PyArrayMethods;
@@ -75,7 +76,7 @@ pub enum PyShellOrder {
 /// Python-exposed enumerated type to handle the `SpinorBalanceSymmetryAux` numpy complex 3d-arrays
 /// in Python.
 #[derive(Clone, FromPyObject)]
-pub enum PySpinorBalanceSymmetryAux<'a> {
+pub enum PySpinorBalanceSymmetryAux {
     /// Variant for kinetic balance auxiliary information.
     ///
     /// This is a three-dimensional array:
@@ -90,15 +91,17 @@ pub enum PySpinorBalanceSymmetryAux<'a> {
     /// basis function $`g_{\mu}`$.
     ///
     /// Python type: numpy.3darray[complex].
-    KineticBalance(Bound<'a, PyArray3<Complex<f64>>>),
+    KineticBalance(Py<PyArray3<Complex<f64>>>),
 }
 
-impl<'a> PySpinorBalanceSymmetryAux<'a> {
+impl<'a> PySpinorBalanceSymmetryAux {
     pub fn to_qsym2(&self) -> SpinorBalanceSymmetryAux<Complex<f64>> {
         match self {
             PySpinorBalanceSymmetryAux::KineticBalance(spsipi) => {
                 SpinorBalanceSymmetryAux::KineticBalance {
-                    spsipi: spsipi.to_owned_array(),
+                    spsipi: Python::with_gil(|py| -> Array3<Complex<f64>> {
+                        spsipi.bind(py).to_owned_array()
+                    }),
                 }
             }
         }
@@ -122,6 +125,10 @@ pub enum ShellType {
     /// Variant for a Cartesian shell.
     Cartesian,
 }
+
+// ===================
+// PyBasisAngularOrder
+// ===================
 
 /// Python-exposed structure to marshal basis angular order information between Python and Rust.
 ///
@@ -160,6 +167,8 @@ pub struct PyBasisAngularOrder {
     ///
     /// Python type: `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
     basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
+
+    balance_symmetry_aux: Option<PySpinorBalanceSymmetryAux>,
 }
 
 #[pymethods]
@@ -186,8 +195,14 @@ impl PyBasisAngularOrder {
     ///   Python type:
     ///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
     #[new]
-    fn new(basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>) -> Self {
-        Self { basis_atoms }
+    fn new(
+        basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
+        balance_symmetry_aux: Option<PySpinorBalanceSymmetryAux>,
+    ) -> Self {
+        Self {
+            basis_atoms,
+            balance_symmetry_aux,
+        }
     }
 
     /// Extracts basis angular order information from a Q-Chem HDF5 archive file.
@@ -346,7 +361,7 @@ impl PyBasisAngularOrder {
                         Ok((element, v))
                     })
                     .collect::<Result<Vec<_>, _>>()
-                    .map(|basis_atoms| Self::new(basis_atoms));
+                    .map(|basis_atoms| Self::new(basis_atoms, None));
                 pybao
             })
             .collect::<Result<Vec<_>, _>>();
@@ -396,7 +411,6 @@ impl PyBasisAngularOrder {
     pub fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         mol: &'a Molecule,
-        balance_symmetry_aux: Option<SpinorBalanceSymmetryAux<Complex<f64>>>,
     ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
@@ -421,7 +435,8 @@ impl PyBasisAngularOrder {
                 Ok(BasisAtom::new(atom, &bss))
             })
             .collect::<Vec<_>>();
-        if let Some(bsa) = balance_symmetry_aux {
+        if let Some(pybsa) = &self.balance_symmetry_aux {
+            let bsa = pybsa.to_qsym2();
             Ok(BasisAngularOrder::new_with_balance_symmetry_aux(
                 &basis_atoms,
                 bsa,
@@ -431,6 +446,10 @@ impl PyBasisAngularOrder {
         }
     }
 }
+
+// ===========================
+// StructureConstraint structs
+// ===========================
 
 /// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.

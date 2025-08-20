@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::bail;
-use itertools::Itertools;
 use num_complex::Complex;
 use numpy::PyArrayMethods;
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
@@ -13,7 +12,7 @@ use pyo3::prelude::*;
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{
-    PyBasisAngularOrder, PySpinorBalanceSymmetryAux, PyStructureConstraint,
+    PyBasisAngularOrder, PyStructureConstraint,
 };
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray1RC, PyArray2RC};
@@ -65,9 +64,6 @@ type C128 = Complex<f64>;
 /// Python type: `numpy.1darray[float] | numpy.1darray[complex]`.
 /// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
 /// explicit component per coefficient matrix. Python type: `list[PyBasisAngularOrder]`.
-/// * `pybalance_symmetry_auxs` - Optional balance symmetry auxiliary information objects, each
-/// corresponding to a `pybao` structure specified.
-/// Python type: `list[numpy.3darray[complex] | None]`
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -113,7 +109,6 @@ type C128 = Complex<f64>;
     coefficients,
     energies,
     pybaos,
-    pybalance_symmetry_auxs,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -137,7 +132,6 @@ pub fn rep_analyse_multideterminants_eager_basis(
     coefficients: PyArray2RC,
     energies: PyArray1RC,
     pybaos: Vec<PyBasisAngularOrder>,
-    pybalance_symmetry_auxs: Vec<Option<PySpinorBalanceSymmetryAux>>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -170,17 +164,10 @@ pub fn rep_analyse_multideterminants_eager_basis(
     // Set up basic parameters
     let mol = &pd_res.pre_symmetry.recentred_molecule;
 
-    assert_eq!(
-        pybaos.len(),
-        pybalance_symmetry_auxs.len(),
-        "Mismatched numbers of `pybaos` and `pybalance_symmetry_auxs` items."
-    );
     let baos = pybaos
         .iter()
-        .zip(pybalance_symmetry_auxs.iter())
-        .map(|(bao, pybsa_opt)| {
-            let bsa_opt = pybsa_opt.as_ref().map(|pybsa| pybsa.to_qsym2());
-            bao.to_qsym2(mol, bsa_opt)
+        .map(|bao| {
+            bao.to_qsym2(mol)
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
         })
         .collect::<Result<Vec<_>, _>>()?;

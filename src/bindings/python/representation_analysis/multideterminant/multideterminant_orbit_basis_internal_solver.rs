@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{
-    PyBasisAngularOrder, PySpinorBalanceSymmetryAux, PyStructureConstraint,
+    PyBasisAngularOrder, PyStructureConstraint,
 };
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC, PyScalarRC};
@@ -61,9 +61,6 @@ type C128 = Complex<f64>;
 /// Python type: `list[PySlaterDeterminantReal | PySlaterDeterminantComplex]`.
 /// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
 /// explicit component per coefficient matrix. Python type: `list[PyBasisAngularOrder]`.
-/// * `pybalance_symmetry_auxs` - Optional balance symmetry auxiliary information objects, each
-/// corresponding to a `pybao` structure specified.
-/// Python type: `list[numpy.3darray[complex] | None]`
 /// * `sao` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `enuc` - The nuclear repulsion energy. Python type: `float | complex`.
@@ -112,7 +109,6 @@ type C128 = Complex<f64>;
     inp_sym,
     pyorigins,
     pybaos,
-    pybalance_symmetry_auxs,
     sao,
     enuc,
     onee,
@@ -139,7 +135,6 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     inp_sym: PathBuf,
     pyorigins: Vec<PySlaterDeterminant>,
     pybaos: Vec<PyBasisAngularOrder>,
-    pybalance_symmetry_auxs: Vec<Option<PySpinorBalanceSymmetryAux>>,
     sao: PyArray2RC,
     enuc: PyScalarRC,
     onee: PyArray2RC,
@@ -177,17 +172,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     // Set up basic parameters
     let mol = &pd_res.pre_symmetry.recentred_molecule;
 
-    assert_eq!(
-        pybaos.len(),
-        pybalance_symmetry_auxs.len(),
-        "Mismatched numbers of `pybaos` and `pybalance_symmetry_auxs` items."
-    );
     let baos = pybaos
         .iter()
-        .zip(pybalance_symmetry_auxs.iter())
-        .map(|(bao, pybsa_opt)| {
-            let bsa_opt = pybsa_opt.as_ref().map(|pybsa| pybsa.to_qsym2());
-            bao.to_qsym2(mol, bsa_opt)
+        .map(|bao| {
+            bao.to_qsym2(mol)
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
         })
         .collect::<Result<Vec<_>, _>>()?;
