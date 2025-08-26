@@ -197,9 +197,9 @@ impl fmt::Display for SpinOrbitCoupled {
                 "Spin--orbit-coupled j-adapted ({} {})",
                 ncomps,
                 if *ncomps == 1 {
-                    "component"
+                    "explicit component"
                 } else {
-                    "components"
+                    "explicit components"
                 },
             ),
         }

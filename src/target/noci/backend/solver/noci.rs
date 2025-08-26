@@ -184,7 +184,7 @@ where
             thresh_offdiag,
             thresh_zeroov,
         )?;
-        log::debug!("NOCI Hamiltonian matrix:\n  {hmat}");
+        log::debug!("NOCI Hamiltonian matrix:\n  {hmat:+.8e}");
         let smat = overlap_ao.calc_orbit_matrix(
             &orbit_basis,
             use_cayley_table,
@@ -192,7 +192,7 @@ where
             thresh_offdiag,
             thresh_zeroov,
         )?;
-        log::debug!("NOCI overlap matrix:\n  {smat}");
+        log::debug!("NOCI overlap matrix:\n  {smat:+.8e}");
         let noci_res = (&hmat.view(), &smat.view())
             .solve_generalised_eigenvalue_problem_with_canonical_orthogonalisation(
                 *complex_symmetric,

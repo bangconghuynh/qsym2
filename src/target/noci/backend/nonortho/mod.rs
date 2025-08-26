@@ -15,6 +15,7 @@ use ndarray_linalg::{Determinant, Eig, Eigh, Norm, SVD, Scalar, UPLO};
 use num::{Complex, Float};
 use num_complex::ComplexFloat;
 
+use crate::analysis::{EigenvalueComparisonMode, log_overlap_eigenvalues};
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 
 use super::denmat::{calc_unweighted_codensity_matrix, calc_weighted_codensity_matrix};
@@ -970,11 +971,22 @@ where
         }
 
         let (s_eig, umat_nonortho) = smat.eig().map_err(|err| format_err!(err))?;
+        log::debug!("Overlap eigenvalues for canonical orthogonalisation:");
+        for (i, eig) in s_eig.iter().enumerate() {
+            log::debug!("  {i}: {eig:+.8e}");
+        }
+        log::debug!("");
 
         let nonzero_s_indices = s_eig
             .iter()
             .positions(|x| ComplexFloat::abs(*x) > thresh_zeroov)
             .collect_vec();
+        log::debug!("Non-zero overlap indices w.r.t. threshold {thresh_zeroov:.8e}:");
+        log::debug!(
+            "  {}",
+            nonzero_s_indices.iter().map(|i| i.to_string()).join(", ")
+        );
+        log::debug!("");
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
         let nonzero_umat_nonortho = umat_nonortho.select(Axis(1), &nonzero_s_indices);
 
@@ -989,6 +1001,26 @@ where
             |_| format_err!("Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.")
         )?;
 
+        let nonzero_s_eig_from_u = if complex_symmetric {
+            nonzero_umat.t().dot(smat).dot(&nonzero_umat)
+        } else {
+            nonzero_umat
+                .map(|v| v.conj())
+                .t()
+                .dot(smat)
+                .dot(&nonzero_umat)
+        };
+
+        let deviation_s = (nonzero_s_eig_from_u - Array2::from_diag(&nonzero_s_eig)).norm_l2();
+        ensure!(
+            deviation_s <= thresh_offdiag,
+            if complex_symmetric {
+                "Canonical orthogonalisation has failed: ||U^T.S.U - s|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            } else {
+                "Canonical orthogonalisation has failed: ||U^†.S.U - s|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            }
+        );
+
         let nullity = smat.shape()[0] - nonzero_s_indices.len();
         let (xmat, xmat_d) = if nullity == 0 && preserves_full_rank {
             (
@@ -999,13 +1031,14 @@ where
             let s_s = Array2::<Complex<T>>::from_diag(
                 &nonzero_s_eig.mapv(|x| Complex::<T>::from(T::one()) / x.sqrt()),
             );
-            if complex_symmetric {
-                (nonzero_umat.dot(&s_s), s_s.dot(&nonzero_umat.t()))
+            let xmat = nonzero_umat.dot(&s_s);
+            let xmat_d = if complex_symmetric {
+                // (nonzero_umat.dot(&s_s), s_s.dot(&nonzero_umat.t()))
+                xmat.t().to_owned()
             } else {
-                let xmat = nonzero_umat.dot(&s_s);
-                let xmat_d = xmat.map(|v| v.conj()).t().to_owned();
-                (xmat, xmat_d)
-            }
+                xmat.map(|v| v.conj()).t().to_owned()
+            };
+            (xmat, xmat_d)
         };
         let res = CanonicalOrthogonalisationResult {
             eigenvalues: s_eig,

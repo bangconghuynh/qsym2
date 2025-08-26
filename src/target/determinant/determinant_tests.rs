@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use log4rs;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, array, concatenate, s};
 use ndarray_linalg::assert::close_l2;
@@ -12,7 +13,7 @@ use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-    SpinorBalanceSymmetry, SpinorOrder,
+    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder,
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -1751,6 +1752,718 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
         .sym_transform_spin_spatial(&(group.get_index(51).unwrap() * group.get_index(55).unwrap()))
         .unwrap();
     assert_eq!(tdet_s55_s51, tdet_s51s55);
+}
+
+#[test]
+fn test_determinant_transformation_h_jadapted_4c_sto3g() {
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // ~~~~~~~~~
+    // Integrals
+    // ~~~~~~~~~
+    #[rustfmt::skip]
+    let sao = array![
+        [1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 2.0236363463312e-05, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.0236363463312e-05],
+    ];
+    let sao_c = sao.mapv(Complex::<f64>::from);
+
+    #[rustfmt::skip]
+    let spsipj_c = array![
+        [
+            [
+                [Complex::new(6.7454544877706e-06, 0.0), Complex::new(0.0, 0.0)],
+                [Complex::new(0.0, 0.0), Complex::new(6.7454544877706e-06, 0.0)],
+            ],
+            [
+                [Complex::new(0.0, 6.7454544877706e-06), Complex::new(0.0, 0.0)],
+                [Complex::new(0.0, 0.0), Complex::new(0.0, -6.7454544877706e-06)],
+            ],
+            [
+                [Complex::new(0.0, 0.0), Complex::new(-6.7454544877706e-06, 0.0)],
+                [Complex::new(6.7454544877706e-06, 0.0), Complex::new(0.0, 0.0)],
+            ],
+        ],
+        [
+            [
+                [Complex::new(0.0, -6.7454544877706e-06), Complex::new(0.0, 0.0)],
+                [Complex::new(0.0, 0.0), Complex::new(0.0, 6.7454544877706e-06)],
+            ],
+            [
+                [Complex::new(6.7454544877706e-06, 0.0), Complex::new(0.0, 0.0)],
+                [Complex::new(0.0, 0.0), Complex::new(6.7454544877706e-06, 0.0)],
+            ],
+            [
+                [Complex::new(0.0, 0.0), Complex::new(0.0, -6.7454544877706e-06)],
+                [Complex::new(0.0, -6.7454544877706e-06), Complex::new(0.0, 0.0)],
+            ],
+        ],
+        [
+            [
+                [Complex::new(0.0, 0.0), Complex::new(6.7454544877706e-06, 0.0)],
+                [Complex::new(-6.7454544877706e-06, 0.0), Complex::new(0.0, 0.0)],
+            ],
+            [
+                [Complex::new(0.0, 0.0), Complex::new(0.0, 6.7454544877706e-06)],
+                [Complex::new(0.0, 6.7454544877706e-06), Complex::new(0.0, 0.0)],
+            ],
+            [
+                [Complex::new(6.7454544877706e-06, 0.0), Complex::new(0.0, 0.0)],
+                [Complex::new(0.0, 0.0), Complex::new(6.7454544877706e-06, 0.0)],
+            ],
+        ],
+    ];
+
+    // ~~~~~~~~
+    // Geometry
+    // ~~~~~~~~
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+
+    let bs_sp1_sp = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            Some(SpinorBalanceSymmetry::KineticBalance),
+        )),
+    );
+
+    let batm_h0_sp = BasisAtom::new(&atm_h0, &[bs_sp1_sp]);
+    let bao_h_sp = BasisAngularOrder::new_with_balance_symmetry_aux(
+        &[batm_h0_sp],
+        SpinorBalanceSymmetryAux::KineticBalance { spsipj: spsipj_c },
+    );
+
+    let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh* (double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
+
+    // ~~~~~~~~
+    // s1/2,1/2
+    // ~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_l = array![
+        // CL
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // CS
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_l])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~
+    // σ·p(s1/2,1/2)
+    // ~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_s = array![
+        // CL
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_s])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
+    );
+}
+
+#[test]
+fn test_determinant_transformation_h_jadapted_4c_631gds() {
+    // ~~~~~~~~~
+    // Integrals
+    // ~~~~~~~~~
+    #[rustfmt::skip]
+    let sao = array![
+        [1.0000000000000e+00, 0.0000000000000e+00, 6.5829204933933e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 6.5829204933933e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [6.5829204933933e-01, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 6.5829204933933e-01, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.7160879153747e-05, 0.0000000000000e+00, 6.9156224256527e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.7160879153747e-05, 0.0000000000000e+00, 6.9156224256527e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.9156224256527e-06, 0.0000000000000e+00, 6.4411959220339e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.9156224256527e-06, 0.0000000000000e+00, 6.4411959220339e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.3220611828754e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.3220611828754e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.3220611828754e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.3220611828754e-05, 0.0000000000000e+00, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.3220611828754e-05, 0.0000000000000e+00],
+        [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.3220611828754e-05],
+    ];
+    let sao_c = sao.mapv(Complex::<f64>::from);
+
+    // ~~~~~~~~
+    // Geometry
+    // ~~~~~~~~
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    // s1/2
+    let bs_sp_s1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+    );
+    // p1/2
+    let bs_sp_p1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, false, None)),
+    );
+    // p3/2
+    let bs_sp_p3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, false, None)),
+    );
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp_s1.clone(), bs_sp_s1, bs_sp_p1, bs_sp_p3]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+
+    let bs_sp_s1_sp = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            Some(SpinorBalanceSymmetry::KineticBalance),
+        )),
+    );
+    let bs_sp_p1_sp = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            false,
+            Some(SpinorBalanceSymmetry::KineticBalance),
+        )),
+    );
+    let bs_sp_p3_sp = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            false,
+            Some(SpinorBalanceSymmetry::KineticBalance),
+        )),
+    );
+
+    let batm_h0_sp = BasisAtom::new(
+        &atm_h0,
+        &[bs_sp_s1_sp.clone(), bs_sp_s1_sp, bs_sp_p1_sp, bs_sp_p3_sp],
+    );
+    let bao_h_sp = BasisAngularOrder::new(&[batm_h0_sp]);
+
+    let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh* (double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
+
+    // ~~~~~~~~
+    // s1/2,1/2
+    // ~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_l = array![
+        // CL
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p3/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_l])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~
+    // σ·p(s1/2,1/2)
+    // ~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_s = array![
+        // CL
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p3/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_s])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
+    );
+
+    // ~~~~~~~~
+    // p1/2,1/2
+    // ~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_l = array![
+        // CL
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p3/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_l])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~
+    // σ·p(p1/2,1/2)
+    // ~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_s = array![
+        // CL
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // σ·p(p3/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_s])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~
+    // p3/2,1/2
+    // ~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_l = array![
+        // CL
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p3/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_l])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||F~|_(u)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~
+    // σ·p(p3/2,-1/2)
+    // ~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c_as_s = array![
+        // CL
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // CS
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(s1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p1/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // σ·p(p3/2)
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_as_s])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h, &bao_h_sp])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det)
+        .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||F~|_(g)|").unwrap()
+    );
 }
 
 #[test]
@@ -5105,7 +5818,7 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
 }
 
 #[test]
-fn test_determinant_orbit_rep_analysis_c2_simple_d4h_jadapted() {
+fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
     // env_logger::init();
     #[rustfmt::skip]
     let sao = array![
@@ -5151,78 +5864,6 @@ fn test_determinant_orbit_rep_analysis_c2_simple_d4h_jadapted() {
         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.3988929478544e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05],
     ];
     let sao_c = sao.mapv(C128::from);
-
-    #[rustfmt::skip]
-    let spsipi = array![
-        [
-            [1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00, 5.9757062116589e-08],
-            [0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, 5.9757062116589e-08, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00],
-            [-7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00, 4.9008490832606e-07],
-            [0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, 4.9008490832606e-07, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, 1.6062737413694e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, 2.6123371068228e-08],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, -1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, -2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00, 0.0000000000000e+00, 5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, -4.5432282198567e-06, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, -8.5921840319878e-07],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, -4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, -8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05, 5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07],
-            [1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, -5.9757062116589e-08, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, -5.9757062116589e-08, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, -4.9008490832606e-07, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, -4.9008490832606e-07, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, 2.6123371068228e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, 1.6062737413694e-05],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, -2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, -1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00],
-            [0.0000000000000e+00, -5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00],
-            [1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, -8.5921840319878e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, -4.5432282198567e-06],
-            [0.0000000000000e+00, 1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, -8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, -4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00],
-            [-5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05]
-        ],
-        [
-            [1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00, -5.9757062116589e-08],
-            [0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, -5.9757062116589e-08, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00],
-            [-7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00, -4.9008490832606e-07],
-            [0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, -4.9008490832606e-07, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, -1.6062737413694e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, -2.6123371068228e-08],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00, 0.0000000000000e+00, -5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 4.5432282198567e-06, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 8.5921840319878e-07],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, 4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, 8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05, -5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07],
-            [1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, 5.9757062116589e-08, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, 5.9757062116589e-08, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, 4.9008490832606e-07, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, 4.9008490832606e-07, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, -2.6123371068228e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, -1.6062737413694e-05],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00],
-            [0.0000000000000e+00, 5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00],
-            [1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 8.5921840319878e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 4.5432282198567e-06],
-            [0.0000000000000e+00, 1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, 8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, 4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00],
-            [5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05]
-        ],
-        [
-            [1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.8448651675243e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, 2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.8448651675243e-07, 0.0000000000000e+00],
-            [-7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, -1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, -2.6212199009242e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, 1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, -2.6212199009242e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-05, 0.0000000000000e+00, 0.0000000000000e+00, 8.1660230128646e-08, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, -8.2569896952026e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-05, 0.0000000000000e+00, 0.0000000000000e+00, -8.1660230128646e-08, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, 8.2569896952026e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00, 0.0000000000000e+00, 3.2248954034840e-07, 0.0000000000000e+00, 1.3939246050837e-06, 0.0000000000000e+00, 1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00, 0.0000000000000e+00, 3.2248954034840e-07, 0.0000000000000e+00, 1.3939246050837e-06, 0.0000000000000e+00, -1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07],
-            [-5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, 2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.8448651675243e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, -5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.8448651675243e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [-2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, 1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, 2.6212199009242e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, -1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, 2.6212199009242e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [-8.1660230128646e-08, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, -8.2569896952026e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-05, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, 8.1660230128646e-08, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, 8.2569896952026e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-05, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-            [-3.2248954034840e-07, 0.0000000000000e+00, -1.3939246050837e-06, 0.0000000000000e+00, 1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00, 0.0000000000000e+00],
-            [0.0000000000000e+00, -3.2248954034840e-07, 0.0000000000000e+00, -1.3939246050837e-06, 0.0000000000000e+00, -1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00],
-            [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06]
-        ]
-    ];
-    let spsipi_c = spsipi.mapv(C128::from);
-
 
     let emap = ElementMap::new();
     let atm_c0 = Atom::from_xyz("C 0.0 0.0 1.0", &emap, 1e-7).unwrap();
@@ -5305,57 +5946,84 @@ fn test_determinant_orbit_rep_analysis_c2_simple_d4h_jadapted() {
         ],
     );
 
-    let bao_c2_sp = BasisAngularOrder::new_with_balance_symmetry_aux(
-        &[batm_c0_sp, batm_c1_sp],
-        crate::basis::ao::SpinorBalanceSymmetryAux::KineticBalance { spsipi: spsipi_c },
-    );
+    let bao_c2_sp = BasisAngularOrder::new(&[batm_c0_sp, batm_c1_sp]);
 
     let mol_c2 = Molecule::from_atoms(&[atm_c0.clone(), atm_c1.clone()], 1e-7);
-    
-    println!("{bao_c2_sp}");
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // u D4h* (double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_c2)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_u_d4h_double = group_u_d4h.to_double_group().unwrap();
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // C0: s1/2,1/2, C1: s1/2,1/2
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~
     #[rustfmt::skip]
     let c = array![
         // C0L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // s1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
+        // p1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
-        [Complex::new(0.0, 0.0)],
-        [Complex::new(0.0, 0.0)],
+        // p3/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         // C1L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // s1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
+        // p1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
-        [Complex::new(0.0, 0.0)],
-        [Complex::new(0.0, 0.0)],
+        // p3/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         // C0S
+        // s1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
+        // s1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
-        [Complex::new(1.0, 0.0)],
+        // p1/2
         [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         // C1S
+        // s1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
+        // s1/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
-        [Complex::new(1.0, 0.0)],
+        // p1/2
         [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
         [Complex::new(0.0, 0.0)],
@@ -5373,20 +6041,6 @@ fn test_determinant_orbit_rep_analysis_c2_simple_d4h_jadapted() {
         .threshold(1e-14)
         .build()
         .unwrap();
-
-    // ~~~~~~~~~~~~~~~~~~~~~~~~
-    // u D4h* (double, unitary)
-    // ~~~~~~~~~~~~~~~~~~~~~~~~
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-7)
-        .molecule(&mol_c2)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false).unwrap();
-    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
-    let group_u_d4h_double = group_u_d4h.to_double_group().unwrap();
-
     let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group_u_d4h_double)
         .origin(&det)
@@ -5402,312 +6056,596 @@ fn test_determinant_orbit_rep_analysis_c2_simple_d4h_jadapted() {
         .normalise_smat()
         .unwrap()
         .calc_xmat(false);
-    println!("{}", orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap());
+    assert_eq!(
+        orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // C0: σ·p(s1/2,1/2), C1: σ·p(s1/2,1/2)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c = array![
+        // C0L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C0S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .baos(vec![&bao_c2, &bao_c2_sp])
+        .mol(&mol_c2)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&det)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_d4h_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
     assert_eq!(
         orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
     );
-}
 
-// #[test]
-// fn test_determinant_orbit_rep_analysis_c2_pyscf_d4h_jadapted() {
-//     // env_logger::init();
-//     #[rustfmt::skip]
-//     let sao = array![
-//         [1.0000000000000e+00, 0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.2136461219795e-12, 0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, 8.3223475208978e-03, 0.0000000000000e+00, 0.0000000000000e+00, 1.1769576734836e-02, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.2136461219795e-12, 0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, -8.3223475208978e-03, 0.0000000000000e+00, 0.0000000000000e+00, 1.1769576734836e-02, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [2.4836239031011e-01, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, 1.3939620582153e-01, 0.0000000000000e+00, 1.0575119562202e-01, 0.0000000000000e+00, 0.0000000000000e+00, 1.4955477508583e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, 1.3939620582153e-01, 0.0000000000000e+00, -1.0575119562202e-01, 0.0000000000000e+00, 0.0000000000000e+00, 1.4955477508583e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -8.3223475208978e-03, 0.0000000000000e+00, -1.0575119562202e-01, 0.0000000000000e+00, -2.7273740342598e-02, 0.0000000000000e+00, 0.0000000000000e+00, -1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 8.3223475208978e-03, 0.0000000000000e+00, 1.0575119562202e-01, 0.0000000000000e+00, -2.7273740342598e-02, 0.0000000000000e+00, 0.0000000000000e+00, 1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.5251860928872e-02, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.1769576734836e-02, 0.0000000000000e+00, -1.4955477508583e-01, 0.0000000000000e+00, -1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, -1.1979934161407e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.1769576734836e-02, 0.0000000000000e+00, -1.4955477508583e-01, 0.0000000000000e+00, 1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, -1.1979934161407e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.5251860928872e-02, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [2.2136461219795e-12, 0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, -8.3223475208978e-03, 0.0000000000000e+00, 0.0000000000000e+00, -1.1769576734836e-02, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 2.2136461219795e-12, 0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, 8.3223475208978e-03, 0.0000000000000e+00, 0.0000000000000e+00, -1.1769576734836e-02, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [7.4470666948293e-03, 0.0000000000000e+00, 1.3939620582153e-01, 0.0000000000000e+00, -1.0575119562202e-01, 0.0000000000000e+00, 0.0000000000000e+00, -1.4955477508583e-01, 0.0000000000000e+00, 0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 7.4470666948293e-03, 0.0000000000000e+00, 1.3939620582153e-01, 0.0000000000000e+00, 1.0575119562202e-01, 0.0000000000000e+00, 0.0000000000000e+00, -1.4955477508583e-01, 0.0000000000000e+00, 0.0000000000000e+00, 2.4836239031011e-01, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [8.3223475208978e-03, 0.0000000000000e+00, 1.0575119562202e-01, 0.0000000000000e+00, -2.7273740342598e-02, 0.0000000000000e+00, 0.0000000000000e+00, -1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, -8.3223475208978e-03, 0.0000000000000e+00, -1.0575119562202e-01, 0.0000000000000e+00, -2.7273740342598e-02, 0.0000000000000e+00, 0.0000000000000e+00, 1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.5251860928872e-02, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [1.1769576734836e-02, 0.0000000000000e+00, 1.4955477508583e-01, 0.0000000000000e+00, -1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, -1.1979934161407e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 1.1769576734836e-02, 0.0000000000000e+00, 1.4955477508583e-01, 0.0000000000000e+00, 1.3085096018484e-01, 0.0000000000000e+00, 0.0000000000000e+00, -1.1979934161407e-01, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.5251860928872e-02, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2311187369936e-04, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -4.9348868463316e-15, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, -8.1660230128646e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.1548500495444e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2311187369936e-04, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -4.9348868463316e-15, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, 8.1660230128646e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.1548500495444e-07, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 1.2573975267781e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, -4.0555841747839e-07, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, 0.0000000000000e+00, 3.0377931740323e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 1.2573975267781e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, -4.0555841747839e-07, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, 0.0000000000000e+00, 3.0377931740323e-07, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, -2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00, 8.1660230128645e-08, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, -5.4119805424749e-07, 0.0000000000000e+00, 0.0000000000000e+00, -8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00, -8.1660230128645e-08, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, -5.4119805424749e-07, 0.0000000000000e+00, 0.0000000000000e+00, 8.5586364015703e-07, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.3988929478544e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 1.1548500495444e-07, 0.0000000000000e+00, -3.0377931740323e-07, 0.0000000000000e+00, -8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.1463850379735e-06, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 1.1548500495444e-07, 0.0000000000000e+00, -3.0377931740323e-07, 0.0000000000000e+00, 8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.1463850379735e-06, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.3988929478544e-08],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -4.9348868463316e-15, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, 8.1660230128645e-08, 0.0000000000000e+00, 0.0000000000000e+00, 1.1548500495444e-07, 0.0000000000000e+00, 0.0000000000000e+00, 4.2311187369936e-04, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -4.9348868463316e-15, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, -8.1660230128645e-08, 0.0000000000000e+00, 0.0000000000000e+00, 1.1548500495444e-07, 0.0000000000000e+00, 0.0000000000000e+00, 4.2311187369936e-04, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, -4.0555841747839e-07, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, 0.0000000000000e+00, -3.0377931740323e-07, 0.0000000000000e+00, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 1.2573975267781e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.3627230007748e-07, 0.0000000000000e+00, -4.0555841747839e-07, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, 0.0000000000000e+00, -3.0377931740323e-07, 0.0000000000000e+00, 0.0000000000000e+00, -2.2868797648943e-06, 0.0000000000000e+00, 1.2573975267781e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -8.1660230128646e-08, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, -5.4119805424749e-07, 0.0000000000000e+00, 0.0000000000000e+00, -8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, -2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 8.1660230128646e-08, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, -5.4119805424749e-07, 0.0000000000000e+00, 0.0000000000000e+00, 8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 2.9560439683427e-21, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.3988929478544e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.1548500495444e-07, 0.0000000000000e+00, 3.0377931740323e-07, 0.0000000000000e+00, -8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.1463850379735e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.1548500495444e-07, 0.0000000000000e+00, 3.0377931740323e-07, 0.0000000000000e+00, 8.5586364015703e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.1463850379735e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.9560439683427e-21, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05, 0.0000000000000e+00],
-//         [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 6.3988929478544e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.9345510535862e-05],
-//     ];
-//     let sao_c = sao.mapv(C128::from);
-//
-//     #[rustfmt::skip]
-//     let spsipi = array![
-//         [
-//             [1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00, 5.9757062116589e-08],
-//             [0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, 5.9757062116589e-08, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00],
-//             [-7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00, 4.9008490832606e-07],
-//             [0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, 4.9008490832606e-07, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, 1.6062737413694e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, 2.6123371068228e-08],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, -1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, -2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00, 0.0000000000000e+00, 5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, -4.5432282198567e-06, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, -8.5921840319878e-07],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, -4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, -8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05, 5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07],
-//             [1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, -5.9757062116589e-08, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, -5.9757062116589e-08, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, -4.9008490832606e-07, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, -4.9008490832606e-07, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, 2.6123371068228e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, 1.6062737413694e-05],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, -2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, -1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00],
-//             [0.0000000000000e+00, -5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00],
-//             [1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, -8.5921840319878e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, -4.5432282198567e-06],
-//             [0.0000000000000e+00, 1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, -8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, -4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00],
-//             [-5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, 5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05]
-//         ],
-//         [
-//             [1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00, -5.9757062116589e-08],
-//             [0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, -5.9757062116589e-08, 0.0000000000000e+00, 3.4500755898994e-08, 0.0000000000000e+00],
-//             [-7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00, -4.9008490832606e-07],
-//             [0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, -4.9008490832606e-07, 0.0000000000000e+00, 2.8295065374782e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, -1.6062737413694e-05, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, -2.6123371068228e-08],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00, 0.0000000000000e+00, -5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 4.5432282198567e-06, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 8.5921840319878e-07],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, 4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.0350226769698e-07, 0.0000000000000e+00, -8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, 8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05, -5.9757062116589e-08, 0.0000000000000e+00, -4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07],
-//             [1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, -9.7582873808961e-08, 0.0000000000000e+00, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, 5.9757062116589e-08, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 1.0404394377971e-16, 0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 9.7582873808961e-08, 5.9757062116589e-08, 0.0000000000000e+00, -3.4500755898994e-08, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, -8.0030530402501e-07, 0.0000000000000e+00, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, 4.9008490832606e-07, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 4.2438232728243e-08, 0.0000000000000e+00, 4.7421851783344e-07, 0.0000000000000e+00, 8.0030530402501e-07, 4.9008490832606e-07, 0.0000000000000e+00, -2.8295065374782e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 0.0000000000000e+00, 0.0000000000000e+00, -1.5082335318382e-08, 0.0000000000000e+00, -2.6123371068228e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -9.2738257697183e-06, 0.0000000000000e+00, -1.6062737413694e-05],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 2.1329643159514e-08, 2.6123371068228e-08, 0.0000000000000e+00, 1.5082335318382e-08, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 1.6062737413694e-05, 0.0000000000000e+00, 9.2738257697183e-06, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, 3.9633164925868e-07, 5.1739961953901e-07, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.2125474827387e-06, 1.5738204214345e-05, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00],
-//             [1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, -1.3880154416456e-06, 0.0000000000000e+00, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 8.5921840319878e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00, 4.5432282198567e-06],
-//             [0.0000000000000e+00, 1.0350226769698e-07, 0.0000000000000e+00, 8.4885196124347e-07, 0.0000000000000e+00, 1.3880154416456e-06, 8.5921840319878e-07, 0.0000000000000e+00, -4.7474033321998e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-06, 4.5432282198567e-06, 0.0000000000000e+00, 1.0492136142897e-05, 0.0000000000000e+00],
-//             [5.9757062116589e-08, 0.0000000000000e+00, 4.9008490832606e-07, 0.0000000000000e+00, -3.9633164925868e-07, 0.0000000000000e+00, 0.0000000000000e+00, -5.6049759357932e-07, 0.0000000000000e+00, 5.1739961953901e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.2125474827387e-06, 0.0000000000000e+00, 0.0000000000000e+00, 4.5432282198567e-06, 0.0000000000000e+00, 1.5738204214345e-05]
-//         ],
-//         [
-//             [1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.8448651675243e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, 2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, -1.8448651675243e-07, 0.0000000000000e+00],
-//             [-7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, -1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, -2.6212199009242e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, 1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, -2.6212199009242e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-05, 0.0000000000000e+00, 0.0000000000000e+00, 8.1660230128646e-08, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, -8.2569896952026e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-05, 0.0000000000000e+00, 0.0000000000000e+00, -8.1660230128646e-08, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, 8.2569896952026e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00, 0.0000000000000e+00, 3.2248954034840e-07, 0.0000000000000e+00, 1.3939246050837e-06, 0.0000000000000e+00, 1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00, 0.0000000000000e+00, 3.2248954034840e-07, 0.0000000000000e+00, 1.3939246050837e-06, 0.0000000000000e+00, -1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07],
-//             [-5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, 2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.8448651675243e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, -5.1429747338910e-15, 0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -2.7682597774657e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.8448651675243e-07, 0.0000000000000e+00, 0.0000000000000e+00, 1.4103729123312e-04, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [-2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, 1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, 2.6212199009242e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, -2.2114876553397e-07, 0.0000000000000e+00, -1.3539954531453e-06, 0.0000000000000e+00, -1.3858061927300e-06, 0.0000000000000e+00, 0.0000000000000e+00, 2.6212199009242e-07, 0.0000000000000e+00, 0.0000000000000e+00, -7.6229325496477e-07, 0.0000000000000e+00, 4.1913250892605e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [-8.1660230128646e-08, 0.0000000000000e+00, 2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, -8.2569896952026e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, 1.8547651539437e-05, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 8.1660230128646e-08, 0.0000000000000e+00, -2.1480441532004e-07, 0.0000000000000e+00, -5.8385734056652e-07, 0.0000000000000e+00, 0.0000000000000e+00, 8.2569896952026e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 1.3115170178621e-05, 0.0000000000000e+00, 0.0000000000000e+00, -1.8547651539437e-05, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [-3.2248954034840e-07, 0.0000000000000e+00, -1.3939246050837e-06, 0.0000000000000e+00, 1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00, 0.0000000000000e+00],
-//             [0.0000000000000e+00, -3.2248954034840e-07, 0.0000000000000e+00, -1.3939246050837e-06, 0.0000000000000e+00, -1.9201672431341e-06, 0.0000000000000e+00, 0.0000000000000e+00, -1.9690437153356e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 3.7095303078873e-06, 0.0000000000000e+00, 0.0000000000000e+00, 1.8361238250069e-05, 0.0000000000000e+00],
-//             [0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, -9.7081030959948e-07, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 0.0000000000000e+00, 7.8691021071724e-06]
-//         ]
-//     ];
-//     let spsipi_c = spsipi.mapv(C128::from);
-//
-//
-//     let emap = ElementMap::new();
-//     let atm_c0 = Atom::from_xyz("C 0.0 0.0 1.0", &emap, 1e-7).unwrap();
-//     let atm_c1 = Atom::from_xyz("C 0.0 0.0 -1.0", &emap, 1e-7).unwrap();
-//
-//     let bs_sp1g = BasisShell::new(
-//         1,
-//         ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
-//     );
-//     let bs_sp1u = BasisShell::new(
-//         1,
-//         ShellOrder::Spinor(SpinorOrder::increasingm(1, false, None)),
-//     );
-//     let bs_sp3u = BasisShell::new(
-//         3,
-//         ShellOrder::Spinor(SpinorOrder::increasingm(3, false, None)),
-//     );
-//
-//     let batm_c0 = BasisAtom::new(
-//         &atm_c0,
-//         &[
-//             bs_sp1g.clone(),
-//             bs_sp1g.clone(),
-//             bs_sp1u.clone(),
-//             bs_sp3u.clone(),
-//         ],
-//     );
-//     let batm_c1 = BasisAtom::new(
-//         &atm_c1,
-//         &[
-//             bs_sp1g.clone(),
-//             bs_sp1g.clone(),
-//             bs_sp1u.clone(),
-//             bs_sp3u.clone(),
-//         ],
-//     );
-//     let bao_c2 = BasisAngularOrder::new(&[batm_c0, batm_c1]);
-//
-//     let bs_sp1g_sp = BasisShell::new(
-//         1,
-//         ShellOrder::Spinor(SpinorOrder::increasingm(
-//             1,
-//             true,
-//             Some(SpinorBalanceSymmetry::KineticBalance),
-//         )),
-//     );
-//     let bs_sp1u_sp = BasisShell::new(
-//         1,
-//         ShellOrder::Spinor(SpinorOrder::increasingm(
-//             1,
-//             false,
-//             Some(SpinorBalanceSymmetry::KineticBalance),
-//         )),
-//     );
-//     let bs_sp3u_sp = BasisShell::new(
-//         3,
-//         ShellOrder::Spinor(SpinorOrder::increasingm(
-//             3,
-//             false,
-//             Some(SpinorBalanceSymmetry::KineticBalance),
-//         )),
-//     );
-//
-//     let batm_c0_sp = BasisAtom::new(
-//         &atm_c0,
-//         &[
-//             bs_sp1g_sp.clone(),
-//             bs_sp1g_sp.clone(),
-//             bs_sp1u_sp.clone(),
-//             bs_sp3u_sp.clone(),
-//         ],
-//     );
-//     let batm_c1_sp = BasisAtom::new(
-//         &atm_c1,
-//         &[
-//             bs_sp1g_sp.clone(),
-//             bs_sp1g_sp.clone(),
-//             bs_sp1u_sp.clone(),
-//             bs_sp3u_sp.clone(),
-//         ],
-//     );
-//
-//     let bao_c2_sp = BasisAngularOrder::new_with_balance_symmetry_aux(
-//         &[batm_c0_sp, batm_c1_sp],
-//         crate::basis::ao::SpinorBalanceSymmetryAux::KineticBalance { spsipi: spsipi_c },
-//     );
-//
-//     let mol_c2 = Molecule::from_atoms(&[atm_c0.clone(), atm_c1.clone()], 1e-7);
-//
-//     #[rustfmt::skip]
-//     let c = array![
-//         // C0L
-//         [Complex::new(-5.2109608199210e-15, 0.0)],
-//         [Complex::new(-1.5657594317078e-02, 0.0)],
-//         [Complex::new(1.4886573428776e-15, -0.0)],
-//         [Complex::new(4.7276510923857e-03, -0.0)],
-//         [Complex::new(1.1902889188905e-15, -0.0)],
-//         [Complex::new(4.9678451735651e-04, -0.0)],
-//         [Complex::new(-8.5528790489286e-17, 0.0)],
-//         [Complex::new(-5.4956837514763e-16, 0.0)],
-//         [Complex::new(-6.9275695444485e-04, 0.0)],
-//         [Complex::new(-7.8439317800344e-17, 0.0)],
-//         // C1L
-//         [Complex::new(9.7801218313886e-15, -0.0)],
-//         [Complex::new(1.5657585114797e-02, -0.0)],
-//         [Complex::new(-1.9195182993428e-15, 0.0)],
-//         [Complex::new(-4.7276489228543e-03, 0.0)],
-//         [Complex::new(6.3726154827969e-16, -0.0)],
-//         [Complex::new(4.9678464639350e-04, -0.0)],
-//         [Complex::new(-1.4086053897634e-16, 0.0)],
-//         [Complex::new(-3.5834196496776e-16, 0.0)],
-//         [Complex::new(-6.9275713797701e-04, 0.0)],
-//         [Complex::new(-2.0475609269902e-16, 0.0)],
-//         // C0S
-//         [Complex::new(1.1425731198280e-11, -0.0)],
-//         [Complex::new(3.4328701517568e+01, -0.0)],
-//         [Complex::new(-7.3405050235311e-13, 0.0)],
-//         [Complex::new(-5.2263875172873e+00, 0.0)],
-//         [Complex::new(-3.4131067589224e-11, 0.0)],
-//         [Complex::new(-7.0814702087846e-01, 0.0)],
-//         [Complex::new(2.8454428517021e-12, -0.0)],
-//         [Complex::new(9.9304422370670e-12, -0.0)],
-//         [Complex::new(7.3621069085912e-01, -0.0)],
-//         [Complex::new(2.0447827305205e-12, -0.0)],
-//         // C1S
-//         [Complex::new(-2.2289058723145e-11, 0.0)],
-//         [Complex::new(-3.4328681078530e+01, 0.0)],
-//         [Complex::new(-5.5035386566643e-11, 0.0)],
-//         [Complex::new(5.2263852163030e+00, -0.0)],
-//         [Complex::new(-2.0536188245727e-11, 0.0)],
-//         [Complex::new(-7.0814716332374e-01, 0.0)],
-//         [Complex::new(2.8005697160499e-12, -0.0)],
-//         [Complex::new(7.0252679111890e-12, -0.0)],
-//         [Complex::new(7.3621091723149e-01, -0.0)],
-//         [Complex::new(5.3764678500562e-12, -0.0)],
-//     ];
-//     let occ = array![1.0];
-//
-//     let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
-//         .coefficients(&[c])
-//         .occupations(&[occ])
-//         .baos(vec![&bao_c2, &bao_c2_sp])
-//         .mol(&mol_c2)
-//         .structure_constraint(SpinOrbitCoupled::JAdapted(2))
-//         .complex_symmetric(false)
-//         .threshold(1e-14)
-//         .build()
-//         .unwrap();
-//
-//     // ~~~~~~~~~~~~~~~~~~~~~~~~
-//     // u D4h* (double, unitary)
-//     // ~~~~~~~~~~~~~~~~~~~~~~~~
-//     let presym = PreSymmetry::builder()
-//         .moi_threshold(1e-7)
-//         .molecule(&mol_c2)
-//         .build()
-//         .unwrap();
-//     let mut sym = Symmetry::new();
-//     sym.analyse(&presym, false).unwrap();
-//     let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
-//     let group_u_d4h_double = group_u_d4h.to_double_group().unwrap();
-//
-//     let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
-//         .group(&group_u_d4h_double)
-//         .origin(&det)
-//         .integrality_threshold(1e-10)
-//         .linear_independence_threshold(1e-10)
-//         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-//         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
-//         .build()
-//         .unwrap();
-//     let _ = orbit_c_u_d4h_double_spinspatial
-//         .calc_smat(Some(&sao_c), None, true)
-//         .unwrap()
-//         .normalise_smat()
-//         .unwrap()
-//         .calc_xmat(false);
-//     println!("{}", orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap());
-//     assert_eq!(
-//         orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
-//         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
-//     );
-// }
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // C0: p1/2,1/2, C1: p1/2,1/2
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c = array![
+        // C0L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(1.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C0S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .baos(vec![&bao_c2, &bao_c2_sp])
+        .mol(&mol_c2)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&det)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_d4h_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // C0: σ·p(p1/2,-1/2), C1: σ·p(p1/2,-1/2)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c = array![
+        // C0L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C0S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .baos(vec![&bao_c2, &bao_c2_sp])
+        .mol(&mol_c2)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&det)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_d4h_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // C0: p3/2,-3/2, C1: p3/2,-3/2
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c = array![
+        // C0L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C0S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .baos(vec![&bao_c2, &bao_c2_sp])
+        .mol(&mol_c2)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&det)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_d4h_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2u)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // C0: σ·p(p3/2,-3/2), C1: σ·p(p3/2,-3/2)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c = array![
+        // C0L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1L
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C0S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // C1S
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // s1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p1/2
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        // p3/2
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .baos(vec![&bao_c2, &bao_c2_sp])
+        .mol(&mol_c2)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&det)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_d4h_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~
+    // From SCF calculation
+    // ~~~~~~~~~~~~~~~~~~~~
+    #[rustfmt::skip]
+    let c = array![
+        // C0L
+        // s1/2
+        [Complex::new( 2.4486944178034e-14, 0.0)],
+        [Complex::new(-8.7104436554765e-17, 0.0)],
+        // s1/2
+        [Complex::new(-3.5442841874863e-13, 0.0)],
+        [Complex::new(-2.8602751944162e-15, 0.0)],
+        // p1/2
+        [Complex::new( 3.0478827284529e-13, 0.0)],
+        [Complex::new(-3.3653955755938e-15, 0.0)],
+        // p3/2
+        [Complex::new(-9.7484514117187e-05, 0.0)],
+        [Complex::new(-2.7627905635682e-12, 0.0)],
+        [Complex::new(-4.6215691778800e-14, 0.0)],
+        [Complex::new(-4.7398849476705e-03, 0.0)],
+        // C1L
+        // s1/2
+        [Complex::new( 1.8622926835857e-14, 0.0)],
+        [Complex::new( 9.3794154221104e-16, 0.0)],
+        // s1/2
+        [Complex::new(-3.0663932167157e-13, 0.0)],
+        [Complex::new(-8.9443829511150e-15, 0.0)],
+        // p1/2
+        [Complex::new(-3.1660207152545e-13, 0.0)],
+        [Complex::new( 7.9717316953837e-15, 0.0)],
+        // p3/2
+        [Complex::new( 9.7484477880200e-05, 0.0)],
+        [Complex::new( 2.7637497273557e-12, 0.0)],
+        [Complex::new( 4.1496952400697e-14, 0.0)],
+        [Complex::new( 4.7398831849033e-03, 0.0)],
+        // C0S
+        // s1/2
+        [Complex::new( 7.9136516860415e-11, 0.0)],
+        [Complex::new( 6.4315380625317e-13, 0.0)],
+        // s1/2
+        [Complex::new( 2.6467071826140e-09, 0.0)],
+        [Complex::new(-6.9535036259970e-11, 0.0)],
+        // p1/2
+        [Complex::new(-1.1877827982822e-09, 0.0)],
+        [Complex::new(-1.9821294824477e-12, 0.0)],
+        // p3/2
+        [Complex::new( 2.3198388476928e+00, 0.0)],
+        [Complex::new( 7.4293141703271e-08, 0.0)],
+        [Complex::new( 1.2126857147434e-09, 0.0)],
+        [Complex::new( 1.1279503554907e+02, 0.0)],
+        // C1S
+        // s1/2
+        [Complex::new( 4.9507879377485e-11, 0.0)],
+        [Complex::new( 2.7319702050367e-12, 0.0)],
+        // s1/2
+        [Complex::new(-4.9375241043960e-10, 0.0)],
+        [Complex::new( 2.2485777795550e-10, 0.0)],
+        // p1/2
+        [Complex::new( 1.6012593515864e-09, 0.0)],
+        [Complex::new(-8.5284748583437e-11, 0.0)],
+        // p3/2
+        [Complex::new(-2.3198378681613e+00, 0.0)],
+        [Complex::new(-7.4186041545098e-08, 0.0)],
+        [Complex::new(-1.1369675663676e-09, 0.0)],
+        [Complex::new(-1.1279498789929e+02, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c])
+        .occupations(&[occ])
+        .baos(vec![&bao_c2, &bao_c2_sp])
+        .mol(&mol_c2)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+    let mut orbit_c_u_d4h_double_spinspatial = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&det)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_d4h_double_spinspatial
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .normalise_smat()
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||E~|_(2u)|").unwrap()
+    );
+}

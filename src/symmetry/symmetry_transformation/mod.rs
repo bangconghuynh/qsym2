@@ -6,9 +6,7 @@ use std::fmt;
 use anyhow::format_err;
 use itertools::Itertools;
 use nalgebra::Vector3;
-use ndarray::{Array, Array2, Axis, Ix2, RemoveAxis, s};
-use ndarray_einsum::einsum;
-use ndarray_linalg::Inverse;
+use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -18,8 +16,7 @@ use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
 use crate::basis::ao::{
-    BasisAngularOrder, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry,
-    SpinorBalanceSymmetryAux, SpinorOrder,
+    BasisAngularOrder, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry, SpinorOrder,
 };
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
@@ -746,10 +743,9 @@ pub(crate) fn assemble_spinor_rotation_matrices(
             })
             .collect();
 
-        let shell_boundary_indices = pbao.shell_boundary_indices();
+        // let shell_boundary_indices = pbao.shell_boundary_indices();
         let rmats_res = pbao.basis_shells()
-            .zip(shell_boundary_indices.iter())
-            .map(|(shl, (shl_start, shl_end))| {
+            .map(|shl| {
                 let l =
                     usize::try_from(shl.l).unwrap_or_else(|_| {
                     panic!(
@@ -844,30 +840,46 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                                 r2j_raw
                             }
                         };
-                        match (&spinor_order.balance_symmetry, pbao.balance_symmetry_aux()) {
-                            (None, _) => Ok(r2j),
-                            (Some(SpinorBalanceSymmetry::KineticBalance), Some(SpinorBalanceSymmetryAux::KineticBalance { spsipi })) => {
-                                let spsipi_shl = spsipi.slice(s![.., *shl_start..*shl_end, *shl_start..*shl_end]);
-                                let spsp_shl = einsum("ijk->jk", &[&spsipi_shl.view()])
-                                    .map_err(|err| format_err!(err))?
-                                    .into_dimensionality::<Ix2>()
-                                    .map_err(|err| format_err!(err))?;
-                                let spsp_shl_inv = spsp_shl.inv()?;
-                                let rmat = symop
-                                    .get_3d_spatial_matrix()
-                                    .select(Axis(0), &[2, 0, 1])
-                                    .select(Axis(1), &[2, 0, 1])
-                                    .map(Complex::from);
-
-                                let r2j_sp = einsum("ik,mkl,mn,lj->ij", &[&spsp_shl_inv.view(), &spsipi_shl.view(), &rmat.view(), &r2j.view()])
-                                    .map_err(|err| format_err!(err))?
-                                    .into_dimensionality::<Ix2>()
-                                    .map_err(|err| format_err!(err))?;
-                                Ok(r2j_sp)
+                        match &spinor_order.balance_symmetry {
+                            None => {
+                                println!("r2j for {symop} on shell {spinor_order}:\n  {}", r2j.clone());
+                                Ok(r2j)
+                            },
+                            // (Some(SpinorBalanceSymmetry::KineticBalance), Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj })) => {
+                            //     let spsipj_shl = spsipj.slice(s![.., .., *shl_start..*shl_end, *shl_start..*shl_end]);
+                            //     let spsp_shl = einsum("iikl->kl", &[&spsipj_shl.view()])
+                            //         .map_err(|err| format_err!(err))?
+                            //         .into_dimensionality::<Ix2>()
+                            //         .map_err(|err| format_err!(err))?;
+                            //     let spsp_shl_inv = spsp_shl.inv()?;
+                            //     let rmat = symop
+                            //         .get_3d_spatial_matrix()
+                            //         .select(Axis(0), &[2, 0, 1])
+                            //         .select(Axis(1), &[2, 0, 1])
+                            //         .map(Complex::from);
+                            //     println!("rmat for {symop} on {spinor_order}:\n  {rmat}\n");
+                            //     println!("r2j for {symop} on {spinor_order}:\n  {r2j}\n");
+                            //     println!("spsp_shl for {symop} on {spinor_order}:\n  {spsp_shl}\n");
+                            //
+                            //     let r2j_sp = einsum("ik,nmkl,mn,lj->ij", &[&spsp_shl_inv.view(), &spsipj_shl.view(), &rmat.view(), &r2j.view()])
+                            //         .map_err(|err| format_err!(err))?
+                            //         .into_dimensionality::<Ix2>()
+                            //         .map_err(|err| format_err!(err))?;
+                            //     println!("r2j_sp for {symop} on {spinor_order}:\n  {r2j_sp}\n");
+                            //     Ok(r2j_sp)
+                            // }
+                            Some(SpinorBalanceSymmetry::KineticBalance) => {
+                                if symop.is_proper() {
+                                    println!("r2j for {symop} on shell {spinor_order}:\n  {}", r2j.clone());
+                                    Ok(r2j)
+                                } else {
+                                    println!("r2j for {symop} on shell {spinor_order}:\n  {}", -r2j.clone());
+                                    Ok(-r2j)
+                                }
                             }
-                            _ => {
-                                Err(format_err!("Mismatched spinor balance symmetry and spinor balance symmetry auxiliary information."))
-                            }
+                            // _ => {
+                            //     Err(format_err!("Mismatched spinor balance symmetry and spinor balance symmetry auxiliary information."))
+                            // }
                         }
                     }
                 }

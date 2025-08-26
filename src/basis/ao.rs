@@ -11,7 +11,7 @@ use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
 use itertools::{Itertools, izip};
-use ndarray::{Array3, Axis};
+use ndarray::{Array4, Axis};
 use num::Complex;
 use serde::{Deserialize, Serialize};
 
@@ -583,7 +583,7 @@ impl fmt::Display for SpinorBalanceSymmetry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SpinorBalanceSymmetry::KineticBalance => {
-                writeln!(f, "σ·p")
+                write!(f, "σ·p")
             }
         }
     }
@@ -593,7 +593,7 @@ impl fmt::Display for SpinorBalanceSymmetry {
 // .............................
 #[derive(Clone)]
 pub enum SpinorBalanceSymmetryAux<T> {
-    KineticBalance { spsipi: Array3<T> },
+    KineticBalance { spsipj: Array4<T> },
 }
 
 /// Structure to contain information about the ordering of spinors of a certain rank.
@@ -953,7 +953,12 @@ impl fmt::Display for ShellOrder {
             ),
             ShellOrder::Spinor(spinor_order) => write!(
                 f,
-                "Spinor ({}; {}) ({})",
+                "Spinor {}({}; {}) ({})",
+                if let Some(bs) = spinor_order.balance_symmetry.as_ref() {
+                    &format!("({bs}) ")
+                } else {
+                    ""
+                },
                 if spinor_order.even { "g" } else { "u" },
                 spinor_order.l(),
                 spinor_order
@@ -1353,9 +1358,9 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.basis_atoms, perm);
         let p_balance_symmetry_aux = match &self.balance_symmetry_aux {
-            Some(SpinorBalanceSymmetryAux::KineticBalance { spsipi }) => {
-                let p_spsipi = permute_array_by_atoms(&spsipi, perm, &[Axis(1), Axis(2)], self);
-                Some(SpinorBalanceSymmetryAux::KineticBalance { spsipi: p_spsipi })
+            Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj }) => {
+                let p_spsipj = permute_array_by_atoms(&spsipj, perm, &[Axis(2), Axis(3)], self);
+                Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj: p_spsipj })
             }
             None => None,
         };

@@ -316,21 +316,44 @@ where
     ) -> Result<GeneralisedEigenvalueResult<Complex<T>>, anyhow::Error> {
         let (hmat, smat) = (self.0.to_owned(), self.1.to_owned());
 
-        if complex_symmetric {
-            // Complex-symmetric H
-            let deviation = (hmat.to_owned() - hmat.t()).norm_l2();
+        // Symmetrise `hmat` and `smat` to improve numerical stability
+        let (hmat, smat): (Array2<Complex<T>>, Array2<Complex<T>>) = if complex_symmetric {
+            // Complex-symmetric
+            let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
             ensure!(
-                deviation <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-symmetric: ||H - H^T|| = {deviation:.3e} > {thresh_offdiag:.3e}."
+                deviation_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
             );
+            let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
+            ensure!(
+                deviation_s <= thresh_offdiag,
+                "Overlap matrix is not complex-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            );
+            (
+                (hmat.to_owned() + hmat.t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one())),
+                (smat.to_owned() + smat.t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one())),
+            )
         } else {
-            // Complex-Hermitian H
-            let deviation = (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2();
+            // Complex-Hermitian
+            let deviation_h = (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2();
             ensure!(
-                deviation <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†|| = {deviation:.3e} > {thresh_offdiag:.3e}."
+                deviation_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
             );
-        }
+            let deviation_s = (smat.to_owned() - smat.map(|v| v.conj()).t()).norm_l2();
+            ensure!(
+                deviation_s <= thresh_offdiag,
+                "Overlap matrix is not complex-Hermitian: ||S - S^†|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            );
+            (
+                (hmat.to_owned() + hmat.map(|v| v.conj()).t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one())),
+                (smat.to_owned() + smat.map(|v| v.conj()).t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one())),
+            )
+        };
 
         // CanonicalOrthogonalisationResult::calc_canonical_orthogonal_matrix checks for
         // complex-symmetry or complex-Hermiticity of S.
@@ -346,10 +369,52 @@ where
 
         let hmat_t = xmat_d.dot(&hmat).dot(&xmat);
         let smat_t = xmat_d.dot(&smat).dot(&xmat);
-        let smat_t_d = smat_t.map(|v| v.conj()).t().to_owned();
 
-        // smat_t is not necessarily the identity, but is guaranteed to be Hermitian.
-        let max_diff = (&smat_t_d.dot(&smat_t) - &Array2::<T>::eye(smat_t.nrows()))
+        // Symmetrise `hmat_t` and `smat_t` to improve numerical stability
+        let (hmat_t_sym, smat_t_sym): (Array2<Complex<T>>, Array2<Complex<T>>) =
+            if complex_symmetric {
+                // Complex-symmetric
+                let deviation_h = (hmat_t.to_owned() - hmat_t.t()).norm_l2();
+                ensure!(
+                    deviation_h <= thresh_offdiag,
+                    "Transformed Hamiltonian matrix is not complex-symmetric: ||H~ - (H~)^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                );
+                let deviation_s = (smat_t.to_owned() - smat_t.t()).norm_l2();
+                ensure!(
+                    deviation_s <= thresh_offdiag,
+                    "Transformed overlap matrix is not complex-symmetric: ||S~ - (S~)^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                );
+                let hmat_t_s = (hmat_t.to_owned() + hmat_t.t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one()));
+                let smat_t_s = (smat_t.to_owned() + smat_t.t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one()));
+                (hmat_t_s, smat_t_s)
+            } else {
+                // Complex-Hermitian
+                let deviation_h = (hmat_t.to_owned() - hmat_t.map(|v| v.conj()).t()).norm_l2();
+                ensure!(
+                    deviation_h <= thresh_offdiag,
+                    "Transformed Hamiltonian matrix is not complex-Hermitian: ||H~ - (H~)^†|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                );
+                let deviation_s = (smat_t.to_owned() - smat_t.map(|v| v.conj()).t()).norm_l2();
+                ensure!(
+                    deviation_s <= thresh_offdiag,
+                    "Transformed overlap matrix is not complex-Hermitian: ||S~ - (S~)^†|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                );
+                let hmat_t_s = (hmat_t.to_owned() + hmat_t.map(|v| v.conj()).t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one()));
+                let smat_t_s = (smat_t.to_owned() + smat_t.map(|v| v.conj()).t().to_owned())
+                    .map(|v| v / (Complex::<T>::one() + Complex::<T>::one()));
+                (hmat_t_s, smat_t_s)
+            };
+        let smat_t_sym_d = smat_t_sym.map(|v| v.conj()).t().to_owned();
+        log::debug!("Complex-symmetric? {complex_symmetric}");
+        log::debug!("Canonical orthogonalisation X matrix:\n  {xmat:+.8e}");
+        log::debug!("Canonical-orthogonalised NOCI Hamiltonian matrix H~:\n  {hmat_t_sym:+.8e}");
+        log::debug!("Canonical-orthogonalised NOCI overlap matrix S~:\n  {smat_t_sym:+.8e}");
+
+        // smat_t_sym is not necessarily the identity, but is guaranteed to be Hermitian.
+        let max_diff = (&smat_t_sym_d.dot(&smat_t_sym) - &Array2::<T>::eye(smat_t_sym.nrows()))
             .iter()
             .map(|x| ComplexFloat::abs(*x))
             .max_by(|x, y| {
@@ -357,15 +422,18 @@ where
                     .expect("Unable to compare two `abs` values.")
             })
             .ok_or_else(|| {
-                format_err!("Unable to determine the maximum element of the |S - I| matrix.")
+                format_err!("Unable to determine the maximum element of the |S^†.S - I| matrix.")
             })?;
         ensure!(
             max_diff <= thresh_offdiag,
-            "The orthogonalised overlap matrix is not the identity matrix."
+            "The S^†.S matrix is not the identity matrix. S is therefore not Hermitian."
         );
-        let smat_t_d_hmat_t = smat_t_d.dot(&hmat_t);
+        let smat_t_sym_d_hmat_t_sym = smat_t_sym_d.dot(&hmat_t_sym);
+        log::debug!(
+            "Hamiltonian matrix for diagonalisation (S~)^†.(H~):\n  {smat_t_sym_d_hmat_t_sym:+.8e}"
+        );
 
-        let (eigvals_t, eigvecs_t) = smat_t_d_hmat_t.eig()?;
+        let (eigvals_t, eigvecs_t) = smat_t_sym_d_hmat_t_sym.eig()?;
 
         // Sort the eigenvalues and eigenvectors
         let (eigvals_t_sorted, eigvecs_t_sorted) = sort_eigenvalues_eigenvectors(
@@ -373,6 +441,22 @@ where
             &eigvecs_t.view(),
             &eigenvalue_comparison_mode,
         );
+        log::debug!("Sorted eigenvalues of (S~)^†.(H~):");
+        for (i, eigval) in eigvals_t_sorted.iter().enumerate() {
+            log::debug!("  {i}: {eigval:+.8e}");
+        }
+        log::debug!("");
+        log::debug!("Sorted eigenvectors of (S~)^†.(H~):\n  {eigvecs_t_sorted:+.8e}");
+        log::debug!("");
+
+        // Check orthogonality
+        let _ = normalise_eigenvectors_complex(
+            &eigvecs_t.view(),
+            &smat_t.view(),
+            complex_symmetric,
+            Some(thresh_offdiag),
+        )?;
+
         let eigvecs_sorted = xmat.dot(&eigvecs_t_sorted);
 
         // Normalise the eigenvectors
@@ -380,7 +464,7 @@ where
             &eigvecs_sorted.view(),
             &smat.view(),
             complex_symmetric,
-            thresh_offdiag,
+            None,
         )?;
 
         // Regularise the eigenvectors
@@ -481,7 +565,7 @@ where
             &eigvecs_sorted.view(),
             &smat.view(),
             complex_symmetric,
-            thresh_offdiag,
+            Some(thresh_offdiag),
         )?;
 
         // Regularise the eigenvectors
@@ -623,7 +707,8 @@ where
 /// * `eigvecs` - The eigenvectors to be normalised.
 /// * `smat` - The metric.
 /// * `complex_symmetric` - Boolean indicating if the inner product is complex-symmetric or not.
-/// * `thresh` - Threshold for verifying the orthogonality of the eigenvectors.
+/// * `thresh` - Optioanl threshold for verifying the orthogonality of the eigenvectors. If `None`,
+/// orthogonality will not be verified.
 ///
 /// # Returns
 ///
@@ -632,10 +717,10 @@ fn normalise_eigenvectors_complex<T>(
     eigvecs: &ArrayView2<T>,
     smat: &ArrayView2<T>,
     complex_symmetric: bool,
-    thresh: T::Real,
+    thresh: Option<T::Real>,
 ) -> Result<Array2<T>, anyhow::Error>
 where
-    T: LinalgScalar + ComplexFloat + std::fmt::Display,
+    T: LinalgScalar + ComplexFloat + std::fmt::Display + std::fmt::LowerExp,
     T::Real: Float + std::fmt::LowerExp,
 {
     let sq_norm = if complex_symmetric {
@@ -652,36 +737,41 @@ where
         .into_dimensionality::<Ix2>()
         .map_err(|err| format_err!(err))?
     };
-    let max_diff = (&sq_norm - &Array2::from_diag(&sq_norm.diag()))
-        .iter()
-        .map(|x| ComplexFloat::abs(*x))
-        .max_by(|x, y| {
-            x.partial_cmp(y)
-                .expect("Unable to compare two `abs` values.")
-        })
-        .ok_or_else(|| {
-            if complex_symmetric {
-                format_err!(
-                    "Unable to determine the maximum off-diagonal element of the C^†.S.C matrix."
-                )
-            } else {
-                format_err!(
-                    "Unable to determine the maximum off-diagonal element of the C^†.S.C matrix."
-                )
-            }
-        })?;
 
-    if complex_symmetric {
-        ensure!(
-            max_diff <= thresh,
-            "The C^T.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thresh:.3e}."
-        )
-    } else {
-        ensure!(
-            max_diff <= thresh,
-            "The C^†.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thresh:.3e}."
-        )
-    };
+    if let Some(thr) = thresh {
+        let max_diff = (&sq_norm - &Array2::from_diag(&sq_norm.diag()))
+            .iter()
+            .map(|x| ComplexFloat::abs(*x))
+            .max_by(|x, y| {
+                x.partial_cmp(y)
+                    .expect("Unable to compare two `abs` values.")
+            })
+            .ok_or_else(|| {
+                if complex_symmetric {
+                    format_err!(
+                        "Unable to determine the maximum off-diagonal element of the C^T.S.C matrix."
+                    )
+                } else {
+                    format_err!(
+                        "Unable to determine the maximum off-diagonal element of the C^†.S.C matrix."
+                    )
+                }
+            })?;
+
+        if complex_symmetric {
+            log::debug!("C^T.S.C:\n  {sq_norm:+.8e}");
+            ensure!(
+                max_diff <= thr,
+                "The C^T.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thr:.3e}."
+            )
+        } else {
+            log::debug!("C^†.S.C:\n  {sq_norm:+.8e}");
+            ensure!(
+                max_diff <= thr,
+                "The C^†.S.C matrix is not a diagonal matrix: the maximum absolute value of the off-diagonal elements is {max_diff:.3e} > {thr:.3e}."
+            )
+        };
+    }
     let eigvecs_normalised = eigvecs / sq_norm.diag().map(|v| v.sqrt());
     Ok(eigvecs_normalised)
 }

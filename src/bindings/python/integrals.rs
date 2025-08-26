@@ -4,12 +4,12 @@ use anyhow::{self, bail, ensure, format_err};
 use lazy_static::lazy_static;
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
-use ndarray::Array3;
+use ndarray::Array4;
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
 use numpy::PyArrayMethods;
 #[cfg(feature = "integrals")]
-use numpy::{IntoPyArray, PyArray2, PyArray3, PyArray4};
+use numpy::{IntoPyArray, PyArray2, PyArray4};
 use periodic_table;
 #[cfg(feature = "integrals")]
 use pyo3::exceptions::PyValueError;
@@ -93,16 +93,16 @@ pub enum PySpinorBalanceSymmetryAux {
     /// basis function $`g_{\mu}`$.
     ///
     /// Python type: numpy.3darray[complex].
-    KineticBalance(Py<PyArray3<Complex<f64>>>),
+    KineticBalance(Py<PyArray4<Complex<f64>>>),
 }
 
 impl<'a> PySpinorBalanceSymmetryAux {
     pub fn to_qsym2(&self) -> SpinorBalanceSymmetryAux<Complex<f64>> {
         match self {
-            PySpinorBalanceSymmetryAux::KineticBalance(spsipi) => {
+            PySpinorBalanceSymmetryAux::KineticBalance(spsipj) => {
                 SpinorBalanceSymmetryAux::KineticBalance {
-                    spsipi: Python::with_gil(|py| -> Array3<Complex<f64>> {
-                        spsipi.bind(py).to_owned_array()
+                    spsipj: Python::with_gil(|py| -> Array4<Complex<f64>> {
+                        spsipj.bind(py).to_owned_array()
                     }),
                 }
             }

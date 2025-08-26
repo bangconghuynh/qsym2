@@ -4,7 +4,7 @@ use std::fmt;
 use anyhow::{self, ensure, format_err};
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array2, Array3, ArrayView2};
+use ndarray::{Array2, Array3, ArrayView2, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -104,10 +104,10 @@ where
 
         if let (Some(ctb), true) = (group.cayley_table(), use_cayley_table) {
             log::debug!(
-                "Cayley table available. Group closure will be used to speed up orbit matrix computation."
+                "Cayley table available and its use requested. Group closure will be used to speed up orbit matrix computation."
             );
             // Compute unique matrix elements
-            let ov_elems = orbit_basis
+            let mut ov_elems = orbit_basis
                 .iter()
                 .collect::<Result<Vec<_>, _>>()?
                 .iter()
@@ -131,8 +131,20 @@ where
                     )
                 })
                 .collect::<Vec<_>>();
+            ov_elems.sort_by_key(|v| (v.0, v.1, v.2));
             let mut ov_ii_jj_k = Array3::zeros((n_det_origins, n_det_origins, order));
             for (ii, jj, k, elem_res) in ov_elems {
+                log::debug!(
+                    "⟨g_{k} Ψ_{ii} | Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | Ψ_{jj}⟩ = {}",
+                    group
+                        .get_index(k)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{k}")),
+                    elem_res
+                        .as_ref()
+                        .map(|v| format!("{v:+.8e}"))
+                        .unwrap_or_else(|err| err.to_string())
+                );
                 ov_ii_jj_k[(ii, jj, k)] = elem_res?;
             }
 
@@ -163,8 +175,18 @@ where
                     self.norm_preserving_scalar_map(jinv, orbit_basis)?(ov_ii_jj_k[(ii, jj, k)]);
             }
         } else {
+            log::debug!(
+                "Cayley table not available or its use not requested. Group closure will not be used for orbit matrix computation."
+            );
             let orbit_basis_vec = orbit_basis.iter().collect::<Result<Vec<_>, _>>()?;
-            let elems = orbit_basis_vec
+            for (i, det) in orbit_basis_vec.iter().enumerate() {
+                println!(
+                    "{}:\n    {}",
+                    group.get_index(i).unwrap(),
+                    det.coefficients()[0]
+                );
+            }
+            let mut elems = orbit_basis_vec
                 .iter()
                 .enumerate()
                 .cartesian_product(orbit_basis_vec.iter().enumerate())
@@ -184,7 +206,23 @@ where
                     (i, ii, j, jj, elem_res)
                 })
                 .collect::<Vec<_>>();
+            elems.sort_by_key(|v| (v.1, v.0, v.3, v.2));
             for (i, ii, j, jj, elem_res) in elems {
+                log::debug!(
+                    "⟨g_{i} Ψ_{ii} | g_{j} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | {} Ψ_{jj}⟩ = {}",
+                    group
+                        .get_index(i)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{i}")),
+                    group
+                        .get_index(j)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{j}")),
+                    elem_res
+                        .as_ref()
+                        .map(|v| format!("{v:+.8e}"))
+                        .unwrap_or_else(|err| err.to_string())
+                );
                 mat[(i + ii * order, j + jj * order)] = elem_res?;
             }
         }
