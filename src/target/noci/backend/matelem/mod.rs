@@ -113,7 +113,7 @@ where
                 .iter()
                 .enumerate()
                 .cartesian_product(orbit_basis.origins().iter().enumerate())
-                .par_bridge()
+                // .par_bridge()
                 .map(|((k_ii, k_ii_det), (jj, jj_det))| {
                     let k = k_ii.div_euclid(n_det_origins);
                     let ii = k_ii.rem_euclid(n_det_origins);
@@ -171,6 +171,30 @@ where
                         "Unable to find the inverse of group element `{j}`."
                     ))?;
                 let k = ctb[(jinv, i)];
+                log::debug!(
+                    "{}^(-1) = {} ⇒ ⟨g_{i} Ψ_{ii} | g_{j} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | {} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | Ψ_{jj}⟩ = {:+8e}",
+                    group
+                        .get_index(j)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{j}")),
+                    group
+                        .get_index(jinv)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{jinv}")),
+                    group
+                        .get_index(i)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{i}")),
+                    group
+                        .get_index(j)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{j}")),
+                    group
+                        .get_index(k)
+                        .map(|g| g.to_string())
+                        .unwrap_or_else(|| format!("g_{k}")),
+                    ov_ii_jj_k[(ii, jj, k)],
+                );
                 mat[(i + ii * order, j + jj * order)] =
                     self.norm_preserving_scalar_map(jinv, orbit_basis)?(ov_ii_jj_k[(ii, jj, k)]);
             }

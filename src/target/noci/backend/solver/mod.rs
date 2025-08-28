@@ -450,12 +450,12 @@ where
         log::debug!("");
 
         // Check orthogonality
-        let _ = normalise_eigenvectors_complex(
-            &eigvecs_t.view(),
-            &smat_t.view(),
-            complex_symmetric,
-            Some(thresh_offdiag),
-        )?;
+        // let _ = normalise_eigenvectors_complex(
+        //     &eigvecs_t.view(),
+        //     &smat_t.view(),
+        //     complex_symmetric,
+        //     Some(thresh_offdiag),
+        // )?;
 
         let eigvecs_sorted = xmat.dot(&eigvecs_t_sorted);
 

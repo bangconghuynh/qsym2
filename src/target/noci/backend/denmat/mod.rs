@@ -11,10 +11,10 @@ use super::nonortho::LowdinPairedCoefficients;
 /// The unweighted codensity matrix between the above two spin-orbitals is given by
 /// ```math
 ///     ^{wx}\mathbf{P}_i
-///       = \ ^{w}\mathbf{C}_i \otimes
-///         (^{x}\mathbf{G}_i^{\star})^{\lozenge}
-///       = \ ^{w}\mathbf{C}_i
-///         \ ^{x}\mathbf{C}_i^{\dagger\lozenge},
+///       = \ ^{x}\mathbf{C}_i \otimes
+///         (^{w}\mathbf{G}_i^{\star})^{\lozenge}
+///       = \ ^{x}\mathbf{C}_i
+///         \ ^{w}\mathbf{C}_i^{\dagger\lozenge},
 /// ```
 /// where $`\mathbf{C}_i`$ is the coefficient column vector for spin-orbital $`\chi_i`$ such that
 ///
@@ -48,14 +48,14 @@ where
             cxi.shape()
         ))
     } else if lowdin_paired_coefficients.complex_symmetric() {
-        einsum("m,n->mn", &[cwi, cxi])
+        einsum("m,n->mn", &[cxi, cwi])
             .map_err(|err| format_err!(err))
             .and_then(|p| {
                 p.into_dimensionality::<Ix2>()
                     .map_err(|err| format_err!(err))
             })
     } else {
-        einsum("m,n->mn", &[cwi, &cxi.map(|x| x.conj())])
+        einsum("m,n->mn", &[cxi, &cwi.map(|x| x.conj())])
             .map_err(|err| format_err!(err))
             .and_then(|p| {
                 p.into_dimensionality::<Ix2>()

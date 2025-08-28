@@ -870,11 +870,9 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                             // }
                             Some(SpinorBalanceSymmetry::KineticBalance) => {
                                 if symop.is_proper() {
-                                    println!("r2j for {symop} on shell {spinor_order}:\n  {}", r2j.clone());
                                     Ok(r2j)
                                 } else {
-                                    println!("r2j for {symop} on shell {spinor_order}:\n  {}", -r2j.clone());
-                                    Ok(-r2j)
+                                    Ok(r2j)
                                 }
                             }
                             // _ => {

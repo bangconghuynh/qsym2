@@ -169,6 +169,11 @@ where
             })
             .collect::<Result<Vec<_>, _>>()?;
 
+        // for (i, lpc) in lowdin_paired_coefficientss.iter().enumerate() {
+        //     log::debug!("Löwdin pairing {i}");
+        //     log::debug!("  Overlaps: {:?}", lpc.lowdin_overlaps());
+        // }
+
         let zeroe_h_wx = calc_o0_matrix_element(&lowdin_paired_coefficientss, self.enuc, sc)?;
         let onee_h_wx = calc_o1_matrix_element(&lowdin_paired_coefficientss, &self.onee, sc)?;
         let twoe_h_wx = calc_o2_matrix_element(&lowdin_paired_coefficientss, &self.twoe, sc)?;
@@ -256,6 +261,7 @@ where
             thresh_offdiag,
             thresh_zeroov,
         )?;
+        // log::debug!("Zero: {zeroe:+8e}; One: {onee:+8e}; Two: {twoe:+8e}");
         Ok(zeroe + onee + twoe)
     }
 }

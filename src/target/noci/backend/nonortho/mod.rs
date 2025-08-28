@@ -15,7 +15,6 @@ use ndarray_linalg::{Determinant, Eig, Eigh, Norm, SVD, Scalar, UPLO};
 use num::{Complex, Float};
 use num_complex::ComplexFloat;
 
-use crate::analysis::{EigenvalueComparisonMode, log_overlap_eigenvalues};
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 
 use super::denmat::{calc_unweighted_codensity_matrix, calc_weighted_codensity_matrix};
@@ -562,7 +561,10 @@ where
                         .ok_or_else(|| {
                             format_err!("Unable to extract the result of the einsum contraction.")
                         })
-                        .and_then(|v| acc_res.map(|acc| acc + v))
+                        .and_then(|v| {
+                            // log::debug!("v: {v}");
+                            acc_res.map(|acc| acc + v)
+                        })
                 })
                 .map(|v| v * reduced_ov / (T::one() + T::one()))?;
             Ok(j_term - k_term)
