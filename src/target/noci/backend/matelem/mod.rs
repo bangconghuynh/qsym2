@@ -203,13 +203,6 @@ where
                 "Cayley table not available or its use not requested. Group closure will not be used for orbit matrix computation."
             );
             let orbit_basis_vec = orbit_basis.iter().collect::<Result<Vec<_>, _>>()?;
-            for (i, det) in orbit_basis_vec.iter().enumerate() {
-                println!(
-                    "{}:\n    {}",
-                    group.get_index(i).unwrap(),
-                    det.coefficients()[0]
-                );
-            }
             let mut elems = orbit_basis_vec
                 .iter()
                 .enumerate()

@@ -842,7 +842,6 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                         };
                         match &spinor_order.balance_symmetry {
                             None => {
-                                println!("r2j for {symop} on shell {spinor_order}:\n  {}", r2j.clone());
                                 Ok(r2j)
                             },
                             // (Some(SpinorBalanceSymmetry::KineticBalance), Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj })) => {
