@@ -233,7 +233,7 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
 
 #[test]
 fn test_solver_noci_energy_h6_sto3g() {
-    // Symmetry: |A|_(2g) ⊕ |E|_(g) ⊕ |T|_(1g)
+    // Symmetry: |A|_(1g) ⊕ |E|_(g) ⊕ |T|_(2g)
     let emap = ElementMap::new();
     let filename = format!("{ROOT}/tests/noci_backend_hdf5/h6_sto3g.hdf5");
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
@@ -321,15 +321,15 @@ fn test_solver_noci_energy_h6_sto3g() {
     assert!(mda_driver.run().is_ok());
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[0],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap())
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[1],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap())
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[2],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap())
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[3],
@@ -341,12 +341,12 @@ fn test_solver_noci_energy_h6_sto3g() {
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[5],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(2g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap())
     );
 }
 
 #[test]
-fn test_solver_noci_energy_h6_631gdstar() {
+fn test_solver_noci_energy_h6_631gds() {
     // Symmetry: |T|_(1g) ⊕ |T|_(2g)
     let emap = ElementMap::new();
     let filename = format!("{ROOT}/tests/noci_backend_hdf5/h6_631gds.hdf5");
