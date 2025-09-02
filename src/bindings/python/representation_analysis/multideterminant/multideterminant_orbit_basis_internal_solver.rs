@@ -7,16 +7,16 @@ use std::path::PathBuf;
 use anyhow::{bail, format_err};
 use itertools::Itertools;
 use log;
+use ndarray::Array2;
 use num_complex::Complex;
-use numpy::PyArrayMethods;
+use numpy::{PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
+use pyo3::types::PyFunction;
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
-use crate::bindings::python::integrals::{
-    PyBasisAngularOrder, PyStructureConstraint,
-};
+use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC, PyScalarRC};
 use crate::drivers::QSym2Driver;
@@ -39,6 +39,48 @@ use crate::target::noci::backend::matelem::overlap::OverlapAO;
 use crate::target::noci::backend::solver::noci::NOCISolvable;
 
 type C128 = Complex<f64>;
+
+// ~~~~~~~~~~~~~
+// Macro helpers
+// ~~~~~~~~~~~~~
+macro_rules! generate_get_jk {
+    ($get_jk_name:ident, $py_get_jk_func:ident, $t:ty) => {
+        let $get_jk_name = move |dm: &Array2<$t>| {
+            Python::with_gil(|py_inner| {
+                let py_dm = dm.to_pyarray(py_inner);
+                $py_get_jk_func
+                    .call1(py_inner, (py_dm,))
+                    .and_then(|res| res.extract::<(Vec<Vec<$t>>, Vec<Vec<$t>>)>(py_inner))
+                    .and_then(|(jss, kss)| {
+                        let nrows = jss.len();
+                        let ncols_set = jss.iter().map(|js| js.len()).collect::<HashSet<usize>>();
+                        if ncols_set.len() != 1 {
+                            return Err(PyRuntimeError::new_err(
+                                "Inconsistent numbers of columns.".to_string(),
+                            ));
+                        }
+                        let ncols = *ncols_set
+                            .iter()
+                            .next()
+                            .unwrap_or_else(|| panic!("Unable to extract the number of columns."));
+
+                        let j = Array2::<$t>::from_shape_vec(
+                            (nrows, ncols),
+                            jss.into_iter().flatten().collect::<Vec<_>>(),
+                        )
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        let k = Array2::<$t>::from_shape_vec(
+                            (nrows, ncols),
+                            kss.into_iter().flatten().collect::<Vec<_>>(),
+                        )
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        Ok((j, k))
+                    })
+                    .map_err(|err| format_err!(err))
+            })
+        };
+    };
+}
 
 /// Python-exposed function to run non-orthogonal configuration interaction using the internal
 /// solver and then perform representation symmetry analysis on the resulting real and complex
@@ -113,6 +155,7 @@ type C128 = Complex<f64>;
     enuc,
     onee,
     twoe,
+    py_get_jk,
     thresh_offdiag,
     thresh_zeroov,
     integrality_threshold,
@@ -138,7 +181,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     sao: PyArray2RC,
     enuc: PyScalarRC,
     onee: PyArray2RC,
-    twoe: PyArray4RC,
+    twoe: Option<PyArray4RC>,
+    py_get_jk: Option<Py<PyFunction>>,
     thresh_offdiag: f64,
     thresh_zeroov: f64,
     integrality_threshold: f64,
@@ -216,7 +260,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     let all_real_integrals = matches!(sao, PyArray2RC::Real(_))
         && matches!(enuc, PyScalarRC::Real(_))
         && matches!(onee, PyArray2RC::Real(_))
-        && matches!(twoe, PyArray4RC::Real(_));
+        && matches!(twoe, Some(PyArray4RC::Real(_)) | None);
     let all_real = all_real_origins && all_real_integrals;
 
     let structure_constraints_set = pyorigins
@@ -288,19 +332,25 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
             )),
         }?;
         let twoe_r = match twoe {
-            PyArray4RC::Real(pytwoe_r) => Ok(pytwoe_r.to_owned_array()),
-            PyArray4RC::Complex(_) => Err(PyTypeError::new_err(
+            Some(PyArray4RC::Real(pytwoe_r)) => Ok(Some(pytwoe_r.to_owned_array())),
+            Some(PyArray4RC::Complex(_)) => Err(PyTypeError::new_err(
                 "Unexpected complex type for the two-electron integral tensor.",
             )),
+            None => Ok(None),
         }?;
+        let get_jk_r = py_get_jk.map(|py_get_jk_inner| {
+            generate_get_jk!(get_jk_r, py_get_jk_inner, f64);
+            get_jk_r
+        });
         let overlap_ao = OverlapAO::<f64, SpinConstraint>::builder()
             .sao(sao_r.view())
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-        let hamiltonian_ao = HamiltonianAO::<f64, SpinConstraint>::builder()
+        let hamiltonian_ao = HamiltonianAO::<f64, SpinConstraint, _>::builder()
             .enuc(enuc_r)
             .onee(onee_r.view())
-            .twoe(twoe_r.view())
+            .twoe(twoe_r.as_ref().map(|m| m.view()))
+            .get_jk(get_jk_r)
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -473,9 +523,14 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
             PyArray2RC::Complex(pyonee_c) => pyonee_c.to_owned_array(),
         };
         let twoe_c = match twoe {
-            PyArray4RC::Real(pytwoe_r) => pytwoe_r.to_owned_array().mapv(Complex::from),
-            PyArray4RC::Complex(pytwoe_c) => pytwoe_c.to_owned_array(),
+            Some(PyArray4RC::Real(pytwoe_r)) => Some(pytwoe_r.to_owned_array().mapv(Complex::from)),
+            Some(PyArray4RC::Complex(pytwoe_c)) => Some(pytwoe_c.to_owned_array()),
+            None => None,
         };
+        let get_jk_c = py_get_jk.map(|py_get_jk_inner| {
+            generate_get_jk!(get_jk_c, py_get_jk_inner, Complex<f64>);
+            get_jk_c
+        });
 
         match structure_constraint {
             PyStructureConstraint::SpinConstraint(_) => {
@@ -483,10 +538,11 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     .sao(sao_c.view())
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                let hamiltonian_ao = HamiltonianAO::<Complex<f64>, SpinConstraint>::builder()
+                let hamiltonian_ao = HamiltonianAO::<Complex<f64>, SpinConstraint, _>::builder()
                     .enuc(enuc_c)
                     .onee(onee_c.view())
-                    .twoe(twoe_c.view())
+                    .twoe(twoe_c.as_ref().map(|m| m.view()))
+                    .get_jk(get_jk_c.as_ref())
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -643,10 +699,11 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     .sao(sao_c.view())
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                let hamiltonian_ao = HamiltonianAO::<Complex<f64>, SpinOrbitCoupled>::builder()
+                let hamiltonian_ao = HamiltonianAO::<Complex<f64>, SpinOrbitCoupled, _>::builder()
                     .enuc(enuc_c)
                     .onee(onee_c.view())
-                    .twoe(twoe_c.view())
+                    .twoe(twoe_c.as_ref().map(|m| m.view()))
+                    .get_jk(get_jk_c.as_ref())
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -663,18 +720,18 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-                // DEBUG
-                let (zeroe, onee, twoe) = hamiltonian_ao
-                    .calc_hamiltonian_matrix_element_contributions(
-                        &origins_c[0],
-                        &origins_c[0],
-                        overlap_ao.sao(),
-                        1e-10,
-                        1e-7,
-                    )
-                    .unwrap();
-                log::debug!("Origin energies:\n  {zeroe}\n  {onee}\n  {twoe}");
-                // END DEBUG
+                // // DEBUG
+                // let (zeroe, onee, twoe) = hamiltonian_ao
+                //     .calc_hamiltonian_matrix_element_contributions(
+                //         &origins_c[0],
+                //         &origins_c[0],
+                //         overlap_ao.sao(),
+                //         1e-10,
+                //         1e-7,
+                //     )
+                //     .unwrap();
+                // log::debug!("Origin energies:\n  {zeroe}\n  {onee}\n  {twoe}");
+                // // END DEBUG
 
                 match &use_magnetic_group {
                     Some(MagneticSymmetryAnalysisKind::Corepresentation) => {

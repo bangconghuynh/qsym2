@@ -13,11 +13,11 @@ use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
-    cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-    SpinorOrder,
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    cart_tuple_to_str,
 };
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
 use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
@@ -168,7 +168,9 @@ where
                 match shell_order {
                     ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
                     ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
-                    ShellOrder::Spinor(_) => todo!(),
+                    ShellOrder::Spinor(_) => {
+                        panic!("Unexpected spinor shell in `find_angular_function_representation`.")
+                    }
                 }
             });
             acc
@@ -466,53 +468,60 @@ where
     let lmax = params.max_angular_momentum;
 
     let spinor_symss = (1..2 * lmax).step_by(2).fold(
-        Vec::with_capacity(usize::try_from(lmax)?),
+        Vec::with_capacity(2 * usize::try_from(lmax)?),
         |mut acc, two_j| {
-            let shell_order = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, true, None));
-            let bao = BasisAngularOrder::new(&[BasisAtom::new(
+            let shell_order_g = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, true, None));
+            let shell_order_u = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, false, None));
+            let bao_g = BasisAngularOrder::new(&[BasisAtom::new(
                 &mol.atoms[0],
-                &[BasisShell::new(two_j, shell_order.clone())],
+                &[BasisShell::new(two_j, shell_order_g)],
             )]);
-            let nbas = bao.n_funcs();
+            let bao_u = BasisAngularOrder::new(&[BasisAtom::new(
+                &mol.atoms[0],
+                &[BasisShell::new(two_j, shell_order_u)],
+            )]);
+            let nbas = bao_g.n_funcs();
             let cs = vec![Array2::<Complex<f64>>::eye(nbas)];
             let occs = vec![Array1::<f64>::ones(nbas)];
-            let sao = Array2::<Complex<f64>>::eye(bao.n_funcs());
+            let sao = Array2::<Complex<f64>>::eye(bao_g.n_funcs());
 
-            let mo_symmetries = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
-                .structure_constraint(SpinOrbitCoupled::JAdapted(1))
-                .baos(vec![&bao])
-                .complex_symmetric(false)
-                .mol(&mol)
-                .coefficients(&cs)
-                .occupations(&occs)
-                .threshold(params.linear_independence_threshold)
-                .build()
-                .map_err(|err| format_err!(err))
-                .and_then(|det| {
-                    let mos = det.to_orbitals();
-                    generate_det_mo_orbits(
-                        &det,
-                        &mos,
-                        group,
-                        &sao,
-                        None, // Is this right for complex spherical harmonics?
-                        params.integrality_threshold,
-                        params.linear_independence_threshold,
-                        SymmetryTransformationKind::SpinSpatial,
-                        EigenvalueComparisonMode::Modulus,
-                        true,
-                    )
-                    .map(|(_, mut mo_orbitss)| {
-                        mo_orbitss[0]
-                            .par_iter_mut()
-                            .map(|mo_orbit| {
-                                mo_orbit.calc_xmat(false)?;
-                                mo_orbit.analyse_rep().map_err(|err| format_err!(err))
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                });
-            acc.push(mo_symmetries);
+            for bao in [bao_g, bao_u] {
+                let mo_symmetries = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+                    .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+                    .baos(vec![&bao])
+                    .complex_symmetric(false)
+                    .mol(&mol)
+                    .coefficients(&cs)
+                    .occupations(&occs)
+                    .threshold(params.linear_independence_threshold)
+                    .build()
+                    .map_err(|err| format_err!(err))
+                    .and_then(|det| {
+                        let mos = det.to_orbitals();
+                        generate_det_mo_orbits(
+                            &det,
+                            &mos,
+                            group,
+                            &sao,
+                            None, // Is this right for complex spherical harmonics?
+                            params.integrality_threshold,
+                            params.linear_independence_threshold,
+                            SymmetryTransformationKind::SpinSpatial,
+                            EigenvalueComparisonMode::Modulus,
+                            true,
+                        )
+                        .map(|(_, mut mo_orbitss)| {
+                            mo_orbitss[0]
+                                .par_iter_mut()
+                                .map(|mo_orbit| {
+                                    mo_orbit.calc_xmat(false)?;
+                                    mo_orbit.analyse_rep().map_err(|err| format_err!(err))
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                    });
+                acc.push(mo_symmetries);
+            }
             acc
         },
     );
@@ -542,7 +551,9 @@ where
         .unwrap_or(11)
         .max(11);
 
-    let j_width = (2 * lmax).to_string().chars().count() + 2;
+    let j_width = format!("{}/2", 2 * lmax - 1).chars().count();
+    let l_width = format!("(l = {lmax})").chars().count();
+    let jl_width = j_width + l_width + 1;
     let mj_width = (j_width + 1).max(6);
 
     log_subtitle(&format!(
@@ -550,14 +561,14 @@ where
         group.finite_subgroup_name().unwrap_or(&group.name())
     ));
     qsym2_output!("");
-    qsym2_output!("{}", "┈".repeat(j_width + mj_width + spinor_sym_width + 6));
+    qsym2_output!("{}", "┈".repeat(jl_width + mj_width + spinor_sym_width + 6));
     qsym2_output!(
-        " {:>j_width$}  {:>mj_width$}  {:<}",
+        " {:>jl_width$}  {:>mj_width$}  {:<}",
         "j",
         "Spinor",
         "Spinor sym.",
     );
-    qsym2_output!("{}", "┈".repeat(j_width + mj_width + spinor_sym_width + 6));
+    qsym2_output!("{}", "┈".repeat(jl_width + mj_width + spinor_sym_width + 6));
 
     let empty_str = String::new();
     (1..usize::try_from(2 * lmax)?)
@@ -570,16 +581,16 @@ where
             let n_spinor = two_j + 1;
 
             let two_j_u32 = u32::try_from(two_j).unwrap_or_else(|err| panic!("{err}"));
-            let spinororder = SpinorOrder::increasingm(two_j_u32, true, None);
-            spinororder
+            let spinororder_g = SpinorOrder::increasingm(two_j_u32, true, None);
+            spinororder_g
                 .iter()
                 .enumerate()
                 .for_each(|(i_spinor, two_mj)| {
                     let j_str = if i_spinor == 0 {
-                        let j_str_temp = format!("{two_j}/2");
-                        format!("{j_str_temp:>j_width$}")
+                        let j_str_temp = format!("{two_j}/2 (l = {})", spinororder_g.l());
+                        format!("{j_str_temp:>jl_width$}")
                     } else {
-                        " ".repeat(j_width)
+                        " ".repeat(jl_width)
                     };
 
                     let spinor_str = if i_spinor < n_spinor {
@@ -587,7 +598,38 @@ where
                         let spinor_str = format!(
                             "{spinor_str_temp:>mj_width$}  {:<}",
                             spinor_sym_strss
-                                .get(i_two_j)
+                                .get(i_two_j * 2)
+                                .and_then(|l_spinor_sym_strs| l_spinor_sym_strs.get(i_spinor))
+                                .unwrap_or(&empty_str)
+                        );
+                        spinor_str
+                    } else {
+                        " ".repeat(mj_width + spinor_sym_width + 2)
+                    };
+
+                    qsym2_output!(" {j_str}  {spinor_str}");
+                });
+
+            qsym2_output!("");
+
+            let spinororder_u = SpinorOrder::increasingm(two_j_u32, false, None);
+            spinororder_u
+                .iter()
+                .enumerate()
+                .for_each(|(i_spinor, two_mj)| {
+                    let j_str = if i_spinor == 0 {
+                        let j_str_temp = format!("{two_j}/2 (l = {})", spinororder_u.l());
+                        format!("{j_str_temp:>jl_width$}")
+                    } else {
+                        " ".repeat(jl_width)
+                    };
+
+                    let spinor_str = if i_spinor < n_spinor {
+                        let spinor_str_temp = format!("{two_mj:+}/2");
+                        let spinor_str = format!(
+                            "{spinor_str_temp:>mj_width$}  {:<}",
+                            spinor_sym_strss
+                                .get(i_two_j * 2 + 1)
                                 .and_then(|l_spinor_sym_strs| l_spinor_sym_strs.get(i_spinor))
                                 .unwrap_or(&empty_str)
                         );
@@ -599,7 +641,7 @@ where
                     qsym2_output!(" {j_str}  {spinor_str}");
                 });
         });
-    qsym2_output!("{}", "┈".repeat(j_width + mj_width + spinor_sym_width + 6));
+    qsym2_output!("{}", "┈".repeat(jl_width + mj_width + spinor_sym_width + 6));
     qsym2_output!("");
 
     Ok(())

@@ -164,15 +164,19 @@ where
     T: ComplexFloat + Lapack + TryFrom<<T as ComplexFloat>::Real>,
 {
     /// Extracts the integrals from the HDF5 data file.
-    pub(crate) fn get_integrals<SC: StructureConstraint + Clone>(
+    pub(crate) fn get_integrals<SC, F>(
         &'_ self,
-    ) -> Result<(OverlapAO<'_, T, SC>, HamiltonianAO<'_, T, SC>), anyhow::Error> {
+    ) -> Result<(OverlapAO<'_, T, SC>, HamiltonianAO<'_, T, SC, F>), anyhow::Error>
+    where
+        SC: StructureConstraint + Clone,
+        F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
+    {
         let overlap_ao = OverlapAO::<T, SC>::builder()
             .sao(self.integrals_sao.view())
             .build()?;
-        let hamiltonian_ao = HamiltonianAO::<T, SC>::builder()
+        let hamiltonian_ao = HamiltonianAO::<T, SC, F>::builder()
             .onee(self.integrals_onee_h.view())
-            .twoe(self.integrals_twoe_h.view())
+            .twoe(Some(self.integrals_twoe_h.view()))
             .enuc(self.mol_enuc.try_into().map_err(|_| {
                 format_err!("Unable to convert the nuclear repulsion energy into the correct type.")
             })?)

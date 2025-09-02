@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{self, ensure, format_err};
 use log;
-use ndarray::{ArrayView2, Ix2, ScalarOperand};
+use ndarray::{Array2, ArrayView2, Ix2, ScalarOperand};
 use ndarray_linalg::Lapack;
 use num::FromPrimitive;
 use num_complex::ComplexFloat;
@@ -95,16 +95,18 @@ where
     >;
 }
 
-impl<'a, G, T, SC> NOCISolvable<'a, G> for (&'a HamiltonianAO<'a, T, SC>, &'a OverlapAO<'a, T, SC>)
+impl<'a, G, T, SC, F> NOCISolvable<'a, G>
+    for (&'a HamiltonianAO<'a, T, SC, F>, &'a OverlapAO<'a, T, SC>)
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + Lapack + ScalarOperand + FromPrimitive + Sync + Send,
     <T as ComplexFloat>::Real: LowerExp + Sync,
     SC: StructureConstraint + Clone + Eq + Display + Hash + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable + Sync,
-    for<'b> SlaterDeterminant<'b, T, SC>: Overlap<T, Ix2>,
-    for<'b> (&'b ArrayView2<'b, T>, &'b ArrayView2<'b, T>):
+    for<'c> SlaterDeterminant<'c, T, SC>: Overlap<T, Ix2>,
+    for<'c> (&'c ArrayView2<'c, T>, &'c ArrayView2<'c, T>):
         GeneralisedEigenvalueSolvable<NumType = T, RealType = <T as ComplexFloat>::Real>,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
 {
     type NumType = T;
 
