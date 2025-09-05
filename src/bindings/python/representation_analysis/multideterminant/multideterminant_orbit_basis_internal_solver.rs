@@ -109,7 +109,13 @@ macro_rules! generate_get_jk {
 /// * `onee` - The one-electron integral matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `twoe` - The two-electron integral tensor whose elements are of type `float64` or
-/// `complex128`. Python type: `numpy.4darray[float] | numpy.4darray[complex]`.
+/// `complex128`. Either this or `py_get_jk` must be specified, but not both.
+/// Python type: `numpy.4darray[float] | numpy.4darray[complex] | None`. 
+/// * `py_get_jk` - A Python function callable on a density matrix $`\mathbf{D}`$ to calculate the
+/// corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate
+/// two-electron integrals calculated on-the-fly. Either this or `twoe` must be specified, but not
+/// both.
+/// Python type: `Callable[[numpy.2darray[float] | numpy.2darray[complex]], tuple[numpy.2darray[float], numpy.2darray[float]] | tuple[numpy.2darray[complex], numpy.2darray[complex]]] | None`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
