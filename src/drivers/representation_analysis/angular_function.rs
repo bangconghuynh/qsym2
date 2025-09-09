@@ -470,8 +470,9 @@ where
     let spinor_symss = (1..2 * lmax).step_by(2).fold(
         Vec::with_capacity(2 * usize::try_from(lmax)?),
         |mut acc, two_j| {
-            let shell_order_g = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, true, None));
-            let shell_order_u = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, false, None));
+            let even_first = two_j.rem_euclid(4) == 1;
+            let shell_order_g = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, even_first, None));
+            let shell_order_u = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, !even_first, None));
             let bao_g = BasisAngularOrder::new(&[BasisAtom::new(
                 &mol.atoms[0],
                 &[BasisShell::new(two_j, shell_order_g)],
@@ -552,7 +553,7 @@ where
         .max(11);
 
     let j_width = format!("{}/2", 2 * lmax - 1).chars().count();
-    let l_width = format!("(l = {lmax})").chars().count();
+    let l_width = format!("(+; l = {lmax})").chars().count();
     let jl_width = j_width + l_width + 1;
     let mj_width = (j_width + 1).max(6);
 
@@ -580,14 +581,19 @@ where
             }
             let n_spinor = two_j + 1;
 
+            let even_first = two_j.rem_euclid(4) == 1;
             let two_j_u32 = u32::try_from(two_j).unwrap_or_else(|err| panic!("{err}"));
-            let spinororder_g = SpinorOrder::increasingm(two_j_u32, true, None);
+            let spinororder_g = SpinorOrder::increasingm(two_j_u32, even_first, None);
             spinororder_g
                 .iter()
                 .enumerate()
                 .for_each(|(i_spinor, two_mj)| {
                     let j_str = if i_spinor == 0 {
-                        let j_str_temp = format!("{two_j}/2 (l = {})", spinororder_g.l());
+                        let j_str_temp = format!(
+                            "{two_j}/2 ({}; l = {})",
+                            if spinororder_g.a() == 1 { "+" } else { "-" },
+                            spinororder_g.l()
+                        );
                         format!("{j_str_temp:>jl_width$}")
                     } else {
                         " ".repeat(jl_width)
@@ -612,13 +618,17 @@ where
 
             qsym2_output!("");
 
-            let spinororder_u = SpinorOrder::increasingm(two_j_u32, false, None);
+            let spinororder_u = SpinorOrder::increasingm(two_j_u32, !even_first, None);
             spinororder_u
                 .iter()
                 .enumerate()
                 .for_each(|(i_spinor, two_mj)| {
                     let j_str = if i_spinor == 0 {
-                        let j_str_temp = format!("{two_j}/2 (l = {})", spinororder_u.l());
+                        let j_str_temp = format!(
+                            "{two_j}/2 ({}; l = {})",
+                            if spinororder_u.a() == 1 { "+" } else { "-" },
+                            spinororder_u.l()
+                        );
                         format!("{j_str_temp:>jl_width$}")
                     } else {
                         " ".repeat(jl_width)

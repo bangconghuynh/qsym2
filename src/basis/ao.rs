@@ -842,9 +842,9 @@ impl fmt::Display for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({}; {}){}",
+            "Angular momentum: {}/2 ({}; l = {}){}",
             self.two_j,
-            if self.even { "g" } else { "u" },
+            if self.a() == 1 { "+" } else { "-" },
             self.l(),
             if let Some(balance_sym) = &self.balance_symmetry {
                 &format!(" ({balance_sym})")
@@ -864,9 +864,9 @@ impl fmt::Debug for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({}; {}){}",
+            "Angular momentum: {}/2 ({}; l = {}){}",
             self.two_j,
-            if self.even { "g" } else { "u" },
+            if self.a() == 1 { "+" } else { "-" },
             self.l(),
             if let Some(balance_sym) = &self.balance_symmetry {
                 &format!(" ({balance_sym})")
@@ -953,13 +953,13 @@ impl fmt::Display for ShellOrder {
             ),
             ShellOrder::Spinor(spinor_order) => write!(
                 f,
-                "Spinor {}({}; {}) ({})",
+                "Spinor {}({}; l = {}) ({})",
                 if let Some(bs) = spinor_order.balance_symmetry.as_ref() {
                     &format!("({bs}) ")
                 } else {
                     ""
                 },
-                if spinor_order.even { "g" } else { "u" },
+                if spinor_order.a() == 1 { "+" } else { "-" },
                 spinor_order.l(),
                 spinor_order
                     .iter()
