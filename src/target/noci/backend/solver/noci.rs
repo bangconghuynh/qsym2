@@ -35,8 +35,8 @@ use crate::{
 #[path = "noci_tests.rs"]
 mod noci_tests;
 
-/// Trait for solving the NOCI problem.
-pub trait NOCISolvable<'a, G>
+/// Trait for solving the NOCI problem using symmetry orbits.
+pub trait SymmetryOrbitNOCISolvable<'a, G>
 where
     G: SymmetryGroupProperties + Clone,
     Self::NumType: ComplexFloat + Lapack,
@@ -54,6 +54,10 @@ where
     /// Constructs and solves the NOCI problem using symmetry for a set of origin Slater
     /// determinants.
     ///
+    /// Symmetry is used to construct the full NOCI basis from the origin Slater determinants.
+    /// Optionally, symmetry is also used to speed up the computation of the NOCI Hamiltonian and
+    /// overlap matrices via Cayley tables and group closure.
+    ///
     /// # Arguments
     ///
     /// * `origins` - A list of Slater determinants to be used as origins for symmetry orbits, the
@@ -70,7 +74,7 @@ where
     /// # Returns
     ///
     /// A vector of multi-determinants, each of which is for one NOCI state.
-    fn solve_symmetry_noci(
+    fn solve_symmetry_orbit_noci(
         &'a self,
         origins: &[&SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>],
         group: &'a G,
@@ -95,7 +99,7 @@ where
     >;
 }
 
-impl<'a, G, T, SC, F> NOCISolvable<'a, G>
+impl<'a, G, T, SC, F> SymmetryOrbitNOCISolvable<'a, G>
     for (&'a HamiltonianAO<'a, T, SC, F>, &'a OverlapAO<'a, T, SC>)
 where
     G: SymmetryGroupProperties + Clone,
@@ -114,7 +118,7 @@ where
 
     type StructureConstraintType = SC;
 
-    fn solve_symmetry_noci(
+    fn solve_symmetry_orbit_noci(
         &'a self,
         origins: &[&SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>],
         group: &'a G,

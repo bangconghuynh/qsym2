@@ -175,7 +175,7 @@ fn test_interfaces_input_bao_spinor() {
             assert_eq!(bao.n_funcs(), 16);
             assert_eq!(
                 bao.basis_shells().next().unwrap().shell_order.to_string(),
-                "Spinor (g) (-1/2, 1/2)"
+                "Spinor (g; 0) (-1/2, 1/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -184,7 +184,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (u) (3/2, 1/2, -1/2, -3/2)"
+                "Spinor (u; 1) (3/2, 1/2, -1/2, -3/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -193,7 +193,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (g) (1/2, -1/2, 3/2, -3/2, 5/2, -5/2)"
+                "Spinor (g; 2) (1/2, -1/2, 3/2, -3/2, 5/2, -5/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -202,7 +202,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (u) (-1/2, 1/2)"
+                "Spinor (u; 1) (-1/2, 1/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -211,7 +211,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (u) (-1/2, 1/2)"
+                "Spinor (u; 1) (-1/2, 1/2)"
             );
         } else {
             assert!(false);

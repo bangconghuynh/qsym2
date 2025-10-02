@@ -36,7 +36,7 @@ use crate::symmetry::symmetry_group::{
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::noci::backend::matelem::hamiltonian::HamiltonianAO;
 use crate::target::noci::backend::matelem::overlap::OverlapAO;
-use crate::target::noci::backend::solver::noci::NOCISolvable;
+use crate::target::noci::backend::solver::noci::SymmetryOrbitNOCISolvable;
 
 type C128 = Complex<f64>;
 
@@ -414,7 +414,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 // Run NOCI
                 let system = (&hamiltonian_ao, &overlap_ao);
                 let multidets = system
-                    .solve_symmetry_noci(
+                    .solve_symmetry_orbit_noci(
                         &origins_r.iter().collect_vec(),
                         &group,
                         symmetry_transformation_kind,
@@ -475,7 +475,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 // Run NOCI
                 let system = (&hamiltonian_ao, &overlap_ao);
                 let multidets = system
-                    .solve_symmetry_noci(
+                    .solve_symmetry_orbit_noci(
                         &origins_r.iter().collect_vec(),
                         &group,
                         symmetry_transformation_kind,
@@ -606,7 +606,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
                         let multidets = system
-                            .solve_symmetry_noci(
+                            .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
@@ -667,7 +667,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
                         let multidets = system
-                            .solve_symmetry_noci(
+                            .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
@@ -766,7 +766,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
                         let multidets = system
-                            .solve_symmetry_noci(
+                            .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,
@@ -827,7 +827,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
                         let multidets = system
-                            .solve_symmetry_noci(
+                            .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
                                 symmetry_transformation_kind,

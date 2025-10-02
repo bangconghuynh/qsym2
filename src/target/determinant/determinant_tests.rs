@@ -6156,7 +6156,7 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
         .calc_xmat(false);
     assert_eq!(
         orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
     );
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,4 +1,5 @@
 use approx::assert_abs_diff_eq;
+use ndarray::Array2;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::ElementMap;
@@ -12,7 +13,9 @@ fn test_hamiltonian_scf_energy_pyscf(molname: &str) -> () {
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
