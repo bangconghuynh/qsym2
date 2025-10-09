@@ -14,6 +14,7 @@ use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    SpinorParticleType,
 };
 use crate::target::determinant::SlaterDeterminant;
 
@@ -145,7 +146,11 @@ where
                             ShellOrder::Cart(CartOrder::lex(l))
                         } else if row[3] == 2 {
                             let spatial_even = row[4];
-                            ShellOrder::Spinor(SpinorOrder::increasingm(l, spatial_even == 1, None))
+                            ShellOrder::Spinor(SpinorOrder::increasingm(
+                                l,
+                                spatial_even == 1,
+                                SpinorParticleType::Fermion(None),
+                            ))
                         } else {
                             panic!()
                         };

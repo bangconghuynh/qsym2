@@ -14,7 +14,7 @@ use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
-    cart_tuple_to_str,
+    SpinorParticleType, cart_tuple_to_str,
 };
 use crate::chartab::SubspaceDecomposable;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -471,8 +471,16 @@ where
         Vec::with_capacity(2 * usize::try_from(lmax)?),
         |mut acc, two_j| {
             let even_first = two_j.rem_euclid(4) == 1;
-            let shell_order_g = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, even_first, None));
-            let shell_order_u = ShellOrder::Spinor(SpinorOrder::increasingm(two_j, !even_first, None));
+            let shell_order_g = ShellOrder::Spinor(SpinorOrder::increasingm(
+                two_j,
+                even_first,
+                SpinorParticleType::Fermion(None),
+            ));
+            let shell_order_u = ShellOrder::Spinor(SpinorOrder::increasingm(
+                two_j,
+                !even_first,
+                SpinorParticleType::Fermion(None),
+            ));
             let bao_g = BasisAngularOrder::new(&[BasisAtom::new(
                 &mol.atoms[0],
                 &[BasisShell::new(two_j, shell_order_g)],
@@ -583,7 +591,8 @@ where
 
             let even_first = two_j.rem_euclid(4) == 1;
             let two_j_u32 = u32::try_from(two_j).unwrap_or_else(|err| panic!("{err}"));
-            let spinororder_g = SpinorOrder::increasingm(two_j_u32, even_first, None);
+            let spinororder_g =
+                SpinorOrder::increasingm(two_j_u32, even_first, SpinorParticleType::Fermion(None));
             spinororder_g
                 .iter()
                 .enumerate()
@@ -618,7 +627,8 @@ where
 
             qsym2_output!("");
 
-            let spinororder_u = SpinorOrder::increasingm(two_j_u32, !even_first, None);
+            let spinororder_u =
+                SpinorOrder::increasingm(two_j_u32, !even_first, SpinorParticleType::Fermion(None));
             spinororder_u
                 .iter()
                 .enumerate()

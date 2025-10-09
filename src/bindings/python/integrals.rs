@@ -23,7 +23,7 @@ use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder,
+    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder, SpinorParticleType,
 };
 #[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
@@ -117,12 +117,20 @@ pub enum ShellType {
     /// Variant for a pure shell.
     Pure,
 
-    /// Variant for a spinor shell without any additional balance symmetries.
-    Spinor,
+    /// Variant for a spinor shell describing a fermion without any additional balance symmetries.
+    SpinorFermion,
 
-    /// Variant for a spinor shell with the kinetic balance symmetry due to
+    /// Variant for a spinor shell describing a fermion with the kinetic balance symmetry due to
     /// $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
-    SpinorKineticBalance,
+    SpinorFermionKineticBalance,
+
+    /// Variant for a spinor shell describing an antifermion without any additional balance
+    /// symmetries.
+    SpinorAntifermion,
+
+    /// Variant for a spinor shell describing an antifermion with the kinetic balance symmetry due
+    /// to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
+    SpinorAntifermionKineticBalance,
 
     /// Variant for a Cartesian shell.
     Cartesian,
@@ -824,18 +832,64 @@ fn create_basis_shell(
                 )
             }
         },
-        ShellType::Spinor => match shell_order {
+        ShellType::SpinorFermion => {
+            match shell_order {
+                PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
+                    PyPureSpinorOrder::Standard((increasingm, even)) => {
+                        if *increasingm {
+                            ShellOrder::Spinor(SpinorOrder::increasingm(
+                                order,
+                                *even,
+                                SpinorParticleType::Fermion(None),
+                            ))
+                        } else {
+                            ShellOrder::Spinor(SpinorOrder::decreasingm(
+                                order,
+                                *even,
+                                SpinorParticleType::Fermion(None),
+                            ))
+                        }
+                    }
+                    PyPureSpinorOrder::Custom((two_mjs, even)) => ShellOrder::Spinor(
+                        SpinorOrder::new(two_mjs, *even, SpinorParticleType::Fermion(None))?,
+                    ),
+                },
+                PyShellOrder::CartOrder(_) => {
+                    log::error!(
+                        "Spinor shell order expected, but specification for Cartesian shell order found."
+                    );
+                    bail!(
+                        "Spinor shell order expected, but specification for Cartesian shell order found."
+                    )
+                }
+            }
+        }
+        ShellType::SpinorFermionKineticBalance => match shell_order {
             PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
                 PyPureSpinorOrder::Standard((increasingm, even)) => {
                     if *increasingm {
-                        ShellOrder::Spinor(SpinorOrder::increasingm(order, *even, None))
+                        ShellOrder::Spinor(SpinorOrder::increasingm(
+                            order,
+                            *even,
+                            SpinorParticleType::Fermion(Some(
+                                SpinorBalanceSymmetry::KineticBalance,
+                            )),
+                        ))
                     } else {
-                        ShellOrder::Spinor(SpinorOrder::decreasingm(order, *even, None))
+                        ShellOrder::Spinor(SpinorOrder::decreasingm(
+                            order,
+                            *even,
+                            SpinorParticleType::Fermion(Some(
+                                SpinorBalanceSymmetry::KineticBalance,
+                            )),
+                        ))
                     }
                 }
-                PyPureSpinorOrder::Custom((two_mjs, even)) => {
-                    ShellOrder::Spinor(SpinorOrder::new(two_mjs, *even, None)?)
-                }
+                PyPureSpinorOrder::Custom((two_mjs, even)) => ShellOrder::Spinor(SpinorOrder::new(
+                    two_mjs,
+                    *even,
+                    SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
+                )?),
             },
             PyShellOrder::CartOrder(_) => {
                 log::error!(
@@ -846,27 +900,63 @@ fn create_basis_shell(
                 )
             }
         },
-        ShellType::SpinorKineticBalance => match shell_order {
+        ShellType::SpinorAntifermion => {
+            match shell_order {
+                PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
+                    PyPureSpinorOrder::Standard((increasingm, even)) => {
+                        if *increasingm {
+                            ShellOrder::Spinor(SpinorOrder::increasingm(
+                                order,
+                                *even,
+                                SpinorParticleType::Antifermion(None),
+                            ))
+                        } else {
+                            ShellOrder::Spinor(SpinorOrder::decreasingm(
+                                order,
+                                *even,
+                                SpinorParticleType::Antifermion(None),
+                            ))
+                        }
+                    }
+                    PyPureSpinorOrder::Custom((two_mjs, even)) => ShellOrder::Spinor(
+                        SpinorOrder::new(two_mjs, *even, SpinorParticleType::Antifermion(None))?,
+                    ),
+                },
+                PyShellOrder::CartOrder(_) => {
+                    log::error!(
+                        "Spinor shell order expected, but specification for Cartesian shell order found."
+                    );
+                    bail!(
+                        "Spinor shell order expected, but specification for Cartesian shell order found."
+                    )
+                }
+            }
+        }
+        ShellType::SpinorAntifermionKineticBalance => match shell_order {
             PyShellOrder::PureSpinorOrder(pyspinororder) => match pyspinororder {
                 PyPureSpinorOrder::Standard((increasingm, even)) => {
                     if *increasingm {
                         ShellOrder::Spinor(SpinorOrder::increasingm(
                             order,
                             *even,
-                            Some(SpinorBalanceSymmetry::KineticBalance),
+                            SpinorParticleType::Antifermion(Some(
+                                SpinorBalanceSymmetry::KineticBalance,
+                            )),
                         ))
                     } else {
                         ShellOrder::Spinor(SpinorOrder::decreasingm(
                             order,
                             *even,
-                            Some(SpinorBalanceSymmetry::KineticBalance),
+                            SpinorParticleType::Antifermion(Some(
+                                SpinorBalanceSymmetry::KineticBalance,
+                            )),
                         ))
                     }
                 }
                 PyPureSpinorOrder::Custom((two_mjs, even)) => ShellOrder::Spinor(SpinorOrder::new(
                     two_mjs,
                     *even,
-                    Some(SpinorBalanceSymmetry::KineticBalance),
+                    SpinorParticleType::Antifermion(Some(SpinorBalanceSymmetry::KineticBalance)),
                 )?),
             },
             PyShellOrder::CartOrder(_) => {

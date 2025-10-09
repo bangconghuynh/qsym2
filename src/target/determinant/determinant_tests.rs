@@ -13,7 +13,7 @@ use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder,
+    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder, SpinorParticleType,
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -907,7 +907,11 @@ fn test_determinant_transformation_h_jadapted_twoj_1() {
 
     let bs_sp1half = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1half.clone()]);
@@ -1277,7 +1281,11 @@ fn test_determinant_transformation_h_jadapted_twoj_3() {
 
     let bs_sp3 = BasisShell::new(
         3,
-        ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp3.clone()]);
@@ -1470,7 +1478,11 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
 
     let bs_sp1half = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1half.clone()]);
@@ -1823,7 +1835,11 @@ fn test_determinant_transformation_h_jadapted_4c_sto3g() {
 
     let bs_sp1 = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1]);
@@ -1834,7 +1850,7 @@ fn test_determinant_transformation_h_jadapted_4c_sto3g() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             1,
             true,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
 
@@ -1989,17 +2005,17 @@ fn test_determinant_transformation_h_jadapted_4c_631gds() {
     // s1/2
     let bs_sp_s1 = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, SpinorParticleType::Fermion(None))),
     );
     // p1/2
     let bs_sp_p1 = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, false, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(1, false, SpinorParticleType::Fermion(None))),
     );
     // p3/2
     let bs_sp_p3 = BasisShell::new(
         3,
-        ShellOrder::Spinor(SpinorOrder::increasingm(3, false, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(3, false, SpinorParticleType::Fermion(None))),
     );
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp_s1.clone(), bs_sp_s1, bs_sp_p1, bs_sp_p3]);
@@ -2010,7 +2026,7 @@ fn test_determinant_transformation_h_jadapted_4c_631gds() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             1,
             true,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
     let bs_sp_p1_sp = BasisShell::new(
@@ -2018,7 +2034,7 @@ fn test_determinant_transformation_h_jadapted_4c_631gds() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             1,
             false,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
     let bs_sp_p3_sp = BasisShell::new(
@@ -2026,7 +2042,7 @@ fn test_determinant_transformation_h_jadapted_4c_631gds() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             3,
             false,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
 
@@ -4837,19 +4853,35 @@ fn test_determinant_orbit_rep_analysis_h_jadapted() {
 
     let bs_sp1 = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
     let bs_sp3 = BasisShell::new(
         3,
-        ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
     let bs_sp5 = BasisShell::new(
         5,
-        ShellOrder::Spinor(SpinorOrder::increasingm(5, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            5,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
     let bs_sp7 = BasisShell::new(
         7,
-        ShellOrder::Spinor(SpinorOrder::increasingm(7, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            7,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_h0 = BasisAtom::new(
@@ -5334,11 +5366,19 @@ fn test_determinant_orbit_rep_analysis_bh4_tet_jadapted() {
 
     let bs_sp1 = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
     let bs_sp3 = BasisShell::new(
         3,
-        ShellOrder::Spinor(SpinorOrder::increasingm(3, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp1.clone(), bs_sp3.clone()]);
@@ -5555,7 +5595,11 @@ fn test_determinant_orbit_rep_analysis_bh3_jadapted() {
     let bs_p1 = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
     let bs_sp1 = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_p1.clone()]);
@@ -5871,15 +5915,27 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
 
     let bs_sp1g = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, true, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
     );
     let bs_sp1u = BasisShell::new(
         1,
-        ShellOrder::Spinor(SpinorOrder::increasingm(1, false, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            false,
+            SpinorParticleType::Fermion(None),
+        )),
     );
     let bs_sp3u = BasisShell::new(
         3,
-        ShellOrder::Spinor(SpinorOrder::increasingm(3, false, None)),
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            false,
+            SpinorParticleType::Fermion(None),
+        )),
     );
 
     let batm_c0 = BasisAtom::new(
@@ -5907,7 +5963,7 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             1,
             true,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
     let bs_sp1u_sp = BasisShell::new(
@@ -5915,7 +5971,7 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             1,
             false,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
     let bs_sp3u_sp = BasisShell::new(
@@ -5923,7 +5979,7 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
         ShellOrder::Spinor(SpinorOrder::increasingm(
             3,
             false,
-            Some(SpinorBalanceSymmetry::KineticBalance),
+            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance)),
         )),
     );
 
@@ -6156,7 +6212,7 @@ fn test_determinant_orbit_rep_analysis_c2_d4h_jadapted() {
         .calc_xmat(false);
     assert_eq!(
         orbit_c_u_d4h_double_spinspatial.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)|").unwrap()
     );
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~

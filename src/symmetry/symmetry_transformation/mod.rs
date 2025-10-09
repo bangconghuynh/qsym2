@@ -17,6 +17,7 @@ use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
 use crate::basis::ao::{
     BasisAngularOrder, CartOrder, PureOrder, ShellOrder, SpinorBalanceSymmetry, SpinorOrder,
+    SpinorParticleType,
 };
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
@@ -820,7 +821,7 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                     }
                     ShellOrder::Spinor(spinor_order) => {
                         // Spinor functions. l = two_j.
-                        let so_il = SpinorOrder::increasingm(shl.l, spinor_order.even, spinor_order.balance_symmetry.clone());
+                        let so_il = SpinorOrder::increasingm(shl.l, spinor_order.even, spinor_order.particle_type.clone());
                         let r2j_raw = r2js[l].clone();
                         let r2j = if *spinor_order != so_il {
                             // `rl` is in increasing-m order by default. See the function `rlmat` for
@@ -840,40 +841,19 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                                 r2j_raw
                             }
                         };
-                        match &spinor_order.balance_symmetry {
-                            None => {
+                        match &spinor_order.particle_type {
+                            SpinorParticleType::Fermion(None)
+                                | SpinorParticleType::Antifermion(Some(SpinorBalanceSymmetry::KineticBalance)) => {
                                 Ok(r2j)
                             },
-                            // (Some(SpinorBalanceSymmetry::KineticBalance), Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj })) => {
-                            //     let spsipj_shl = spsipj.slice(s![.., .., *shl_start..*shl_end, *shl_start..*shl_end]);
-                            //     let spsp_shl = einsum("iikl->kl", &[&spsipj_shl.view()])
-                            //         .map_err(|err| format_err!(err))?
-                            //         .into_dimensionality::<Ix2>()
-                            //         .map_err(|err| format_err!(err))?;
-                            //     let spsp_shl_inv = spsp_shl.inv()?;
-                            //     let rmat = symop
-                            //         .get_3d_spatial_matrix()
-                            //         .select(Axis(0), &[2, 0, 1])
-                            //         .select(Axis(1), &[2, 0, 1])
-                            //         .map(Complex::from);
-                            //     println!("rmat for {symop} on {spinor_order}:\n  {rmat}\n");
-                            //     println!("r2j for {symop} on {spinor_order}:\n  {r2j}\n");
-                            //     println!("spsp_shl for {symop} on {spinor_order}:\n  {spsp_shl}\n");
-                            //
-                            //     let r2j_sp = einsum("ik,nmkl,mn,lj->ij", &[&spsp_shl_inv.view(), &spsipj_shl.view(), &rmat.view(), &r2j.view()])
-                            //         .map_err(|err| format_err!(err))?
-                            //         .into_dimensionality::<Ix2>()
-                            //         .map_err(|err| format_err!(err))?;
-                            //     println!("r2j_sp for {symop} on {spinor_order}:\n  {r2j_sp}\n");
-                            //     Ok(r2j_sp)
-                            // }
-                            Some(SpinorBalanceSymmetry::KineticBalance) => {
+                            SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance))
+                                | SpinorParticleType::Antifermion(None) => {
                                 if symop.is_proper() {
                                     Ok(r2j)
                                 } else {
-                                    Ok(r2j)
+                                    Ok(-r2j)
                                 }
-                            }
+                            },
                             // _ => {
                             //     Err(format_err!("Mismatched spinor balance symmetry and spinor balance symmetry auxiliary information."))
                             // }
