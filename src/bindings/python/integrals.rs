@@ -4,10 +4,8 @@ use anyhow::{self, bail, ensure, format_err};
 use lazy_static::lazy_static;
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
-use ndarray::Array4;
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
-use numpy::PyArrayMethods;
 #[cfg(feature = "integrals")]
 use numpy::{IntoPyArray, PyArray2, PyArray4};
 use periodic_table;
@@ -23,7 +21,7 @@ use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
-    SpinorBalanceSymmetry, SpinorBalanceSymmetryAux, SpinorOrder, SpinorParticleType,
+    SpinorBalanceSymmetry, SpinorOrder, SpinorParticleType,
 };
 #[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
@@ -75,47 +73,15 @@ pub enum PyShellOrder {
     CartOrder(Option<Vec<(u32, u32, u32)>>),
 }
 
-/// Python-exposed enumerated type to handle the `SpinorBalanceSymmetryAux` numpy complex 3d-arrays
-/// in Python.
-#[derive(Clone, FromPyObject)]
-pub enum PySpinorBalanceSymmetryAux {
-    /// Variant for kinetic balance auxiliary information.
-    ///
-    /// This is a three-dimensional array:
-    /// ```math
-    ///     S_{i,\mu \mu'} = \frac{1}{2c} \braket{ f_{\mu} | \sigma_i \hat{p}_i g_{\mu'} }
-    /// ```
-    /// where
-    /// ```math
-    ///     f_{\mu} = \frac{1}{2c} \sum_k \sigma_k \hat{p}_k g_{\mu}
-    /// ```
-    /// is the corresponding small-component spinor basis function of the large-component spinor
-    /// basis function $`g_{\mu}`$.
-    ///
-    /// Python type: numpy.3darray[complex].
-    KineticBalance(Py<PyArray4<Complex<f64>>>),
-}
-
-impl<'a> PySpinorBalanceSymmetryAux {
-    pub fn to_qsym2(&self) -> SpinorBalanceSymmetryAux<Complex<f64>> {
-        match self {
-            PySpinorBalanceSymmetryAux::KineticBalance(spsipj) => {
-                SpinorBalanceSymmetryAux::KineticBalance {
-                    spsipj: Python::with_gil(|py| -> Array4<Complex<f64>> {
-                        spsipj.bind(py).to_owned_array()
-                    }),
-                }
-            }
-        }
-    }
-}
-
 /// Python-exposed enumerated type indicating the shell type.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[pyclass(eq, eq_int)]
 pub enum ShellType {
     /// Variant for a pure shell.
     Pure,
+
+    /// Variant for a Cartesian shell.
+    Cartesian,
 
     /// Variant for a spinor shell describing a fermion without any additional balance symmetries.
     SpinorFermion,
@@ -131,9 +97,6 @@ pub enum ShellType {
     /// Variant for a spinor shell describing an antifermion with the kinetic balance symmetry due
     /// to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
     SpinorAntifermionKineticBalance,
-
-    /// Variant for a Cartesian shell.
-    Cartesian,
 }
 
 // ===================
@@ -188,8 +151,6 @@ pub struct PyBasisAngularOrder {
     /// Python type:
     /// `list[tuple[str, list[tuple[int, ShellType, tuple[bool | list[int], bool] | Optional[list[tuple[int, int, int]]]]]]]`.
     basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
-
-    balance_symmetry_aux: Option<PySpinorBalanceSymmetryAux>,
 }
 
 #[pymethods]
@@ -220,21 +181,9 @@ impl PyBasisAngularOrder {
     ///
     ///   Python type:
     ///   `list[tuple[str, list[tuple[int, ShellType, tuple[bool | list[int], bool] | Optional[list[tuple[int, int, int]]]]]]]`.
-    ///
-    /// * `balance_symmetry_aux` - Optional balance symmetry auxiliary information, which is only
-    /// required if some of the shells contain a balance symmetry.
-    ///
-    ///   Python type:
-    ///   `Optional[numpy.3darray[complex]]`.
     #[new]
-    fn new(
-        basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
-        balance_symmetry_aux: Option<PySpinorBalanceSymmetryAux>,
-    ) -> Self {
-        Self {
-            basis_atoms,
-            balance_symmetry_aux,
-        }
+    fn new(basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>) -> Self {
+        Self { basis_atoms }
     }
 
     /// Extracts basis angular order information from a Q-Chem HDF5 archive file.
@@ -393,7 +342,7 @@ impl PyBasisAngularOrder {
                         Ok((element, v))
                     })
                     .collect::<Result<Vec<_>, _>>()
-                    .map(|basis_atoms| Self::new(basis_atoms, None));
+                    .map(|basis_atoms| Self::new(basis_atoms));
                 pybao
             })
             .collect::<Result<Vec<_>, _>>();
@@ -467,15 +416,7 @@ impl PyBasisAngularOrder {
                 Ok(BasisAtom::new(atom, &bss))
             })
             .collect::<Vec<_>>();
-        if let Some(pybsa) = &self.balance_symmetry_aux {
-            let bsa = pybsa.to_qsym2();
-            Ok(BasisAngularOrder::new_with_balance_symmetry_aux(
-                &basis_atoms,
-                bsa,
-            ))
-        } else {
-            Ok(BasisAngularOrder::new(&basis_atoms))
-        }
+        Ok(BasisAngularOrder::new(&basis_atoms))
     }
 }
 

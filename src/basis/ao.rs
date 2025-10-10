@@ -11,15 +11,12 @@ use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
 use itertools::{Itertools, izip};
-use ndarray::{Array4, Axis};
-use num::Complex;
 use serde::{Deserialize, Serialize};
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::auxiliary::atom::Atom;
 use crate::auxiliary::misc::ProductRepeat;
 use crate::permutation::{PermutableCollection, Permutation, permute_inplace};
-use crate::symmetry::symmetry_transformation::permute_array_by_atoms;
 
 #[cfg(test)]
 #[path = "ao_tests.rs"]
@@ -573,9 +570,16 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 
 // SpinorParticleType enum
 // .......................
+
+/// Enumerated type for spinor particle types.
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub enum SpinorParticleType {
+    /// Variant for spinors describing fermionic particles. The optional associated value contains
+    /// any additional balance symmetry to be applied to the spinors.
     Fermion(Option<SpinorBalanceSymmetry>),
+
+    /// Variant for spinors describing antifermionic particles. The optional associated value
+    /// contains any additional balance symmetry to be applied to the spinors.
     Antifermion(Option<SpinorBalanceSymmetry>),
 }
 
@@ -601,8 +605,10 @@ impl fmt::Display for SpinorParticleType {
 // SpinorBalanceSymmetry enum
 // ..........................
 
+/// Enumerated type for spinor balance symmetry types.
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub enum SpinorBalanceSymmetry {
+    /// Variant for kinetic balance, σ·p.
     KineticBalance,
 }
 
@@ -614,13 +620,6 @@ impl fmt::Display for SpinorBalanceSymmetry {
             }
         }
     }
-}
-
-// SpinorBalanceSymmetryAux enum
-// .............................
-#[derive(Clone)]
-pub enum SpinorBalanceSymmetryAux<T> {
-    KineticBalance { spsipj: Array4<T> },
 }
 
 /// Structure to contain information about the ordering of spinors of a certain rank.
@@ -635,12 +634,11 @@ pub struct SpinorOrder {
     two_mjs: Vec<i32>,
 
     /// The spatial inversion parity of the spinor Gaussians: `true` if even under spatial inversion
-    /// and `false` if odd. Note that the corresponding small-component spinor
-    /// Gaussians will have the opposite spatial inversion parity due to
-    /// $`\mathbf{\sigma} \cdot \hat{\mathbf{p}}`$.
+    /// and `false` if odd. This is intrinsic to the spinor Gaussians and independent of the
+    /// particle type and any associated balance symmetry.
     pub even: bool,
 
-    // #[builder(default = "None")]
+    /// The particle type described by this spinor shell.
     pub particle_type: SpinorParticleType,
 }
 
@@ -1136,9 +1134,6 @@ pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
     #[builder(setter(custom))]
     pub(crate) basis_atoms: Vec<BasisAtom<'a>>,
-
-    #[builder(default = "None")]
-    pub(crate) balance_symmetry_aux: Option<SpinorBalanceSymmetryAux<Complex<f64>>>,
 }
 
 impl<'a> BasisAngularOrderBuilder<'a> {
@@ -1170,27 +1165,6 @@ impl<'a> BasisAngularOrder<'a> {
             .basis_atoms(batms)
             .build()
             .expect("Unable to construct a `BasisAngularOrder`.")
-    }
-
-    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s
-    /// with additional balance symmetry auxiliary information.
-    ///
-    /// # Arguments
-    ///
-    /// * `batms` - The constituent [`BasisAtom`]s.
-    pub fn new_with_balance_symmetry_aux(
-        batms: &[BasisAtom<'a>],
-        balance_symmetry_aux: SpinorBalanceSymmetryAux<Complex<f64>>,
-    ) -> Self {
-        BasisAngularOrder::builder()
-            .basis_atoms(batms)
-            .balance_symmetry_aux(Some(balance_symmetry_aux))
-            .build()
-            .expect("Unable to construct a `BasisAngularOrder` with balance symmetry auxiliary information.")
-    }
-
-    pub fn balance_symmetry_aux(&self) -> Option<&SpinorBalanceSymmetryAux<Complex<f64>>> {
-        self.balance_symmetry_aux.as_ref()
     }
 
     /// The number of atoms in the basis.
@@ -1361,14 +1335,6 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
 
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) -> Result<(), anyhow::Error> {
         permute_inplace(&mut self.basis_atoms, perm);
-        let p_balance_symmetry_aux = match &self.balance_symmetry_aux {
-            Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj }) => {
-                let p_spsipj = permute_array_by_atoms(&spsipj, perm, &[Axis(2), Axis(3)], self);
-                Some(SpinorBalanceSymmetryAux::KineticBalance { spsipj: p_spsipj })
-            }
-            None => None,
-        };
-        self.balance_symmetry_aux = p_balance_symmetry_aux;
         Ok(())
     }
 }

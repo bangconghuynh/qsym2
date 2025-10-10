@@ -744,7 +744,6 @@ pub(crate) fn assemble_spinor_rotation_matrices(
             })
             .collect();
 
-        // let shell_boundary_indices = pbao.shell_boundary_indices();
         let rmats_res = pbao.basis_shells()
             .map(|shl| {
                 let l =
@@ -841,22 +840,21 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                                 r2j_raw
                             }
                         };
+
+                        // Intrinsic parity of fermion is +1 and antifermion -1.
                         match &spinor_order.particle_type {
                             SpinorParticleType::Fermion(None)
-                                | SpinorParticleType::Antifermion(Some(SpinorBalanceSymmetry::KineticBalance)) => {
+                            | SpinorParticleType::Antifermion(Some(SpinorBalanceSymmetry::KineticBalance)) => {
                                 Ok(r2j)
                             },
                             SpinorParticleType::Fermion(Some(SpinorBalanceSymmetry::KineticBalance))
-                                | SpinorParticleType::Antifermion(None) => {
+                            | SpinorParticleType::Antifermion(None) => {
                                 if symop.is_proper() {
                                     Ok(r2j)
                                 } else {
                                     Ok(-r2j)
                                 }
                             },
-                            // _ => {
-                            //     Err(format_err!("Mismatched spinor balance symmetry and spinor balance symmetry auxiliary information."))
-                            // }
                         }
                     }
                 }
