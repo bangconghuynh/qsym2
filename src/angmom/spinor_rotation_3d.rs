@@ -13,7 +13,6 @@ use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
 use crate::auxiliary::geometry::normalise_rotation_angle;
-use crate::basis::ao::BasisAngularOrder;
 
 #[cfg(test)]
 #[path = "spinor_rotation_3d_tests.rs"]
@@ -198,9 +197,9 @@ impl fmt::Display for SpinOrbitCoupled {
                 "Spin--orbit-coupled j-adapted ({} {})",
                 ncomps,
                 if *ncomps == 1 {
-                    "component"
+                    "explicit component"
                 } else {
-                    "components"
+                    "explicit components"
                 },
             ),
         }

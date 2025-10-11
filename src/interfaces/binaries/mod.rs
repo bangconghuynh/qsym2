@@ -2,25 +2,26 @@
 
 use std::path::PathBuf;
 
-use anyhow::{format_err, Context};
+use anyhow::{Context, format_err};
 use byteorder::{BigEndian, LittleEndian};
 use derive_builder::Builder;
+use itertools::Itertools;
 use ndarray::{Array1, Array2, Array4, ShapeBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::drivers::QSym2Driver;
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionDriver;
-use crate::drivers::QSym2Driver;
+use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::interfaces::input::analysis::SlaterDeterminantSourceHandle;
 use crate::interfaces::input::ao_basis::InputBasisAngularOrder;
-use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::io::numeric::NumericReader;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -56,8 +57,9 @@ pub struct BinariesSlaterDeterminantSource {
     /// Paths to binary files containing occupation numbers for the molecular orbitals.
     pub occupations: Vec<PathBuf>,
 
-    /// Specification of basis angular order information.
-    pub bao: InputBasisAngularOrder,
+    /// Specifications of basis angular order information, one for each explicit component per
+    /// coefficient matrix.
+    pub baos: Vec<InputBasisAngularOrder>,
 
     /// Specification of spin constraint.
     pub spin_constraint: SpinConstraint,
@@ -91,7 +93,7 @@ impl Default for BinariesSlaterDeterminantSource {
                 PathBuf::from("path/to/alpha/occupations"),
                 PathBuf::from("path/to/beta/occupations"),
             ],
-            bao: InputBasisAngularOrder::default(),
+            baos: vec![InputBasisAngularOrder::default()],
             spin_constraint: SpinConstraint::Unrestricted(2, false),
             matrix_order: MatrixOrder::default(),
             byte_order: ByteOrder::default(),
@@ -123,19 +125,21 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                     .with_context(|| "Unable to retrieve the symmetry-group detection result when handling custom Slater determinant source")?
                     .clone()
             }
-            SymmetryGroupDetectionInputKind::FromFile(pd_res_file) => {
-                read_qsym2_binary(pd_res_file, QSym2FileType::Sym).with_context(|| {
-                    format!(
+            SymmetryGroupDetectionInputKind::FromFile(pd_res_file) => read_qsym2_binary(
+                pd_res_file,
+                QSym2FileType::Sym,
+            )
+            .with_context(|| {
+                format!(
                     "Unable to read `{}.qsym2.sym` when handling custom Slater determinant source",
                     pd_res_file.display()
                 )
-                })?
-            }
+            })?,
         };
         let mol = &pd_res.pre_symmetry.recentred_molecule;
-        let bao = self.bao.to_basis_angular_order(mol)
-            .with_context(|| "Unable to digest the input basis angular order information when handling custom Slater determinant source")?;
-        let n_spatial = bao.n_funcs();
+        let baos = self.baos.iter().map(|bao| bao.to_basis_angular_order(mol)
+            .with_context(|| "Unable to digest the input basis angular order information when handling custom Slater determinant source")).collect::<Result<Vec<_>, _>>()?;
+        let nfuncs_tot = baos.iter().map(|bao| bao.n_funcs()).sum::<usize>();
 
         let sao_v = match self.byte_order {
             ByteOrder::LittleEndian => {
@@ -152,11 +156,11 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
             }
         };
         let sao = match self.matrix_order {
-            MatrixOrder::RowMajor => Array2::from_shape_vec((n_spatial, n_spatial), sao_v)
+            MatrixOrder::RowMajor => Array2::from_shape_vec((nfuncs_tot, nfuncs_tot), sao_v)
                 .with_context(|| {
                     "Unable to construct an AO overlap matrix from the read-in row-major binary file when handling custom Slater determinant source"
                 })?,
-            MatrixOrder::ColMajor => Array2::from_shape_vec((n_spatial, n_spatial).f(), sao_v)
+            MatrixOrder::ColMajor => Array2::from_shape_vec((nfuncs_tot, nfuncs_tot).f(), sao_v)
                 .with_context(|| {
                     "Unable to construct an AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source"
                 })?,
@@ -178,11 +182,11 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
                 }
             };
             let sao_4c = match self.matrix_order {
-                MatrixOrder::RowMajor => Array4::from_shape_vec((n_spatial, n_spatial, n_spatial, n_spatial), sao_4c_v)
+                MatrixOrder::RowMajor => Array4::from_shape_vec((nfuncs_tot, nfuncs_tot, nfuncs_tot, nfuncs_tot), sao_4c_v)
                     .with_context(|| {
                         "Unable to construct a four-centre AO overlap matrix from the read-in row-major binary file when handling custom Slater determinant source"
                     })?,
-                MatrixOrder::ColMajor => Array4::from_shape_vec((n_spatial, n_spatial, n_spatial, n_spatial).f(), sao_4c_v)
+                MatrixOrder::ColMajor => Array4::from_shape_vec((nfuncs_tot, nfuncs_tot, nfuncs_tot, nfuncs_tot).f(), sao_4c_v)
                     .with_context(|| {
                         "Unable to construct a four-centre AO overlap matrix from the read-in column-major binary file when handling custom Slater determinant source"
                     })?,
@@ -220,8 +224,8 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
             MatrixOrder::RowMajor => cs_v
                 .into_iter()
                 .map(|c_v| {
-                    let nmo = c_v.len().div_euclid(n_spatial);
-                    Array2::from_shape_vec((n_spatial, nmo), c_v)
+                    let nmo = c_v.len().div_euclid(nfuncs_tot);
+                    Array2::from_shape_vec((nfuncs_tot, nmo), c_v)
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .with_context(|| {
@@ -231,8 +235,8 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
             MatrixOrder::ColMajor => cs_v
                 .into_iter()
                 .map(|c_v| {
-                    let nmo = c_v.len().div_euclid(n_spatial);
-                    Array2::from_shape_vec((n_spatial, nmo).f(), c_v)
+                    let nmo = c_v.len().div_euclid(nfuncs_tot);
+                    Array2::from_shape_vec((nfuncs_tot, nmo).f(), c_v)
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .with_context(|| {
@@ -272,7 +276,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
         let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&cs)
             .occupations(&occs)
-            .bao(&bao)
+            .baos(baos.iter().collect_vec())
             .mol(mol)
             .structure_constraint(self.spin_constraint.clone())
             .complex_symmetric(false)

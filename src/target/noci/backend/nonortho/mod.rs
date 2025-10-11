@@ -7,11 +7,11 @@ use duplicate::duplicate_item;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::{
-    stack, Array1, Array2, ArrayView1, ArrayView2, ArrayView4, Axis, Ix0, Ix2, ScalarOperand,
+    Array1, Array2, ArrayView1, ArrayView2, ArrayView4, Axis, Ix0, Ix2, ScalarOperand, stack,
 };
 use ndarray_einsum::einsum;
 use ndarray_linalg::types::Lapack;
-use ndarray_linalg::{Determinant, Eig, Eigh, Norm, Scalar, SVD, UPLO};
+use ndarray_linalg::{Determinant, Eig, Eigh, Norm, SVD, Scalar, UPLO};
 use num::{Complex, Float};
 use num_complex::ComplexFloat;
 
@@ -499,20 +499,23 @@ where
 ///
 /// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
 /// subspace determined by the specified structure constraint.
-/// `o1` - The one-particle operator in the atomic-orbital basis.
+/// `o2_opt` - The two-particle operator in the atomic-orbital basis.
 /// `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
 /// The two-particle matrix element.
-pub fn calc_o2_matrix_element<T, SC>(
+pub fn calc_o2_matrix_element<'a, 'b, T, SC, F>(
     lowdin_paired_coefficientss: &[LowdinPairedCoefficients<T>],
-    o2: &ArrayView4<T>,
+    o2_opt: Option<&'b ArrayView4<'a, T>>,
+    get_jk_opt: Option<&F>,
     structure_constraint: &SC,
 ) -> Result<T, anyhow::Error>
 where
+    'a: 'b,
     T: ComplexFloat + ScalarOperand + Product + std::fmt::Display,
     SC: StructureConstraint,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error>,
 {
     let nzeros_explicit: usize = lowdin_paired_coefficientss
         .iter()
@@ -540,20 +543,10 @@ where
                 |acc_res, w_sigma| acc_res.map(|acc| acc + w_sigma),
             )?;
 
-            // i = μ, j = μ', k = ν, l = ν'
-            let j_term = einsum("ikjl,ji,lk->", &[o2, &w.view(), &w.view()])
-                .map_err(|err| format_err!(err))?
-                .into_dimensionality::<Ix0>()?
-                .into_iter()
-                .next()
-                .ok_or_else(|| {
-                    format_err!("Unable to extract the result of the einsum contraction.")
-                })
-                .map(|v| v * reduced_ov / (T::one() + T::one()))?;
-            let k_term = w_sigmas
-                .iter()
-                .fold(Ok(T::zero()), |acc_res, w_sigma| {
-                    einsum("ikjl,li,jk->", &[o2, &w_sigma.view(), &w_sigma.view()])
+            match (o2_opt, get_jk_opt) {
+                (Some(o2), None) => {
+                    // i = μ, j = μ', k = ν, l = ν'
+                    let j_term = einsum("ikjl,ji,lk->", &[o2, &w.view(), &w.view()])
                         .map_err(|err| format_err!(err))?
                         .into_dimensionality::<Ix0>()?
                         .into_iter()
@@ -561,10 +554,60 @@ where
                         .ok_or_else(|| {
                             format_err!("Unable to extract the result of the einsum contraction.")
                         })
-                        .and_then(|v| acc_res.map(|acc| acc + v))
-                })
-                .map(|v| v * reduced_ov / (T::one() + T::one()))?;
-            Ok(j_term - k_term)
+                        .map(|v| v * reduced_ov / (T::one() + T::one()))?;
+                    let k_term = w_sigmas
+                        .iter()
+                        .fold(Ok(T::zero()), |acc_res, w_sigma| {
+                            einsum("ikjl,li,jk->", &[o2, &w_sigma.view(), &w_sigma.view()])
+                                .map_err(|err| format_err!(err))?
+                                .into_dimensionality::<Ix0>()?
+                                .into_iter()
+                                .next()
+                                .ok_or_else(|| {
+                                    format_err!(
+                                        "Unable to extract the result of the einsum contraction."
+                                    )
+                                })
+                                .and_then(|v| acc_res.map(|acc| acc + v))
+                        })
+                        .map(|v| v * reduced_ov / (T::one() + T::one()))?;
+                    Ok(j_term - k_term)
+                }
+                (None, Some(get_jk)) => {
+                    // i = μ, j = μ', k = ν, l = ν'
+                    let (j_w, _) = get_jk(&w)?;
+                    let j_term = einsum("ij,ji->", &[&j_w.view(), &w.view()])
+                        .map_err(|err| format_err!(err))?
+                        .into_dimensionality::<Ix0>()?
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| {
+                            format_err!("Unable to extract the result of the einsum contraction.")
+                        })
+                        .map(|v| v * reduced_ov / (T::one() + T::one()))?;
+                    let k_term = w_sigmas
+                        .iter()
+                        .fold(Ok(T::zero()), |acc_res, w_sigma| {
+                            let (_, k_w_sigma) = get_jk(&w_sigma)?;
+                            einsum("il,li->", &[&k_w_sigma.view(), &w_sigma.view()])
+                                .map_err(|err| format_err!(err))?
+                                .into_dimensionality::<Ix0>()?
+                                .into_iter()
+                                .next()
+                                .ok_or_else(|| {
+                                    format_err!(
+                                        "Unable to extract the result of the einsum contraction."
+                                    )
+                                })
+                                .and_then(|v| acc_res.map(|acc| acc + v))
+                        })
+                        .map(|v| v * reduced_ov / (T::one() + T::one()))?;
+                    Ok(j_term - k_term)
+                }
+                _ => Err(format_err!(
+                    "One and only one of `o2` or `get_jk` should be provided."
+                )),
+            }
         } else if nzeros == 1 {
             ensure!(
                 nzeros_explicit == 1,
@@ -597,56 +640,126 @@ where
                 .fold(Ok(T::zero()), |acc_res, (w_sigma_res, p_mbar_sigma_res)| {
                     w_sigma_res.and_then(|w_sigma| {
                         p_mbar_sigma_res.and_then(|p_mbar_sigma| {
-                            // i = μ, j = μ', k = ν, l = ν'
-                            let j_term_1 =
-                                einsum("ikjl,ji,lk->", &[o2, &w.view(), &p_mbar_sigma.view()])
+                            match (o2_opt, get_jk_opt) {
+                                (Some(o2), None) => {
+                                    // i = μ, j = μ', k = ν, l = ν'
+                                    let j_term_1 = einsum(
+                                        "ikjl,ji,lk->",
+                                        &[o2, &w.view(), &p_mbar_sigma.view()],
+                                    )
                                     .map_err(|err| format_err!(err))?
                                     .into_dimensionality::<Ix0>()?
                                     .into_iter()
                                     .next()
                                     .ok_or_else(|| {
                                         format_err!(
-                                    "Unable to extract the result of the einsum contraction."
-                                )
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
                                     })?;
-                            let j_term_2 =
-                                einsum("ikjl,ji,lk->", &[o2, &p_mbar_sigma.view(), &w.view()])
+                                    let j_term_2 = einsum(
+                                        "ikjl,ji,lk->",
+                                        &[o2, &p_mbar_sigma.view(), &w.view()],
+                                    )
                                     .map_err(|err| format_err!(err))?
                                     .into_dimensionality::<Ix0>()?
                                     .into_iter()
                                     .next()
                                     .ok_or_else(|| {
                                         format_err!(
-                                    "Unable to extract the result of the einsum contraction."
-                                )
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
                                     })?;
-                            let k_term_1 = einsum(
-                                "ikjl,li,jk->",
-                                &[o2, &w_sigma.view(), &p_mbar_sigma.view()],
-                            )
-                            .map_err(|err| format_err!(err))?
-                            .into_dimensionality::<Ix0>()?
-                            .into_iter()
-                            .next()
-                            .ok_or_else(|| {
-                                format_err!(
-                                    "Unable to extract the result of the einsum contraction."
-                                )
-                            })?;
-                            let k_term_2 = einsum(
-                                "ikjl,li,jk->",
-                                &[o2, &p_mbar_sigma.view(), &w_sigma.view()],
-                            )
-                            .map_err(|err| format_err!(err))?
-                            .into_dimensionality::<Ix0>()?
-                            .into_iter()
-                            .next()
-                            .ok_or_else(|| {
-                                format_err!(
-                                    "Unable to extract the result of the einsum contraction."
-                                )
-                            })?;
-                            acc_res.map(|acc| acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
+                                    let k_term_1 = einsum(
+                                        "ikjl,li,jk->",
+                                        &[o2, &w_sigma.view(), &p_mbar_sigma.view()],
+                                    )
+                                    .map_err(|err| format_err!(err))?
+                                    .into_dimensionality::<Ix0>()?
+                                    .into_iter()
+                                    .next()
+                                    .ok_or_else(|| {
+                                        format_err!(
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
+                                    })?;
+                                    let k_term_2 = einsum(
+                                        "ikjl,li,jk->",
+                                        &[o2, &p_mbar_sigma.view(), &w_sigma.view()],
+                                    )
+                                    .map_err(|err| format_err!(err))?
+                                    .into_dimensionality::<Ix0>()?
+                                    .into_iter()
+                                    .next()
+                                    .ok_or_else(|| {
+                                        format_err!(
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
+                                    })?;
+                                    acc_res.map(|acc| acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
+                                },
+                                (None, Some(get_jk)) => {
+                                    // i = μ, j = μ', k = ν, l = ν'
+                                    let (j_p_mbar_sigma, k_p_mbar_sigma) = get_jk(&p_mbar_sigma)?;
+                                    let j_term_1 = einsum(
+                                        "ij,ji->",
+                                        &[&j_p_mbar_sigma.view(), &w.view()],
+                                    )
+                                    .map_err(|err| format_err!(err))?
+                                    .into_dimensionality::<Ix0>()?
+                                    .into_iter()
+                                    .next()
+                                    .ok_or_else(|| {
+                                        format_err!(
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
+                                    })?;
+                                    let (j_w, _) = get_jk(&w)?;
+                                    let j_term_2 = einsum(
+                                        "ij,ji->",
+                                        &[&j_w.view(), &p_mbar_sigma.view()],
+                                    )
+                                    .map_err(|err| format_err!(err))?
+                                    .into_dimensionality::<Ix0>()?
+                                    .into_iter()
+                                    .next()
+                                    .ok_or_else(|| {
+                                        format_err!(
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
+                                    })?;
+                                    let k_term_1 = einsum(
+                                        "il,li->",
+                                        &[&k_p_mbar_sigma.view(), &w_sigma.view()],
+                                    )
+                                    .map_err(|err| format_err!(err))?
+                                    .into_dimensionality::<Ix0>()?
+                                    .into_iter()
+                                    .next()
+                                    .ok_or_else(|| {
+                                        format_err!(
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
+                                    })?;
+                                    let (_, k_w_sigma) = get_jk(&w_sigma)?;
+                                    let k_term_2 = einsum(
+                                        "il,li->",
+                                        &[&k_w_sigma.view(), &p_mbar_sigma.view()],
+                                    )
+                                    .map_err(|err| format_err!(err))?
+                                    .into_dimensionality::<Ix0>()?
+                                    .into_iter()
+                                    .next()
+                                    .ok_or_else(|| {
+                                        format_err!(
+                                            "Unable to extract the result of the einsum contraction."
+                                        )
+                                    })?;
+                                    acc_res.map(|acc| acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
+                                }
+                                _ => Err(format_err!(
+                                    "One and only one of `o2` or `get_jk` should be provided."
+                                )),
+                            }
                         })
                     })
                 })
@@ -678,49 +791,115 @@ where
                 format_err!("Unable to retrieve the second computed unweighted codensity matrix.")
             })?;
 
-            // i = μ, j = μ', k = ν, l = ν'
-            let j_term_1 = einsum("ikjl,ji,lk->", &[o2, &p_mbar.view(), &p_nbar.view()])
-                .map_err(|err| format_err!(err))?
-                .into_dimensionality::<Ix0>()?
-                .into_iter()
-                .next()
-                .ok_or_else(|| {
-                    format_err!("Unable to extract the result of the einsum contraction.")
-                })?;
-            let j_term_2 = einsum("ikjl,ji,lk->", &[o2, &p_nbar.view(), &p_mbar.view()])
-                .map_err(|err| format_err!(err))?
-                .into_dimensionality::<Ix0>()?
-                .into_iter()
-                .next()
-                .ok_or_else(|| {
-                    format_err!("Unable to extract the result of the einsum contraction.")
-                })?;
+            match (o2_opt, get_jk_opt) {
+                (Some(o2), None) => {
+                    // i = μ, j = μ', k = ν, l = ν'
+                    let j_term_1 = einsum("ikjl,ji,lk->", &[o2, &p_mbar.view(), &p_nbar.view()])
+                        .map_err(|err| format_err!(err))?
+                        .into_dimensionality::<Ix0>()?
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| {
+                            format_err!("Unable to extract the result of the einsum contraction.")
+                        })?;
+                    let j_term_2 = einsum("ikjl,ji,lk->", &[o2, &p_nbar.view(), &p_mbar.view()])
+                        .map_err(|err| format_err!(err))?
+                        .into_dimensionality::<Ix0>()?
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| {
+                            format_err!("Unable to extract the result of the einsum contraction.")
+                        })?;
 
-            let (k_term_1, k_term_2) = if lowdin_paired_coefficientss
-                .iter()
-                .any(|lpc| lpc.n_lowdin_zeros() == 2)
-            {
-                let k_term_1 = einsum("ikjl,li,jk->", &[o2, &p_mbar.view(), &p_nbar.view()])
-                    .map_err(|err| format_err!(err))?
-                    .into_dimensionality::<Ix0>()?
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| {
-                        format_err!("Unable to extract the result of the einsum contraction.")
-                    })?;
-                let k_term_2 = einsum("ikjl,li,jk->", &[o2, &p_nbar.view(), &p_mbar.view()])
-                    .map_err(|err| format_err!(err))?
-                    .into_dimensionality::<Ix0>()?
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| {
-                        format_err!("Unable to extract the result of the einsum contraction.")
-                    })?;
-                (k_term_1, k_term_2)
-            } else {
-                (T::zero(), T::zero())
-            };
-            Ok(reduced_ov * (j_term_1 - k_term_1 + j_term_2 - k_term_2) / (T::one() + T::one()))
+                    let (k_term_1, k_term_2) = if lowdin_paired_coefficientss
+                        .iter()
+                        .any(|lpc| lpc.n_lowdin_zeros() == 2)
+                    {
+                        let k_term_1 =
+                            einsum("ikjl,li,jk->", &[o2, &p_mbar.view(), &p_nbar.view()])
+                                .map_err(|err| format_err!(err))?
+                                .into_dimensionality::<Ix0>()?
+                                .into_iter()
+                                .next()
+                                .ok_or_else(|| {
+                                    format_err!(
+                                        "Unable to extract the result of the einsum contraction."
+                                    )
+                                })?;
+                        let k_term_2 =
+                            einsum("ikjl,li,jk->", &[o2, &p_nbar.view(), &p_mbar.view()])
+                                .map_err(|err| format_err!(err))?
+                                .into_dimensionality::<Ix0>()?
+                                .into_iter()
+                                .next()
+                                .ok_or_else(|| {
+                                    format_err!(
+                                        "Unable to extract the result of the einsum contraction."
+                                    )
+                                })?;
+                        (k_term_1, k_term_2)
+                    } else {
+                        (T::zero(), T::zero())
+                    };
+                    Ok(reduced_ov * (j_term_1 - k_term_1 + j_term_2 - k_term_2)
+                        / (T::one() + T::one()))
+                }
+                (None, Some(get_jk)) => {
+                    // i = μ, j = μ', k = ν, l = ν'
+                    let (j_p_nbar, k_p_nbar) = get_jk(&p_nbar)?;
+                    let j_term_1 = einsum("ij,ji->", &[&j_p_nbar.view(), &p_mbar.view()])
+                        .map_err(|err| format_err!(err))?
+                        .into_dimensionality::<Ix0>()?
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| {
+                            format_err!("Unable to extract the result of the einsum contraction.")
+                        })?;
+                    let (j_p_mbar, k_p_mbar) = get_jk(&p_mbar)?;
+                    let j_term_2 = einsum("ij,ji->", &[&j_p_mbar.view(), &p_nbar.view()])
+                        .map_err(|err| format_err!(err))?
+                        .into_dimensionality::<Ix0>()?
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| {
+                            format_err!("Unable to extract the result of the einsum contraction.")
+                        })?;
+
+                    let (k_term_1, k_term_2) = if lowdin_paired_coefficientss
+                        .iter()
+                        .any(|lpc| lpc.n_lowdin_zeros() == 2)
+                    {
+                        let k_term_1 = einsum("il,li->", &[&k_p_nbar.view(), &p_mbar.view()])
+                            .map_err(|err| format_err!(err))?
+                            .into_dimensionality::<Ix0>()?
+                            .into_iter()
+                            .next()
+                            .ok_or_else(|| {
+                                format_err!(
+                                    "Unable to extract the result of the einsum contraction."
+                                )
+                            })?;
+                        let k_term_2 = einsum("il,li->", &[&k_p_mbar.view(), &p_nbar.view()])
+                            .map_err(|err| format_err!(err))?
+                            .into_dimensionality::<Ix0>()?
+                            .into_iter()
+                            .next()
+                            .ok_or_else(|| {
+                                format_err!(
+                                    "Unable to extract the result of the einsum contraction."
+                                )
+                            })?;
+                        (k_term_1, k_term_2)
+                    } else {
+                        (T::zero(), T::zero())
+                    };
+                    Ok(reduced_ov * (j_term_1 - k_term_1 + j_term_2 - k_term_2)
+                        / (T::one() + T::one()))
+                }
+                _ => Err(format_err!(
+                    "One and only one of `o2` or `get_jk` should be provided."
+                )),
+            }
         }
     }
 }
@@ -857,19 +1036,19 @@ pub struct CanonicalOrthogonalisationResult<T> {
 
 impl<T> CanonicalOrthogonalisationResult<T> {
     /// Returns the eigenvalues of the input matrix.
-    pub fn eigenvalues(&self) -> ArrayView1<T> {
+    pub fn eigenvalues(&'_ self) -> ArrayView1<'_, T> {
         self.eigenvalues.view()
     }
 
     /// Returns the Löwdin canonical orthogonalisation matrix $`\mathbf{X}`$.
-    pub fn xmat(&self) -> ArrayView2<T> {
+    pub fn xmat(&'_ self) -> ArrayView2<'_, T> {
         self.xmat.view()
     }
 
     /// Returns the conjugate of the Löwdin canonical orthogonalisation matrix,
     /// $`\mathbf{X}^{\dagger\lozenge}`$, where $`\lozenge = \star`$ for complex-symmetric matrices
     /// and $`\lozenge = \hat{e}`$ otherwise.
-    pub fn xmat_d(&self) -> ArrayView2<T> {
+    pub fn xmat_d(&'_ self) -> ArrayView2<'_, T> {
         self.xmat_d.view()
     }
 }
@@ -897,9 +1076,10 @@ impl CanonicalOrthogonalisable for ArrayView2<'_, dtype_> {
         let smat = self;
 
         // Real, symmetric S
+        let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
         ensure!(
-            (smat.to_owned() - smat.t()).norm_l2() <= thresh_offdiag,
-            "Overlap matrix is not real-symmetric."
+            deviation_s <= thresh_offdiag,
+            "Overlap matrix is not real-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
         );
 
         // S is real-symmetric, so U is orthogonal, i.e. U^T = U^(-1).
@@ -965,11 +1145,22 @@ where
         }
 
         let (s_eig, umat_nonortho) = smat.eig().map_err(|err| format_err!(err))?;
+        log::debug!("Overlap eigenvalues for canonical orthogonalisation:");
+        for (i, eig) in s_eig.iter().enumerate() {
+            log::debug!("  {i}: {eig:+.8e}");
+        }
+        log::debug!("");
 
         let nonzero_s_indices = s_eig
             .iter()
             .positions(|x| ComplexFloat::abs(*x) > thresh_zeroov)
             .collect_vec();
+        log::debug!("Non-zero overlap indices w.r.t. threshold {thresh_zeroov:.8e}:");
+        log::debug!(
+            "  {}",
+            nonzero_s_indices.iter().map(|i| i.to_string()).join(", ")
+        );
+        log::debug!("");
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
         let nonzero_umat_nonortho = umat_nonortho.select(Axis(1), &nonzero_s_indices);
 
@@ -984,6 +1175,26 @@ where
             |_| format_err!("Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.")
         )?;
 
+        let nonzero_s_eig_from_u = if complex_symmetric {
+            nonzero_umat.t().dot(smat).dot(&nonzero_umat)
+        } else {
+            nonzero_umat
+                .map(|v| v.conj())
+                .t()
+                .dot(smat)
+                .dot(&nonzero_umat)
+        };
+
+        let deviation_s = (nonzero_s_eig_from_u - Array2::from_diag(&nonzero_s_eig)).norm_l2();
+        ensure!(
+            deviation_s <= thresh_offdiag,
+            if complex_symmetric {
+                "Canonical orthogonalisation has failed: ||U^T.S.U - s|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            } else {
+                "Canonical orthogonalisation has failed: ||U^†.S.U - s|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            }
+        );
+
         let nullity = smat.shape()[0] - nonzero_s_indices.len();
         let (xmat, xmat_d) = if nullity == 0 && preserves_full_rank {
             (
@@ -994,13 +1205,14 @@ where
             let s_s = Array2::<Complex<T>>::from_diag(
                 &nonzero_s_eig.mapv(|x| Complex::<T>::from(T::one()) / x.sqrt()),
             );
-            if complex_symmetric {
-                (nonzero_umat.dot(&s_s), s_s.dot(&nonzero_umat.t()))
+            let xmat = nonzero_umat.dot(&s_s);
+            let xmat_d = if complex_symmetric {
+                // (nonzero_umat.dot(&s_s), s_s.dot(&nonzero_umat.t()))
+                xmat.t().to_owned()
             } else {
-                let xmat = nonzero_umat.dot(&s_s);
-                let xmat_d = xmat.map(|v| v.conj()).t().to_owned();
-                (xmat, xmat_d)
-            }
+                xmat.map(|v| v.conj()).t().to_owned()
+            };
+            (xmat, xmat_d)
         };
         let res = CanonicalOrthogonalisationResult {
             eigenvalues: s_eig,

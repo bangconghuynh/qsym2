@@ -160,7 +160,8 @@ More methods might become possible in the future. The parameter specifications f
               - false
               matrix_order: RowMajor #(9)!
               byte_order: LittleEndian #(10)!
-              bao: #(11)!
+              baos: #(11)!
+              -
                 ...: ...
             control: #(12)!
               ...: ...
@@ -195,7 +196,7 @@ More methods might become possible in the future. The parameter specifications f
             - `BigEndian`: the least-significant byte is stored at the largest memory address.
         </li> Most systems are little-endian, but this should be verified to ensure that the values in the binary files are read in correctly.
         </br></br>:material-cog-sync-outline: Default: `LittleEndian`.
-        11. :fontawesome-solid-users: This YAML dictionary specifies the basis angular order information for the underlying calculation. For more information, see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
+        11. :fontawesome-solid-users: This YAML list specifies the basis angular order information for the underlying calculation. For more information, see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
         12. :fontawesome-solid-users: This YAML dictionary contains all control parameters for the symmetry analysis of Slater determinants and is identical to that specified for Slater determinant Q-Chem HDF5 archive source.
 
 
@@ -245,7 +246,7 @@ More methods might become possible in the future. The parameter specifications f
         # Data
         inp_sym="mol", #(18)!
         pydet=pydet, #(19)!
-        pybao=pybao, #(20)!
+        pybaos=[pybao], #(20)!
         sao=sao_spatial, #(21)!
         sao_h=None, #(22)!
         sao_spatial_4c=None, #(23)!
@@ -295,7 +296,7 @@ More methods might become possible in the future. The parameter specifications f
     </br></br>This name does not need to contain the `.qsym2.sym` extension.
     </br></br>The symmetry results in this file will be used to construct the symmetry group $\mathcal{G}$ to be used in the subsequent representation analysis.
     19. :fontawesome-solid-users: This specifies the Slater determinant to be symmetry-analysed.
-    20. :fontawesome-solid-users: This specifies the basis angular order information for the underlying basis. See [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details of how to specify this.
+    20. :fontawesome-solid-users: This specifies the basis angular order information for the underlying basis. Each item in the list is for one explicit component in the coefficient matrices. See [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details of how to specify this.
     21. :fontawesome-solid-users: This specifies the two-centre atomic-orbital overlap matrix as a two-dimensional `numpy` array. The dimensions of this matrix must be $n_{\mathrm{comps}}N_{\mathrm{bas}} \times n_{\mathrm{comps}}N_{\mathrm{bas}}$, where $N_{\mathrm{bas}}$ is the number of basis functions specified in the basis angular order information, and $n_{\mathrm{comps}}$ is either $1$ or the total number of explicit components per coefficient matrix.
     22. :fontawesome-solid-users: This specifies the optional complex-symmetric two-centre atomic-orbital spatial matrix as a two-dimensional `numpy` array. The dimensions of this matrix must be $n_{\mathrm{comps}}N_{\mathrm{bas}} \times n_{\mathrm{comps}}N_{\mathrm{bas}}$, where $N_{\mathrm{bas}}$ is the number of basis functions specified in the basis angular order information, and $n_{\mathrm{comps}}$ is either $1$ or the total number of explicit components per coefficient matrix. This is only required if antiunitary operations are ppresent.
     </br></br>:material-cog-sync-outline: Default: `None`.

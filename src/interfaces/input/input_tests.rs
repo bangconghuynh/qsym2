@@ -101,7 +101,13 @@ fn test_interfaces_input_bao() {
 
     if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         if let SlaterDeterminantSource::Binaries(binaries_source) = &sd_control.source {
-            let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
+            assert_eq!(binaries_source.baos.len(), 1);
+            let bao = binaries_source
+                .baos
+                .iter()
+                .map(|bao| bao.to_basis_angular_order(&mol).unwrap())
+                .next()
+                .unwrap();
             assert_eq!(bao.n_funcs(), 41);
             assert_eq!(
                 bao.basis_shells()
@@ -159,11 +165,17 @@ fn test_interfaces_input_bao_spinor() {
 
     if let AnalysisTarget::RealSlaterDeterminant(sd_control) = &inp.analysis_targets[0] {
         if let SlaterDeterminantSource::Binaries(binaries_source) = &sd_control.source {
-            let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
+            assert_eq!(binaries_source.baos.len(), 1);
+            let bao = binaries_source
+                .baos
+                .iter()
+                .map(|bao| bao.to_basis_angular_order(&mol).unwrap())
+                .next()
+                .unwrap();
             assert_eq!(bao.n_funcs(), 16);
             assert_eq!(
                 bao.basis_shells().next().unwrap().shell_order.to_string(),
-                "Spinor (g) (-1/2, 1/2)"
+                "Spinor (+; l = 0), fermion, (-1/2, 1/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -172,7 +184,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (u) (3/2, 1/2, -1/2, -3/2)"
+                "Spinor (+; l = 1), fermion, (3/2, 1/2, -1/2, -3/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -181,7 +193,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (g) (1/2, -1/2, 3/2, -3/2, 5/2, -5/2)"
+                "Spinor (+; l = 2), fermion, (1/2, -1/2, 3/2, -3/2, 5/2, -5/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -190,7 +202,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (u) (-1/2, 1/2)"
+                "Spinor (-; l = 1), antifermion (σ·p), (-1/2, 1/2)"
             );
             assert_eq!(
                 bao.basis_shells()
@@ -199,7 +211,7 @@ fn test_interfaces_input_bao_spinor() {
                     .unwrap()
                     .shell_order
                     .to_string(),
-                "Spinor (u) (-1/2, 1/2)"
+                "Spinor (-; l = 1), antifermion (σ·p), (-1/2, 1/2)"
             );
         } else {
             assert!(false);

@@ -1,5 +1,5 @@
 // use env_logger;
-use ndarray::{array, s, Array2};
+use ndarray::{Array2, array, s};
 use num_complex::Complex;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
@@ -9,6 +9,7 @@ use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    SpinorParticleType,
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::UnitaryRepresentedGroup;
@@ -16,8 +17,8 @@ use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::orbital::orbital_analysis::MolecularOrbitalSymmetryOrbit;
 
 type C128 = Complex<f64>;
@@ -130,7 +131,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta])
-            .bao(&bao_vf6)
+            .baos(vec![&bao_vf6])
             .mol(&mol_vf6)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -256,9 +257,30 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
     let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
-    let bs_sp5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bs_sp3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bs_sp5 = BasisShell::new(
+        5,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            5,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp3.clone(), bs_sp5.clone()]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1.clone()]);
@@ -313,7 +335,7 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
         SlaterDeterminant::<f64, SpinOrbitCoupled>::builder()
             .coefficients(&[c])
             .occupations(&[occ.clone()])
-            .bao(&bao_bf4)
+            .baos(vec![&bao_bf4])
             .mol(&mol_bf4)
             .structure_constraint(SpinOrbitCoupled::JAdapted(1))
             .complex_symmetric(false)

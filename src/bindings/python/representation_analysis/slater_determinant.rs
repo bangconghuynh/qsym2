@@ -16,6 +16,7 @@ use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC};
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -24,10 +25,9 @@ use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::GroupProperties;
 use crate::io::format::qsym2_output;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -188,8 +188,8 @@ impl PySlaterDeterminantReal {
     ///
     /// # Arguments
     ///
-    /// * `bao` - The [`BasisAngularOrder`] for the basis set in which the Slater determinant is
-    /// given.
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -201,7 +201,7 @@ impl PySlaterDeterminantReal {
     /// Errors if the [`SlaterDeterminant`] fails to build.
     pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
-        bao: &'a BasisAngularOrder,
+        baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
     ) -> Result<SlaterDeterminant<'b, f64, SC>, anyhow::Error>
     where
@@ -212,7 +212,7 @@ impl PySlaterDeterminantReal {
     {
         let det = SlaterDeterminant::<f64, SC>::builder()
             .structure_constraint(self.structure_constraint.clone().try_into()?)
-            .bao(bao)
+            .baos(baos.to_vec())
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
             .coefficients(&self.coefficients)
@@ -377,8 +377,8 @@ impl PySlaterDeterminantComplex {
     ///
     /// # Arguments
     ///
-    /// * `bao` - The [`BasisAngularOrder`] for the basis set in which the Slater determinant is
-    /// given.
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -390,7 +390,7 @@ impl PySlaterDeterminantComplex {
     /// Errors if the [`SlaterDeterminant`] fails to build.
     pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
-        bao: &'a BasisAngularOrder,
+        baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
     ) -> Result<SlaterDeterminant<'b, C128, SC>, anyhow::Error>
     where
@@ -401,7 +401,7 @@ impl PySlaterDeterminantComplex {
     {
         let det = SlaterDeterminant::<C128, SC>::builder()
             .structure_constraint(self.structure_constraint.clone().try_into()?)
-            .bao(bao)
+            .baos(baos.to_vec())
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
             .coefficients(&self.coefficients)
@@ -486,8 +486,8 @@ pub enum PySlaterDeterminant {
 /// representation analysis. Python type: `str`.
 /// * `pydet` - A Python-exposed Slater determinant whose coefficients are of type `float64` or
 /// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
-/// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
-/// Python type: `PyBasisAngularOrder`.
+/// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
+/// explicit component per coefficient matrix. Python type: `list[PyBasisAngularOrder]`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -549,7 +549,7 @@ pub enum PySlaterDeterminant {
 #[pyo3(signature = (
     inp_sym,
     pydet,
-    pybao,
+    pybaos,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -576,7 +576,7 @@ pub fn rep_analyse_slater_determinant(
     py: Python<'_>,
     inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
-    pybao: &PyBasisAngularOrder,
+    pybaos: Vec<PyBasisAngularOrder>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -612,9 +612,15 @@ pub fn rep_analyse_slater_determinant(
     qsym2_output!("");
 
     let mol = &pd_res.pre_symmetry.recentred_molecule;
-    let bao = pybao
-        .to_qsym2(mol)
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+    let baos = pybaos
+        .iter()
+        .map(|bao| {
+            bao.to_qsym2(mol)
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let baos_ref = baos.iter().collect::<Vec<_>>();
     let augment_to_generalised = match symmetry_transformation_kind {
         SymmetryTransformationKind::SpatialWithSpinTimeReversal
         | SymmetryTransformationKind::Spin
@@ -666,12 +672,12 @@ pub fn rep_analyse_slater_determinant(
 
             let det_r = if augment_to_generalised {
                 pydet_r
-                    .to_qsym2::<SpinConstraint>(&bao, mol)
+                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     .to_generalised()
             } else {
                 pydet_r
-                    .to_qsym2::<SpinConstraint>(&bao, mol)
+                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
             match &use_magnetic_group {
@@ -842,12 +848,12 @@ pub fn rep_analyse_slater_determinant(
                 PyStructureConstraint::SpinConstraint(_) => {
                     let det_r = if augment_to_generalised {
                         pydet_r
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                             .to_generalised()
                     } else {
                         pydet_r
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     };
                     let det_c: SlaterDeterminant<C128, SpinConstraint> = det_r.into();
@@ -1039,7 +1045,7 @@ pub fn rep_analyse_slater_determinant(
                 }
                 PyStructureConstraint::SpinOrbitCoupled(_) => {
                     let det_r = pydet_r
-                        .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                        .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     let det_c: SlaterDeterminant<C128, SpinOrbitCoupled> = det_r.into();
                     let sao_c = pysao_c.to_owned_array();
@@ -1235,12 +1241,12 @@ pub fn rep_analyse_slater_determinant(
                 PyStructureConstraint::SpinConstraint(_) => {
                     let det_c = if augment_to_generalised {
                         pydet_c
-                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                             .to_generalised()
                     } else {
                         pydet_c
-                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     };
                     let sao_c = match sao {
@@ -1440,7 +1446,7 @@ pub fn rep_analyse_slater_determinant(
                 }
                 PyStructureConstraint::SpinOrbitCoupled(_) => {
                     let det_c = pydet_c
-                        .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                        .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     let sao_c = match sao {
                         PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),

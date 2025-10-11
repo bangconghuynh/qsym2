@@ -151,8 +151,8 @@ impl PyMultiDeterminantsReal {
     ///
     /// # Arguments
     ///
-    /// * `bao` - The [`BasisAngularOrder`] for the basis set in which the Slater determinant is
-    /// given.
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -165,7 +165,7 @@ impl PyMultiDeterminantsReal {
     /// Errors if the [`MultiDeterminant`] structures fail to build.
     pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
-        bao: &'a BasisAngularOrder,
+        baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
     ) -> Result<
         Vec<MultiDeterminant<'b, f64, EagerBasis<SlaterDeterminant<'b, f64, SC>>, SC>>,
@@ -183,7 +183,7 @@ impl PyMultiDeterminantsReal {
             .elements(
                 self.basis
                     .iter()
-                    .map(|pydet| pydet.to_qsym2(bao, mol))
+                    .map(|pydet| pydet.to_qsym2(baos, mol))
                     .collect::<Result<Vec<_>, _>>()?,
             )
             .build()?;
@@ -325,8 +325,8 @@ impl PyMultiDeterminantsComplex {
     ///
     /// # Arguments
     ///
-    /// * `bao` - The [`BasisAngularOrder`] for the basis set in which the Slater determinant is
-    /// given.
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -339,7 +339,7 @@ impl PyMultiDeterminantsComplex {
     /// Errors if the [`MultiDeterminant`] structures fail to build.
     pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
-        bao: &'a BasisAngularOrder,
+        baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
     ) -> Result<
         Vec<MultiDeterminant<'b, C128, EagerBasis<SlaterDeterminant<'b, C128, SC>>, SC>>,
@@ -357,7 +357,7 @@ impl PyMultiDeterminantsComplex {
             .elements(
                 self.basis
                     .iter()
-                    .map(|pydet| pydet.to_qsym2(bao, mol))
+                    .map(|pydet| pydet.to_qsym2(baos, mol))
                     .collect::<Result<Vec<_>, _>>()?,
             )
             .build()?;

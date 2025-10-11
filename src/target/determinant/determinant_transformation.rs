@@ -1,11 +1,13 @@
 //! Implementation of symmetry transformations for Slater determinants.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::ops::Mul;
 
 use approx;
+use itertools::Itertools;
 use nalgebra::Vector3;
-use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray::{Array2, Axis, LinalgScalar, ScalarOperand, array, concatenate, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
@@ -15,10 +17,10 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryOperation, TRROT};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, assemble_spinor_rotation_matrices, permute_array_by_atoms,
     ComplexConjugationTransformable, DefaultTimeReversalTransformable, SpatialUnitaryTransformable,
     SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
-    TransformationError,
+    TransformationError, assemble_sh_rotation_3d_matrices, assemble_spinor_rotation_matrices,
+    permute_array_by_atoms,
 };
 use crate::target::determinant::SlaterDeterminant;
 
@@ -39,87 +41,79 @@ where
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
     ) -> Result<&mut Self, TransformationError> {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
+        let tmatss: Vec<Vec<Array2<T>>> = assemble_sh_rotation_3d_matrices(&self.baos, rmat, perm)
             .map_err(|err| TransformationError(err.to_string()))?
             .iter()
-            .map(|tmat| tmat.map(|&x| x.into()))
-            .collect();
-        let pbao = if let Some(p) = perm {
-            self.bao
-                .permute(p)
-                .map_err(|err| TransformationError(err.to_string()))?
-        } else {
-            self.bao.clone()
-        };
+            .map(|tmats| {
+                tmats
+                    .iter()
+                    .map(|tmat| tmat.mapv(|x| x.into()))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let component_boundary_indices = self
+            .baos
+            .iter()
+            .scan(0, |acc, bao| {
+                let start_index = *acc;
+                *acc += bao.n_funcs();
+                Some((start_index, *acc))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(tmatss.len(), component_boundary_indices.len());
+        assert_eq!(tmatss.len(), self.structure_constraint.n_explicit_comps_per_coefficient_matrix());
+
         let new_coefficients = self
             .coefficients
             .iter()
-            .map(|old_coeff| match self.structure_constraint {
-                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                    let p_coeff = if let Some(p) = perm {
-                        permute_array_by_atoms(old_coeff, p, &[Axis(0)], self.bao)
-                    } else {
-                        old_coeff.clone()
-                    };
-                    let t_p_blocks = pbao
-                        .shell_boundary_indices()
-                        .into_iter()
-                        .zip(tmats.iter())
-                        .map(|((shl_start, shl_end), tmat)| {
-                            tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
-                        })
-                        .collect::<Vec<_>>();
-                    concatenate(
-                        Axis(0),
-                        &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
-                    )
-                    .expect("Unable to concatenate the transformed rows for the various shells.")
-                }
-                SpinConstraint::Generalised(nspins, _) => {
-                    let nspatial = self.bao.n_funcs();
-                    let t_p_spin_blocks = (0..nspins).map(|ispin| {
-                        // Extract spin block ispin.
-                        let spin_start = usize::from(ispin) * nspatial;
-                        let spin_end = (usize::from(ispin) + 1) * nspatial;
-                        let spin_block = old_coeff.slice(s![spin_start..spin_end, ..]).to_owned();
-
-                        // Permute within spin block ispin.
-                        let p_spin_block = if let Some(p) = perm {
-                            permute_array_by_atoms(&spin_block, p, &[Axis(0)], self.bao)
+            .map(|old_coeff| {
+                let t_p_comp_blocks = component_boundary_indices
+                    .iter()
+                    .zip(self.baos.iter())
+                    .zip(tmatss.iter())
+                    .map(|(((comp_start, comp_end), bao), tmats)| {
+                        let old_coeff_comp: Array2<T> =
+                            old_coeff.slice(s![*comp_start..*comp_end, ..]).to_owned();
+                        let p_coeff = if let Some(p) = perm {
+                            permute_array_by_atoms(&old_coeff_comp, p, &[Axis(0)], *bao)
                         } else {
-                            spin_block
+                            old_coeff_comp.clone()
                         };
-
-                        // Transform within spin block ispin.
+                        let pbao = if let Some(p) = perm {
+                            bao.permute(p)
+                                .map_err(|err| TransformationError(err.to_string()))?
+                        } else {
+                            (*bao).clone()
+                        };
                         let t_p_blocks = pbao
                             .shell_boundary_indices()
                             .into_iter()
                             .zip(tmats.iter())
                             .map(|((shl_start, shl_end), tmat)| {
-                                tmat.dot(&p_spin_block.slice(s![shl_start..shl_end, ..]))
+                                tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
                             })
                             .collect::<Vec<_>>();
+                        Ok(t_p_blocks)
+                    })
+                    .collect::<Result<Vec<Vec<Array2<T>>>, _>>()?
+                    .into_iter()
+                    .flatten()
+                    .collect_vec();
 
-                        // Concatenate blocks for various shells within spin block ispin.
-                        concatenate(
-                            Axis(0),
-                            &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
-                        )
-                        .expect("Unable to concatenate the transformed rows for the various shells.")
-                    }).collect::<Vec<_>>();
-
-                    // Concatenate spin blocks.
-                    concatenate(
-                        Axis(0),
-                        &t_p_spin_blocks
-                            .iter()
-                            .map(|t_p_spin_block| t_p_spin_block.view())
-                            .collect::<Vec<_>>(),
-                    )
-                    .expect("Unable to concatenate the transformed spin blocks.")
-                }
+                concatenate(
+                    Axis(0),
+                    &t_p_comp_blocks
+                        .iter()
+                        .map(|t_p_block| t_p_block.view())
+                        .collect::<Vec<_>>(),
+                )
+                .map_err(|err| {
+                    TransformationError(format!(
+                        "Unable to concatenate the transformed blocks: {err}."
+                    ))
+                })
             })
-            .collect::<Vec<Array2<T>>>();
+            .collect::<Result<Vec<Array2<T>>, _>>()?;
         self.coefficients = new_coefficients;
         Ok(self)
     }
@@ -278,7 +272,20 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64, SpinConstraint>
                         ));
                     }
 
-                    let nspatial = self.bao.n_funcs();
+                    let nspatial_set = self
+                        .baos
+                        .iter()
+                        .map(|bao| bao.n_funcs())
+                        .collect::<HashSet<usize>>();
+                    if nspatial_set.len() != 1 {
+                        return Err(TransformationError("Both explicit components in the generalised spin constraint must have the same number of spatial AO basis functions.".to_string()));
+                    }
+                    let nspatial = *nspatial_set.iter().next().ok_or_else(|| {
+                        TransformationError(
+                            "Unable to obtain the number of spatial AO basis functions."
+                                .to_string(),
+                        )
+                    })?;
                     let new_coefficients = self
                         .coefficients
                         .iter()
@@ -459,7 +466,19 @@ where
                     panic!("Only two-component spinor transformations are supported for now.");
                 }
 
-                let nspatial = self.bao.n_funcs();
+                let nspatial_set = self
+                    .baos
+                    .iter()
+                    .map(|bao| bao.n_funcs())
+                    .collect::<HashSet<usize>>();
+                if nspatial_set.len() != 1 {
+                    return Err(TransformationError("Both explicit components in the generalised spin constraint must have the same number of spatial AO basis functions.".to_string()));
+                }
+                let nspatial = *nspatial_set.iter().next().ok_or_else(|| {
+                    TransformationError(
+                        "Unable to obtain the number of spatial AO basis functions.".to_string(),
+                    )
+                })?;
 
                 let new_coefficients = self
                     .coefficients
@@ -589,55 +608,71 @@ impl<'a> TimeReversalTransformable for SlaterDeterminant<'a, Complex<f64>, SpinO
             .power(1)
             .build()
             .unwrap();
-        let tmats: Vec<Array2<Complex<f64>>> =
-            assemble_spinor_rotation_matrices(self.bao, &t, None)
+        let tmatss: Vec<Vec<Array2<Complex<f64>>>> =
+            assemble_spinor_rotation_matrices(&self.baos, &t, None)
                 .map_err(|err| TransformationError(err.to_string()))?
                 .iter()
-                .map(|tmat| tmat.map(|&x| x.into()))
-                .collect();
+                .map(|tmats| {
+                    tmats
+                        .iter()
+                        .map(|tmat| tmat.mapv(|x| x.into()))
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+
+        let component_boundary_indices = self
+            .baos
+            .iter()
+            .scan(0, |acc, bao| {
+                let start_index = *acc;
+                *acc += bao.n_funcs();
+                Some((start_index, *acc))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(tmatss.len(), component_boundary_indices.len());
+        assert_eq!(tmatss.len(), self.structure_constraint.n_explicit_comps_per_coefficient_matrix());
 
         let new_coefficients = self
             .coefficients
             .iter()
-            .map(|old_coeff| match self.structure_constraint {
-                SpinOrbitCoupled::JAdapted(ncomps) => {
-                    let nfuncs_per_comp = self.bao.n_funcs();
-                    let t_comp_blocks = (0..ncomps).map(|icomp| {
-                        // Extract component block icomp.
-                        let comp_start = usize::from(icomp) * nfuncs_per_comp;
-                        let comp_end = (usize::from(icomp) + 1) * nfuncs_per_comp;
-                        let comp_block = old_coeff.slice(s![comp_start..comp_end, ..]).to_owned();
+            .map(|old_coeff| {
+                let t_comp_blocks = component_boundary_indices
+                    .iter()
+                    .zip(self.baos.iter())
+                    .zip(tmatss.iter())
+                    .map(|(((comp_start, comp_end), bao), tmats)| {
+                        let old_coeff_comp: Array2<_> =
+                            old_coeff.slice(s![*comp_start..*comp_end, ..]).to_owned();
 
-                        // Transform within spin block ispin.
-                        let t_blocks = self.bao
+                        let t_blocks = bao
                             .shell_boundary_indices()
-                            .iter()
+                            .into_iter()
                             .zip(tmats.iter())
                             .map(|((shl_start, shl_end), tmat)| {
-                                tmat.dot(&comp_block.slice(s![*shl_start..*shl_end, ..]))
+                                tmat.dot(&old_coeff_comp.slice(s![shl_start..shl_end, ..]))
                             })
                             .collect::<Vec<_>>();
+                        Ok(t_blocks)
+                    })
+                    .collect::<Result<Vec<Vec<Array2<_>>>, _>>()?
+                    .into_iter()
+                    .flatten()
+                    .collect_vec();
 
-                        // Concatenate blocks for various shells within spin block ispin.
-                        concatenate(
-                            Axis(0),
-                            &t_blocks.iter().map(|t_block| t_block.view()).collect::<Vec<_>>(),
-                        )
-                        .expect("Unable to concatenate the transformed rows for the various shells.")
-                    }).collect::<Vec<_>>();
-
-                    // Concatenate component blocks.
-                    concatenate(
-                        Axis(0),
-                        &t_comp_blocks
-                            .iter()
-                            .map(|t_spin_block| t_spin_block.view())
-                            .collect::<Vec<_>>(),
-                    )
-                    .expect("Unable to concatenate the transformed component blocks.")
-                }
+                concatenate(
+                    Axis(0),
+                    &t_comp_blocks
+                        .iter()
+                        .map(|t_comp_block| t_comp_block.view())
+                        .collect::<Vec<_>>(),
+                )
+                .map_err(|err| {
+                    TransformationError(format!(
+                        "Unable to concatenate the transformed blocks: {err}."
+                    ))
+                })
             })
-            .collect::<Vec<Array2<Complex<f64>>>>();
+            .collect::<Result<Vec<Array2<Complex<f64>>>, _>>()?;
         self.coefficients = new_coefficients;
 
         self.transform_cc_mut()?;
@@ -680,21 +715,32 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
         let perm = self.sym_permute_sites_spatial(symop)?;
-        let pbao = self
-            .bao
-            .permute(&perm)
-            .map_err(|err| TransformationError(err.to_string()))?;
-
-        let tmats: Vec<Array2<Complex<f64>>> =
-            assemble_spinor_rotation_matrices(&pbao, symop, Some(&perm))
+        let tmatss: Vec<Vec<Array2<Complex<f64>>>> =
+            assemble_spinor_rotation_matrices(&self.baos, symop, Some(&perm))
                 .map_err(|err| TransformationError(err.to_string()))?
                 .iter()
-                .map(|tmat| tmat.map(|&x| x.into()))
-                .collect();
+                .map(|tmats| {
+                    tmats
+                        .iter()
+                        .map(|tmat| tmat.mapv(|x| x.into()))
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+        let component_boundary_indices = self
+            .baos
+            .iter()
+            .scan(0, |acc, bao| {
+                let start_index = *acc;
+                *acc += bao.n_funcs();
+                Some((start_index, *acc))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(tmatss.len(), component_boundary_indices.len());
+        assert_eq!(tmatss.len(), self.structure_constraint.n_explicit_comps_per_coefficient_matrix());
 
         // Time reversal, if any.
         if symop.contains_time_reversal() {
-            // The unitary part of time reversal has already been included in the `tmats` generated
+            // The unitary part of time reversal has already been included in the `tmatss` generated
             // by `assemble_spinor_rotation_matrices`. We therefore only need to take care of the
             // complex conjugation of the coefficients. This must be done before the transformation
             // matrices are applied.
@@ -704,48 +750,48 @@ impl<'a> SymmetryTransformable for SlaterDeterminant<'a, Complex<f64>, SpinOrbit
         let new_coefficients = self
             .coefficients
             .iter()
-            .map(|old_coeff| match self.structure_constraint {
-                SpinOrbitCoupled::JAdapted(ncomps) => {
-                    let nfuncs_per_comp = self.bao.n_funcs();
-                    let t_p_comp_blocks = (0..ncomps).map(|icomp| {
-                        // Extract component block icomp.
-                        let comp_start = usize::from(icomp) * nfuncs_per_comp;
-                        let comp_end = (usize::from(icomp) + 1) * nfuncs_per_comp;
-                        let comp_block = old_coeff.slice(s![comp_start..comp_end, ..]).to_owned();
-
-                        // Permute within comp block icomp.
-                        let p_comp_block = permute_array_by_atoms(&comp_block, &perm, &[Axis(0)], self.bao);
-
-                        // Transform within comp block icomp.
+            .map(|old_coeff| {
+                let t_p_comp_blocks = component_boundary_indices
+                    .iter()
+                    .zip(self.baos.iter())
+                    .zip(tmatss.iter())
+                    .map(|(((comp_start, comp_end), bao), tmats)| {
+                        let old_coeff_comp: Array2<_> =
+                            old_coeff.slice(s![*comp_start..*comp_end, ..]).to_owned();
+                        let p_coeff =
+                            permute_array_by_atoms(&old_coeff_comp, &perm, &[Axis(0)], *bao);
+                        let pbao = bao
+                            .permute(&perm)
+                            .map_err(|err| TransformationError(err.to_string()))?;
                         let t_p_blocks = pbao
                             .shell_boundary_indices()
                             .into_iter()
                             .zip(tmats.iter())
                             .map(|((shl_start, shl_end), tmat)| {
-                                tmat.dot(&p_comp_block.slice(s![shl_start..shl_end, ..]))
+                                tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
                             })
                             .collect::<Vec<_>>();
+                        Ok(t_p_blocks)
+                    })
+                    .collect::<Result<Vec<Vec<Array2<_>>>, _>>()?
+                    .into_iter()
+                    .flatten()
+                    .collect_vec();
 
-                        // Concatenate blocks for various shells within comp block icomp.
-                        concatenate(
-                            Axis(0),
-                            &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
-                        )
-                        .expect("Unable to concatenate the transformed rows for the various shells.")
-                    }).collect::<Vec<_>>();
-
-                    // Concatenate comp blocks.
-                    concatenate(
-                        Axis(0),
-                        &t_p_comp_blocks
-                            .iter()
-                            .map(|t_p_comp_block| t_p_comp_block.view())
-                            .collect::<Vec<_>>(),
-                    )
-                    .expect("Unable to concatenate the transformed comp blocks.")
-                }
+                concatenate(
+                    Axis(0),
+                    &t_p_comp_blocks
+                        .iter()
+                        .map(|t_p_block| t_p_block.view())
+                        .collect::<Vec<_>>(),
+                )
+                .map_err(|err| {
+                    TransformationError(format!(
+                        "Unable to concatenate the transformed blocks: {err}."
+                    ))
+                })
             })
-            .collect::<Vec<Array2<Complex<f64>>>>();
+            .collect::<Result<Vec<Array2<Complex<f64>>>, _>>()?;
         self.coefficients = new_coefficients;
 
         Ok(self)

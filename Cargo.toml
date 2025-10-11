@@ -44,7 +44,7 @@ periodic_table = "0.5"
 phf = { version = "0.12", features = ["macros"] }
 proptest = "1.7"
 primes = "0.4"
-pyo3 = { version = "0.25", features = ["extension-module", "num-complex", "hashbrown"], optional = true }
+pyo3 = { version = "0.25", features = ["extension-module", "num-complex", "hashbrown", "py-clone"], optional = true }
 pyo3-log = { version = "0.12", optional = true }
 rand = "0.9"
 rayon = "1.10"

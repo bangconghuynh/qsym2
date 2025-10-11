@@ -14,6 +14,7 @@ use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::PyBasisAngularOrder;
 use crate::bindings::python::representation_analysis::PyArray4RC;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::density::{
     DensityRepAnalysisDriver, DensityRepAnalysisParams,
@@ -22,9 +23,8 @@ use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::io::format::qsym2_output;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -245,11 +245,8 @@ pub enum PyDensity {
 /// * `pydens` - A sequence of Python-exposed electron densities whose density matrices are of type
 /// `float64` or `complex128`. Each density is accompanied by a description string.
 /// Python type: `list[tuple[str, PyDensityReal | PyDensityComplex]]`.
-/// * `sao_spatial_4c` - The atomic-orbital four-centre overlap matrix whose elements are of type
-/// `float64` or `complex128`. Python type: `numpy.4darray[float] | numpy.4darray[complex]`.
-/// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
-/// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
-/// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
+/// * `pybao` - Python-exposed structure containing basis angular order information for the density
+/// matrices. Python type: `PyBasisAngularOrder`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
@@ -267,6 +264,11 @@ pub enum PyDensity {
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
 /// Python type: `EigenvalueComparisonMode`.
+/// * `sao_spatial_4c` - The atomic-orbital four-centre overlap matrix whose elements are of type
+/// `float64` or `complex128`. Python type: `numpy.4darray[float] | numpy.4darray[complex]`.
+/// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
+/// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
+/// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
 /// symmetry group is to be printed out. Python type: `bool`.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
