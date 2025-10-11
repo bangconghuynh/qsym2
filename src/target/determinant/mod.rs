@@ -25,6 +25,9 @@ use crate::target::orbital::MolecularOrbital;
 #[cfg(test)]
 mod determinant_tests;
 
+#[cfg(test)]
+mod determinant_jadapted_tests;
+
 pub mod determinant_analysis;
 mod determinant_transformation;
 

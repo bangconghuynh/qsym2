@@ -83,14 +83,15 @@ pub enum ShellType {
     /// Variant for a Cartesian shell.
     Cartesian,
 
-    /// Variant for a spinor shell describing a fermion without any additional balance symmetries.
+    /// Variant for a spinor shell corresponding to a fermion without any additional balance
+    /// symmetries.
     SpinorFermion,
 
-    /// Variant for a spinor shell describing a fermion with the kinetic balance symmetry due to
-    /// $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
+    /// Variant for a spinor shell corresponding to a fermion with the kinetic balance symmetry due
+    /// to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
     SpinorFermionKineticBalance,
 
-    /// Variant for a spinor shell describing an antifermion without any additional balance
+    /// Variant for a spinor shell corresponding to an antifermion without any additional balance
     /// symmetries.
     SpinorAntifermion,
 
