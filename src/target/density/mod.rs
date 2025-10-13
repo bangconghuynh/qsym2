@@ -23,6 +23,7 @@ use crate::basis::ao::BasisAngularOrder;
 mod density_tests;
 
 pub mod density_analysis;
+pub mod density_projection;
 mod density_transformation;
 
 // ==================
@@ -321,12 +322,14 @@ where
         let mol = self.mol.ok_or("No molecule found.".to_string())?;
         let natoms = mol.atoms.len() == bao.n_atoms();
         if !natoms {
-            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+            log::error!(
+                "The number of atoms in the molecule does not match the number of local sites in the basis."
+            );
         }
         if denmat_shape && natoms {
             Ok(())
         } else {
-            Err("Density validation failed.".to_string())
+            Err(format!("Density validation failed: `denmat_shape`: {denmat_shape}, `natoms`: {natoms}"))
         }
     }
 }
