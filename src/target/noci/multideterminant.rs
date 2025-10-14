@@ -5,6 +5,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+use anyhow::format_err;
 use derive_builder::Builder;
 use log;
 use ndarray::Array1;
@@ -12,7 +13,9 @@ use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
+use crate::group::GroupProperties;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 
 use super::basis::Basis;
 
@@ -197,6 +200,29 @@ where
     /// Returns the threshold with which multi-determinantal wavefunctions are compared.
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
+    }
+}
+
+impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>
+where
+    T: ComplexFloat + Lapack,
+    G: GroupProperties + Clone,
+    SC: StructureConstraint + Hash + Eq + fmt::Display + Clone,
+{
+    /// Converts this multi-determinant with an orbit basis into a multi-determinant with the
+    /// equivalent eager basis.
+    pub fn to_eager_basis(
+        &self,
+    ) -> Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, anyhow::Error>
+    {
+        MultiDeterminant::<T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>::builder()
+            .complex_conjugated(self.complex_conjugated)
+            .basis(self.basis.to_eager()?)
+            .coefficients(self.coefficients().clone())
+            .energy(self.energy.clone())
+            .threshold(self.threshold)
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 

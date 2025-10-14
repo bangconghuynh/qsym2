@@ -31,7 +31,7 @@ use super::determinant_analysis::SlaterDeterminantSymmetryOrbit;
                         Ok(dim_f64 / group_order * chr_complex.re)
                     }
                 }))
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, _>>()?
         ]
     ]
     [
@@ -44,7 +44,7 @@ use super::determinant_analysis::SlaterDeterminantSymmetryOrbit;
                     item_res
                         .map(|(chr, _)| dim_f64 / group_order * chr.complex_conjugate().complex_value())
                 })
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, _>>()?
         ]
     ]
     [
@@ -57,7 +57,7 @@ use super::determinant_analysis::SlaterDeterminantSymmetryOrbit;
                     item_res
                         .map(|(chr, _)| dim_f64 / group_order * chr.complex_conjugate().complex_value())
                 })
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, _>>()?
         ]
     ]
 )]
