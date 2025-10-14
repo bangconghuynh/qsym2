@@ -80,7 +80,7 @@ where
     I: Clone,
 {
     pub fn builder() -> OrbitBasisBuilder<'g, G, I> {
-        OrbitBasisBuilder::<G, I>::default()
+        OrbitBasisBuilder::<'g, G, I>::default()
     }
 
     /// The origins from which orbits are generated.

@@ -8,21 +8,27 @@ use crate::chartab::character::Character;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::group::GroupProperties;
 
+/// Trait to facilitate the application of a group projection operator.
 pub trait Projectable<G, I>: Orbit<G, I>
 where
     G: GroupProperties + CharacterProperties,
 {
-    type Projected;
+    /// The type of the result of the projection.
+    type Projected<'p>
+    where
+        Self: 'p;
 
     // ----------------
     // Required methods
     // ----------------
-
-    fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected;
+    /// Projects the orbit onto an irreducible representation.
+    fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected<'_>;
 
     // ----------------
     // Provided methods
     // ----------------
+    /// Returns an iterator containing each term in the projection summation and the accompanying
+    /// character value (without complex conjugation).
     fn generate_orbit_algebra_terms<'a>(
         &'a self,
         row: &G::RowSymbol,

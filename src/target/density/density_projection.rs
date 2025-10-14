@@ -15,9 +15,12 @@ impl<'a, G> Projectable<G, Density<'a, f64>> for DensitySymmetryOrbit<'a, G, f64
 where
     G: SymmetryGroupProperties,
 {
-    type Projected = Result<Density<'a, f64>, anyhow::Error>;
+    type Projected<'p>
+        = Result<Density<'p, f64>, anyhow::Error>
+    where
+        Self: 'p;
 
-    fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected {
+    fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected<'_> {
         let group_order = self
             .group()
             .order()
@@ -56,9 +59,12 @@ impl<'a, G> Projectable<G, Density<'a, Complex<f64>>> for DensitySymmetryOrbit<'
 where
     G: SymmetryGroupProperties,
 {
-    type Projected = Result<Density<'a, Complex<f64>>, anyhow::Error>;
+    type Projected<'p>
+        = Result<Density<'p, Complex<f64>>, anyhow::Error>
+    where
+        Self: 'p;
 
-    fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected {
+    fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected<'_> {
         let group_order = Complex::from(
             self.group()
                 .order()
