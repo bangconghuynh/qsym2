@@ -3720,6 +3720,25 @@ fn test_determinant_projection_bh3_jadapted() {
             orbit_h12_p.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
         );
+
+        let h12_p_eager = h12_p.to_eager_basis().unwrap();
+        let mut orbit_h12_p_eager = MultiDeterminantSymmetryOrbit::builder()
+            .group(&group_u_d3h_double)
+            .origin(&h12_p_eager)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_h12_p_eager
+            .calc_smat(Some(&sao_c), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        assert_eq!(
+            orbit_h12_p_eager.analyse_rep().unwrap(),
+            DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
+        );
     }
 
     for sym in [

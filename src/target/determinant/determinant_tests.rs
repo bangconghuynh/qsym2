@@ -3401,6 +3401,25 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
             orbit_dyy_p.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
         );
+
+        let dyy_p_eager = dyy_p.to_eager_basis().unwrap();
+        let mut orbit_dyy_p_eager = MultiDeterminantSymmetryOrbit::builder()
+            .group(&group_u_oh)
+            .origin(&dyy_p_eager)
+            .integrality_threshold(1e-6)
+            .linear_independence_threshold(1e-6)
+            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_dyy_p_eager
+            .calc_smat(Some(&sao_cg), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        assert_eq!(
+            orbit_dyy_p_eager.analyse_rep().unwrap(),
+            DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
+        );
     }
 
     for sym in [
@@ -3481,7 +3500,9 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
 
     for sym in ["||E~|_(2g)|", "||E~|_(1u)|", "||E~|_(2u)|", "||F~|_(u)|"] {
         let row = MullikenIrrepSymbol::from_str(sym).unwrap();
-        let dyy_p = orbit_cg_u_oh_double_spin_spatial_dyy.project_onto(&row).unwrap();
+        let dyy_p = orbit_cg_u_oh_double_spin_spatial_dyy
+            .project_onto(&row)
+            .unwrap();
         let mut orbit_dyy_p = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_oh_double)
             .origin(&dyy_p)
