@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use itertools::Itertools;
-use log4rs;
+// use log4rs;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, array, concatenate, s};
 use ndarray_linalg::assert::close_l2;
