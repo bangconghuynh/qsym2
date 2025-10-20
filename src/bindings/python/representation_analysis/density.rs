@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array2, Array4};
 use num_complex::Complex;
-use numpy::{PyArray2, PyArrayMethods};
+use numpy::{PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -54,17 +54,19 @@ pub struct PyDensityReal {
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     ///
     /// Python type: `bool`.
-    complex_symmetric: bool,
+    #[pyo3(get)]
+    pub complex_symmetric: bool,
 
     /// The real density matrix describing this density.
     ///
     /// Python type: `numpy.2darray[float]`.
-    density_matrix: Array2<f64>,
+    pub density_matrix: Array2<f64>,
 
     /// The threshold for comparing densities.
     ///
     /// Python type: `float`.
-    threshold: f64,
+    #[pyo3(get)]
+    pub threshold: f64,
 }
 
 #[pymethods]
@@ -91,6 +93,11 @@ impl PyDensityReal {
         };
         det
     }
+
+    #[getter]
+    fn density_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<f64>>> {
+        Ok(self.density_matrix.to_pyarray(py))
+    }
 }
 
 impl PyDensityReal {
@@ -109,7 +116,7 @@ impl PyDensityReal {
     /// # Errors
     ///
     /// Errors if the [`Density`] fails to build.
-    fn to_qsym2<'b, 'a: 'b>(
+    pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
@@ -143,17 +150,19 @@ pub struct PyDensityComplex {
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     ///
     /// Python type: `bool`.
-    complex_symmetric: bool,
+    #[pyo3(get)]
+    pub complex_symmetric: bool,
 
     /// The complex density matrix describing this density.
     ///
     /// Python type: `numpy.2darray[complex]`.
-    density_matrix: Array2<C128>,
+    pub density_matrix: Array2<C128>,
 
     /// The threshold for comparing densities.
     ///
     /// Python type: `float`.
-    threshold: f64,
+    #[pyo3(get)]
+    pub threshold: f64,
 }
 
 #[pymethods]
@@ -180,6 +189,11 @@ impl PyDensityComplex {
         };
         det
     }
+
+    #[getter]
+    fn density_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<C128>>> {
+        Ok(self.density_matrix.to_pyarray(py))
+    }
 }
 
 impl PyDensityComplex {
@@ -198,7 +212,7 @@ impl PyDensityComplex {
     /// # Errors
     ///
     /// Errors if the [`Density`] fails to build.
-    fn to_qsym2<'b, 'a: 'b>(
+    pub(crate) fn to_qsym2<'b, 'a: 'b>(
         &'b self,
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,

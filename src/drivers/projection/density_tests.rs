@@ -107,18 +107,19 @@ fn test_drivers_density_projection_s4_sqpl_pxpy() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
     let dp_params = DensityProjectionParams::builder()
-        .projection_targets(vec![
+        .symbolic_projection_targets(Some(vec![
             "||A|_(1g)|".to_string(),
             "||A|_(2g)|".to_string(),
             "||B|_(1g)|".to_string(),
             "||B|_(2g)|".to_string(),
             "||E|_(g)|".to_string(),
-            "||A|_(1u)|".to_string(),
-            "||A|_(2u)|".to_string(),
-            "||B|_(1u)|".to_string(),
-            "||B|_(2u)|".to_string(),
-            "||E|_(u)|".to_string(),
-        ])
+            // "||A|_(1u)|".to_string(),
+            // "||A|_(2u)|".to_string(),
+            // "||B|_(1u)|".to_string(),
+            // "||B|_(2u)|".to_string(),
+            // "||E|_(u)|".to_string(),
+        ]))
+        .numeric_projection_targets(Some(vec![5, 6, 7, 8, 9]))
         .use_magnetic_group(None)
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
@@ -225,7 +226,7 @@ fn test_drivers_density_projection_s4_sqpl_pxpy() {
     // ~~~~~~~~~~~~~~~~~~~~~~
 
     let dp_params = DensityProjectionParams::builder()
-        .projection_targets(vec![
+        .symbolic_projection_targets(Some(vec![
             "|^(+)|A|_(1g)|".to_string(),
             "|^(+)|A|_(2g)|".to_string(),
             "|^(+)|B|_(1g)|".to_string(),
@@ -246,7 +247,7 @@ fn test_drivers_density_projection_s4_sqpl_pxpy() {
             "|^(-)|B|_(1u)|".to_string(),
             "|^(-)|B|_(2u)|".to_string(),
             "|^(-)|E|_(u)|".to_string(),
-        ])
+        ]))
         .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)

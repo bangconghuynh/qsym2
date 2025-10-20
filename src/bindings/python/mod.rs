@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 
 pub mod integrals;
 pub mod molecule_symmetrisation;
+pub mod projection;
 pub mod representation_analysis;
 pub mod symmetry_group_detection;
 
@@ -39,6 +40,10 @@ pub fn qsym2(_py: Python<'_>, m: Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     m.add_function(wrap_pyfunction!(
         molecule_symmetrisation::symmetrise_molecule,
+        &m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        projection::density::project_densities,
         &m
     )?)?;
     m.add_function(wrap_pyfunction!(

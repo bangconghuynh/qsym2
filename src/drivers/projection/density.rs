@@ -8,12 +8,14 @@ use anyhow::{bail, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use ndarray_linalg::{Lapack, Norm};
 use num::Complex;
 use num_complex::ComplexFloat;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::analysis::EigenvalueComparisonMode;
+use crate::chartab::CharacterTable;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::{
@@ -76,7 +78,13 @@ pub struct DensityProjectionParams {
     #[serde(default)]
     pub infinite_order_to_finite: Option<u32>,
 
-    pub projection_targets: Vec<String>,
+    #[builder(default = "None")]
+    #[serde(default)]
+    pub symbolic_projection_targets: Option<Vec<String>>,
+
+    #[builder(default = "None")]
+    #[serde(default)]
+    pub numeric_projection_targets: Option<Vec<usize>>,
 }
 
 impl DensityProjectionParams {
@@ -88,11 +96,20 @@ impl DensityProjectionParams {
 
 impl fmt::Display for DensityProjectionParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Projection subspaces:")?;
-        for projection_target in self.projection_targets.iter() {
-            writeln!(f, "  {projection_target}")?;
+        if let Some(symbolic_projection_targets) = self.symbolic_projection_targets.as_ref() {
+            writeln!(f, "Projection subspaces (symbolic):")?;
+            for projection_target in symbolic_projection_targets.iter() {
+                writeln!(f, "  {projection_target}")?;
+            }
+            writeln!(f)?;
         }
-        writeln!(f)?;
+        if let Some(numeric_projection_targets) = self.numeric_projection_targets.as_ref() {
+            writeln!(f, "Projection subspaces (numeric):")?;
+            for projection_target in numeric_projection_targets.iter() {
+                writeln!(f, "  {projection_target}")?;
+            }
+            writeln!(f)?;
+        }
         writeln!(
             f,
             "Use magnetic group for projection: {}",
@@ -419,10 +436,27 @@ impl<'a> DensityProjectionDriver<'a, gtype_, dtype_> {
             })?;
         log_bao(bao, None);
 
+        let all_rows = group.character_table().get_all_rows();
         let rows = params
-            .projection_targets
+            .symbolic_projection_targets
+            .as_ref()
+            .unwrap_or(&vec![])
             .iter()
-            .map(|row_str| MullikenIrrepSymbol::from_str(row_str))
+            .map(|row_str| MullikenIrrepSymbol::from_str(row_str).map_err(|err| format_err!(err)))
+            .chain(
+                params
+                    .numeric_projection_targets
+                    .as_ref()
+                    .unwrap_or(&vec![])
+                    .iter()
+                    .map(|row_index| {
+                        all_rows.get_index(*row_index).cloned().ok_or_else(|| {
+                            format_err!(
+                                "Unable to retrieve the subspace label with index {row_index}."
+                            )
+                        })
+                    }),
+            )
             .collect::<Result<Vec<_>, _>>()?;
 
         let projected_densities = self
