@@ -348,6 +348,16 @@ where
         self.complex_symmetric
     }
 
+    /// Returns the complex-conjugated boolean of the density.
+    pub fn complex_conjugated(&self) -> bool {
+        self.complex_conjugated
+    }
+
+    /// Returns the associated molecule of the density.
+    pub fn mol(&self) -> &Molecule {
+        self.mol
+    }
+
     /// Returns the basis angular order information of the basis set in which the density matrix is
     /// expressed.
     pub fn bao(&'_ self) -> &'_ BasisAngularOrder<'_> {
