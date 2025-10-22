@@ -95,6 +95,8 @@ where
     for<'b> SlaterDeterminant<'b, T, SC>: Overlap<T, Ix2>,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
 {
+    type MatrixElement = T;
+
     fn calc_matrix_element(
         &self,
         det_w: &SlaterDeterminant<T, SC>,
@@ -105,6 +107,18 @@ where
     ) -> Result<T, anyhow::Error> {
         self.calc_overlap_matrix_element(det_w, det_x)
     }
+
+    fn t(x: &T) -> T {
+        *x
+    }
+
+    fn conj(x: &T) -> T {
+        <T as ComplexFloat>::conj(*x)
+    }
+
+    fn zero(&self) -> T {
+        T::zero()
+    }
 }
 
 impl<'a, T, SC> OrbitMatrix<'a, T, SC> for OverlapAO<'a, T, SC>
@@ -114,6 +128,8 @@ where
     for<'b> SlaterDeterminant<'b, T, SC>: Overlap<T, Ix2>,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
 {
+    type MatrixElement = T;
+
     fn calc_matrix_element(
         &self,
         det_w: &SlaterDeterminant<T, SC>,
@@ -123,5 +139,17 @@ where
         _thresh_zeroov: <T as ComplexFloat>::Real,
     ) -> Result<T, anyhow::Error> {
         (&self).calc_matrix_element(det_w, det_x, _sao, _thresh_offdiag, _thresh_zeroov)
+    }
+
+    fn t(x: &T) -> T {
+        *x
+    }
+
+    fn conj(x: &T) -> T {
+        <T as ComplexFloat>::conj(*x)
+    }
+
+    fn zero(&self) -> T {
+        T::zero()
     }
 }

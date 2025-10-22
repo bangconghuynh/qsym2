@@ -42,14 +42,13 @@ enum PyProjectionTarget {
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
-/// representation analysis. Python type: `str`.
+/// symmetry projection. Python type: `str`.
 /// * `pydens` - A sequence of Python-exposed electron densities whose density matrices are of type
 /// `float64` or `complex128`. Each density is accompanied by a description string.
 /// Python type: `list[tuple[str, PyDensityReal | PyDensityComplex]]`.
 /// * `projection_targets` - A sequence of subspace labels for projection. Each label is either a
 /// symbolic string or a numerical index for the subspace in the character table of the prevailing
-/// group.
-/// Python type: `list[str | int]`.
+/// group. Python type: `list[str | int]`.
 /// * `pybao` - Python-exposed structure containing basis angular order information for the density
 /// matrices. Python type: `PyBasisAngularOrder`.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
@@ -64,7 +63,14 @@ enum PyProjectionTarget {
 /// symmetry group is to be printed out. Python type: `bool`.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for symmetry analysis. Python type: `Optional[int]`.
+/// will be used for symmetry analysis. Python type: `None | int`.
+///
+/// # Returns
+///
+/// The result will be returned as a list of tuples, each of which contains the name/description of
+/// an original density and a dictionary in which the keys are the subspace labels and the values
+/// are the corresponding projected density.
+/// Python type: `list[tuple[str, dict[str, PyDensityReal | PyDensityComplex]]]`
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,

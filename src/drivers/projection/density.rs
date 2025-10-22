@@ -8,7 +8,6 @@ use anyhow::{bail, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use ndarray_linalg::{Lapack, Norm};
 use num::Complex;
 use num_complex::ComplexFloat;
@@ -78,10 +77,13 @@ pub struct DensityProjectionParams {
     #[serde(default)]
     pub infinite_order_to_finite: Option<u32>,
 
+    /// The projection targets supplied symbolically.
     #[builder(default = "None")]
     #[serde(default)]
     pub symbolic_projection_targets: Option<Vec<String>>,
 
+    /// The projection targets supplied numerically, where each value gives the index of the
+    /// projection subspace based on the group's character table.
     #[builder(default = "None")]
     #[serde(default)]
     pub numeric_projection_targets: Option<Vec<usize>>,
@@ -168,11 +170,11 @@ where
     /// The densities being projected and their associated names or descriptions.
     densities: Vec<(String, &'a Density<'a, T>)>,
 
-    /// The group used for the representation analysis.
+    /// The group used for the projection.
     group: G,
 
     /// The projected densities. Each tuple in the vector contains the name or description of the
-    /// density being projected and a hashmap containing the projected densities indexed by the
+    /// density being projected and an indexmap containing the projected densities indexed by the
     /// requested subspace labels.
     projected_densities: Vec<(
         String,
@@ -325,7 +327,7 @@ where
     fn validate(&self) -> Result<(), String> {
         let params = self
             .parameters
-            .ok_or("No electron density representation analysis parameters found.".to_string())?;
+            .ok_or("No electron density projection parameters found.".to_string())?;
 
         let sym_res = self
             .symmetry_group
@@ -347,7 +349,7 @@ where
 
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
             Err(format!(
-                "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+                "Projection cannot be performed using the entirety of the infinite group `{}`. \
                     Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
                 sym.group_name
                     .as_ref()
@@ -400,7 +402,7 @@ where
 {
     fn_construct_unitary_group!(
         /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
-        /// for electron density representation analysis.
+        /// for electron density projection.
         construct_unitary_group
     );
 }
@@ -414,7 +416,7 @@ where
         [
             gtype_ [ UnitaryRepresentedSymmetryGroup ]
             dtype_ [ dtype_nested ]
-            doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
+            doc_sub_ [ "Performs projection using a unitary-represented group and stores the result." ]
             projection_fn_ [ projection_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
         ]
@@ -558,7 +560,7 @@ where
         [
             gtype_ [ UnitaryRepresentedSymmetryGroup ]
             dtype_ [ dtype_nested ]
-            doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
+            doc_sub_ [ "Performs projection using a unitary-represented group and stores the result." ]
             projection_fn_ [ projection_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
         ]

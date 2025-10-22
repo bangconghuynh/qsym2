@@ -265,7 +265,12 @@ where
                 x.partial_cmp(y)
                     .expect("Unable to compare two `abs` values.")
             })
-            .ok_or_else(|| format_err!("Unable to determine the maximum off-diagonal element."))?;
+            .ok_or_else(|| {
+                format_err!(
+                    "Unable to determine the maximum off-diagonal element for\n{}.",
+                    &init_orb_ovmat
+                )
+            })?;
 
         if max_offdiag <= thresh_offdiag {
             let lowdin_overlaps = init_orb_ovmat.into_diag().to_vec();
@@ -900,6 +905,79 @@ where
                     "One and only one of `o2` or `get_jk` should be provided."
                 )),
             }
+        }
+    }
+}
+
+/// Calculates the transition density matrix between two Löwdin-paired determinants.
+///
+/// # Arguments
+///
+/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+/// subspace determined by the specified structure constraint.
+/// `structure_constraint` - The structure constraint governing the coefficients.
+///
+/// # Returns
+///
+/// The one-particle matrix element.
+pub fn calc_transition_density_matrix<T, SC>(
+    lowdin_paired_coefficientss: &[LowdinPairedCoefficients<T>],
+    structure_constraint: &SC,
+) -> Result<Array2<T>, anyhow::Error>
+where
+    T: ComplexFloat + ScalarOperand + Product,
+    SC: StructureConstraint,
+{
+    let nzeros_explicit: usize = lowdin_paired_coefficientss
+        .iter()
+        .map(|lpc| lpc.n_lowdin_zeros())
+        .sum();
+    let nzeros = nzeros_explicit * structure_constraint.implicit_factor()?;
+    let nbasis = lowdin_paired_coefficientss[0].nbasis();
+    if nzeros > 1 {
+        Ok(Array2::<T>::zeros((nbasis, nbasis)))
+    } else {
+        let reduced_ov_explicit: T = lowdin_paired_coefficientss
+            .iter()
+            .map(|lpc| lpc.reduced_overlap())
+            .product();
+        let reduced_ov = (0..structure_constraint.implicit_factor()?)
+            .fold(T::one(), |acc, _| acc * reduced_ov_explicit);
+
+        if nzeros == 0 {
+            let nbasis = lowdin_paired_coefficientss[0].nbasis();
+            let w = (0..structure_constraint.implicit_factor()?)
+                .cartesian_product(lowdin_paired_coefficientss.iter())
+                .fold(
+                    Ok(Array2::<T>::zeros((nbasis, nbasis))),
+                    |acc_res, (_, lpc)| {
+                        calc_weighted_codensity_matrix(lpc).and_then(|w| acc_res.map(|acc| acc + w))
+                    },
+                )?;
+            Ok(w.mapv(|v| v * reduced_ov))
+        } else {
+            ensure!(
+                nzeros == 1,
+                "Unexpected number of zero Löwdin overlaps: {nzeros} != 1."
+            );
+            let ps = (0..structure_constraint.implicit_factor()?)
+                .flat_map(|_| {
+                    lowdin_paired_coefficientss.iter().flat_map(|lpc| {
+                        lpc.zero_indices()
+                            .iter()
+                            .map(|mbar| calc_unweighted_codensity_matrix(lpc, *mbar))
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            ensure!(
+                ps.len() == 1,
+                "Unexpected number of unweighted codensity matrices ({}) for one zero overlap.",
+                ps.len()
+            );
+            let p_mbar = ps.first().ok_or_else(|| {
+                format_err!("Unable to retrieve the computed unweighted codensity matrix.")
+            })?;
+            Ok(p_mbar.mapv(|v| v * reduced_ov))
         }
     }
 }

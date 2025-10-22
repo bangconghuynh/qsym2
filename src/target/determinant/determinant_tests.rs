@@ -2,9 +2,11 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 // use log4rs;
-use nalgebra::{Point3, Vector3};
+use approx::{assert_abs_diff_eq, assert_abs_diff_ne};
+use nalgebra::{ComplexField, Point3, Vector3};
 use ndarray::{Array2, Axis, array, concatenate, s};
 use ndarray_linalg::assert::close_l2;
+use ndarray_linalg::{Norm, Trace};
 use num_complex::Complex;
 use num_traits::Pow;
 
@@ -3262,6 +3264,179 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 }
 
 #[test]
+fn test_determinant_projection_s4_sqpl_pz() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s1 = Atom::from_xyz("S -1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bsp_s = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+
+    let batm_s0 = BasisAtom::new(&atm_s0, &[bsp_s.clone()]);
+    let batm_s1 = BasisAtom::new(&atm_s1, &[bsp_s.clone()]);
+    let batm_s2 = BasisAtom::new(&atm_s2, &[bsp_s.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bsp_s]);
+
+    let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
+    let mol_s4 = Molecule::from_atoms(
+        &[
+            atm_s0.clone(),
+            atm_s1.clone(),
+            atm_s2.clone(),
+            atm_s3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_s4)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+
+    // ----------
+    // 3-electron
+    // ----------
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [1.0, 0.0],
+        [0.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [1.0, 0.0],
+        [0.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
+    ];
+    let oalpha = array![1.0, 1.0];
+    let obeta = array![1.0, 0.0];
+    let det_1e = SlaterDeterminant::<f64, SpinConstraint>::builder()
+        .coefficients(&[calpha, cbeta])
+        .occupations(&[oalpha, obeta])
+        .baos(vec![&bao_s4])
+        .mol(&mol_s4)
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let sao = Array2::<f64>::eye(4);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u D4h (ordinary, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    let mut orbit_cg_u_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h)
+        .origin(&det_1e)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_cg_u_d4h_spatial_1e
+        .calc_smat(Some(&sao), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new(
+            "||A|_(1g)| ⊕ ||A|_(2g)| ⊕ ||B|_(1g)| ⊕ ||B|_(2g)| ⊕ 2||E|_(u)|"
+        )
+        .unwrap()
+    );
+
+    for sym in ["||A|_(1g)|", "||A|_(2g)|", "||B|_(1g)|", "||B|_(2g)|"] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let projected = orbit_cg_u_d4h_spatial_1e.project_onto(&row).unwrap();
+        let norm_sq = projected.overlap(&projected, Some(&sao), None).unwrap();
+        let mixed_denmat = projected
+            .density_matrix(&sao.view(), 1e-7, 1e-7)
+            .unwrap()
+            .dot(&sao)
+            / norm_sq;
+        assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
+        assert_abs_diff_eq!(mixed_denmat.trace().unwrap(), 3.0, epsilon = 1e-7);
+
+        let mut orbit_projected = MultiDeterminantSymmetryOrbit::builder()
+            .group(&group_u_d4h)
+            .origin(&projected)
+            .integrality_threshold(1e-6)
+            .linear_independence_threshold(1e-6)
+            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_projected
+            .calc_smat_optimised(Some(&sao), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        assert_eq!(
+            orbit_projected.analyse_rep().unwrap(),
+            DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
+        );
+    }
+
+    // ||E|_(u)|
+    let row = MullikenIrrepSymbol::from_str("||E|_(u)|").unwrap();
+    let projected = orbit_cg_u_d4h_spatial_1e.project_onto(&row).unwrap();
+    let norm_sq = projected.overlap(&projected, Some(&sao), None).unwrap();
+    let mixed_denmat = projected
+        .density_matrix(&sao.view(), 1e-7, 1e-7)
+        .unwrap()
+        .dot(&sao)
+        / norm_sq;
+    assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
+    assert_abs_diff_eq!(mixed_denmat.trace().unwrap(), 3.0, epsilon = 1e-7);
+
+    let mut orbit_projected = MultiDeterminantSymmetryOrbit::builder()
+        .group(&group_u_d4h)
+        .origin(&projected)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_projected
+        .calc_smat_optimised(Some(&sao), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_projected.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("2||E|_(u)|").unwrap()
+    );
+
+    for sym in [
+        "||E|_(g)|",
+        "||A|_(1u)|",
+        "||A|_(2u)|",
+        "||B|_(1u)|",
+        "||B|_(2u)|",
+    ] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let projected = orbit_cg_u_d4h_spatial_1e.project_onto(&row).unwrap();
+        let norm = projected
+            .overlap(&projected, Some(&sao), None)
+            .unwrap()
+            .sqrt();
+        assert_abs_diff_eq!(norm, 0.0, epsilon = 1e-7);
+    }
+}
+
+#[test]
 fn test_determinant_projection_vf6_oct_qchem_order() {
     // env_logger::init();
     let emap = ElementMap::new();
@@ -3384,6 +3559,15 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
     for sym in ["||A|_(1g)|", "||E|_(g)|"] {
         let row = MullikenIrrepSymbol::from_str(sym).unwrap();
         let dyy_p = orbit_cg_u_oh_spatial_dyy.project_onto(&row).unwrap();
+        let norm_sq = dyy_p.overlap(&dyy_p, Some(&sao_cg), None).unwrap();
+        let mixed_denmat = dyy_p
+            .density_matrix(&sao_cg.view(), 1e-7, 1e-7)
+            .unwrap()
+            .dot(&sao_cg)
+            / norm_sq;
+        assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
+        assert_abs_diff_eq!(mixed_denmat.trace().unwrap().abs(), 1.0, epsilon = 1e-7);
+
         let mut orbit_dyy_p = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_oh)
             .origin(&dyy_p)
@@ -3434,22 +3618,8 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
     ] {
         let row = MullikenIrrepSymbol::from_str(sym).unwrap();
         let dyy_p = orbit_cg_u_oh_spatial_dyy.project_onto(&row).unwrap();
-        let mut orbit_dyy_p = MultiDeterminantSymmetryOrbit::builder()
-            .group(&group_u_oh)
-            .origin(&dyy_p)
-            .integrality_threshold(1e-6)
-            .linear_independence_threshold(1e-6)
-            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
-            .build()
-            .unwrap();
-        assert!(
-            orbit_dyy_p
-                .calc_smat_optimised(Some(&sao_cg), None, true)
-                .unwrap()
-                .calc_xmat(false)
-                .is_err()
-        );
+        let norm = dyy_p.overlap(&dyy_p, Some(&sao_cg), None).unwrap().sqrt();
+        assert_abs_diff_eq!(norm.abs(), 0.0, epsilon = 1e-7);
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3479,6 +3649,15 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
         let dyy_p = orbit_cg_u_oh_double_spin_spatial_dyy
             .project_onto(&row)
             .unwrap();
+        let norm_sq = dyy_p.overlap(&dyy_p, Some(&sao_cg), None).unwrap();
+        let mixed_denmat = dyy_p
+            .density_matrix(&sao_cg.view(), 1e-7, 1e-7)
+            .unwrap()
+            .dot(&sao_cg)
+            / norm_sq;
+        assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
+        assert_abs_diff_eq!(mixed_denmat.trace().unwrap().abs(), 1.0, epsilon = 1e-7);
+
         let mut orbit_dyy_p = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_oh_double)
             .origin(&dyy_p)
@@ -3503,25 +3682,7 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
         let dyy_p = orbit_cg_u_oh_double_spin_spatial_dyy
             .project_onto(&row)
             .unwrap();
-        let mut orbit_dyy_p = MultiDeterminantSymmetryOrbit::builder()
-            .group(&group_u_oh_double)
-            .origin(&dyy_p)
-            .integrality_threshold(1e-7)
-            .linear_independence_threshold(1e-7)
-            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
-            .build()
-            .unwrap();
-        let _ = orbit_dyy_p
-            .calc_smat_optimised(Some(&sao_cg), None, true)
-            .unwrap()
-            .calc_xmat(false);
-        assert!(
-            orbit_dyy_p
-                .calc_smat_optimised(Some(&sao_cg), None, true)
-                .unwrap()
-                .calc_xmat(false)
-                .is_err()
-        );
+        let norm = dyy_p.overlap(&dyy_p, Some(&sao_cg), None).unwrap().sqrt();
+        assert_abs_diff_eq!(norm.abs(), 0.0, epsilon = 1e-7);
     }
 }
