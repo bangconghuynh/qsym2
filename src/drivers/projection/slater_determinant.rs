@@ -1,19 +1,21 @@
 //! Driver for symmetry projection of electron densities.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
 
-use anyhow::{bail, format_err};
+use anyhow::{bail, ensure, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
+use ndarray::{Array2, Ix2, s};
 use ndarray_linalg::Lapack;
 use num::Complex;
 use num_complex::ComplexFloat;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use crate::analysis::EigenvalueComparisonMode;
+use crate::analysis::{EigenvalueComparisonMode, Overlap};
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
 use crate::chartab::CharacterTable;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -172,17 +174,35 @@ where
     parameters: &'a SlaterDeterminantProjectionParams,
 
     /// The Slater determinant being projected.
-    slater_determinant: &'a SlaterDeterminant<'a, T, SC>,
+    determinant: &'a SlaterDeterminant<'a, T, SC>,
 
     /// The group used for the projection.
     group: G,
 
     /// The projected Slater determinants given as an indexmap containing the projected Slater
     /// determinant indexed by the requested subspace labels.
-    projected_slater_determinants: IndexMap<
+    projected_determinants: IndexMap<
         G::RowSymbol,
         Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, String>,
     >,
+
+    /// The optional atomic-orbital overlap matrix of the underlying basis set used to describe the
+    /// wavefunctions. This is either for a single component corresponding to the basis functions
+    /// specified by the basis angular order structure in the determinant in
+    /// [`Self::determinant`], or for *all* explicit components specified by the coefficients
+    /// in the determinant. This is not required for projection, and only used to compute the norm
+    /// of the resulting multi-determinants.
+    #[builder(default = "None")]
+    sao: Option<Array2<T>>,
+
+    /// The complex-symmetric atomic-orbital overlap matrix of the underlying basis set used to
+    /// describe the wavefunctions. This is either for a single component corresponding to the basis
+    /// functions specified by the basis angular order structure in the determinant, or for *all*
+    /// explicit components specified by the coefficients in the determinant. If none is provided,
+    /// this will be assumed to be the same as [`Self::sao`]. This is not required for projection,
+    /// and only used to compute the norm of the resulting multi-determinants.
+    #[builder(default = "None")]
+    sao_h: Option<Array2<T>>,
 }
 
 impl<'a, G, T, SC> SlaterDeterminantProjectionResult<'a, G, T, SC>
@@ -199,13 +219,13 @@ where
     }
 
     /// Returns the projected densities.
-    pub fn projected_slater_determinants(
+    pub fn projected_determinants(
         &self,
     ) -> &IndexMap<
         G::RowSymbol,
         Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, String>,
     > {
-        &self.projected_slater_determinants
+        &self.projected_determinants
     }
 }
 
@@ -216,6 +236,7 @@ where
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry projection summary")?;
@@ -231,43 +252,59 @@ where
         )?;
         writeln!(f)?;
 
-        // for (name, projected_densities) in self.projected_densities.iter() {
-        //     writeln!(f, ">> Density-matrix Frobenius norm for projected {name}")?;
-        //
-        //     let (rows, norms): (Vec<String>, Vec<String>) = projected_densities
-        //         .iter()
-        //         .map(|(row, den_res)| {
-        //             let norm = den_res
-        //                 .as_ref()
-        //                 .map(|den| format!("{:.3e}", den.density_matrix().norm_l2()))
-        //                 .unwrap_or_else(|err| err.to_string());
-        //             (row.to_string(), norm)
-        //         })
-        //         .unzip();
-        //
-        //     let row_length = rows
-        //         .iter()
-        //         .map(|row| row.chars().count())
-        //         .max()
-        //         .unwrap_or(7)
-        //         .max(7);
-        //     let norm_length = norms
-        //         .iter()
-        //         .map(|norm| norm.chars().count())
-        //         .max()
-        //         .unwrap_or(14)
-        //         .max(14);
-        //     let table_width = 4 + row_length + norm_length;
-        //     writeln!(f, "{}", "┈".repeat(table_width))?;
-        //     writeln!(f, " {:<row_length$}  Frobenius norm", "Subspace",)?;
-        //     writeln!(f, "{}", "┈".repeat(table_width))?;
-        //     for (row, norm) in rows.iter().zip(norms) {
-        //         writeln!(f, " {:<row_length$}  {:<}", row, norm)?;
-        //     }
-        //     writeln!(f, "{}", "┈".repeat(table_width))?;
-        //
-        //     writeln!(f)?;
-        // }
+        let (rows, sq_norms): (Vec<_>, Vec<_>) = self
+            .projected_determinants
+            .iter()
+            .map(|(row, psd_res)| {
+                let sq_norm = psd_res
+                    .as_ref()
+                    .map_err(|err| err.to_string())
+                    .and_then(|psd| {
+                        psd.overlap(psd, self.sao.as_ref(), self.sao_h.as_ref())
+                            .map(|norm_sq| format!("{norm_sq:+.3e}"))
+                            .map_err(|err| err.to_string())
+                    })
+                    .unwrap_or_else(|err| err);
+                (row.to_string(), sq_norm)
+            })
+            .unzip();
+
+        let overlap_definition = self
+            .projected_determinants
+            .iter()
+            .next()
+            .and_then(|(_, psd_res)| psd_res.as_ref().ok().map(|psd| psd.overlap_definition()))
+            .unwrap_or("--".to_string());
+
+        writeln!(
+            f,
+            "  Squared norms are computed w.r.t. the following inner product:"
+        )?;
+        writeln!(f, "    {overlap_definition}")?;
+        writeln!(f)?;
+
+        let row_length = rows
+            .iter()
+            .map(|row| row.chars().count())
+            .max()
+            .unwrap_or(7)
+            .max(7);
+        let sq_norm_length = sq_norms
+            .iter()
+            .map(|sq_norm| sq_norm.chars().count())
+            .max()
+            .unwrap_or(12)
+            .max(12);
+        let table_width = 4 + row_length + sq_norm_length;
+        writeln!(f, "{}", "┈".repeat(table_width))?;
+        writeln!(f, " {:<row_length$}  Squared norm", "Subspace",)?;
+        writeln!(f, "{}", "┈".repeat(table_width))?;
+        for (row, sq_norm) in rows.iter().zip(sq_norms) {
+            writeln!(f, " {:<row_length$}  {:<}", row, sq_norm)?;
+        }
+        writeln!(f, "{}", "┈".repeat(table_width))?;
+
+        writeln!(f)?;
         Ok(())
     }
 }
@@ -279,6 +316,7 @@ where
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -309,7 +347,7 @@ where
     parameters: &'a SlaterDeterminantProjectionParams,
 
     /// The Slater determinant being projected.
-    slater_determinant: &'a SlaterDeterminant<'a, T, SC>,
+    determinant: &'a SlaterDeterminant<'a, T, SC>,
 
     /// The result from symmetry-group detection on the underlying molecular structure of the
     /// Slater determinant. Only the unitary symmetry group will be used for projection, since
@@ -319,6 +357,24 @@ where
     /// The result of the Slater determinant projection.
     #[builder(setter(skip), default = "None")]
     result: Option<SlaterDeterminantProjectionResult<'a, G, T, SC>>,
+
+    /// The optional atomic-orbital overlap matrix of the underlying basis set used to describe the
+    /// wavefunctions. This is either for a single component corresponding to the basis functions
+    /// specified by the basis angular order structure in the determinant in
+    /// [`Self::determinant`], or for *all* explicit components specified by the coefficients
+    /// in the determinant. This is not required for projection, and only used to compute the norm
+    /// of the resulting multi-determinants.
+    #[builder(default = "None")]
+    sao: Option<&'a Array2<T>>,
+
+    /// The complex-symmetric atomic-orbital overlap matrix of the underlying basis set used to
+    /// describe the wavefunctions. This is either for a single component corresponding to the basis
+    /// functions specified by the basis angular order structure in the determinant, or for *all*
+    /// explicit components specified by the coefficients in the determinant. If none is provided,
+    /// this will be assumed to be the same as [`Self::sao`]. This is not required for projection,
+    /// and only used to compute the norm of the resulting multi-determinants.
+    #[builder(default = "None")]
+    sao_h: Option<&'a Array2<T>>,
 }
 
 impl<'a, G, T, SC> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC>
@@ -340,7 +396,7 @@ where
             .ok_or("No symmetry group information found.".to_string())?;
 
         let _sd = self
-            .slater_determinant
+            .determinant
             .as_ref()
             .ok_or("No Slater determinant found.".to_string())?;
 
@@ -386,6 +442,70 @@ where
     /// Returns a builder to construct a [`SlaterDeterminantProjectionDriver`] structure.
     pub fn builder() -> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC> {
         SlaterDeterminantProjectionDriverBuilder::default()
+    }
+
+    /// Constructs the appropriate atomic-orbital overlap matrix based on the structure constraint
+    /// of the determinant and the specified overlap matrix.
+    fn construct_sao(&self) -> Result<(Option<Array2<T>>, Option<Array2<T>>), anyhow::Error> {
+        if let Some(provided_sao) = self.sao {
+            let nbas_set = self
+                .determinant
+                .baos()
+                .iter()
+                .map(|bao| bao.n_funcs())
+                .collect::<HashSet<_>>();
+            let uniform_component = nbas_set.len() == 1;
+            let ncomps = self
+                .determinant
+                .structure_constraint()
+                .n_explicit_comps_per_coefficient_matrix();
+            let provided_dim = provided_sao.nrows();
+
+            if uniform_component {
+                let nbas = nbas_set.iter().next().ok_or_else(|| format_err!("Unable to extract the uniform number of basis functions per explicit component."))?;
+                if provided_dim == *nbas {
+                    let sao = {
+                        let mut sao_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                        (0..ncomps).for_each(|icomp| {
+                            let start = icomp * nbas;
+                            let end = (icomp + 1) * nbas;
+                            sao_mut
+                                .slice_mut(s![start..end, start..end])
+                                .assign(provided_sao);
+                        });
+                        sao_mut
+                    };
+
+                    let sao_h_opt = self.sao_h.map(|sao_h| {
+                        let mut sao_h_mut = Array2::zeros((ncomps * nbas, ncomps * nbas));
+                        (0..ncomps).for_each(|icomp| {
+                            let start = icomp * nbas;
+                            let end = (icomp + 1) * nbas;
+                            sao_h_mut
+                                .slice_mut(s![start..end, start..end])
+                                .assign(sao_h);
+                        });
+                        sao_h_mut
+                    });
+
+                    Ok((Some(sao), sao_h_opt))
+                } else {
+                    ensure!(provided_dim == nbas * ncomps);
+                    Ok((self.sao.cloned(), self.sao_h.cloned()))
+                }
+            } else {
+                let nbas_tot = self
+                    .determinant
+                    .baos()
+                    .iter()
+                    .map(|bao| bao.n_funcs())
+                    .sum::<usize>();
+                ensure!(provided_dim == nbas_tot);
+                Ok((self.sao.cloned(), self.sao_h.cloned()))
+            }
+        } else {
+            Ok((None, None))
+        }
     }
 }
 
@@ -433,7 +553,7 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
     fn projection_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let group = construct_group_;
-        let original_sd = self.slater_determinant;
+        let original_sd = self.determinant;
         log_cc_transversal(&group);
         let baos = original_sd.baos();
         for (bao_i, bao) in baos.iter().enumerate() {
@@ -463,7 +583,7 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
             )
             .collect::<Result<Vec<_>, _>>()?;
 
-        let projected_slater_determinants = SlaterDeterminantSymmetryOrbit::builder()
+        let projected_determinants = SlaterDeterminantSymmetryOrbit::builder()
             .group(&group)
             .origin(&original_sd)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
@@ -490,6 +610,13 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
                                             .complex_conjugated(det.complex_conjugated())
                                             .mol(original_sd.mol())
                                             .coefficients(&det.coefficients().clone())
+                                            .occupations(&det.occupations().clone())
+                                            .mo_energies(det.mo_energies().cloned())
+                                            .energy(
+                                                det.energy()
+                                                    .cloned()
+                                                    .map_err(|err| err.to_string()),
+                                            )
                                             .threshold(original_sd.threshold())
                                             .build()
                                             .map_err(|err| format_err!(err))
@@ -515,11 +642,14 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
                     .collect::<Result<IndexMap<_, _>, _>>()
             })?;
 
+        let (sao_opt, sao_h_opt) = self.construct_sao()?;
         let result = SlaterDeterminantProjectionResult::builder()
             .parameters(params)
-            .slater_determinant(&self.slater_determinant)
+            .determinant(&self.determinant)
             .group(group.clone())
-            .projected_slater_determinants(projected_slater_determinants)
+            .projected_determinants(projected_determinants)
+            .sao(sao_opt)
+            .sao_h(sao_h_opt)
             .build()?;
         self.result = Some(result);
 
