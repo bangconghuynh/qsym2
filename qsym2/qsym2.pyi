@@ -25,13 +25,12 @@ class MagneticSymmetryAnalysisKind(Enum):
     Corepresentation = 1
     r""" Variant indicating that magnetic corepresentations should be used for magnetic symmetry analysis. """
 
-
 # ------------------------------
 # symmetry_transformation/mod.rs
 # ------------------------------
 
 class SymmetryTransformationKind(Enum):
-    r""" Enumerated type for managing the kind of symmetry transformation on an object. """
+    r"""Enumerated type for managing the kind of symmetry transformation on an object."""
 
     Spatial = 0
     r""" Spatial-only transformation. """
@@ -50,7 +49,7 @@ class SymmetryTransformationKind(Enum):
 # ---------------
 
 class EigenvalueComparisonMode(Enum):
-    r""" Enumerated type specifying the comparison mode for filtering out orbit overlap eigenvalues. """
+    r"""Enumerated type specifying the comparison mode for filtering out orbit overlap eigenvalues."""
 
     Real = 0
     r""" Compares the eigenvalues using only their real parts. """
@@ -571,7 +570,6 @@ class PySlaterDeterminantRepAnalysisResult:
     if required.
     """
 
-
 def rep_analyse_slater_determinant(
     inp_sym: str,
     pydet: PySlaterDeterminant,
@@ -596,15 +594,15 @@ def rep_analyse_slater_determinant(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
-    angular_function_max_angular_momentum: int = 2
+    angular_function_max_angular_momentum: int = 2,
 ) -> PySlaterDeterminantRepAnalysisResult:
     r"""
     Python-exposed function to perform representation symmetry analysis for real and complex
     Slater determinants and log the result via the `qsym2-output` logger at the `INFO` level.
-   
+
     If `symmetry_transformation_kind` includes spin transformation, the provided determinant will
     be augmented to generalised spin constraint automatically.
-   
+
     :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
         This will be used to construct abstract groups and character tables for representation analysis.
     :param pydet: A Python-exposed Slater determinant whose coefficients are of type `float64` or `complex128`.
@@ -634,7 +632,7 @@ def rep_analyse_slater_determinant(
     :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
     :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
     :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
-   
+
     :return: A Python-exposed [`PySlaterDeterminantRepAnalysisResult`] structure containing the results of the representation analysis.
     """
 
@@ -669,3 +667,79 @@ class PyDensityReal:
 
     threshold: float
     r""" The threshold for comparisons. """
+
+class PyDensityComplex:
+    r"""
+    Python-exposed structure to marshall complex electron density information between Rust and Python.
+    """
+
+    def __init__(
+        self,
+        complex_symmetric: bool,
+        density_matrix: Py2DArray_c128,
+        threshold: float,
+    ) -> None:
+        r"""
+        Constructs a complex Python-exposed electron density.
+
+        :param complex_symmetric: A boolean indicating if inner products involving this density are complex-symmetric.
+        :param density_matrix: The complex density matrix describing this density.
+        :param threshold: The threshold for comparisons.
+        """
+
+    complex_symmetric: bool
+    r""" Boolean indicating if inner products involving this density are complex-symmetric. """
+
+    density_matrix: Py2DArray_c128
+    r""" The complex density matrix describing this density. """
+
+    threshold: float
+    r""" The threshold for comparisons. """
+
+type PyDensity = PyDensityReal | PyDensityComplex
+
+def rep_analyse_densities(
+    inp_sym: str,
+    pydens: list[tuple[str, PyDensity]],
+    pybao: PyBasisAngularOrder,
+    integrality_threshold: float,
+    linear_independence_threshold: float,
+    use_magnetic_group: MagneticSymmetryAnalysisKind | None,
+    use_double_group: bool,
+    use_cayley_table: bool,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao_spatial_4c: Py4DArray_f64 | Py4DArray_c128,
+    sao_spatial_4c_h: Py4DArray_f64 | Py4DArray_c128 | None = None,
+    write_character_table: bool = True,
+    infinite_order_to_finite: int | None = None,
+    angular_function_integrality_threshold: float = 1e-7,
+    angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_max_angular_momentum: int = 2,
+):
+    r"""
+    Python-exposed function to perform representation symmetry analysis for real and complex
+    electron densities and log the result via the `qsym2-output` logger at the `INFO` level.
+
+    :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
+        This will be used to construct abstract groups and character tables for representation analysis.
+    :param pydens: A sequence of Python-exposed electron densities whose density matrices are of type `float64` or `complex128`.
+        Each density is accompanied by a description string.
+    :param pybao: Python-exposed structure containing basis angular order information for the density matrices.
+    :param integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
+    :param linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+    :param use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
+    :param use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
+    :param use_cayley_table: A boolean indicating if the Cayley table for the group, if available, should be used to speed up the calculation of orbit overlap matrices.
+    :param symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin electron density to generate the orbit.
+    :param eigenvalue_comparison_mode: An enumerated type indicating the mode of comparison of orbit overlap eigenvalues with the specified `linear_independence_threshold`.
+    :param sao_spatial_4c: The atomic-orbital four-centre overlap matrix whose elements are of type `float64` or `complex128`.
+    :param sao_spatial_4c_h: The optional complex-symmetric atomic-orbital four-centre overlap matrix whose elements are of type `float64` or `complex128`.
+        This is required if antiunitary symmetry operations are involved.
+    :param write_character_table: A boolean indicating if the character table of the prevailing symmetry group is to be printed out.
+    :param infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group.
+        This finite subgroup will be used for symmetry analysis.
+    :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
+    :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+    :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+    """
