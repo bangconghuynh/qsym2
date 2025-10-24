@@ -47,6 +47,10 @@ pub fn qsym2(_py: Python<'_>, m: Bound<'_, PyModule>) -> PyResult<()> {
         &m
     )?)?;
     m.add_function(wrap_pyfunction!(
+        projection::slater_determinant::project_slater_determinant,
+        &m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
         representation_analysis::density::rep_analyse_densities,
         &m
     )?)?;

@@ -9,6 +9,7 @@ use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::{IntoPyObjectExt, prelude::*};
 
 use crate::bindings::python::integrals::PyBasisAngularOrder;
+use crate::bindings::python::projection::PyProjectionTarget;
 use crate::bindings::python::representation_analysis::density::{
     PyDensity, PyDensityComplex, PyDensityReal,
 };
@@ -25,12 +26,6 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::density::Density;
 
 type C128 = Complex<f64>;
-
-#[derive(FromPyObject)]
-enum PyProjectionTarget {
-    Symbolic(String),
-    Numeric(usize),
-}
 
 // =====================
 // Functions definitions

@@ -115,12 +115,12 @@ impl PyMultiDeterminantsReal {
         Ok(self.energies.to_pyarray(py))
     }
 
-    pub fn complex_symmetric<'py>(&self, py: Python<'py>) -> PyResult<bool> {
+    pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         let complex_symmetric_set = self
             .basis
             .iter()
-            .map(|pydet| pydet.complex_symmetric(py))
-            .collect::<Result<HashSet<_>, _>>()?;
+            .map(|pydet| pydet.complex_symmetric)
+            .collect::<HashSet<_>>();
         if complex_symmetric_set.len() != 1 {
             Err(PyRuntimeError::new_err(
                 "Inconsistent complex-symmetric flags across basis functions.",
@@ -289,12 +289,12 @@ impl PyMultiDeterminantsComplex {
         Ok(self.energies.to_pyarray(py))
     }
 
-    pub fn complex_symmetric<'py>(&self, py: Python<'py>) -> PyResult<bool> {
+    pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         let complex_symmetric_set = self
             .basis
             .iter()
-            .map(|pydet| pydet.complex_symmetric(py))
-            .collect::<Result<HashSet<_>, _>>()?;
+            .map(|pydet| pydet.complex_symmetric)
+            .collect::<HashSet<_>>();
         if complex_symmetric_set.len() != 1 {
             Err(PyRuntimeError::new_err(
                 "Inconsistent complex-symmetric flags across basis functions.",
