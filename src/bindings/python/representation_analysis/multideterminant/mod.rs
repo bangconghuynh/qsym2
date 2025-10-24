@@ -42,28 +42,20 @@ type C128 = Complex<f64>;
 #[derive(Clone)]
 pub struct PyMultiDeterminantsReal {
     /// The basis of Slater determinants in which the multi-determinantal states are expressed.
-    ///
-    /// Python type: `list[PySlaterDeterminantReal]`.
     #[pyo3(get)]
     basis: Vec<PySlaterDeterminantReal>,
 
     /// The coefficients for the multi-determinantal states in the specified basis. Each column of
     /// the coefficient matrix contains the coefficients for one state.
-    ///
-    /// Python type: `numpy.2darray[float]`.
     coefficients: Array2<f64>,
 
     /// The energies of the multi-determinantal states.
-    ///
-    /// Python type: `numpy.1darray[float]`.
     energies: Array1<f64>,
 
     /// The density matrices for the multi-determinantal states in the specified basis.
     density_matrices: Option<Vec<Array2<f64>>>,
 
     /// The threshold for comparisons.
-    ///
-    /// Python type: `float`.
     #[pyo3(get)]
     threshold: f64,
 }
@@ -75,13 +67,12 @@ impl PyMultiDeterminantsReal {
     /// # Arguments
     ///
     /// * `basis` - The basis of Slater determinants in which the multi-determinantal states are
-    /// expressed. Python type: `list[PySlaterDeterminantReal]`.
+    /// expressed.
     /// * `coefficients` - The coefficients for the multi-determinantal states in the specified basis.
     /// Each column of the coefficient matrix contains the coefficients for one state.
-    /// Python type: `numpy.2darray[float]`.
-    /// * `energies` - The energies of the multi-determinantal states. Python type: `numpy.1darray[float]`.
+    /// * `energies` - The energies of the multi-determinantal states.
     /// * `density_matrices` - The optional density matrices of the multi-determinantal states.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `threshold` - The threshold for comparisons.
     #[new]
     #[pyo3(signature = (basis, coefficients, energies, density_matrices, threshold))]
     pub fn new(
@@ -141,6 +132,8 @@ impl PyMultiDeterminantsReal {
         }))
     }
 
+    /// Boolean indicating whether inner products involving these multi-determinantal states are
+    /// complex-symmetric.
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         let complex_symmetric_set = self
             .basis
@@ -158,6 +151,7 @@ impl PyMultiDeterminantsReal {
         }
     }
 
+    /// Returns the coefficients for a particular state.
     pub fn state_coefficients<'py>(
         &self,
         py: Python<'py>,
@@ -166,10 +160,12 @@ impl PyMultiDeterminantsReal {
         Ok(self.coefficients.column(state_index).to_pyarray(py))
     }
 
+    /// Returns the energy for a particular state.
     pub fn state_energy<'py>(&self, _py: Python<'py>, state_index: usize) -> PyResult<f64> {
         Ok(self.energies[state_index])
     }
 
+    /// Returns the density matrix for a particular state.
     pub fn state_density_matrix<'py>(
         &self,
         py: Python<'py>,
@@ -256,28 +252,20 @@ impl PyMultiDeterminantsReal {
 #[derive(Clone)]
 pub struct PyMultiDeterminantsComplex {
     /// The basis of Slater determinants in which the multi-determinantal states are expressed.
-    ///
-    /// Python type: `list[PySlaterDeterminantReal]`.
     #[pyo3(get)]
     basis: Vec<PySlaterDeterminantComplex>,
 
     /// The coefficients for the multi-determinantal states in the specified basis. Each column of
     /// the coefficient matrix contains the coefficients for one state.
-    ///
-    /// Python type: `numpy.2darray[complex]`.
     coefficients: Array2<C128>,
 
     /// The energies of the multi-determinantal states.
-    ///
-    /// Python type: `numpy.1darray[complex]`.
     energies: Array1<C128>,
 
     /// The density matrices for the multi-determinantal states in the specified basis.
     density_matrices: Option<Vec<Array2<C128>>>,
 
     /// The threshold for comparisons.
-    ///
-    /// Python type: `float`.
     #[pyo3(get)]
     threshold: f64,
 }
@@ -289,13 +277,12 @@ impl PyMultiDeterminantsComplex {
     /// # Arguments
     ///
     /// * `basis` - The basis of Slater determinants in which the multi-determinantal states are
-    /// expressed. Python type: `list[PySlaterDeterminantComplex]`.
+    /// expressed.
     /// * `coefficients` - The coefficients for the multi-determinantal states in the specified basis.
     /// Each column of the coefficient matrix contains the coefficients for one state.
-    /// Python type: `numpy.2darray[complex]`.
-    /// * `energies` - The energies of the multi-determinantal states. Python type: `numpy.1darray[complex]`.
+    /// * `energies` - The energies of the multi-determinantal states.
     /// * `density_matrices` - The optional density matrices of the multi-determinantal states.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `threshold` - The threshold for comparisons.
     #[new]
     #[pyo3(signature = (basis, coefficients, energies, density_matrices, threshold))]
     pub fn new(
@@ -355,6 +342,8 @@ impl PyMultiDeterminantsComplex {
         }))
     }
 
+    /// Boolean indicating whether inner products involving these multi-determinantal states are
+    /// complex-symmetric.
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
         let complex_symmetric_set = self
             .basis
@@ -372,6 +361,7 @@ impl PyMultiDeterminantsComplex {
         }
     }
 
+    /// Returns the coefficients for a particular state.
     pub fn state_coefficients<'py>(
         &self,
         py: Python<'py>,
@@ -380,10 +370,12 @@ impl PyMultiDeterminantsComplex {
         Ok(self.coefficients.column(state_index).to_pyarray(py))
     }
 
+    /// Returns the energy for a particular state.
     pub fn state_energy<'py>(&self, _py: Python<'py>, state_index: usize) -> PyResult<C128> {
         Ok(self.energies[state_index])
     }
 
+    /// Returns the density matrix for a particular state.
     pub fn state_density_matrix<'py>(
         &self,
         py: Python<'py>,

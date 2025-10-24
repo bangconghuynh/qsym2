@@ -20,10 +20,10 @@ class MagneticSymmetryAnalysisKind(Enum):
     """
 
     Representation = 0
-    r""" Variant indicating that unitary representations should be used for magnetic symmetry analysis. """
+    r"""Variant indicating that unitary representations should be used for magnetic symmetry analysis."""
 
     Corepresentation = 1
-    r""" Variant indicating that magnetic corepresentations should be used for magnetic symmetry analysis. """
+    r"""Variant indicating that magnetic corepresentations should be used for magnetic symmetry analysis."""
 
 # ------------------------------
 # symmetry_transformation/mod.rs
@@ -33,16 +33,16 @@ class SymmetryTransformationKind(Enum):
     r"""Enumerated type for managing the kind of symmetry transformation on an object."""
 
     Spatial = 0
-    r""" Spatial-only transformation. """
+    r"""Spatial-only transformation."""
 
     SpatialWithSpinTimeReversal = 1
-    r""" Spatial-only transformation but with spin-including time reversal. """
+    r"""Spatial-only transformation but with spin-including time reversal."""
 
     Spin = 2
-    r""" Spin-only transformation. """
+    r"""Spin-only transformation."""
 
     SpinSpatial = 3
-    r""" Spin-spatial coupled transformation. """
+    r"""Spin-spatial coupled transformation."""
 
 # ---------------
 # analysis/mod.rs
@@ -52,10 +52,10 @@ class EigenvalueComparisonMode(Enum):
     r"""Enumerated type specifying the comparison mode for filtering out orbit overlap eigenvalues."""
 
     Real = 0
-    r""" Compares the eigenvalues using only their real parts. """
+    r"""Compares the eigenvalues using only their real parts."""
 
     Modulus = 1
-    r""" Compares the eigenvalues using their moduli. """
+    r"""Compares the eigenvalues using their moduli."""
 
 # -------------------------------------------
 # bindings/python/symmetry_group_detection.rs
@@ -83,16 +83,16 @@ class PyMolecule:
         """
 
     atoms: list[tuple[str, tuple[float, float, float]]]
-    r""" The ordinary atoms in the molecule. """
+    r"""The ordinary atoms in the molecule."""
 
     threshold: float
-    r""" Threshold for comparing molecules. """
+    r"""Threshold for comparing molecules."""
 
     magnetic_field: tuple[float, float, float] | None
-    r""" The uniform external magnetic field, if any. """
+    r"""The uniform external magnetic field, if any."""
 
     electric_field: tuple[float, float, float] | None
-    r""" The uniform external electric field, if any. """
+    r"""The uniform external electric field, if any."""
 
 class PySymmetryElementKind(Enum):
     r"""
@@ -108,16 +108,16 @@ class PySymmetryElementKind(Enum):
     """
 
     Proper = 0
-    r""" Variant denoting proper symmetry elements. """
+    r"""Variant denoting proper symmetry elements."""
 
     ProperTR = 1
-    r""" Variant denoting time-reversed proper symmetry elements. """
+    r"""Variant denoting time-reversed proper symmetry elements."""
 
     ImproperMirrorPlane = 2
-    r""" Variant denoting improper symmetry elements (mirror-plane convention). """
+    r"""Variant denoting improper symmetry elements (mirror-plane convention)."""
 
     ImproperMirrorPlaneTR = 3
-    r""" Variant denoting time-reversed improper symmetry elements (mirror-plane convention). """
+    r"""Variant denoting time-reversed improper symmetry elements (mirror-plane convention)."""
 
 class PySymmetry:
     r"""
@@ -160,7 +160,7 @@ class PySymmetry:
         """
 
     group_name: str
-    r""" The name of the symmetry group. """
+    r"""The name of the symmetry group."""
 
 def detect_symmetry_group(
     inp_xyz: str | None,
@@ -264,22 +264,22 @@ class ShellType(Enum):
     """
 
     Pure = 0
-    r""" Variant for a pure shell. """
+    r"""Variant for a pure shell."""
 
     Cartesian = 1
-    r""" Variant for a Cartesian shell. """
+    r"""Variant for a Cartesian shell."""
 
     SpinorFermion = 2
-    r""" Variant for a spinor shell corresponding to a fermion without any additional balance symmetries. """
+    r"""Variant for a spinor shell corresponding to a fermion without any additional balance symmetries."""
 
     SpinorFermionKineticBalance = 3
-    r""" Variant for a spinor shell corresponding to a fermion with the kinetic balance symmetry due to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$. """
+    r"""Variant for a spinor shell corresponding to a fermion with the kinetic balance symmetry due to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$."""
 
     SpinorAntifermion = 4
-    r""" Variant for a spinor shell corresponding to an antifermion without any additional balance symmetries. """
+    r"""Variant for a spinor shell corresponding to an antifermion without any additional balance symmetries."""
 
     SpinorAntifermionKineticBalance = 5
-    r""" Variant for a spinor shell describing an antifermion with the kinetic balance symmetry due to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$. """
+    r"""Variant for a spinor shell describing an antifermion with the kinetic balance symmetry due to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$."""
 
 class PyBasisAngularOrder:
     """
@@ -340,13 +340,13 @@ class PySpinConstraint(Enum):
     """
 
     Restricted = 0
-    r""" Variant for restricted spin constraint. Only two spin spaces are exposed. """
+    r"""Variant for restricted spin constraint. Only two spin spaces are exposed."""
 
     Unrestricted = 1
-    r""" Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed. """
+    r"""Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed."""
 
     Generalised = 2
-    r""" Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed. """
+    r"""Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed."""
 
 class PySpinOrbitCoupled:
     r"""
@@ -479,22 +479,22 @@ class PySlaterDeterminantReal:
         """
 
     complex_symmetric: bool
-    r""" Boolean indicating if inner products involving this determinant are complex-symmetric. """
+    r"""Boolean indicating if inner products involving this determinant are complex-symmetric."""
 
     coefficients: list[Py2DArray_f64]
-    r""" The real coefficient matrices for the molecular orbitals of this determinant, one for each spin space. """
+    r"""The real coefficient matrices for the molecular orbitals of this determinant, one for each spin space."""
 
     occupations: list[Py1DArray_f64]
-    r""" The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space. """
+    r"""The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space."""
 
     threshold: float
-    r""" The threshold for comparisons. """
+    r"""The threshold for comparisons."""
 
     mo_energies: list[Py1DArray_f64] | None
-    r""" The real molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space. """
+    r"""The real molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space."""
 
     energy: float | None
-    r""" The real determinantal energy, if any. """
+    r"""The real determinantal energy, if any."""
 
 class PySlaterDeterminantComplex:
     r"""
@@ -524,22 +524,22 @@ class PySlaterDeterminantComplex:
         """
 
     complex_symmetric: bool
-    r""" Boolean indicating if inner products involving this determinant are complex-symmetric. """
+    r"""Boolean indicating if inner products involving this determinant are complex-symmetric."""
 
     coefficients: list[Py2DArray_c128]
-    r""" The complex coefficient matrices for the molecular orbitals of this determinant, one for each spin space. """
+    r"""The complex coefficient matrices for the molecular orbitals of this determinant, one for each spin space."""
 
     occupations: list[Py1DArray_f64]
-    r""" The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space. """
+    r"""The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space."""
 
     threshold: float
-    r""" The threshold for comparisons. """
+    r"""The threshold for comparisons."""
 
     mo_energies: list[Py1DArray_c128] | None
-    r""" The complex molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space. """
+    r"""The complex molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space."""
 
     energy: float | None
-    r""" The complex determinantal energy, if any. """
+    r"""The complex determinantal energy, if any."""
 
 type PySlaterDeterminant = PySlaterDeterminantReal | PySlaterDeterminantComplex
 
@@ -549,13 +549,13 @@ class PySlaterDeterminantRepAnalysisResult:
     """
 
     group: str
-    r""" The group used for the representation analysis. """
+    r"""The group used for the representation analysis."""
 
     determinant_symmetry: str | None
-    r""" The deduced overall symmetry of the determinant. """
+    r"""The deduced overall symmetry of the determinant."""
 
     mo_symmetries: list[list[str | None]] | None
-    r""" The deduced symmetries of the molecular orbitals constituting the determinant, if required. """
+    r"""The deduced symmetries of the molecular orbitals constituting the determinant, if required."""
 
     determinant_density_symmetries: list[tuple[str, str | None]] | None
     r"""
@@ -660,13 +660,13 @@ class PyDensityReal:
         """
 
     complex_symmetric: bool
-    r""" Boolean indicating if inner products involving this density are complex-symmetric. """
+    r"""Boolean indicating if inner products involving this density are complex-symmetric."""
 
     density_matrix: Py2DArray_f64
-    r""" The real density matrix describing this density. """
+    r"""The real density matrix describing this density."""
 
     threshold: float
-    r""" The threshold for comparisons. """
+    r"""The threshold for comparisons."""
 
 class PyDensityComplex:
     r"""
@@ -688,13 +688,13 @@ class PyDensityComplex:
         """
 
     complex_symmetric: bool
-    r""" Boolean indicating if inner products involving this density are complex-symmetric. """
+    r"""Boolean indicating if inner products involving this density are complex-symmetric."""
 
     density_matrix: Py2DArray_c128
-    r""" The complex density matrix describing this density. """
+    r"""The complex density matrix describing this density."""
 
     threshold: float
-    r""" The threshold for comparisons. """
+    r"""The threshold for comparisons."""
 
 type PyDensity = PyDensityReal | PyDensityComplex
 
@@ -756,7 +756,7 @@ class PyVibrationalCoordinateCollectionReal:
     def __init__(
         self,
         coefficients: Py2DArray_f64,
-        frequencies: Py2DArray_f64,
+        frequencies: Py1DArray_f64,
         threshold: float,
     ) -> None:
         r"""
@@ -768,13 +768,13 @@ class PyVibrationalCoordinateCollectionReal:
         """
 
     coefficients: Py2DArray_f64
-    r""" The real coefficients for the vibrational coordinates of this collection. """
+    r"""The real coefficients for the vibrational coordinates of this collection."""
 
     frequencies: Py1DArray_f64
-    r""" The real vibrational frequencies. """
+    r"""The real vibrational frequencies."""
 
     threshold: float
-    r""" The threshold for comparisons. """
+    r"""The threshold for comparisons."""
 
 class PyVibrationalCoordinateCollectionComplex:
     r"""
@@ -784,7 +784,7 @@ class PyVibrationalCoordinateCollectionComplex:
     def __init__(
         self,
         coefficients: Py2DArray_c128,
-        frequencies: Py2DArray_c128,
+        frequencies: Py1DArray_c128,
         threshold: float,
     ) -> None:
         r"""
@@ -796,13 +796,13 @@ class PyVibrationalCoordinateCollectionComplex:
         """
 
     coefficients: Py2DArray_c128
-    r""" The complex coefficients for the vibrational coordinates of this collection. """
+    r"""The complex coefficients for the vibrational coordinates of this collection."""
 
     frequencies: Py1DArray_c128
-    r""" The complex vibrational frequencies. """
+    r"""The complex vibrational frequencies."""
 
     threshold: float
-    r""" The threshold for comparisons. """
+    r"""The threshold for comparisons."""
 
 type PyVibrationalCoordinateCollection = (
     PyVibrationalCoordinateCollectionReal | PyVibrationalCoordinateCollectionComplex
@@ -822,13 +822,13 @@ def rep_analyse_vibrational_coordinate_collection(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
-    angular_function_max_angular_momentum: int = 2
+    angular_function_max_angular_momentum: int = 2,
 ) -> None:
     r"""
     Python-exposed function to perform representation symmetry analysis for real and complex
     vibrational coordinate collections and log the result via the `qsym2-output` logger at the
     `INFO` level.
-   
+
     :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
         This will be used to construct abstract groups and character tables for representation analysis.
     :param pyvibs: A Python-exposed vibrational coordinate collection whose coefficients are of type `float64` or `complex128`.
@@ -846,3 +846,117 @@ def rep_analyse_vibrational_coordinate_collection(
     :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
     :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
     """
+
+# ---------------------------------------------------------------
+# bindings/python/representation_analysis/multideterminant/mod.rs
+# ---------------------------------------------------------------
+
+class PyMultiDeterminantsReal:
+    r"""
+    Python-exposed structure to marshall real multi-determinant information between Rust and Python.
+    """
+
+    def __init__(
+        self,
+        basis: list[PySlaterDeterminantReal],
+        coefficients: Py2DArray_f64,
+        energies: Py1DArray_f64,
+        density_matrices: list[Py2DArray_f64] | None,
+        threshold: float,
+    ) -> None:
+        r"""
+        Constructs a set of real Python-exposed multi-determinants.
+
+        :param basis: The basis of Slater determinants in which the multi-determinantal states are expressed.
+        :param coefficients: The coefficients for the multi-determinantal states in the specified basis.
+            Each column of the coefficient matrix contains the coefficients for one state.
+        :param energies: The energies of the multi-determinantal states.
+        :param density_matrices: The optional density matrices of the multi-determinantal states.
+        :param threshold: The threshold for comparisons.
+        """
+
+    basis: list[PySlaterDeterminantReal]
+    r"""The basis of Slater determinants in which the multi-determinantal states are expressed."""
+
+    coefficients: Py2DArray_f64
+    r"""
+    The coefficients for the multi-determinantal states in the specified basis.
+    Each column of the coefficient matrix contains the coefficients for one state.
+    """
+
+    energies: Py1DArray_f64
+    r"""The energies of the multi-determinantal states."""
+
+    density_matrices: list[Py2DArray_f64] | None
+    r"""The density matrices for the multi-determinantal states in the specified basis, if any."""
+
+    threshold: float
+    r"""The threshold for comparisons."""
+
+    def complex_symmetric(self) -> bool:
+        r"""Boolean indicating whether inner products involving these multi-determinantal states are complex-symmetric."""
+
+    def state_coefficients(self, state_index: int) -> Py1DArray_f64:
+        r"""Returns the coefficients for a particular state."""
+
+    def state_energy(self, state_index: int) -> float:
+        r"""Returns the energy for a particular state."""
+
+    def state_density_matrix(self, state_index: int) -> Py2DArray_f64:
+        r"""Returns the density matrix for a particular state."""
+
+class PyMultiDeterminantsComplex:
+    r"""
+    Python-exposed structure to marshall complex multi-determinant information between Rust and Python.
+    """
+
+    def __init__(
+        self,
+        basis: list[PySlaterDeterminantComplex],
+        coefficients: Py2DArray_c128,
+        energies: Py1DArray_c128,
+        density_matrices: list[Py2DArray_c128] | None,
+        threshold: float,
+    ) -> None:
+        r"""
+        Constructs a set of complex Python-exposed multi-determinants.
+
+        :param basis: The basis of Slater determinants in which the multi-determinantal states are expressed.
+        :param coefficients: The coefficients for the multi-determinantal states in the specified basis.
+            Each column of the coefficient matrix contains the coefficients for one state.
+        :param energies: The energies of the multi-determinantal states.
+        :param density_matrices: The optional density matrices of the multi-determinantal states.
+        :param threshold: The threshold for comparisons.
+        """
+
+    basis: list[PySlaterDeterminantComplex]
+    r"""The basis of Slater determinants in which the multi-determinantal states are expressed."""
+
+    coefficients: Py2DArray_c128
+    r"""
+    The coefficients for the multi-determinantal states in the specified basis.
+    Each column of the coefficient matrix contains the coefficients for one state.
+    """
+
+    energies: Py1DArray_c128
+    r"""The energies of the multi-determinantal states."""
+
+    density_matrices: list[Py2DArray_c128] | None
+    r"""The density matrices for the multi-determinantal states in the specified basis, if any."""
+
+    threshold: float
+    r"""The threshold for comparisons."""
+
+    def complex_symmetric(self) -> bool:
+        r"""Boolean indicating whether inner products involving these multi-determinantal states are complex-symmetric."""
+
+    def state_coefficients(self, state_index: int) -> Py1DArray_c128:
+        r"""Returns the coefficients for a particular state."""
+
+    def state_energy(self, state_index: int) -> float:
+        r"""Returns the energy for a particular state."""
+
+    def state_density_matrix(self, state_index: int) -> Py2DArray_c128:
+        r"""Returns the density matrix for a particular state."""
+
+type PyMultiDeterminants = PyMultiDeterminantsReal | PyMultiDeterminantsComplex
