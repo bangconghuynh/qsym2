@@ -1,5 +1,8 @@
-import typing
+from typing import Optional
 import numpy as np
+import numpy.typing as npt
+
+from enum import Enum
 
 # ---------------------------
 # symmetry_group_detection.rs
@@ -38,10 +41,9 @@ class PyMolecule:
     electric_field: tuple[float, float, float] | None
     r""" The uniform external electric field, if any. """
 
-class PySymmetryElementKind:
+class PySymmetryElementKind(Enum):
     r"""
-    Python-exposed enumerated type to marshall symmetry element kind information one-way from Rust to
-    Python.
+    Python-exposed enumerated type to marshall symmetry element kind information one-way from Rust to Python.
 
     The possible variants are:
         * `PySymmetryElementKind.Proper`: variant denoting proper symmetry elements,
@@ -51,6 +53,18 @@ class PySymmetryElementKind:
         * `PySymmetryElementKind.ImproperMirrorPlaneTR`: variant denoting time-reversed improper
         symmetry elements (mirror-plane convention).
     """
+
+    Proper = 0
+    r""" Variant denoting proper symmetry elements. """
+
+    ProperTR = 1
+    r""" Variant denoting time-reversed proper symmetry elements. """
+
+    ImproperMirrorPlane = 2
+    r""" Variant denoting improper symmetry elements (mirror-plane convention). """
+
+    ImproperMirrorPlaneTR = 3
+    r""" Variant denoting time-reversed improper symmetry elements (mirror-plane convention). """
 
 class PySymmetry:
     r"""
@@ -64,7 +78,7 @@ class PySymmetry:
 
     def get_elements_of_kind(
         self, kind: PySymmetryElementKind
-    ) -> dict[int, list[np.ndarray[tuple[typing.Any], np.dtype[np.float64]]]]:
+    ) -> dict[int, list[npt.NDArray[np.float64]]]:
         r"""
         Returns symmetry elements of all *finite* orders of a given kind.
 
@@ -81,7 +95,7 @@ class PySymmetry:
 
     def get_generators_of_kind(
         self, kind: PySymmetryElementKind
-    ) -> dict[int, list[np.ndarray[tuple[typing.Any], np.dtype[np.float64]]]]:
+    ) -> dict[int, list[npt.NDArray[np.float64]]]:
         r"""
         Returns symmetry generators of *finite*  and *infinite* orders of a given kind.
 
@@ -134,7 +148,7 @@ def detect_symmetry_group(
 def symmetrise_molecule(
     inp_xyz: str | None,
     inp_mol: PyMolecule | None,
-    out_target_sym: str | None =None,
+    out_target_sym: str | None = None,
     loose_moi_threshold: float = 1e-2,
     loose_distance_threshold: float = 1e-2,
     target_moi_threshold: float = 1e-7,
@@ -144,12 +158,12 @@ def symmetrise_molecule(
     max_iterations: int = 50,
     consistent_target_symmetry_iterations: int = 10,
     verbose: int = 0,
-    infinite_order_to_finite: int | None = None
+    infinite_order_to_finite: int | None = None,
 ) -> PyMolecule:
     r"""
     Python-exposed function to perform molecule symmetrisation by bootstrapping and log the result
     via the `qsym2-output` logger at the `INFO` level.
-   
+
     :param inp_xyz: An optional string providing the path to an XYZ file containing the molecule to be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified.
     :param inp_mol: An optional `PyMolecule` structure containing the molecule to be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified.
     :param out_target_sym: An optional path for a [`QSym2FileType::Sym`] file to be saved that contains the symmetry-group detection results of the symmetrised molecule at the target thresholds.
@@ -163,9 +177,9 @@ def symmetrise_molecule(
     :param consistent_target_symmetry_iterations: The number of consecutive iterations during which the symmetry group at the target level of threshold must be consistently found for convergence to be reached, if this group cannot become identical to the symmetry group at the loose level of threshold.
     :param verbose: The print-out level.
     :param infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup will be used for the symmetrisation.
-   
+
     :return: The symmetrised molecule.
-   
+
     :error: Errors if any intermediate step in the symmetrisation procedure fails.
     """
 
@@ -173,32 +187,11 @@ def symmetrise_molecule(
 # integrals.rs
 # ------------
 
-class PyPureSpinorOrder:
-    r"""
-    Python-exposed enumerated type to handle the union type `(bool, bool) | (list[int], bool)` in
-    Python for specifying pure-spherical-harmonic order or spinor order.
+type PyPureSpinorOrder = tuple[bool, bool] | tuple[list[int], bool]
 
-    The possible forms are:
-        * `(bool, bool)`: form for standard pure or spinor shell order. The first associated
-        boolean indicates if the functions are arranged in increasing-$`m`$ order, and the second
-        associated boolean indicates if the shell is even with respect to spatial inversion,
-        * `(list[int], bool)`: form for custom pure or spinor shell order. The associated vector
-        contains a sequence of integers specifying the order of $`m`$ values for pure or $`2m`$
-        values for spinor in the shell, and the associated boolean indicates if the shell is even
-        with respect to spatial inversion.
-    """
+type PyShellOrder = PyPureSpinorOrder | list[tuple[int, int, int]] | None
 
-class PyShellOrder:
-    r"""
-    Python-exposed enumerated type to handle the `ShellOrder` union type `PyPureSpinorOrder |
-    Optional[list[tuple[int, int, int]]]` in Python.
-
-    The possible forms are:
-        * `PyPureSpinorOrder`: form for pure or spinor shell order,
-        * `Optional[list[tuple[int, int, int]]]`: form for Cartesian shell order.
-    """
-
-class ShellType:
+class ShellType(Enum):
     r"""
     Python-exposed enumerated type indicating the shell type.
 
@@ -216,6 +209,24 @@ class ShellType:
         describing an antifermion with the kinetic balance symmetry due to
         $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
     """
+
+    Pure = 0
+    r""" Variant for a pure shell. """
+
+    Cartesian = 1
+    r""" Variant for a Cartesian shell. """
+
+    SpinorFermion = 2
+    r""" Variant for a spinor shell corresponding to a fermion without any additional balance symmetries. """
+
+    SpinorFermionKineticBalance = 3
+    r""" Variant for a spinor shell corresponding to a fermion with the kinetic balance symmetry due to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$. """
+
+    SpinorAntifermion = 4
+    r""" Variant for a spinor shell corresponding to an antifermion without any additional balance symmetries. """
+
+    SpinorAntifermionKineticBalance = 5
+    r""" Variant for a spinor shell describing an antifermion with the kinetic balance symmetry due to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$. """
 
 class PyBasisAngularOrder:
     """
@@ -263,10 +274,9 @@ class PyBasisAngularOrder:
         the HDF5 archive file is also logged at the `INFO` level.
         """
 
-class PySpinConstraint:
+class PySpinConstraint(Enum):
     r"""
-    Python-exposed enumerated type to marshall basis spin constraint information between Rust and
-    Python.
+    Python-exposed enumerated type to marshall basis spin constraint information between Rust and Python.
 
     The possible variants are:
         * `PySpinConstraint.Restricted`: variant for restricted spin constraint. Only two spin spaces are exposed,
@@ -275,6 +285,15 @@ class PySpinConstraint:
         * `PySpinConstraint.Generalised`: variant for generalised spin constraint. Only two spin spaces arranged in
         decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed.
     """
+
+    Restricted = 0
+    r""" Variant for restricted spin constraint. Only two spin spaces are exposed. """
+
+    Unrestricted = 1
+    r""" Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed. """
+
+    Generalised = 2
+    r""" Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$ order (*i.e.* $`(\alpha, \beta)`$) are exposed. """
 
 class PySpinOrbitCoupled:
     r"""
@@ -286,15 +305,7 @@ class PySpinOrbitCoupled:
         * `PySpinOrbitCoupled.JAdapted4C`: variant for four-component $`j`$-adapted basis functions.
     """
 
-class PyStructureConstraint:
-    r"""
-    Python-exposed enumerated type to handle the union type `PySpinConstraint | PySpinOrbitCoupled`
-    in Python.
-
-    The possible forms are:
-        * `PySpinConstraint`: form for Python-exposed spin constraint layout,
-        * `PySpinOrbitCoupled`: form for Python-exposed spin--orbit-coupled layout.
-    """
+type PyStructureConstraint = PySpinConstraint | PySpinOrbitCoupled
 
 class PyBasisShellContraction:
     r"""
@@ -335,7 +346,7 @@ class PyBasisShellContraction:
 
 def calc_overlap_2c_real(
     basis_set: list[list[PyBasisShellContraction]],
-) -> np.ndarray[tuple[typing.Any, typing.Any], np.dtype[np.float64]]:
+) -> npt.NDArray[np.float64]:
     r"""
     Calculates the real-valued two-centre overlap matrix for a basis set.
 
@@ -348,7 +359,7 @@ def calc_overlap_2c_real(
 
 def calc_overlap_2c_complex(
     basis_set: list[list[PyBasisShellContraction]], complex_symmetric: bool
-) -> np.ndarray[tuple[typing.Any, typing.Any], np.dtype[np.complex128]]:
+) -> npt.NDArray[np.complex128]:
     r"""
     Calculates the complex-valued two-centre overlap matrix for a basis set.
 
@@ -360,9 +371,7 @@ def calc_overlap_2c_complex(
 
 def calc_overlap_4c_real(
     basis_set: list[list[PyBasisShellContraction]],
-) -> np.ndarray[
-    tuple[typing.Any, typing.Any, typing.Any, typing.Any], np.dtype[np.float64]
-]:
+) -> npt.NDArray[np.float64]:
     r"""
     Calculates the real-valued four-centre overlap matrix for a basis set.
 
@@ -375,9 +384,7 @@ def calc_overlap_4c_real(
 
 def calc_overlap_4c_complex(
     basis_set: list[list[PyBasisShellContraction]], complex_symmetric: bool
-) -> np.ndarray[
-    tuple[typing.Any, typing.Any, typing.Any, typing.Any], np.dtype[np.complex128]
-]:
+) -> npt.NDArray[np.complex128]:
     r"""
     Calculates the complex-valued four-centre overlap matrix for a basis set.
 
@@ -386,3 +393,24 @@ def calc_overlap_4c_complex(
 
     :return: A four-dimensional array containing the complex four-centre overlap values.
     """
+
+# ---------------------------------------------
+# representation_analysis/slater_determinant.rs
+# ---------------------------------------------
+
+class PySlaterDeterminantReal:
+    r"""
+    Python-exposed structure to marshall real Slater determinant information between Rust and Python.
+    """
+
+    def __init__(
+        self,
+        structure_constraint: PyStructureConstraint,
+        complex_symmetric: bool,
+        coefficients: list[npt.NDArray[np.float64]],
+        occupations: list[npt.NDArray[np.float64]],
+        threshold: float,
+        mo_energies: list[npt.NDArray[np.float64]] | None,
+        energy: float | None,
+    ) -> None:
+        r""" """

@@ -50,21 +50,6 @@ type C128 = Complex<f64>;
 
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
-///
-/// # Constructor arguments
-///
-/// * `structure_constraint` - The structure constraint applied to the coefficients of the determinant.
-/// Python type: `PySpinConstraint | PySpinOrbitCoupled`.
-/// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-/// are complex-symmetric. Python type: `bool`.
-/// * `coefficients` - The real coefficients for the molecular orbitals of this determinant.
-/// Python type: `list[numpy.2darray[float]]`.
-/// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
-/// `list[numpy.1darray[float]]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
-/// * `mo_energies` - The optional real molecular orbital energies. Python type:
-/// `Optional[list[numpy.1darray[float]]]`.
-/// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PySlaterDeterminantReal {
