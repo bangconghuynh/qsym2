@@ -3,7 +3,6 @@
 use std::collections::HashSet;
 use std::fmt::{self, LowerExp};
 use std::hash::Hash;
-use std::iter::Sum;
 use std::marker::PhantomData;
 
 use anyhow::{ensure, format_err};
@@ -16,10 +15,7 @@ use num_complex::ComplexFloat;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
-use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
-use crate::symmetry::symmetry_transformation::SymmetryTransformable;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::backend::matelem::OrbitMatrix;
 use crate::target::noci::backend::nonortho::{calc_lowdin_pairing, calc_transition_density_matrix};
 use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 

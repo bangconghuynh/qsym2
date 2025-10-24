@@ -1,12 +1,66 @@
-from typing import Optional
 import numpy as np
 import numpy.typing as npt
 
 from enum import Enum
 
-# ---------------------------
-# symmetry_group_detection.rs
-# ---------------------------
+type Py1DArray_f64 = np.ndarray[tuple[int], np.dtype[np.float64]]
+type Py1DArray_c128 = np.ndarray[tuple[int], np.dtype[np.complex128]]
+type Py2DArray_f64 = np.ndarray[tuple[int, int], np.dtype[np.float64]]
+type Py2DArray_c128 = np.ndarray[tuple[int, int], np.dtype[np.complex128]]
+type Py4DArray_f64 = np.ndarray[tuple[int, int, int, int], np.dtype[np.float64]]
+type Py4DArray_c128 = np.ndarray[tuple[int, int, int, int], np.dtype[np.complex128]]
+
+# ------------------------------
+# representation_analysis/mod.rs
+# ------------------------------
+
+class MagneticSymmetryAnalysisKind(Enum):
+    r"""
+    Enumerated type indicating the type of magnetic symmetry to be used for representation analysis.
+    """
+
+    Representation = 0
+    r""" Variant indicating that unitary representations should be used for magnetic symmetry analysis. """
+
+    Corepresentation = 1
+    r""" Variant indicating that magnetic corepresentations should be used for magnetic symmetry analysis. """
+
+
+# ------------------------------
+# symmetry_transformation/mod.rs
+# ------------------------------
+
+class SymmetryTransformationKind(Enum):
+    r""" Enumerated type for managing the kind of symmetry transformation on an object. """
+
+    Spatial = 0
+    r""" Spatial-only transformation. """
+
+    SpatialWithSpinTimeReversal = 1
+    r""" Spatial-only transformation but with spin-including time reversal. """
+
+    Spin = 2
+    r""" Spin-only transformation. """
+
+    SpinSpatial = 3
+    r""" Spin-spatial coupled transformation. """
+
+# ---------------
+# analysis/mod.rs
+# ---------------
+
+class EigenvalueComparisonMode(Enum):
+    r""" Enumerated type specifying the comparison mode for filtering out orbit overlap eigenvalues. """
+
+    Real = 0
+    r""" Compares the eigenvalues using only their real parts. """
+
+    Modulus = 1
+    r""" Compares the eigenvalues using their moduli. """
+
+# -------------------------------------------
+# bindings/python/symmetry_group_detection.rs
+# -------------------------------------------
 
 class PyMolecule:
     r"""
@@ -78,7 +132,7 @@ class PySymmetry:
 
     def get_elements_of_kind(
         self, kind: PySymmetryElementKind
-    ) -> dict[int, list[npt.NDArray[np.float64]]]:
+    ) -> dict[int, list[Py1DArray_f64]]:
         r"""
         Returns symmetry elements of all *finite* orders of a given kind.
 
@@ -95,7 +149,7 @@ class PySymmetry:
 
     def get_generators_of_kind(
         self, kind: PySymmetryElementKind
-    ) -> dict[int, list[npt.NDArray[np.float64]]]:
+    ) -> dict[int, list[Py1DArray_f64]]:
         r"""
         Returns symmetry generators of *finite*  and *infinite* orders of a given kind.
 
@@ -141,9 +195,9 @@ def detect_symmetry_group(
     :error: Returns an error if any intermediate step in the symmetry-group detection procedure fails.
     """
 
-# --------------------------
-# molecule_symmetrisation.rs
-# --------------------------
+# ------------------------------------------
+# bindings/python/molecule_symmetrisation.rs
+# ------------------------------------------
 
 def symmetrise_molecule(
     inp_xyz: str | None,
@@ -183,9 +237,9 @@ def symmetrise_molecule(
     :error: Errors if any intermediate step in the symmetrisation procedure fails.
     """
 
-# ------------
-# integrals.rs
-# ------------
+# ----------------------------
+# bindings/python/integrals.rs
+# ----------------------------
 
 type PyPureSpinorOrder = tuple[bool, bool] | tuple[list[int], bool]
 
@@ -346,7 +400,7 @@ class PyBasisShellContraction:
 
 def calc_overlap_2c_real(
     basis_set: list[list[PyBasisShellContraction]],
-) -> npt.NDArray[np.float64]:
+) -> Py2DArray_f64:
     r"""
     Calculates the real-valued two-centre overlap matrix for a basis set.
 
@@ -359,7 +413,7 @@ def calc_overlap_2c_real(
 
 def calc_overlap_2c_complex(
     basis_set: list[list[PyBasisShellContraction]], complex_symmetric: bool
-) -> npt.NDArray[np.complex128]:
+) -> Py2DArray_c128:
     r"""
     Calculates the complex-valued two-centre overlap matrix for a basis set.
 
@@ -371,7 +425,7 @@ def calc_overlap_2c_complex(
 
 def calc_overlap_4c_real(
     basis_set: list[list[PyBasisShellContraction]],
-) -> npt.NDArray[np.float64]:
+) -> Py4DArray_f64:
     r"""
     Calculates the real-valued four-centre overlap matrix for a basis set.
 
@@ -384,7 +438,7 @@ def calc_overlap_4c_real(
 
 def calc_overlap_4c_complex(
     basis_set: list[list[PyBasisShellContraction]], complex_symmetric: bool
-) -> npt.NDArray[np.complex128]:
+) -> Py4DArray_c128:
     r"""
     Calculates the complex-valued four-centre overlap matrix for a basis set.
 
@@ -394,9 +448,9 @@ def calc_overlap_4c_complex(
     :return: A four-dimensional array containing the complex four-centre overlap values.
     """
 
-# ---------------------------------------------
-# representation_analysis/slater_determinant.rs
-# ---------------------------------------------
+# -------------------------------------------------------------
+# bindings/python/representation_analysis/slater_determinant.rs
+# -------------------------------------------------------------
 
 class PySlaterDeterminantReal:
     r"""
@@ -407,10 +461,211 @@ class PySlaterDeterminantReal:
         self,
         structure_constraint: PyStructureConstraint,
         complex_symmetric: bool,
-        coefficients: list[npt.NDArray[np.float64]],
-        occupations: list[npt.NDArray[np.float64]],
+        coefficients: list[Py2DArray_f64],
+        occupations: list[Py1DArray_f64],
         threshold: float,
-        mo_energies: list[npt.NDArray[np.float64]] | None,
-        energy: float | None,
+        mo_energies: list[Py1DArray_f64] | None = None,
+        energy: float | None = None,
     ) -> None:
-        r""" """
+        r"""
+        Constructs a real Python-exposed Slater determinant.
+
+        :param structure_constraint: The structure constraint applied to the coefficients of the determinant.
+        :param complex_symmetric: A boolean indicating if inner products involving this determinant are complex-symmetric.
+        :param coefficients: The real coefficient matrices for the molecular orbitals of this determinant, one for each spin space.
+        :param occupations: The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space.
+        :param threshold: The threshold for comparisons.
+        :param mo_energies: The optional real molecular orbital energy arrays, each of which is a one-dimensional array for each spin space.
+        :param energy: The optional real determinantal energy.
+        """
+
+    complex_symmetric: bool
+    r""" Boolean indicating if inner products involving this determinant are complex-symmetric. """
+
+    coefficients: list[Py2DArray_f64]
+    r""" The real coefficient matrices for the molecular orbitals of this determinant, one for each spin space. """
+
+    occupations: list[Py1DArray_f64]
+    r""" The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space. """
+
+    threshold: float
+    r""" The threshold for comparisons. """
+
+    mo_energies: list[Py1DArray_f64] | None
+    r""" The real molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space. """
+
+    energy: float | None
+    r""" The real determinantal energy, if any. """
+
+class PySlaterDeterminantComplex:
+    r"""
+    Python-exposed structure to marshall complex Slater determinant information between Rust and Python.
+    """
+
+    def __init__(
+        self,
+        structure_constraint: PyStructureConstraint,
+        complex_symmetric: bool,
+        coefficients: list[Py2DArray_c128],
+        occupations: list[Py1DArray_f64],
+        threshold: float,
+        mo_energies: list[Py1DArray_c128] | None = None,
+        energy: complex | None = None,
+    ) -> None:
+        r"""
+        Constructs a real Python-exposed Slater determinant.
+
+        :param structure_constraint: The structure constraint applied to the coefficients of the determinant.
+        :param complex_symmetric: A boolean indicating if inner products involving this determinant are complex-symmetric.
+        :param coefficients: The complex coefficient matrices for the molecular orbitals of this determinant, one for each spin space.
+        :param occupations: The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space.
+        :param threshold: The threshold for comparisons.
+        :param mo_energies: The optional complex molecular orbital energy arrays, each of which is a one-dimensional array for each spin space.
+        :param energy: The optional complex determinantal energy.
+        """
+
+    complex_symmetric: bool
+    r""" Boolean indicating if inner products involving this determinant are complex-symmetric. """
+
+    coefficients: list[Py2DArray_c128]
+    r""" The complex coefficient matrices for the molecular orbitals of this determinant, one for each spin space. """
+
+    occupations: list[Py1DArray_f64]
+    r""" The occupation arrays for the molecular orbitals, each of which is a one-dimensional array for each spin space. """
+
+    threshold: float
+    r""" The threshold for comparisons. """
+
+    mo_energies: list[Py1DArray_c128] | None
+    r""" The complex molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space. """
+
+    energy: float | None
+    r""" The complex determinantal energy, if any. """
+
+type PySlaterDeterminant = PySlaterDeterminantReal | PySlaterDeterminantComplex
+
+class PySlaterDeterminantRepAnalysisResult:
+    r"""
+    Python-exposed structure storing the results of Slater determinant representation analysis.
+    """
+
+    group: str
+    r""" The group used for the representation analysis. """
+
+    determinant_symmetry: str | None
+    r""" The deduced overall symmetry of the determinant. """
+
+    mo_symmetries: list[list[str | None]] | None
+    r""" The deduced symmetries of the molecular orbitals constituting the determinant, if required. """
+
+    determinant_density_symmetries: list[tuple[str, str | None]] | None
+    r"""
+    The deduced symmetries of the various densities constructible from the determinant, if
+    required. In each tuple, the first element gives a description of the density corresponding
+    to the symmetry result.
+    """
+
+    mo_density_symmetries: list[list[str | None]] | None
+    r"""
+    The deduced symmetries of the total densities of the molecular orbitals constituting the determinant,
+    if required.
+    """
+
+
+def rep_analyse_slater_determinant(
+    inp_sym: str,
+    pydet: PySlaterDeterminant,
+    pybaos: list[PyBasisAngularOrder],
+    integrality_threshold: float,
+    linear_independence_threshold: float,
+    use_magnetic_group: MagneticSymmetryAnalysisKind | None,
+    use_double_group: bool,
+    use_cayley_table: bool,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao: Py2DArray_f64 | Py2DArray_c128,
+    sao_h: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    sao_spatial_4c: Py4DArray_f64 | Py4DArray_c128 | None = None,
+    sao_spatial_4c_h: Py4DArray_f64 | Py4DArray_c128 | None = None,
+    analyse_mo_symmetries: bool = True,
+    analyse_mo_symmetry_projections: bool = True,
+    analyse_mo_mirror_parities: bool = False,
+    analyse_density_symmetries: bool = False,
+    write_overlap_eigenvalues: bool = True,
+    write_character_table: bool = True,
+    infinite_order_to_finite: int | None = None,
+    angular_function_integrality_threshold: float = 1e-7,
+    angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_max_angular_momentum: int = 2
+) -> PySlaterDeterminantRepAnalysisResult:
+    r"""
+    Python-exposed function to perform representation symmetry analysis for real and complex
+    Slater determinants and log the result via the `qsym2-output` logger at the `INFO` level.
+   
+    If `symmetry_transformation_kind` includes spin transformation, the provided determinant will
+    be augmented to generalised spin constraint automatically.
+   
+    :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
+        This will be used to construct abstract groups and character tables for representation analysis.
+    :param pydet: A Python-exposed Slater determinant whose coefficients are of type `float64` or `complex128`.
+    :param pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
+    :param integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
+    :param linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+    :param use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
+    :param use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
+    :param use_cayley_table: A boolean indicating if the Cayley table for the group, if available, should be used to speed up the calculation of orbit overlap matrices.
+    :param symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin determinant to generate the orbit.
+        If this contains spin transformation, the determinant will be augmented to generalised spin constraint automatically.
+    :param eigenvalue_comparison_mode: An enumerated type indicating the mode of comparison of orbit overlap eigenvalues with the specified `linear_independence_threshold`.
+    :param sao: The atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`.
+    :param sao_h: The optional complex-symmetric atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`.
+        This is required if antiunitary symmetry operations are involved.
+    :param sao_spatial_4c: The optional atomic-orbital four-centre overlap matrix whose elements are of type `float64` or `complex128`.
+    :param sao_spatial_4c_h: The optional complex-symmetric atomic-orbital four-centre overlap matrix whose elements are of type `float64` or `complex128`.
+        This is required if antiunitary symmetry operations are involved.
+    :param analyse_mo_symmetries: A boolean indicating if the symmetries of individual molecular orbitals are to be analysed.
+    :param analyse_mo_symmetry_projections: A boolean indicating if the symmetry projections of individual molecular orbitals are to be analysed.
+    :param analyse_mo_mirror_parities: A boolean indicating if the mirror parities of individual molecular orbitals are to be printed.
+    :param analyse_density_symmetries: A boolean indicating if the symmetries of densities are to be analysed.
+    :param write_overlap_eigenvalues: A boolean indicating if the eigenvalues of the determinant orbit overlap matrix are to be written to the output.
+    :param write_character_table: A boolean indicating if the character table of the prevailing symmetry group is to be printed out.
+    :param infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group.
+        This finite subgroup will be used for symmetry analysis.
+    :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
+    :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+    :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+   
+    :return: A Python-exposed [`PySlaterDeterminantRepAnalysisResult`] structure containing the results of the representation analysis.
+    """
+
+# --------------------------------------------------
+# bindings/python/representation_analysis/density.rs
+# --------------------------------------------------
+
+class PyDensityReal:
+    r"""
+    Python-exposed structure to marshall real electron density information between Rust and Python.
+    """
+
+    def __init__(
+        self,
+        complex_symmetric: bool,
+        density_matrix: Py2DArray_f64,
+        threshold: float,
+    ) -> None:
+        r"""
+        Constructs a real Python-exposed electron density.
+
+        :param complex_symmetric: A boolean indicating if inner products involving this density are complex-symmetric.
+        :param density_matrix: The real density matrix describing this density.
+        :param threshold: The threshold for comparisons.
+        """
+
+    complex_symmetric: bool
+    r""" Boolean indicating if inner products involving this density are complex-symmetric. """
+
+    density_matrix: Py2DArray_f64
+    r""" The real density matrix describing this density. """
+
+    threshold: float
+    r""" The threshold for comparisons. """

@@ -9,6 +9,7 @@ use numpy::{PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::{IntoPyObjectExt, prelude::*};
 
+use crate::analysis::Overlap;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::projection::PyProjectionTarget;
@@ -49,6 +50,9 @@ type C128 = Complex<f64>;
 /// * `projection_targets` - A sequence of subspace labels for projection. Each label is either a
 /// symbolic string or a numerical index for the subspace in the character table of the prevailing
 /// group. Python type: `list[str | int]`.
+/// * `density_matrix_calculation_thresholds` - An optional pair of thresholds for Löwdin pairing,
+/// one for checking zero off-diagonal values, one for checking zero overlaps, when computing
+/// multi-determinantal density matrices. If `None`, no density matrices will be computed.
 /// * `pybao` - Python-exposed structure containing basis angular order information for the density
 /// matrices. Python type: `PyBasisAngularOrder`.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
@@ -83,6 +87,7 @@ type C128 = Complex<f64>;
     inp_sym,
     pydet,
     projection_targets,
+    density_matrix_calculation_thresholds,
     pybaos,
     use_magnetic_group,
     use_double_group,
@@ -97,6 +102,7 @@ pub fn project_slater_determinant(
     inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
     projection_targets: Vec<PyProjectionTarget>,
+    density_matrix_calculation_thresholds: Option<(f64, f64)>,
     pybaos: Vec<PyBasisAngularOrder>,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
@@ -272,10 +278,41 @@ pub fn project_slater_determinant(
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             .to_pyarray(py);
             let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+            let density_matrices = match (density_matrix_calculation_thresholds, sao_opt.as_ref()) {
+                (Some((thresh_offdiag, thresh_zeroov)), Some(sao)) => Some(
+                    projected_sds
+                        .iter()
+                        .map(|(_, multidet_res)| {
+                            multidet_res
+                                .as_ref()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                                .and_then(|multidet| {
+                                    multidet
+                                        .overlap(multidet, sao_opt.as_ref(), sao_h_opt.as_ref())
+                                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                                        .and_then(|sq_norm| {
+                                            multidet
+                                                .density_matrix(
+                                                    &sao.view(),
+                                                    thresh_offdiag,
+                                                    thresh_zeroov,
+                                                )
+                                                .map_err(|err| {
+                                                    PyRuntimeError::new_err(err.to_string())
+                                                })
+                                                .map(|denmat| (denmat / sq_norm).to_pyarray(py))
+                                        })
+                                })
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                ),
+                _ => None,
+            };
             let pymultidet = PyMultiDeterminantsReal::new(
                 basis,
                 coefficientss_arr,
                 energies_arr,
+                density_matrices,
                 pydet_r.threshold,
             )
             .into_py_any(py)?;
@@ -385,10 +422,53 @@ pub fn project_slater_determinant(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     .to_pyarray(py);
                     let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                    let density_matrices =
+                        match (density_matrix_calculation_thresholds, sao_opt.as_ref()) {
+                            (Some((thresh_offdiag, thresh_zeroov)), Some(sao)) => Some(
+                                projected_sds
+                                    .iter()
+                                    .map(|(_, multidet_res)| {
+                                        multidet_res
+                                            .as_ref()
+                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                                            .and_then(|multidet| {
+                                                multidet
+                                                    .overlap(
+                                                        multidet,
+                                                        sao_opt.as_ref(),
+                                                        sao_h_opt.as_ref(),
+                                                    )
+                                                    .map_err(|err| {
+                                                        PyRuntimeError::new_err(err.to_string())
+                                                    })
+                                                    .and_then(|sq_norm| {
+                                                        multidet
+                                                            .density_matrix(
+                                                                &sao.view(),
+                                                                thresh_offdiag,
+                                                                thresh_zeroov,
+                                                            )
+                                                            .map_err(|err| {
+                                                                PyRuntimeError::new_err(
+                                                                    err.to_string(),
+                                                                )
+                                                            })
+                                                            .map(|denmat| {
+                                                                (denmat / sq_norm).to_pyarray(py)
+                                                            })
+                                                    })
+                                            })
+                                    })
+                                    .collect::<Result<Vec<_>, _>>()?,
+                            ),
+                            _ => None,
+                        };
+
                     let pymultidet = PyMultiDeterminantsComplex::new(
                         basis,
                         coefficientss_arr,
                         energies_arr,
+                        density_matrices,
                         pydet_c.threshold,
                     )
                     .into_py_any(py)?;
@@ -480,10 +560,53 @@ pub fn project_slater_determinant(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     .to_pyarray(py);
                     let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                    let density_matrices =
+                        match (density_matrix_calculation_thresholds, sao_opt.as_ref()) {
+                            (Some((thresh_offdiag, thresh_zeroov)), Some(sao)) => Some(
+                                projected_sds
+                                    .iter()
+                                    .map(|(_, multidet_res)| {
+                                        multidet_res
+                                            .as_ref()
+                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                                            .and_then(|multidet| {
+                                                multidet
+                                                    .overlap(
+                                                        multidet,
+                                                        sao_opt.as_ref(),
+                                                        sao_h_opt.as_ref(),
+                                                    )
+                                                    .map_err(|err| {
+                                                        PyRuntimeError::new_err(err.to_string())
+                                                    })
+                                                    .and_then(|sq_norm| {
+                                                        multidet
+                                                            .density_matrix(
+                                                                &sao.view(),
+                                                                thresh_offdiag,
+                                                                thresh_zeroov,
+                                                            )
+                                                            .map_err(|err| {
+                                                                PyRuntimeError::new_err(
+                                                                    err.to_string(),
+                                                                )
+                                                            })
+                                                            .map(|denmat| {
+                                                                (denmat / sq_norm).to_pyarray(py)
+                                                            })
+                                                    })
+                                            })
+                                    })
+                                    .collect::<Result<Vec<_>, _>>()?,
+                            ),
+                            _ => None,
+                        };
+
                     let pymultidet = PyMultiDeterminantsComplex::new(
                         basis,
                         coefficientss_arr,
                         energies_arr,
+                        density_matrices,
                         pydet_c.threshold,
                     )
                     .into_py_any(py)?;

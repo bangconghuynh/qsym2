@@ -5,6 +5,7 @@ use std::fmt;
 use std::hash::Hash;
 
 use anyhow::format_err;
+use itertools::Itertools;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
@@ -36,18 +37,7 @@ type C128 = Complex<f64>;
 // Real
 // ~~~~
 //
-/// Python-exposed structure to marshall real multi-determinant information between Rust and
-/// Python.
-///
-/// # Constructor arguments
-///
-/// * `basis` - The basis of Slater determinants in which the multi-determinantal states are
-/// expressed. Python type: `list[PySlaterDeterminantReal]`.
-/// * `coefficients` - The coefficients for the multi-determinantal states in the specified basis.
-/// Each column of the coefficient matrix contains the coefficients for one state.
-/// Python type: `numpy.2darray[float]`.
-/// * `energies` - The energies of the multi-determinantal states. Python type: `numpy.1darray[float]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
+/// Python-exposed structure to marshall real multi-determinant information between Rust and Python.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyMultiDeterminantsReal {
@@ -68,6 +58,9 @@ pub struct PyMultiDeterminantsReal {
     /// Python type: `numpy.1darray[float]`.
     energies: Array1<f64>,
 
+    /// The density matrices for the multi-determinantal states in the specified basis.
+    density_matrices: Option<Vec<Array2<f64>>>,
+
     /// The threshold for comparisons.
     ///
     /// Python type: `float`.
@@ -87,22 +80,42 @@ impl PyMultiDeterminantsReal {
     /// Each column of the coefficient matrix contains the coefficients for one state.
     /// Python type: `numpy.2darray[float]`.
     /// * `energies` - The energies of the multi-determinantal states. Python type: `numpy.1darray[float]`.
+    /// * `density_matrices` - The optional density matrices of the multi-determinantal states.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
     #[new]
-    #[pyo3(signature = (basis, coefficients, energies, threshold))]
+    #[pyo3(signature = (basis, coefficients, energies, density_matrices, threshold))]
     pub fn new(
         basis: Vec<PySlaterDeterminantReal>,
         coefficients: Bound<'_, PyArray2<f64>>,
         energies: Bound<'_, PyArray1<f64>>,
+        density_matrices: Option<Vec<Bound<'_, PyArray2<f64>>>>,
         threshold: f64,
     ) -> Self {
-        let multidet = Self {
-            basis,
-            coefficients: coefficients.to_owned_array(),
-            energies: energies.to_owned_array(),
-            threshold,
+        let coefficients = coefficients.to_owned_array();
+        let energies = energies.to_owned_array();
+        let density_matrices = density_matrices.map(|denmats| {
+            denmats
+                .into_iter()
+                .map(|denmat| denmat.to_owned_array())
+                .collect_vec()
+        });
+        if let Some(ref denmats) = density_matrices {
+            if denmats.len() != coefficients.ncols()
+                || denmats.len() != energies.len()
+                || coefficients.ncols() != energies.len()
+            {
+                panic!(
+                    "Inconsistent numbers of multi-determinantal states in `coefficients`, `energies`, and `density_matrices`."
+                )
+            }
         };
-        multidet
+        Self {
+            basis,
+            coefficients,
+            energies,
+            density_matrices,
+            threshold,
+        }
     }
 
     #[getter]
@@ -113,6 +126,19 @@ impl PyMultiDeterminantsReal {
     #[getter]
     pub fn energies<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<f64>>> {
         Ok(self.energies.to_pyarray(py))
+    }
+
+    #[getter]
+    pub fn density_matrices<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Option<Vec<Bound<'py, PyArray2<f64>>>>> {
+        Ok(self.density_matrices.as_ref().map(|denmats| {
+            denmats
+                .iter()
+                .map(|denmat| denmat.to_pyarray(py))
+                .collect_vec()
+        }))
     }
 
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
@@ -142,6 +168,21 @@ impl PyMultiDeterminantsReal {
 
     pub fn state_energy<'py>(&self, _py: Python<'py>, state_index: usize) -> PyResult<f64> {
         Ok(self.energies[state_index])
+    }
+
+    pub fn state_density_matrix<'py>(
+        &self,
+        py: Python<'py>,
+        state_index: usize,
+    ) -> PyResult<Bound<'py, PyArray2<f64>>> {
+        self.density_matrices
+            .as_ref()
+            .ok_or_else(|| {
+                PyRuntimeError::new_err(
+                    "No multi-determinantal density matrices found.".to_string(),
+                )
+            })
+            .map(|denmats| denmats[state_index].to_pyarray(py))
     }
 }
 
@@ -211,17 +252,6 @@ impl PyMultiDeterminantsReal {
 //
 /// Python-exposed structure to marshall complex multi-determinant information between Rust and
 /// Python.
-///
-/// # Constructor arguments
-///
-/// * `basis` - The basis of Slater determinants in which the multi-determinantal states are
-/// expressed. Python type: `list[PySlaterDeterminantComplex]`.
-/// * `coefficients` - The coefficients for the multi-determinantal states in the specified basis.
-/// Each column of the coefficient matrix contains the coefficients for one state.
-/// Python type: `numpy.2darray[complex]`.
-/// * `energies` - The energies of the multi-determinantal states. Python type:
-/// `numpy.1darray[complex]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyMultiDeterminantsComplex {
@@ -242,6 +272,9 @@ pub struct PyMultiDeterminantsComplex {
     /// Python type: `numpy.1darray[complex]`.
     energies: Array1<C128>,
 
+    /// The density matrices for the multi-determinantal states in the specified basis.
+    density_matrices: Option<Vec<Array2<C128>>>,
+
     /// The threshold for comparisons.
     ///
     /// Python type: `float`.
@@ -261,22 +294,42 @@ impl PyMultiDeterminantsComplex {
     /// Each column of the coefficient matrix contains the coefficients for one state.
     /// Python type: `numpy.2darray[complex]`.
     /// * `energies` - The energies of the multi-determinantal states. Python type: `numpy.1darray[complex]`.
+    /// * `density_matrices` - The optional density matrices of the multi-determinantal states.
     /// * `threshold` - The threshold for comparisons. Python type: `float`.
     #[new]
-    #[pyo3(signature = (basis, coefficients, energies, threshold))]
+    #[pyo3(signature = (basis, coefficients, energies, density_matrices, threshold))]
     pub fn new(
         basis: Vec<PySlaterDeterminantComplex>,
         coefficients: Bound<'_, PyArray2<C128>>,
         energies: Bound<'_, PyArray1<C128>>,
+        density_matrices: Option<Vec<Bound<'_, PyArray2<C128>>>>,
         threshold: f64,
     ) -> Self {
-        let multidet = Self {
-            basis,
-            coefficients: coefficients.to_owned_array(),
-            energies: energies.to_owned_array(),
-            threshold,
+        let coefficients = coefficients.to_owned_array();
+        let energies = energies.to_owned_array();
+        let density_matrices = density_matrices.map(|denmats| {
+            denmats
+                .into_iter()
+                .map(|denmat| denmat.to_owned_array())
+                .collect_vec()
+        });
+        if let Some(ref denmats) = density_matrices {
+            if denmats.len() != coefficients.ncols()
+                || denmats.len() != energies.len()
+                || coefficients.ncols() != energies.len()
+            {
+                panic!(
+                    "Inconsistent numbers of multi-determinantal states in `coefficients`, `energies`, and `density_matrices`."
+                )
+            }
         };
-        multidet
+        Self {
+            basis,
+            coefficients,
+            energies,
+            density_matrices,
+            threshold,
+        }
     }
 
     #[getter]
@@ -287,6 +340,19 @@ impl PyMultiDeterminantsComplex {
     #[getter]
     pub fn energies<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<C128>>> {
         Ok(self.energies.to_pyarray(py))
+    }
+
+    #[getter]
+    pub fn density_matrices<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Option<Vec<Bound<'py, PyArray2<C128>>>>> {
+        Ok(self.density_matrices.as_ref().map(|denmats| {
+            denmats
+                .iter()
+                .map(|denmat| denmat.to_pyarray(py))
+                .collect_vec()
+        }))
     }
 
     pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
@@ -316,6 +382,21 @@ impl PyMultiDeterminantsComplex {
 
     pub fn state_energy<'py>(&self, _py: Python<'py>, state_index: usize) -> PyResult<C128> {
         Ok(self.energies[state_index])
+    }
+
+    pub fn state_density_matrix<'py>(
+        &self,
+        py: Python<'py>,
+        state_index: usize,
+    ) -> PyResult<Bound<'py, PyArray2<C128>>> {
+        self.density_matrices
+            .as_ref()
+            .ok_or_else(|| {
+                PyRuntimeError::new_err(
+                    "No multi-determinantal density matrices found.".to_string(),
+                )
+            })
+            .map(|denmats| denmats[state_index].to_pyarray(py))
     }
 }
 

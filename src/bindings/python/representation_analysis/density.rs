@@ -37,34 +37,19 @@ type C128 = Complex<f64>;
 // Struct definitions
 // ==================
 
-/// Python-exposed structure to marshall real electron density information between Rust and
-/// Python.
-///
-/// # Constructor arguments
-///
-/// * `complex_symmetric` - A boolean indicating if inner products involving this density
-/// are complex-symmetric. Python type: `bool`.
-/// * `density_matrix` - The real density matrix describing this density.
-/// Python type: `numpy.2darray[float]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
+/// Python-exposed structure to marshall real electron density information between Rust and Python.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyDensityReal {
     /// A boolean indicating if inner products involving this density should be the
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
-    ///
-    /// Python type: `bool`.
     #[pyo3(get)]
     pub complex_symmetric: bool,
 
     /// The real density matrix describing this density.
-    ///
-    /// Python type: `numpy.2darray[float]`.
     pub density_matrix: Array2<f64>,
 
     /// The threshold for comparing densities.
-    ///
-    /// Python type: `float`.
     #[pyo3(get)]
     pub threshold: f64,
 }
@@ -73,13 +58,10 @@ pub struct PyDensityReal {
 impl PyDensityReal {
     /// Constructs a real Python-exposed electron density.
     ///
-    /// # Arguments
-    ///
     /// * `complex_symmetric` - A boolean indicating if inner products involving this density
-    /// are complex-symmetric. Python type: `bool`.
+    /// are complex-symmetric.
     /// * `density_matrix` - The real density matrix describing this density.
-    /// Python type: `numpy.2darray[float]`.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `threshold` - The threshold for comparisons.
     #[new]
     fn new(
         complex_symmetric: bool,
