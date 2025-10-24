@@ -127,6 +127,48 @@ def detect_symmetry_group(
     :error: Returns an error if any intermediate step in the symmetry-group detection procedure fails.
     """
 
+# --------------------------
+# molecule_symmetrisation.rs
+# --------------------------
+
+def symmetrise_molecule(
+    inp_xyz: str | None,
+    inp_mol: PyMolecule | None,
+    out_target_sym: str | None =None,
+    loose_moi_threshold: float = 1e-2,
+    loose_distance_threshold: float = 1e-2,
+    target_moi_threshold: float = 1e-7,
+    target_distance_threshold: float = 1e-7,
+    use_magnetic_group: bool = False,
+    reorientate_molecule: bool = True,
+    max_iterations: int = 50,
+    consistent_target_symmetry_iterations: int = 10,
+    verbose: int = 0,
+    infinite_order_to_finite: int | None = None
+) -> PyMolecule:
+    r"""
+    Python-exposed function to perform molecule symmetrisation by bootstrapping and log the result
+    via the `qsym2-output` logger at the `INFO` level.
+   
+    :param inp_xyz: An optional string providing the path to an XYZ file containing the molecule to be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified.
+    :param inp_mol: An optional `PyMolecule` structure containing the molecule to be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified.
+    :param out_target_sym: An optional path for a [`QSym2FileType::Sym`] file to be saved that contains the symmetry-group detection results of the symmetrised molecule at the target thresholds.
+    :param loose_moi_threshold: The loose MoI threshold.
+    :param loose_distance_threshold: The loose distance threshold.
+    :param target_moi_threshold: The target (tight) MoI threshold.
+    :param target_distance_threshold: The target (tight) distance threshold.
+    :param use_magnetic_group: A boolean indicating if the magnetic group (*i.e.* the group including time-reversed operations) is to be used for the symmetrisation.
+    :param reorientate_molecule: A boolean indicating if the molecule is also reoriented to align its principal axes with the Cartesian axes.
+    :param max_iterations: The maximum number of iterations for the symmetrisation process.
+    :param consistent_target_symmetry_iterations: The number of consecutive iterations during which the symmetry group at the target level of threshold must be consistently found for convergence to be reached, if this group cannot become identical to the symmetry group at the loose level of threshold.
+    :param verbose: The print-out level.
+    :param infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup will be used for the symmetrisation.
+   
+    :return: The symmetrised molecule.
+   
+    :error: Errors if any intermediate step in the symmetrisation procedure fails.
+    """
+
 # ------------
 # integrals.rs
 # ------------
@@ -213,7 +255,7 @@ class PyBasisAngularOrder:
         r"""
         Extracts basis angular order information from a Q-Chem HDF5 archive file.
 
-        :param filename: A path to a Q-Chem HDF5 archive file. Python type: `str`.
+        :param filename: A path to a Q-Chem HDF5 archive file.
 
         :return: A sequence of `PyBasisAngularOrder` objects, one for each Q-Chem calculation found in the HDF5 archive file.
 
