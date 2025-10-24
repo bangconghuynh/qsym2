@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2, PyArrayMethods};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -36,29 +36,17 @@ type C128 = Complex<f64>;
 
 /// Python-exposed structure to marshall real vibrational coordinate collections between Rust and
 /// Python.
-///
-/// # Constructor arguments
-///
-/// * `coefficients` - The real coefficients for the vibrational coordinates of this collection.
-/// Python type: `list[numpy.2darray[float]]`.
-/// * `frequencies` - The real vibrational frequencies. Python type: `numpy.1darray[float]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyVibrationalCoordinateCollectionReal {
     /// The real coefficients for the vibrational coordinates of this collection.
-    ///
-    /// Python type: `list[numpy.2darray[float]]`.
     coefficients: Array2<f64>,
 
     /// The real vibrational frequencies.
-    ///
-    /// Python type: `numpy.1darray[float]`.
     frequencies: Array1<f64>,
 
     /// The threshold for comparisons.
-    ///
-    /// Python type: `float`.
+    #[pyo3(get)]
     threshold: f64,
 }
 
@@ -69,9 +57,8 @@ impl PyVibrationalCoordinateCollectionReal {
     /// # Arguments
     ///
     /// * `coefficients` - The real coefficients for the vibrational coordinates of this collection.
-    /// Python type: `list[numpy.2darray[float]]`.
-    /// * `frequencies` - The real vibrational frequencies. Python type: `numpy.1darray[float]`.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `frequencies` - The real vibrational frequencies.
+    /// * `threshold` - The threshold for comparisons.
     #[new]
     fn new(
         coefficients: Bound<'_, PyArray2<f64>>,
@@ -84,6 +71,16 @@ impl PyVibrationalCoordinateCollectionReal {
             threshold,
         };
         vibs
+    }
+
+    #[getter]
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<f64>>> {
+        Ok(self.coefficients.to_pyarray(py))
+    }
+
+    #[getter]
+    fn frequencies<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<f64>>> {
+        Ok(self.frequencies.to_pyarray(py))
     }
 }
 
@@ -123,25 +120,19 @@ impl PyVibrationalCoordinateCollectionReal {
 /// # Constructor arguments
 ///
 /// * `coefficients` - The complex coefficients for the vibrational coordinates of this collection.
-/// Python type: `list[numpy.2darray[complex]]`.
-/// * `frequencies` - The complex vibrational frequencies. Python type: `numpy.1darray[complex]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
+/// * `frequencies` - The complex vibrational frequencies.
+/// * `threshold` - The threshold for comparisons.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyVibrationalCoordinateCollectionComplex {
     /// The complex coefficients for the vibrational coordinates of this collection.
-    ///
-    /// Python type: `list[numpy.2darray[complex]]`.
     coefficients: Array2<C128>,
 
     /// The complex vibrational frequencies.
-    ///
-    /// Python type: `numpy.1darray[complex]`.
     frequencies: Array1<C128>,
 
     /// The threshold for comparisons.
-    ///
-    /// Python type: `float`.
+    #[pyo3(get)]
     threshold: f64,
 }
 
@@ -153,9 +144,8 @@ impl PyVibrationalCoordinateCollectionComplex {
     ///
     /// * `coefficients` - The complex coefficients for the vibrational coordinates of this
     /// collection.
-    /// Python type: `list[numpy.2darray[complex]]`.
-    /// * `frequencies` - The complex vibrational frequencies. Python type: `numpy.1darray[complex]`.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `frequencies` - The complex vibrational frequencies.
+    /// * `threshold` - The threshold for comparisons.
     #[new]
     fn new(
         coefficients: Bound<'_, PyArray2<C128>>,
@@ -168,6 +158,16 @@ impl PyVibrationalCoordinateCollectionComplex {
             threshold,
         };
         vibs
+    }
+
+    #[getter]
+    fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<C128>>> {
+        Ok(self.coefficients.to_pyarray(py))
+    }
+
+    #[getter]
+    fn frequencies<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<C128>>> {
+        Ok(self.frequencies.to_pyarray(py))
     }
 }
 
@@ -228,41 +228,36 @@ pub enum PyVibrationalCoordinateCollection {
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
-/// representation analysis. Python type: `str`.
-/// * `pyvibs` - A Python-exposed vibrational coordinate collection whose coefficients are of type `
-/// float64` or `complex128`.
-/// Python type: `PyVibrationalCoordinateCollectionReal | PyVibrationalCoordinateCollectionComplex`
+/// representation analysis.
+/// * `pyvibs` - A Python-exposed vibrational coordinate collection whose coefficients are of type
+/// `float64` or `complex128`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
-/// integral. Python type: `float`.
+/// integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
-/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
+/// subspace via the non-zero eigenvalues of the orbit overlap matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
-/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
+/// should be used.
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead. Python type: `bool`.
+/// group is to be used for representation analysis instead.
 /// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
-/// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
+/// should be used to speed up the calculation of orbit overlap matrices.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin determinant to generate the orbit. If this
-/// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically. Python type: `SymmetryTransformationKind`.
+/// transformations to be performed on the origin vibrational coordinate to generate the orbit.
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
-/// Python type: `EigenvalueComparisonMode`.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
-/// symmetry group is to be printed out. Python type: `bool`.
+/// symmetry group is to be printed out.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for symmetry analysis. Python type: `Optional[int]`.
+/// will be used for symmetry analysis.
 /// * `angular_function_integrality_threshold` - The threshold for verifying if subspace
-/// multiplicities are integral for the symmetry analysis of angular functions. Python type:
-/// `float`.
+/// multiplicities are integral for the symmetry analysis of angular functions.
 /// * `angular_function_linear_independence_threshold` - The threshold for determining the linear
 /// independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry
-/// analysis of angular functions. Python type: `float`.
+/// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
-/// angular function symmetry analysis. Python type: `int`.
+/// angular function symmetry analysis.
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
