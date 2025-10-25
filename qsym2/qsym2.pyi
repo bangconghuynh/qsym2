@@ -150,8 +150,8 @@ class PySymmetry:
         :param kind: The symmetry element kind.
 
         :return: A dictionary where the keys are integers indicating the orders of the elements and the values
-        are vectors of one-dimensional arrays, each of which gives the axis of a symmetry element.
-        If the order value is `-1`, then the associated elements have infinite order.
+            are vectors of one-dimensional arrays, each of which gives the axis of a symmetry element.
+            If the order value is `-1`, then the associated elements have infinite order.
         """
 
     def get_generators_of_kind(
@@ -163,8 +163,8 @@ class PySymmetry:
         :param kind: The symmetry generator kind.
 
         :return: A dictionary where the keys are integers indicating the orders of the generators and the values
-        are vectors of one-dimensional arrays, each of which gives the axis of a symmetry generator.
-        If the order value is `-1`, then the associated generators have infinite order.
+            are vectors of one-dimensional arrays, each of which gives the axis of a symmetry generator.
+            If the order value is `-1`, then the associated generators have infinite order.
         """
 
     group_name: str
@@ -327,12 +327,12 @@ class PyBasisAngularOrder:
         r"""
         Extracts basis angular order information from a Q-Chem HDF5 archive file.
 
+        A summary showing how the `PyBasisAngularOrder` objects map onto the Q-Chem calculations in
+        the HDF5 archive file is also logged at the `INFO` level.
+
         :param filename: A path to a Q-Chem HDF5 archive file.
 
         :return: A sequence of `PyBasisAngularOrder` objects, one for each Q-Chem calculation found in the HDF5 archive file.
-
-        A summary showing how the `PyBasisAngularOrder` objects map onto the Q-Chem calculations in
-        the HDF5 archive file is also logged at the `INFO` level.
         """
 
 class PySpinConstraint(Enum):
@@ -1259,6 +1259,6 @@ def project_densities(
         This finite subgroup will be used for symmetry analysis.
 
     :return: The result will be returned as a list of tuples, each of which contains the name/description of
-    an original density and a dictionary in which the keys are the subspace labels and the values
-    are the corresponding projected density.
+        an original density and a dictionary in which the keys are the subspace labels and the values
+        are the corresponding projected density.
     """
