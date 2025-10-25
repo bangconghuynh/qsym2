@@ -2,6 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 from enum import Enum
+from typing import Callable
 
 type Py1DArray_f64 = np.ndarray[tuple[int], np.dtype[np.float64]]
 type Py1DArray_c128 = np.ndarray[tuple[int], np.dtype[np.complex128]]
@@ -960,3 +961,149 @@ class PyMultiDeterminantsComplex:
         r"""Returns the density matrix for a particular state."""
 
 type PyMultiDeterminants = PyMultiDeterminantsReal | PyMultiDeterminantsComplex
+
+# ----------------------------------------------------------------------------------------
+# bindings/python/representation_analysis/multideterminant/multideterminant_eager_basis.rs
+# ----------------------------------------------------------------------------------------
+
+def rep_analyse_multideterminants_eager_basis(
+    inp_sym: str,
+    pydets: list[PySlaterDeterminant],
+    coefficients: Py2DArray_f64 | Py2DArray_c128,
+    energies: Py1DArray_f64 | Py1DArray_c128,
+    pybaos: list[PyBasisAngularOrder],
+    integrality_threshold: float,
+    linear_independence_threshold: float,
+    use_magnetic_group: MagneticSymmetryAnalysisKind | None,
+    use_double_group: bool,
+    use_cayley_table: bool,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao: Py2DArray_f64 | Py2DArray_c128,
+    sao_h: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    write_overlap_eigenvalues: bool = True,
+    write_character_table: bool = True,
+    infinite_order_to_finite: int | None = None,
+    angular_function_integrality_threshold: float = 1e-7,
+    angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_max_angular_momentum: int = 2,
+) -> None:
+    r"""
+    Python-exposed function to perform representation symmetry analysis for real and complex
+    multi-determinantal wavefunctions constructed from an eager basis of Slater determinants and log
+    the result via the `qsym2-output` logger at the `INFO` level.
+
+    If `symmetry_transformation_kind` includes spin transformation, the provided
+    multi-determinantal wavefunctions will be augmented to generalised spin constraint
+    automatically.
+
+    :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
+        This will be used to construct abstract groups and character tables for representation analysis.
+    :param pydets: A list of Python-exposed Slater determinants whose coefficients are of type `float64` or `complex128`.
+        These determinants serve as basis states for non-orthogonal configuration interaction to yield multi-determinantal
+        wavefunctions, the symmetry of which will be analysed by this function.
+    :param coefficients: The coefficient matrix where each column gives the linear combination coefficients for one multi-determinantal wavefunction.
+        The number of rows must match the number of determinants specified in `pydets`.
+        The elements are of type `float64` or `complex128`.
+    :param energies: The `float64` or `complex128` energies of the multi-determinantal wavefunctions.
+        The number of terms must match the number of columns of `coefficients`.
+    :param pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
+    :param integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
+    :param linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+    :param use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
+    :param use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
+    :param use_cayley_table: A boolean indicating if the Cayley table for the group, if available, should be used to speed up the calculation of orbit overlap matrices.
+    :param symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin determinant to generate the orbit.
+        If this contains spin transformation, the determinant will be augmented to generalised spin constraint automatically.
+    :param eigenvalue_comparison_mode: An enumerated type indicating the mode of comparison of orbit overlap eigenvalues with the specified `linear_independence_threshold`.
+    :param sao: The atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`.
+    :param sao_h: The optional complex-symmetric atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`.
+        This is required if antiunitary symmetry operations are involved.
+    :param write_overlap_eigenvalues: A boolean indicating if the eigenvalues of the determinant orbit overlap matrix are to be written to the output.
+    :param write_character_table: A boolean indicating if the character table of the prevailing symmetry group is to be printed out.
+    :param infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group.
+        This finite subgroup will be used for symmetry analysis.
+    :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
+    :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+    :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+    """
+
+# --------------------------------------------------------------------------------------------------------
+# bindings/python/representation_analysis/multideterminant/multideterminant_orbit_basis_internal_solver.rs
+# --------------------------------------------------------------------------------------------------------
+
+def rep_analyse_multideterminants_orbit_basis_internal_solver(
+    inp_sym: str,
+    pyorigins: list[PySlaterDeterminant],
+    pybaos: list[PyBasisAngularOrder],
+    sao: Py2DArray_f64 | Py2DArray_c128,
+    enuc: float | complex,
+    onee: Py2DArray_f64 | Py2DArray_c128,
+    twoe: Py4DArray_f64 | Py4DArray_c128 | None,
+    py_get_jk: Callable[
+        [Py2DArray_f64 | Py2DArray_c128],
+        tuple[Py2DArray_f64, Py2DArray_f64] | tuple[Py2DArray_c128, Py2DArray_c128],
+    ]
+    | None,
+    thresh_offdiag: float,
+    thresh_zeroov: float,
+    integrality_threshold: float,
+    linear_independence_threshold: float,
+    use_magnetic_group: MagneticSymmetryAnalysisKind | None,
+    use_double_group: bool,
+    use_cayley_table: bool,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao_h: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    write_overlap_eigenvalues: bool = True,
+    write_character_table: bool = True,
+    infinite_order_to_finite: int | None = None,
+    angular_function_integrality_threshold: float = 1e-7,
+    angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_max_angular_momentum: int = 2,
+) -> None:
+    r"""
+    Python-exposed function to run non-orthogonal configuration interaction using the internal
+    solver and then perform representation symmetry analysis on the resulting real and complex
+    multi-determinantal wavefunctions constructed from group-generated orbits and log the result via
+    the `qsym2-output` logger at the `INFO` level.
+   
+    If `symmetry_transformation_kind` includes spin transformation, the provided
+    multi-determinantal wavefunctions with spin constraint structure will be augmented to
+    the generalised spin constraint automatically.
+   
+    # Arguments
+   
+    :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
+        This will be used to construct abstract groups and character tables for representation analysis.
+    :param pyorigins: A list of Python-exposed Slater determinants whose coefficients are of type `float64` or `complex128`.
+        These determinants serve as origins for group-generated orbits which serve as basis states for non-orthogonal configuration
+        interaction to yield multi-determinantal wavefunctions, the symmetry of which will be analysed by this function.
+    :param pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
+    :param sao: The atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`.
+    :param enuc: The nuclear repulsion energy.
+    :param onee: The one-electron integral matrix whose elements are of type `float64` or `complex128`.
+    :param twoe: The two-electron integral tensor whose elements are of type `float64` or `complex128`.
+        Either this or `py_get_jk` must be specified, but not both.
+    :param py_get_jk: A Python function callable on a density matrix $`\mathbf{D}`$ to calculate the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate two-electron integrals calculated on-the-fly.
+        Either this or `twoe` must be specified, but not both.
+    :param thresh_offdiag: Threshold for identifying non-zero off-diagonal elements in Löwdin pairing.
+    :param thresh_zeroov: Threshold for identifying non-zero overlaps in Löwdin pairing.
+    :param integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
+    :param linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+    :param use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
+    :param use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
+    :param use_cayley_table: A boolean indicating if the Cayley table for the group, if available, should be used to speed up the calculation of orbit overlap matrices.
+    :param symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin determinant to generate the orbit.
+        If this contains spin transformation, the determinant will be augmented to generalised spin constraint automatically.
+    :param eigenvalue_comparison_mode: An enumerated type indicating the mode of comparison of orbit overlap eigenvalues with the specified `linear_independence_threshold`.
+    :param sao_h: The optional complex-symmetric atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`.
+        This is required if antiunitary symmetry operations are involved.
+    :param write_overlap_eigenvalues: A boolean indicating if the eigenvalues of the determinant orbit overlap matrix are to be written to the output.
+    :param write_character_table: A boolean indicating if the character table of the prevailing symmetry group is to be printed out.
+    :param infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group.
+        This finite subgroup will be used for symmetry analysis.
+    :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
+    :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+    :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+    """
