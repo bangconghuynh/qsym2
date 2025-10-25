@@ -7,6 +7,7 @@ use pyo3::FromPyObject;
 pub mod density;
 pub mod slater_determinant;
 
+/// Python-exposed enumerated type to handle the union type `str | int`.
 #[derive(FromPyObject)]
 pub enum PyProjectionTarget {
     Symbolic(String),

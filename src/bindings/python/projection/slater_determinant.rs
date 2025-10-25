@@ -44,36 +44,34 @@ type C128 = Complex<f64>;
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
-/// symmetry projection. Python type: `str`.
+/// symmetry projection.
 /// * `pydet` - A Slater determinant whose coefficient matrices are of type `float64` or `complex128`.
-/// Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
 /// * `projection_targets` - A sequence of subspace labels for projection. Each label is either a
 /// symbolic string or a numerical index for the subspace in the character table of the prevailing
-/// group. Python type: `list[str | int]`.
+/// group.
 /// * `density_matrix_calculation_thresholds` - An optional pair of thresholds for Löwdin pairing,
 /// one for checking zero off-diagonal values, one for checking zero overlaps, when computing
 /// multi-determinantal density matrices. If `None`, no density matrices will be computed.
 /// * `pybao` - Python-exposed structure containing basis angular order information for the density
-/// matrices. Python type: `PyBasisAngularOrder`.
+/// matrices.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
-/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
+/// should be used.
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead. Python type: `bool`.
+/// group is to be used for representation analysis instead.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin electron density to generate the orbit. Python
-/// type: `SymmetryTransformationKind`.
+/// transformations to be performed on the origin electron density to generate the orbit.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
-/// symmetry group is to be printed out. Python type: `bool`.
+/// symmetry group is to be printed out.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for symmetry analysis. Python type: `None | int`.
+/// will be used for symmetry analysis.
 /// * `sao` - The optional atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. If this is not present, no squared norms of the resulting multi-determinants will
-/// be computed. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
+/// be computed.
 /// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
 /// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
-/// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
+/// involved.
 ///
 /// # Returns
 ///
@@ -81,7 +79,6 @@ type C128 = Complex<f64>;
 /// subspaces used for projection, and the second item is an object containing the Slater
 /// determinant basis and the linear combination coefficients as a two-dimensional array with each
 /// column corresponding to one projected state.
-/// Python type: `tuple[list[str], PyMultiDeterminantsReal | PyMultiDeterminantsComplex]`
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,

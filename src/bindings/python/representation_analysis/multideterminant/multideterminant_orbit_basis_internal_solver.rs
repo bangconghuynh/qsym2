@@ -130,8 +130,8 @@ macro_rules! generate_get_jk {
 /// should be used to speed up the calculation of orbit overlap matrices.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
 /// transformations to be performed on the origin determinant to generate the orbit. If this
-/// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically.
+/// contains spin transformation, the multi-determinant will be augmented to generalised spin
+/// constraint automatically.
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
 /// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
