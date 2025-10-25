@@ -136,13 +136,9 @@ class PySymmetry:
         r"""
         Returns symmetry elements of all *finite* orders of a given kind.
 
-        # Arguments
+        :param kind: The symmetry element kind.
 
-        * `kind` - The symmetry element kind.
-
-        # Returns
-
-        A dictionary where the keys are integers indicating the orders of the elements and the values
+        :return: A dictionary where the keys are integers indicating the orders of the elements and the values
         are vectors of one-dimensional arrays, each of which gives the axis of a symmetry element.
         If the order value is `-1`, then the associated elements have infinite order.
         """
@@ -1071,8 +1067,6 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     If `symmetry_transformation_kind` includes spin transformation, the provided
     multi-determinantal wavefunctions with spin constraint structure will be augmented to
     the generalised spin constraint automatically.
-   
-    # Arguments
    
     :param inp_sym: A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection result for the system.
         This will be used to construct abstract groups and character tables for representation analysis.
