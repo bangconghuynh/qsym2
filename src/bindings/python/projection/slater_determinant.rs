@@ -52,8 +52,8 @@ type C128 = Complex<f64>;
 /// * `density_matrix_calculation_thresholds` - An optional pair of thresholds for Löwdin pairing,
 /// one for checking zero off-diagonal values, one for checking zero overlaps, when computing
 /// multi-determinantal density matrices. If `None`, no density matrices will be computed.
-/// * `pybao` - Python-exposed structure containing basis angular order information for the density
-/// matrices.
+/// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
+/// explicit component per coefficient matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
 /// should be used.
