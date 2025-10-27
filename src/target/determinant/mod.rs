@@ -29,6 +29,7 @@ mod determinant_tests;
 mod determinant_jadapted_tests;
 
 pub mod determinant_analysis;
+pub mod determinant_projection;
 mod determinant_transformation;
 
 // ==================

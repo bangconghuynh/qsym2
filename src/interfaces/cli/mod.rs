@@ -86,7 +86,7 @@ impl fmt::Display for Cli {
 // Functions
 // =========
 
-/// Outputs a nicely formatted QSym2 heading to the `qsym2-output` logger.
+/// Outputs a nicely formatted QSym² heading to the `qsym2-output` logger.
 #[cfg_attr(feature = "python", pyfunction)]
 pub fn qsym2_output_heading() {
     let version = if let Some(ver) = VERSION {

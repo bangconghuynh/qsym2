@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher};
 
 use itertools::{Itertools, MultiProduct};
 use log;
-use ndarray::{stack, Array1, Array2, Axis};
+use ndarray::{Array1, Array2, Axis, stack};
 use num_complex::ComplexFloat;
 
 /// Trait to enable floating point numbers to be hashed.
@@ -218,7 +218,6 @@ where
             }
         })
     } else {
-        log::error!("Post-Gram--Schmidt orthogonality check failed.");
         Err(GramSchmidtError {
             mat: Some(vmat),
             vecs: None,

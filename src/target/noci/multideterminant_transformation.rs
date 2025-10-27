@@ -139,15 +139,13 @@ impl<'a> TimeReversalTransformable
 // SymmetryTransformable
 // ---------------------
 
-impl<'a, 'go, G, T, SC> SymmetryTransformable
-    for MultiDeterminant<'a, T, OrbitBasis<'go, G, SlaterDeterminant<'a, T, SC>>, SC>
+impl<'a, 'go, T, B, SC> SymmetryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone + SymmetryTransformable,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     Self: TimeReversalTransformable,
-    OrbitBasis<'go, G, SlaterDeterminant<'a, T, SC>>: TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,
@@ -206,22 +204,5 @@ where
             self.complex_conjugated = !self.complex_conjugated;
         }
         Ok(self)
-    }
-}
-
-impl<'a, T, SC> SymmetryTransformable
-    for MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>
-where
-    T: ComplexFloat + Lapack,
-    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    Self: TimeReversalTransformable,
-    EagerBasis<SlaterDeterminant<'a, T, SC>>: TimeReversalTransformable,
-{
-    fn sym_permute_sites_spatial(
-        &self,
-        symop: &SymmetryOperation,
-    ) -> Result<Permutation<usize>, TransformationError> {
-        self.basis.sym_permute_sites_spatial(symop)
     }
 }

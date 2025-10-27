@@ -911,7 +911,7 @@ macro_rules! fn_calc_xmat_complex {
                 thresh,
             )
             .map_err(
-                |_| format_err!("Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.")
+                |_| format_err!("Unable to Gram--Schmidt orthonormalise the linearly-independent eigenvectors of the overlap matrix.")
             )?;
 
             let nullity = smat.shape()[0] - nonzero_s_indices.len();

@@ -109,7 +109,7 @@ where
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
     /// orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
-    /// * `thresh_zeroov` - threshold for identifying zero Löwdin overlaps.
+    /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     ///
     /// # Returns
     ///
@@ -254,6 +254,8 @@ where
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
+    type MatrixElement = T;
+
     fn calc_matrix_element(
         &self,
         det_w: &SlaterDeterminant<T, SC>,
@@ -271,6 +273,18 @@ where
         )?;
         Ok(zeroe + onee + twoe)
     }
+
+    fn t(x: &T) -> T {
+        *x
+    }
+
+    fn conj(x: &T) -> T {
+        <T as ComplexFloat>::conj(*x)
+    }
+
+    fn zero(&self) -> T {
+        T::zero()
+    }
 }
 
 impl<'a, T, SC, F> OrbitMatrix<'a, T, SC> for HamiltonianAO<'a, T, SC, F>
@@ -281,6 +295,8 @@ where
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
+    type MatrixElement = T;
+
     fn calc_matrix_element(
         &self,
         det_w: &SlaterDeterminant<T, SC>,
@@ -290,5 +306,17 @@ where
         thresh_zeroov: <T as ComplexFloat>::Real,
     ) -> Result<T, anyhow::Error> {
         (&self).calc_matrix_element(det_w, det_x, sao, thresh_offdiag, thresh_zeroov)
+    }
+
+    fn t(x: &T) -> T {
+        *x
+    }
+
+    fn conj(x: &T) -> T {
+        <T as ComplexFloat>::conj(*x)
+    }
+
+    fn zero(&self) -> T {
+        T::zero()
     }
 }

@@ -21,6 +21,7 @@ use crate::target::density::Density;
 mod orbital_tests;
 
 pub mod orbital_analysis;
+pub mod orbital_projection;
 mod orbital_transformation;
 
 // ==================

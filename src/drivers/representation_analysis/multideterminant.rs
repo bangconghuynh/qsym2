@@ -468,7 +468,7 @@ where
     /// The complex-symmetric atomic-orbital overlap matrix of the underlying basis set used to
     /// describe the wavefunctions. This is either for a single component corresponding to the basis
     /// functions specified by the basis angular order structure in the determinants, or for *all*
-    /// explicit components specified by the coefficients in the determinants.This is required if
+    /// explicit components specified by the coefficients in the determinants. This is required if
     /// antiunitary symmetry operations are involved. If none is provided, this will be assumed to
     /// be the same as [`Self::sao`].
     #[builder(default = "None")]

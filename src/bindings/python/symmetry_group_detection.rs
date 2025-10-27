@@ -16,10 +16,10 @@ use pyo3::prelude::*;
 
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
+use crate::drivers::QSym2Driver;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
-use crate::drivers::QSym2Driver;
 #[allow(unused_imports)]
 use crate::io::QSym2FileType;
 use crate::symmetry::symmetry_core::Symmetry;
@@ -35,16 +35,6 @@ use crate::symmetry::symmetry_element_order::ElementOrder;
 // ----------
 
 /// Python-exposed structure to marshall molecular structure information between Rust and Python.
-///
-/// # Constructor arguments
-///
-/// * `atoms` - The ordinary atoms in the molecule. Python type: `list[tuple[str, tuple[float,
-/// float, float]]]`.
-/// * `threshold` - Threshold for comparing molecules. Python type: `float`.
-/// * `magnetic_field` - An optional uniform external magnetic field. Python type:
-/// `Optional[tuple[float, float, float]]`.
-/// * `electric_field` - An optional uniform external electric field. Python type:
-/// `Optional[tuple[float, float, float]]`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyMolecule {
@@ -79,13 +69,10 @@ impl PyMolecule {
     ///
     /// # Arguments
     ///
-    /// * `atoms` - The ordinary atoms in the molecule. Python type: `list[tuple[str, tuple[float,
-    /// float, float]]]`.
-    /// * `threshold` - Threshold for comparing molecules. Python type: `float`.
-    /// * `magnetic_field` - An optional uniform external magnetic field. Python type:
-    /// `Optional[tuple[float, float, float]]`.
-    /// * `electric_field` - An optional uniform external electric field. Python type:
-    /// `Optional[tuple[float, float, float]]`.
+    /// * `atoms` - The ordinary atoms in the molecule.
+    /// * `threshold` - Threshold for comparing molecules.
+    /// * `magnetic_field` - An optional uniform external magnetic field.
+    /// * `electric_field` - An optional uniform external electric field.
     #[new]
     #[pyo3(signature = (atoms, threshold, magnetic_field=None, electric_field=None))]
     pub fn new(
@@ -126,7 +113,7 @@ impl From<PyMolecule> for Molecule {
 // PySymmetryElementKind
 // ---------------------
 
-/// Python-exposed structure to marshall symmetry element kind information one-way from Rust to
+/// Python-exposed enumerated type to marshall symmetry element kind information one-way from Rust to
 /// Python.
 #[pyclass(eq, eq_int)]
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -223,15 +210,13 @@ impl PySymmetry {
     ///
     /// # Arguments
     ///
-    /// * `kind` - The symmetry element kind. Python type: `PySymmetryElementKind`.
+    /// * `kind` - The symmetry element kind.
     ///
     /// # Returns
     ///
     /// A hashmap where the keys are integers indicating the orders of the elements and the values
     /// are vectors of one-dimensional arrays, each of which gives the axis of a symmetry element.
     /// If the order value is `-1`, then the associated elements have infinite order.
-    ///
-    /// Python type: `dict[int, list[numpy.1darray[float]]]`.
     pub fn get_elements_of_kind(
         &self,
         kind: &PySymmetryElementKind,
@@ -260,15 +245,13 @@ impl PySymmetry {
     ///
     /// # Arguments
     ///
-    /// * `kind` - The symmetry generator kind. Python type: `PySymmetryElementKind`.
+    /// * `kind` - The symmetry generator kind.
     ///
     /// # Returns
     ///
     /// A hashmap where the keys are integers indicating the orders of the generators and the values
     /// are vectors of one-dimensional arrays, each of which gives the axis of a symmetry generator.
     /// If the order value is `-1`, then the associated generators have infinite order.
-    ///
-    /// Python type: `dict[int, list[numpy.1darray[float]]]`.
     pub fn get_generators_of_kind(
         &self,
         kind: &PySymmetryElementKind,
@@ -387,21 +370,24 @@ impl TryFrom<&Symmetry> for PySymmetry {
 /// # Arguments
 ///
 /// * `inp_xyz` - An optional string providing the path to an XYZ file containing the molecule to
-/// be analysed. Only one of `inp_xyz` or `inp_mol` can be specified. Python type: `Optional[str]`.
+/// be analysed. Only one of `inp_xyz` or `inp_mol` can be specified.
 /// * `inp_mol` - An optional `PyMolecule` structure containing the molecule to be analysed. Only
-/// one of `inp_xyz` or `inp_mol` can be specified. Python type: `PyMolecule`.
+/// one of `inp_xyz` or `inp_mol` can be specified.
 /// * `out_sym` - An optional name for the [`QSym2FileType::Sym`] file to be saved that contains
-/// the serialised results of the symmetry-group detection. Python type: `Optional[str]`.
-/// * `moi_thresholds` - Thresholds for comparing moments of inertia. Python type: `list[float]`.
-/// * `distance_thresholds` - Thresholds for comparing distances. Python type: `list[float]`.
+/// the serialised results of the symmetry-group detection.
+/// * `moi_thresholds` - Thresholds for comparing moments of inertia.
+/// * `distance_thresholds` - Thresholds for comparing distances.
 /// * `time_reversal` - A boolean indicating whether elements involving time reversal should also
-/// be considered. Python type: `bool`.
+/// be considered.
 /// * `write_symmetry_elements` - A boolean indicating if detected symmetry elements should be
-/// printed in the output. Python type: `bool`.
-/// * `fictitious_magnetic_field` - An optional fictitious uniform external magnetic field. Python
-/// type: `Optional[tuple[float, float, float]]`.
-/// * `fictitious_electric_field` - An optional fictitious uniform external electric field. Python
-/// type: `Optional[tuple[float, float, float]]`.
+/// printed in the output.
+/// * `fictitious_magnetic_field` - An optional fictitious uniform external magnetic field.
+/// * `fictitious_electric_field` - An optional fictitious uniform external electric field.
+///
+/// # Returns
+///
+/// Returns a tuple of a [`PySymmetry`] for the unitary group and another optional [`PySymmetry`]
+/// for the magnetic group if requested.
 ///
 /// # Errors
 ///

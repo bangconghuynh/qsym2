@@ -52,7 +52,7 @@ pub enum PyPureSpinorOrder {
     Custom((Vec<i32>, bool)),
 }
 
-/// Python-exposed enumerated type to handle the `ShellOrder` union type `bool |
+/// Python-exposed enumerated type to handle the `ShellOrder` union type `PyPureSpinorOrder |
 /// Optional[list[tuple[int, int, int]]]` in Python.
 #[derive(Clone, FromPyObject)]
 pub enum PyShellOrder {
@@ -61,15 +61,11 @@ pub enum PyShellOrder {
     /// order or a sequence of integers specifying a custom $`m`$-order for pure or $`2m`$-order
     /// for spinor, and the second is a boolean indicating whether the spatial parts of the
     /// functions in the shell are even with respect to spatial inversion.
-    ///
-    /// Python type: `tuple[bool | list[int], bool]`.
     PureSpinorOrder(PyPureSpinorOrder),
 
     /// Variant for Cartesian shell order. If the associated `Option` is `None`, the order will be
     /// taken to be lexicographic. Otherwise, the order will be as specified by the $`(x, y, z)`$
     /// exponent tuples.
-    ///
-    /// Python type: Optional[list[tuple[int, int, int]]].
     CartOrder(Option<Vec<(u32, u32, u32)>>),
 }
 
@@ -104,27 +100,7 @@ pub enum ShellType {
 // PyBasisAngularOrder
 // ===================
 
-/// Python-exposed structure to marshal basis angular order information between Python and Rust.
-///
-/// # Constructor arguments
-///
-/// * `basis_atoms` - A vector of tuples, each of which provides information for one basis
-/// atom in the form `(element, basis_shells)`. Here:
-///   * `element` is a string giving the element symbol of the atom, and
-///   * `basis_shells` is a vector of tuples, each of which provides information for one basis
-///   shell on the atom in the form `(angmom, cart, order)`. Here:
-///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
-///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
-///     or pure / solid harmonics (`false`), and
-///     * `order` specifies how the functions in the shell are ordered:
-///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
-///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
-///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
-///
-///   Python type:
-///   `list[tuple[str, list[tuple[str, bool, Optional[list[tuple[int, int, int]]] | bool | list[int]]]]]`.
+/// Python-exposed structure to marshall basis angular order information between Python and Rust.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyBasisAngularOrder {
@@ -135,22 +111,18 @@ pub struct PyBasisAngularOrder {
     ///   shell on the atom in the form `(angmom, shelltype, order)`. Here:
     ///     * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
     ///     which depends on the shell type,
-    ///     * `shelltype` is an enumerated type with possible variants `ShellType.Pure`,
-    ///     `ShellType.Cartesian`, `ShellType.Spinor`, and `ShellType.SpinorKineticBalance`
-    ///     indicating the type of the shell, and
+    ///     * `shelltype` is an enumerated type indicating the type of the shell, and
     ///     * `order` specifies how the functions in the shell are ordered:
     ///       * if `shelltype` is `ShellType.Cartesian`, `order` can be `None` for lexicographic
     ///       order, or a list of tuples `(lx, ly, lz)` specifying a custom order for the Cartesian
     ///       functions where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents,
     ///       respectively;
-    ///       * if `shelltype` is `ShellType.Pure`, `ShellType.Spinor`, or
-    ///       `ShellType.SpinorKineticBalance`, `order` is a tuple of two values: the first can be
-    ///       `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or a list of
-    ///       $`m`$ values for custom order, and the second is a boolean indicating whether the
-    ///       spatial parts of the functions in the shell are even with respect to spatial inversion.
-    ///
-    /// Python type:
-    /// `list[tuple[str, list[tuple[int, ShellType, tuple[bool | list[int], bool] | Optional[list[tuple[int, int, int]]]]]]]`.
+    ///       * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
+    ///       `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+    ///       `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
+    ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
+    ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether
+    ///       the spatial parts of the functions in the shell are even with respect to spatial inversion.
     basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
 }
 
@@ -179,9 +151,6 @@ impl PyBasisAngularOrder {
     ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order, and the second is
     ///       a boolean indicating whether the spatial parts of the functions in the shell are even
     ///       with respect to spatial inversion.
-    ///
-    ///   Python type:
-    ///   `list[tuple[str, list[tuple[int, ShellType, tuple[bool | list[int], bool] | Optional[list[tuple[int, int, int]]]]]]]`.
     #[new]
     fn new(basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>) -> Self {
         Self { basis_atoms }
@@ -191,12 +160,12 @@ impl PyBasisAngularOrder {
     ///
     /// # Arguments
     ///
-    /// * `filename` - A path to a Q-Chem HDF5 archive file. Python type: `str`.
+    /// * `filename` - A path to a Q-Chem HDF5 archive file.
     ///
     /// # Returns
     ///
     /// A sequence of `PyBasisAngularOrder` objects, one for each Q-Chem calculation found in the
-    /// HDF5 archive file. Python type: `list[PyBasisAngularOrder]`.
+    /// HDF5 archive file.
     ///
     /// A summary showing how the `PyBasisAngularOrder` objects map onto the Q-Chem calculations in
     /// the HDF5 archive file is also logged at the `INFO` level.
@@ -583,60 +552,35 @@ impl TryFrom<PyStructureConstraint> for SpinOrbitCoupled {
 #[derive(Clone)]
 /// Python-exposed structure to marshall basis shell contraction information between Rust and
 /// Python.
-///
-/// # Constructor arguments
-///
-/// * `basis_shell` - A triplet of the form `(angmom, cart, order)` where:
-///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
-///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
-///     or pure / solid harmonics (`false`), and
-///     * `order` specifies how the functions in the shell are ordered:
-///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
-///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
-///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
-///
-///     Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
-/// * `primitives` - A list of tuples, each of which contains the exponent and the contraction
-/// coefficient of a Gaussian primitive in this shell. Python type: `list[tuple[float, float]]`.
-/// * `cart_origin` - A fixed-size list of length 3 containing the Cartesian coordinates of the
-/// origin $`\mathbf{R}`$ of this shell in Bohr radii. Python type: `list[float]`.
-/// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
-/// $`\mathbf{k}`$ vector of this shell that appears in the complex phase factor
-/// $`\exp[i\mathbf{k} \cdot (\mathbf{r} - \mathbf{R})]`$. Python type: `Optional[list[float]]`.
 pub struct PyBasisShellContraction {
     /// A triplet of the form `(angmom, cart, order)` where:
-    ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
-    ///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
-    ///     or pure / solid harmonics (`false`), and
+    ///     * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
+    ///     which depends on the shell type,
+    ///     * `shelltype` is an enumerated type indicating the type of the shell, and
     ///     * `order` specifies how the functions in the shell are ordered:
-    ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
-    ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ order, `false` for
-    ///       decreasing-$`m`$ order, or a list of $`m`$ values for custom order.
-    ///
-    /// Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
+    ///       * if `shelltype` is `ShellType.Cartesian`, `order` can be `None` for lexicographic
+    ///       order, or a list of tuples `(lx, ly, lz)` specifying a custom order for the Cartesian
+    ///       functions where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents,
+    ///       respectively;
+    ///       * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
+    ///       `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+    ///       `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
+    ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
+    ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether
+    ///       the spatial parts of the functions in the shell are even with respect to spatial inversion.
     pub basis_shell: (u32, ShellType, PyShellOrder),
 
     /// A list of tuples, each of which contains the exponent and the contraction coefficient of a
     /// Gaussian primitive in this shell.
-    ///
-    /// Python type: `list[tuple[float, float]]`.
     pub primitives: Vec<(f64, f64)>,
 
     /// A fixed-size list of length 3 containing the Cartesian coordinates of the origin
     /// $`\mathbf{R}`$ of this shell in Bohr radii.
-    ///
-    /// Python type: `list[float]`.
     pub cart_origin: [f64; 3],
 
     /// An optional fixed-size list of length 3 containing the Cartesian components of the
     /// $`\mathbf{k}`$ vector of this shell that appears in the complex phase factor
     /// $`\exp[i\mathbf{k} \cdot (\mathbf{r} - \mathbf{R})]`$.
-    ///
-    /// Python type: `Optional[list[float]]`.
     pub k: Option<[f64; 3]>,
 }
 
@@ -648,23 +592,26 @@ impl PyBasisShellContraction {
     /// # Arguments
     ///
     /// * `basis_shell` - A triplet of the form `(angmom, cart, order)` where:
-    ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
-    ///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
-    ///     or pure / solid harmonics (`false`), and
+    ///     * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
+    ///     which depends on the shell type,
+    ///     * `shelltype` is an enumerated type indicating the type of the shell, and
     ///     * `order` specifies how the functions in the shell are ordered:
-    ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
-    ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
-    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-    ///       decreasing-$`m`$ order.
-    ///
-    ///     Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
+    ///       * if `shelltype` is `ShellType.Cartesian`, `order` can be `None` for lexicographic
+    ///       order, or a list of tuples `(lx, ly, lz)` specifying a custom order for the Cartesian
+    ///       functions where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents,
+    ///       respectively;
+    ///       * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
+    ///       `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+    ///       `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
+    ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
+    ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether
+    ///       the spatial parts of the functions in the shell are even with respect to spatial inversion.
     /// * `primitives` - A list of tuples, each of which contains the exponent and the contraction
-    /// coefficient of a Gaussian primitive in this shell. Python type: `list[tuple[float, float]]`.
+    /// coefficient of a Gaussian primitive in this shell.
     /// * `cart_origin` - A fixed-size list of length 3 containing the Cartesian coordinates of the
-    /// origin of this shell. Python type: `list[float]`.
+    /// origin of this shell.
     /// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
-    /// $`\mathbf{k}`$ vector of this shell. Python type: `Optional[list[float]]`.
+    /// $`\mathbf{k}`$ vector of this shell.
     #[new]
     #[pyo3(signature = (basis_shell, primitives, cart_origin, k=None))]
     pub fn new(
@@ -925,7 +872,7 @@ fn create_basis_shell(
 /// # Arguments
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
-/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+/// on one atom.
 ///
 /// # Returns
 ///
@@ -972,7 +919,7 @@ pub fn calc_overlap_2c_real<'py>(
 /// # Arguments
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
-/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+/// on one atom.
 /// * `complex_symmetric` - A boolean indicating if the complex-symmetric overlap is to be
 /// calculated.
 ///
@@ -1018,7 +965,7 @@ pub fn calc_overlap_2c_complex<'py>(
 /// # Arguments
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
-/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+/// on one atom.
 ///
 /// # Returns
 ///
@@ -1065,7 +1012,7 @@ pub fn calc_overlap_4c_real<'py>(
 /// # Arguments
 ///
 /// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
-/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+/// on one atom.
 /// * `complex_symmetric` - A boolean indicating if the complex-symmetric overlap tensor is to be
 /// calculated.
 ///

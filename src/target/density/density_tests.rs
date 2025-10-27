@@ -1,7 +1,11 @@
+use std::str::FromStr;
+
 // use env_logger;
+use approx::{assert_relative_eq, assert_relative_ne};
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
-use ndarray::{array, concatenate, s, Array2, Axis};
+use ndarray::{Array2, Axis, array, concatenate, s};
+use ndarray_linalg::Norm;
 use ndarray_linalg::assert::close_l2;
 use num_complex::Complex;
 use serial_test::serial;
@@ -16,6 +20,7 @@ use crate::basis::ao::{
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::projection::Projectable;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
@@ -23,8 +28,8 @@ use crate::symmetry::symmetry_transformation::{
     ComplexConjugationTransformable, SymmetryTransformable, SymmetryTransformationKind,
     TimeReversalTransformable,
 };
-use crate::target::density::density_analysis::DensitySymmetryOrbit;
 use crate::target::density::Density;
+use crate::target::density::density_analysis::DensitySymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
 
 type C128 = Complex<f64>;
@@ -1536,5 +1541,389 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
             "2||A|_(g)| ⊕ 2||B|_(g)| ⊕ 2|_(a)|Γ|_(u)| ⊕ 2|_(b)|Γ|_(u)|"
         )
         .unwrap()
+    );
+}
+
+#[test]
+fn test_density_projection_b3() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_b0 = Atom::new_ordinary("B", Point3::new(1.0, 0.0, 0.0), &emap, 1e-7);
+    let atm_b1 = Atom::new_ordinary(
+        "B",
+        Point3::new(-0.5, 3.0f64.sqrt() / 2.0, 0.0),
+        &emap,
+        1e-7,
+    );
+    let atm_b2 = Atom::new_ordinary(
+        "B",
+        Point3::new(-0.5, -3.0f64.sqrt() / 2.0, 0.0),
+        &emap,
+        1e-7,
+    );
+
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+
+    let batm_b0 = BasisAtom::new(&atm_b0, &[bss_p.clone()]);
+    let batm_b1 = BasisAtom::new(&atm_b1, &[bss_p.clone()]);
+    let batm_b2 = BasisAtom::new(&atm_b2, &[bss_p]);
+
+    let bao_b3 = BasisAngularOrder::new(&[batm_b0, batm_b1, batm_b2]);
+    let mol_b3 =
+        Molecule::from_atoms(&[atm_b0.clone(), atm_b1.clone(), atm_b2.clone()], 1e-7).recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_b3)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+
+    // A1' state
+    // ---------
+    #[rustfmt::skip]
+    let c_a1d = array![
+        [
+            1.0 / 3.0f64.sqrt(),
+            1.0 / 3.0f64.sqrt(),
+            1.0 / 3.0f64.sqrt(),
+        ],
+    ];
+    let c_a1d = c_a1d.t();
+    let d_a1d = c_a1d.dot(&c_a1d.t());
+    let den_a1d = Density::<f64>::builder()
+        .density_matrix(d_a1d)
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let orbit_den_a1d = DensitySymmetryOrbit::builder()
+        .group(&group)
+        .origin(&den_a1d)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+
+    let a1d = MullikenIrrepSymbol::from_str("||A|_(1)^(')|").unwrap();
+    let den_a1d_p_a1d = orbit_den_a1d.project_onto(&a1d).unwrap();
+    close_l2(
+        &den_a1d_p_a1d.density_matrix,
+        &den_a1d.density_matrix,
+        1e-12,
+    );
+
+    let a2d = MullikenIrrepSymbol::from_str("||A|_(2)^(')|").unwrap();
+    let den_a1d_p_a2d = orbit_den_a1d.project_onto(&a2d).unwrap();
+    assert_relative_eq!(den_a1d_p_a2d.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let ed = MullikenIrrepSymbol::from_str("||E|^(')|").unwrap();
+    let den_a1d_p_ed = orbit_den_a1d.project_onto(&ed).unwrap();
+    assert_relative_eq!(den_a1d_p_ed.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let a1dd = MullikenIrrepSymbol::from_str("||A|_(1)^('')|").unwrap();
+    let den_a1d_p_a1dd = orbit_den_a1d.project_onto(&a1dd).unwrap();
+    assert_relative_eq!(
+        den_a1d_p_a1dd.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let a2dd = MullikenIrrepSymbol::from_str("||A|_(2)^('')|").unwrap();
+    let den_a1d_p_a2dd = orbit_den_a1d.project_onto(&a2dd).unwrap();
+    assert_relative_eq!(
+        den_a1d_p_a2dd.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let edd = MullikenIrrepSymbol::from_str("||E|^('')|").unwrap();
+    let den_a1d_p_edd = orbit_den_a1d.project_onto(&edd).unwrap();
+    assert_relative_eq!(den_a1d_p_edd.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    // E' state
+    // --------
+    #[rustfmt::skip]
+    let c_ed = array![
+        [
+            0.0,
+            1.0 / 2.0f64.sqrt(),
+            -1.0 / 2.0f64.sqrt(),
+        ],
+    ];
+    let c_ed = c_ed.t();
+    let d_a1d_ed = c_ed.dot(&c_ed.t());
+    let den_a1d_ed = Density::<f64>::builder()
+        .density_matrix(d_a1d_ed)
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let orbit_den_a1d_ed = DensitySymmetryOrbit::builder()
+        .group(&group)
+        .origin(&den_a1d_ed)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+
+    let den_a1d_ed_p_a1d = orbit_den_a1d_ed.project_onto(&a1d).unwrap();
+    assert_relative_ne!(
+        den_a1d_ed_p_a1d.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1d_ed_p_a2d = orbit_den_a1d_ed.project_onto(&a2d).unwrap();
+    assert_relative_eq!(
+        den_a1d_ed_p_a2d.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1d_ed_p_ed = orbit_den_a1d_ed.project_onto(&ed).unwrap();
+    assert_relative_ne!(
+        den_a1d_ed_p_ed.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1d_ed_p_a1dd = orbit_den_a1d_ed.project_onto(&a1dd).unwrap();
+    assert_relative_eq!(
+        den_a1d_ed_p_a1dd.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1d_ed_p_a2dd = orbit_den_a1d_ed.project_onto(&a2dd).unwrap();
+    assert_relative_eq!(
+        den_a1d_ed_p_a2dd.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1d_ed_p_edd = orbit_den_a1d_ed.project_onto(&edd).unwrap();
+    assert_relative_eq!(
+        den_a1d_ed_p_edd.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    close_l2(
+        &den_a1d_ed.density_matrix,
+        &(den_a1d_ed_p_a1d.density_matrix + den_a1d_ed_p_ed.density_matrix),
+        1e-12,
+    );
+}
+
+#[test]
+fn test_density_projection_h4() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::new_ordinary("H", Point3::new(1.0, 1.0, 0.0), &emap, 1e-7);
+    let atm_h1 = Atom::new_ordinary("H", Point3::new(-1.0, 1.0, 0.0), &emap, 1e-7);
+    let atm_h2 = Atom::new_ordinary("H", Point3::new(-1.0, -1.0, 0.0), &emap, 1e-7);
+    let atm_h3 = Atom::new_ordinary("H", Point3::new(1.0, -1.0, 0.0), &emap, 1e-7);
+
+    let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bsp_c.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bsp_c.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bsp_c.clone()]);
+    let batm_h3 = BasisAtom::new(&atm_h3, &[bsp_c.clone()]);
+
+    let bao_h4 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2, batm_h3]);
+    let mol_h4 = Molecule::from_atoms(
+        &[
+            atm_h0.clone(),
+            atm_h1.clone(),
+            atm_h2.clone(),
+            atm_h3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h4)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+
+    // A2u state
+    // ---------
+    #[rustfmt::skip]
+    let c_a2u = array![
+        [
+            0.0,
+            0.0,
+            1.0 / 2.0,
+            0.0,
+            0.0,
+            1.0 / 2.0,
+            0.0,
+            0.0,
+            1.0 / 2.0,
+            0.0,
+            0.0,
+            1.0 / 2.0,
+        ],
+    ];
+    let c_a2u = c_a2u.t();
+    let d_a1g = c_a2u.dot(&c_a2u.t());
+    let den_a1g = Density::<f64>::builder()
+        .density_matrix(d_a1g)
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let orbit_den_a1g = DensitySymmetryOrbit::builder()
+        .group(&group)
+        .origin(&den_a1g)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+
+    let a1g = MullikenIrrepSymbol::from_str("||A|_(1g)|").unwrap();
+    let den_a1g_p_a1g = orbit_den_a1g.project_onto(&a1g).unwrap();
+    close_l2(
+        &den_a1g_p_a1g.density_matrix,
+        &den_a1g.density_matrix,
+        1e-12,
+    );
+
+    let a2g = MullikenIrrepSymbol::from_str("||A|_(2g)|").unwrap();
+    let den_a1g_p_a2g = orbit_den_a1g.project_onto(&a2g).unwrap();
+    assert_relative_eq!(den_a1g_p_a2g.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let b1g = MullikenIrrepSymbol::from_str("||B|_(1g)|").unwrap();
+    let den_a1g_p_b1g = orbit_den_a1g.project_onto(&b1g).unwrap();
+    assert_relative_eq!(den_a1g_p_b1g.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let b2g = MullikenIrrepSymbol::from_str("||B|_(2g)|").unwrap();
+    let den_a1g_p_b2g = orbit_den_a1g.project_onto(&b2g).unwrap();
+    assert_relative_eq!(den_a1g_p_b2g.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let eg = MullikenIrrepSymbol::from_str("||E|_(g)|").unwrap();
+    let den_a1g_p_eg = orbit_den_a1g.project_onto(&eg).unwrap();
+    assert_relative_eq!(den_a1g_p_eg.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let a2u = MullikenIrrepSymbol::from_str("||A|_(2u)|").unwrap();
+    let den_a1g_p_a2u = orbit_den_a1g.project_onto(&a2u).unwrap();
+    assert_relative_eq!(den_a1g_p_a2u.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let b1u = MullikenIrrepSymbol::from_str("||B|_(1u)|").unwrap();
+    let den_a1g_p_b1u = orbit_den_a1g.project_onto(&b1u).unwrap();
+    assert_relative_eq!(den_a1g_p_b1u.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let b2u = MullikenIrrepSymbol::from_str("||B|_(2u)|").unwrap();
+    let den_a1g_p_b2u = orbit_den_a1g.project_onto(&b2u).unwrap();
+    assert_relative_eq!(den_a1g_p_b2u.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    let eu = MullikenIrrepSymbol::from_str("||E|_(u)|").unwrap();
+    let den_a1g_p_eu = orbit_den_a1g.project_onto(&eu).unwrap();
+    assert_relative_eq!(den_a1g_p_eu.density_matrix.norm_l2(), 0.0, epsilon = 1e-12);
+
+    // Eg state
+    // --------
+    #[rustfmt::skip]
+    let c_eg = array![
+        [
+            0.0,
+            0.0,
+            1.0 / 2.0,
+            0.0,
+            0.0,
+            1.0 / 2.0,
+            0.0,
+            0.0,
+            -1.0 / 2.0,
+            0.0,
+            0.0,
+            -1.0 / 2.0,
+        ],
+    ];
+    let c_eg = c_eg.t();
+    let d_a1g_b1g_b2g = c_eg.dot(&c_eg.t());
+    let den_a1g_b1g_b2g = Density::<f64>::builder()
+        .density_matrix(d_a1g_b1g_b2g)
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let orbit_den_a1g_b1g_b2g = DensitySymmetryOrbit::builder()
+        .group(&group)
+        .origin(&den_a1g_b1g_b2g)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+
+    let den_a1g_b1g_b2g_p_a1g = orbit_den_a1g_b1g_b2g.project_onto(&a1g).unwrap();
+    assert_relative_ne!(
+        den_a1g_b1g_b2g_p_a1g.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1g_b1g_b2g_p_a2g = orbit_den_a1g_b1g_b2g.project_onto(&a2g).unwrap();
+    assert_relative_eq!(
+        den_a1g_b1g_b2g_p_a2g.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1g_b1g_b2g_p_b1g = orbit_den_a1g_b1g_b2g.project_onto(&b1g).unwrap();
+    assert_relative_ne!(
+        den_a1g_b1g_b2g_p_b1g.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    // This just happens to vanish even though it is symmetry-allowed as [Eg ⊗ Eg]+ = Ag ⊕ B1g ⊕ B2g.
+    let den_a1g_b1g_b2g_p_b2g = orbit_den_a1g_b1g_b2g.project_onto(&b2g).unwrap();
+    assert_relative_eq!(
+        den_a1g_b1g_b2g_p_b2g.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    let den_a1g_b1g_b2g_p_eg = orbit_den_a1g_b1g_b2g.project_onto(&eg).unwrap();
+    assert_relative_eq!(
+        den_a1g_b1g_b2g_p_eg.density_matrix.norm_l2(),
+        0.0,
+        epsilon = 1e-12
+    );
+
+    close_l2(
+        &den_a1g_b1g_b2g.density_matrix,
+        &(den_a1g_b1g_b2g_p_a1g.density_matrix + den_a1g_b1g_b2g_p_b1g.density_matrix),
+        1e-12,
     );
 }
