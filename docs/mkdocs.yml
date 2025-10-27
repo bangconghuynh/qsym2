@@ -120,6 +120,7 @@ nav:
       - user-guide/representation-analysis/real-space-functions.md
     - Projection:
       - user-guide/projection/basics.md
+      - user-guide/projection/slater-determinants.md
       - user-guide/projection/electron-densities.md
   - API documentation: https://qsym2.dev/api
   - About:
