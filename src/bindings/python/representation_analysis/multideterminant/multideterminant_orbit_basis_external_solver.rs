@@ -5,19 +5,21 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::{Context, bail, format_err};
-use ndarray::Array1;
+use itertools::Itertools;
+use ndarray::{Array1, Array2, ShapeBuilder};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2, PyArrayMethods};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
-use pyo3::prelude::*;
 use pyo3::types::PyFunction;
+use pyo3::{IntoPyObjectExt, prelude::*};
 
-use crate::analysis::EigenvalueComparisonMode;
+use crate::analysis::{EigenvalueComparisonMode, Overlap};
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
-use crate::bindings::python::integrals::{
-    PyBasisAngularOrder, PyStructureConstraint,
-};
+use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::PyArray2RC;
+use crate::bindings::python::representation_analysis::multideterminant::{
+    PyMultiDeterminantsComplex, PyMultiDeterminantsReal,
+};
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminant, PySlaterDeterminantComplex, PySlaterDeterminantReal,
 };
@@ -112,6 +114,10 @@ macro_rules! generate_noci_solver {
 /// Python type: `Callable[[list[PySlaterDeterminantReal | PySlaterDeterminantComplex]], tuple[list[float], list[list[float]]] | tuple[list[complex], list[list[complex]]]]`.
 /// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
 /// explicit component per coefficient matrix.
+/// * `density_matrix_calculation_thresholds` - An optional pair of thresholds for Löwdin pairing,
+/// one for checking zero off-diagonal values, one for checking zero overlaps, when computing
+/// multi-determinantal density matrices. If `None`, no density matrices for the resulting
+/// multi-determinants will be computed.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
 /// subspace via the non-zero eigenvalues of the orbit overlap matrix.
@@ -153,6 +159,7 @@ macro_rules! generate_noci_solver {
     pyorigins,
     py_noci_solver,
     pybaos,
+    density_matrix_calculation_thresholds,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -175,6 +182,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     pyorigins: Vec<PySlaterDeterminant>,
     py_noci_solver: Py<PyFunction>,
     pybaos: Vec<PyBasisAngularOrder>,
+    density_matrix_calculation_thresholds: Option<(f64, f64)>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -190,7 +198,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     angular_function_integrality_threshold: f64,
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
-) -> PyResult<()> {
+) -> PyResult<Py<PyAny>> {
     // Read in point-group detection results
     let pd_res: SymmetryGroupDetectionResult =
         read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
@@ -322,7 +330,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
             }
 
             // Preparation
-            let sao = pysao_r.to_owned_array();
+            let sao_r = pysao_r.to_owned_array();
             let origins_r = if augment_to_generalised {
                 pyorigins
                     .iter()
@@ -465,7 +473,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao(&sao)
+                    .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
@@ -474,7 +482,73 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+
+                    // Collect real multi-determinantal wavefunctions for returning
+                    let basis = multidets
+                        .iter()
+                        .next()
+                        .and_then(|multidet| {
+                            multidet
+                                .basis()
+                                .iter()
+                                .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                                .collect::<Result<Vec<_>, _>>()
+                                .ok()
+                        })
+                        .ok_or_else(|| {
+                            PyRuntimeError::new_err(
+                                "Unable to obtain the basis of Slater determinants.".to_string(),
+                            )
+                        })?;
+                    let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                        .iter()
+                        .map(|multidet| {
+                            let coefficients =
+                                multidet.coefficients().iter().cloned().collect_vec();
+                            let energy = *multidet.energy().unwrap_or(&f64::NAN);
+                            Ok::<_, PyErr>((coefficients, energy))
+                        })
+                        .collect::<Result<Vec<_>, _>>()?
+                        .into_iter()
+                        .unzip();
+                    let coefficientss_arr = Array2::from_shape_vec(
+                        (basis.len(), coefficientss.len()).f(),
+                        coefficientss.into_iter().flatten().collect_vec(),
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    .to_pyarray(py);
+                    let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                    let density_matrices = density_matrix_calculation_thresholds
+                        .map(|(thresh_offdiag, thresh_zeroov)| {
+                            multidets
+                                .iter()
+                                .map(|multidet| {
+                                    multidet.overlap(multidet, Some(&sao_r), None).and_then(
+                                        |sq_norm| {
+                                            multidet
+                                                .density_matrix(
+                                                    &sao_r.view(),
+                                                    thresh_offdiag,
+                                                    thresh_zeroov,
+                                                )
+                                                .map(|denmat| (denmat / sq_norm).to_pyarray(py))
+                                        },
+                                    )
+                                })
+                                .collect::<Result<Vec<_>, _>>()
+                                .ok()
+                        })
+                        .flatten();
+                    let pymultidet = PyMultiDeterminantsReal::new(
+                        basis,
+                        coefficientss_arr,
+                        energies_arr,
+                        density_matrices,
+                        multidets[0].threshold(),
+                    )
+                    .into_py_any(py)?;
+                    Ok(pymultidet)
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     // Unitary groups or magnetic groups with representations
@@ -594,7 +668,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao(&sao)
+                    .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
@@ -603,9 +677,75 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                    })?
+                    })?;
+
+                    // Collect real multi-determinantal wavefunctions for returning
+                    let basis = multidets
+                        .iter()
+                        .next()
+                        .and_then(|multidet| {
+                            multidet
+                                .basis()
+                                .iter()
+                                .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                                .collect::<Result<Vec<_>, _>>()
+                                .ok()
+                        })
+                        .ok_or_else(|| {
+                            PyRuntimeError::new_err(
+                                "Unable to obtain the basis of Slater determinants.".to_string(),
+                            )
+                        })?;
+                    let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                        .iter()
+                        .map(|multidet| {
+                            let coefficients =
+                                multidet.coefficients().iter().cloned().collect_vec();
+                            let energy = *multidet.energy().unwrap_or(&f64::NAN);
+                            Ok::<_, PyErr>((coefficients, energy))
+                        })
+                        .collect::<Result<Vec<_>, _>>()?
+                        .into_iter()
+                        .unzip();
+                    let coefficientss_arr = Array2::from_shape_vec(
+                        (basis.len(), coefficientss.len()).f(),
+                        coefficientss.into_iter().flatten().collect_vec(),
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    .to_pyarray(py);
+                    let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                    let density_matrices = density_matrix_calculation_thresholds
+                        .map(|(thresh_offdiag, thresh_zeroov)| {
+                            multidets
+                                .iter()
+                                .map(|multidet| {
+                                    multidet.overlap(multidet, Some(&sao_r), None).and_then(
+                                        |sq_norm| {
+                                            multidet
+                                                .density_matrix(
+                                                    &sao_r.view(),
+                                                    thresh_offdiag,
+                                                    thresh_zeroov,
+                                                )
+                                                .map(|denmat| (denmat / sq_norm).to_pyarray(py))
+                                        },
+                                    )
+                                })
+                                .collect::<Result<Vec<_>, _>>()
+                                .ok()
+                        })
+                        .flatten();
+                    let pymultidet = PyMultiDeterminantsReal::new(
+                        basis,
+                        coefficientss_arr,
+                        energies_arr,
+                        density_matrices,
+                        multidets[0].threshold(),
+                    )
+                    .into_py_any(py)?;
+                    Ok(pymultidet)
                 }
-            };
+            }
         }
         (_, _) => {
             // Complex numeric data type
@@ -779,7 +919,77 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                            })?
+                            })?;
+
+                            // Collect complex multi-determinantal wavefunctions for returning
+                            let basis = multidets
+                                .iter()
+                                .next()
+                                .and_then(|multidet| {
+                                    multidet
+                                        .basis()
+                                        .iter()
+                                        .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .ok_or_else(|| {
+                                    PyRuntimeError::new_err(
+                                        "Unable to obtain the basis of Slater determinants."
+                                            .to_string(),
+                                    )
+                                })?;
+                            let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                                .iter()
+                                .map(|multidet| {
+                                    let coefficients =
+                                        multidet.coefficients().iter().cloned().collect_vec();
+                                    let energy =
+                                        *multidet.energy().unwrap_or(&Complex::from(f64::NAN));
+                                    Ok::<_, PyErr>((coefficients, energy))
+                                })
+                                .collect::<Result<Vec<_>, _>>()?
+                                .into_iter()
+                                .unzip();
+                            let coefficientss_arr = Array2::from_shape_vec(
+                                (basis.len(), coefficientss.len()).f(),
+                                coefficientss.into_iter().flatten().collect_vec(),
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            .to_pyarray(py);
+                            let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                            let density_matrices = density_matrix_calculation_thresholds
+                                .map(|(thresh_offdiag, thresh_zeroov)| {
+                                    multidets
+                                        .iter()
+                                        .map(|multidet| {
+                                            multidet
+                                                .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
+                                                .and_then(|sq_norm| {
+                                                    multidet
+                                                        .density_matrix(
+                                                            &sao_c.view(),
+                                                            thresh_offdiag,
+                                                            thresh_zeroov,
+                                                        )
+                                                        .map(|denmat| {
+                                                            (denmat / sq_norm).to_pyarray(py)
+                                                        })
+                                                })
+                                        })
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .flatten();
+                            let pymultidet = PyMultiDeterminantsComplex::new(
+                                basis,
+                                coefficientss_arr,
+                                energies_arr,
+                                density_matrices,
+                                multidets[0].threshold(),
+                            )
+                            .into_py_any(py)?;
+                            Ok(pymultidet)
                         }
                         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                             // Unitary groups or magnetic groups with representations
@@ -908,9 +1118,79 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                            })?
+                            })?;
+
+                            // Collect complex multi-determinantal wavefunctions for returning
+                            let basis = multidets
+                                .iter()
+                                .next()
+                                .and_then(|multidet| {
+                                    multidet
+                                        .basis()
+                                        .iter()
+                                        .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .ok_or_else(|| {
+                                    PyRuntimeError::new_err(
+                                        "Unable to obtain the basis of Slater determinants."
+                                            .to_string(),
+                                    )
+                                })?;
+                            let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                                .iter()
+                                .map(|multidet| {
+                                    let coefficients =
+                                        multidet.coefficients().iter().cloned().collect_vec();
+                                    let energy =
+                                        *multidet.energy().unwrap_or(&Complex::from(f64::NAN));
+                                    Ok::<_, PyErr>((coefficients, energy))
+                                })
+                                .collect::<Result<Vec<_>, _>>()?
+                                .into_iter()
+                                .unzip();
+                            let coefficientss_arr = Array2::from_shape_vec(
+                                (basis.len(), coefficientss.len()).f(),
+                                coefficientss.into_iter().flatten().collect_vec(),
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            .to_pyarray(py);
+                            let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                            let density_matrices = density_matrix_calculation_thresholds
+                                .map(|(thresh_offdiag, thresh_zeroov)| {
+                                    multidets
+                                        .iter()
+                                        .map(|multidet| {
+                                            multidet
+                                                .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
+                                                .and_then(|sq_norm| {
+                                                    multidet
+                                                        .density_matrix(
+                                                            &sao_c.view(),
+                                                            thresh_offdiag,
+                                                            thresh_zeroov,
+                                                        )
+                                                        .map(|denmat| {
+                                                            (denmat / sq_norm).to_pyarray(py)
+                                                        })
+                                                })
+                                        })
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .flatten();
+                            let pymultidet = PyMultiDeterminantsComplex::new(
+                                basis,
+                                coefficientss_arr,
+                                energies_arr,
+                                density_matrices,
+                                multidets[0].threshold(),
+                            )
+                            .into_py_any(py)?;
+                            Ok(pymultidet)
                         }
-                    };
+                    }
                 }
                 PyStructureConstraint::SpinOrbitCoupled(_) => {
                     let origins_c = pyorigins
@@ -1052,7 +1332,77 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                            })?
+                            })?;
+
+                            // Collect complex multi-determinantal wavefunctions for returning
+                            let basis = multidets
+                                .iter()
+                                .next()
+                                .and_then(|multidet| {
+                                    multidet
+                                        .basis()
+                                        .iter()
+                                        .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .ok_or_else(|| {
+                                    PyRuntimeError::new_err(
+                                        "Unable to obtain the basis of Slater determinants."
+                                            .to_string(),
+                                    )
+                                })?;
+                            let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                                .iter()
+                                .map(|multidet| {
+                                    let coefficients =
+                                        multidet.coefficients().iter().cloned().collect_vec();
+                                    let energy =
+                                        *multidet.energy().unwrap_or(&Complex::from(f64::NAN));
+                                    Ok::<_, PyErr>((coefficients, energy))
+                                })
+                                .collect::<Result<Vec<_>, _>>()?
+                                .into_iter()
+                                .unzip();
+                            let coefficientss_arr = Array2::from_shape_vec(
+                                (basis.len(), coefficientss.len()).f(),
+                                coefficientss.into_iter().flatten().collect_vec(),
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            .to_pyarray(py);
+                            let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                            let density_matrices = density_matrix_calculation_thresholds
+                                .map(|(thresh_offdiag, thresh_zeroov)| {
+                                    multidets
+                                        .iter()
+                                        .map(|multidet| {
+                                            multidet
+                                                .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
+                                                .and_then(|sq_norm| {
+                                                    multidet
+                                                        .density_matrix(
+                                                            &sao_c.view(),
+                                                            thresh_offdiag,
+                                                            thresh_zeroov,
+                                                        )
+                                                        .map(|denmat| {
+                                                            (denmat / sq_norm).to_pyarray(py)
+                                                        })
+                                                })
+                                        })
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .flatten();
+                            let pymultidet = PyMultiDeterminantsComplex::new(
+                                basis,
+                                coefficientss_arr,
+                                energies_arr,
+                                density_matrices,
+                                multidets[0].threshold(),
+                            )
+                            .into_py_any(py)?;
+                            Ok(pymultidet)
                         }
                         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                             // Unitary groups or magnetic groups with representations
@@ -1181,12 +1531,81 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                            })?
+                            })?;
+
+                            // Collect complex multi-determinantal wavefunctions for returning
+                            let basis = multidets
+                                .iter()
+                                .next()
+                                .and_then(|multidet| {
+                                    multidet
+                                        .basis()
+                                        .iter()
+                                        .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .ok_or_else(|| {
+                                    PyRuntimeError::new_err(
+                                        "Unable to obtain the basis of Slater determinants."
+                                            .to_string(),
+                                    )
+                                })?;
+                            let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                                .iter()
+                                .map(|multidet| {
+                                    let coefficients =
+                                        multidet.coefficients().iter().cloned().collect_vec();
+                                    let energy =
+                                        *multidet.energy().unwrap_or(&Complex::from(f64::NAN));
+                                    Ok::<_, PyErr>((coefficients, energy))
+                                })
+                                .collect::<Result<Vec<_>, _>>()?
+                                .into_iter()
+                                .unzip();
+                            let coefficientss_arr = Array2::from_shape_vec(
+                                (basis.len(), coefficientss.len()).f(),
+                                coefficientss.into_iter().flatten().collect_vec(),
+                            )
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            .to_pyarray(py);
+                            let energies_arr = Array1::from_vec(energies).to_pyarray(py);
+                            let density_matrices = density_matrix_calculation_thresholds
+                                .map(|(thresh_offdiag, thresh_zeroov)| {
+                                    multidets
+                                        .iter()
+                                        .map(|multidet| {
+                                            multidet
+                                                .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
+                                                .and_then(|sq_norm| {
+                                                    multidet
+                                                        .density_matrix(
+                                                            &sao_c.view(),
+                                                            thresh_offdiag,
+                                                            thresh_zeroov,
+                                                        )
+                                                        .map(|denmat| {
+                                                            (denmat / sq_norm).to_pyarray(py)
+                                                        })
+                                                })
+                                        })
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .ok()
+                                })
+                                .flatten();
+                            let pymultidet = PyMultiDeterminantsComplex::new(
+                                basis,
+                                coefficientss_arr,
+                                energies_arr,
+                                density_matrices,
+                                multidets[0].threshold(),
+                            )
+                            .into_py_any(py)?;
+                            Ok(pymultidet)
                         }
-                    };
+                    }
                 }
             }
         }
     }
-    Ok(())
 }

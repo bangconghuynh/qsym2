@@ -167,6 +167,25 @@ pub fn project_slater_determinant(
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
+    // Decision tree:
+    // - real determinant?
+    //   + yes:
+    //     - structure_constraint:
+    //       + SpinConstraint:
+    //         - use_magnetic_group:
+    //           + Some(Corepresentation)
+    //           + Some(Representation) | None
+    //       + SpinOrbitCoupled: not supported
+    //   - no:
+    //     - structure_constraint:
+    //       + SpinConstraint:
+    //         - use_magnetic_group:
+    //           + Some(Corepresentation)
+    //           + Some(Representation) | None
+    //       + SpinOrbitCoupled:
+    //         - use_magnetic_group:
+    //           + Some(Corepresentation)
+    //           + Some(Representation) | None
     match pydet {
         PySlaterDeterminant::Real(pydet_r) => {
             if matches!(
@@ -252,13 +271,7 @@ pub fn project_slater_determinant(
                         multidet
                             .basis()
                             .iter()
-                            .map(|det_res| {
-                                det_res.map(|det| {
-                                    let mut pydet = pydet_r.clone();
-                                    pydet.coefficients = det.coefficients().clone();
-                                    pydet
-                                })
-                            })
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
                             .collect::<Result<Vec<_>, _>>()
                             .ok()
                     })
@@ -396,13 +409,7 @@ pub fn project_slater_determinant(
                                 multidet
                                     .basis()
                                     .iter()
-                                    .map(|det_res| {
-                                        det_res.map(|det| {
-                                            let mut pydet = pydet_c.clone();
-                                            pydet.coefficients = det.coefficients().clone();
-                                            pydet
-                                        })
-                                    })
+                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
                                     .collect::<Result<Vec<_>, _>>()
                                     .ok()
                             })
@@ -534,13 +541,7 @@ pub fn project_slater_determinant(
                                 multidet
                                     .basis()
                                     .iter()
-                                    .map(|det_res| {
-                                        det_res.map(|det| {
-                                            let mut pydet = pydet_c.clone();
-                                            pydet.coefficients = det.coefficients().clone();
-                                            pydet
-                                        })
-                                    })
+                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
                                     .collect::<Result<Vec<_>, _>>()
                                     .ok()
                             })

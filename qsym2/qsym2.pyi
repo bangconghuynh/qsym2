@@ -295,7 +295,10 @@ class PyBasisAngularOrder:
     """
 
     def __init__(
-        self, basis_atoms: Sequence[tuple[str, Sequence[tuple[int, ShellType, PyShellOrder]]]]
+        self,
+        basis_atoms: Sequence[
+            tuple[str, Sequence[tuple[int, ShellType, PyShellOrder]]]
+        ],
     ) -> None:
         r"""
         Constructs a new `PyBasisAngularOrder` structure.
@@ -1054,6 +1057,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     | None,
     thresh_offdiag: float,
     thresh_zeroov: float,
+    calculate_density_matrices: bool,
     integrality_threshold: float,
     linear_independence_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
@@ -1068,7 +1072,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
-) -> None:
+) -> PyMultiDeterminants:
     r"""
     Python-exposed function to run non-orthogonal configuration interaction using the internal
     solver and then perform representation symmetry analysis on the resulting real and complex
@@ -1095,6 +1099,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
         Python type: `Callable[[Py2DArray_f64 | Py2DArray_c128], tuple[Py2DArray_f64, Py2DArray_f64] | tuple[Py2DArray_c128, Py2DArray_c128]] | None`.
     :param thresh_offdiag: Threshold for identifying non-zero off-diagonal elements in Löwdin pairing.
     :param thresh_zeroov: Threshold for identifying non-zero overlaps in Löwdin pairing.
+    :param calculate_density_matrices: Boolean indicating if the density matrices for the resulting multi-determinants should be computed.
     :param integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
     :param linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
     :param use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
@@ -1112,6 +1117,10 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
     :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
     :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+
+    :return: The result will be returned as an object containing the Slater determinant basis and the linear
+        combination coefficients as a two-dimensional array with each column corresponding to one
+        computed multi-determinantal state.
     """
 
 # --------------------------------------------------------------------------------------------------------
@@ -1123,10 +1132,11 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
     pyorigins: Sequence[PySlaterDeterminant],
     py_noci_solver: Callable[
         [Sequence[PySlaterDeterminantReal | PySlaterDeterminantComplex]],
-        tuple[Sequence[float], Sequence[Sequence[float]]]
-        | tuple[Sequence[complex], Sequence[Sequence[complex]]],
+        tuple[list[float], list[list[float]]]
+        | tuple[list[complex], list[list[complex]]],
     ],
     pybaos: Sequence[PyBasisAngularOrder],
+    density_matrix_calculation_thresholds: tuple[float, float] | None,
     integrality_threshold: float,
     linear_independence_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
@@ -1142,7 +1152,7 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
-) -> None:
+) -> PyMultiDeterminants:
     r"""
     Python-exposed function to perform representation symmetry analysis for real and complex
     multi-determinantal wavefunctions constructed from group-generated orbits and log the result via
@@ -1160,6 +1170,8 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
     :param py_noci_solver: A Python function callable on a sequence of Slater determinants to perform non-orthogonal configuration interaction (NOCI) and return a list of NOCI energies and a corresponding list of lists of linear combination coefficients, where each inner list is for one multi-determinantal wavefunction resulting from the NOCI calculation.
         Python type: `Callable[[Sequence[PySlaterDeterminantReal | PySlaterDeterminantComplex]], tuple[Sequence[float], Sequence[Sequence[float]]] | tuple[Sequence[complex], Sequence[Sequence[complex]]]]`.
     :param pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
+    :param density_matrix_calculation_thresholds: An optional pair of thresholds for Löwdin pairing, one for checking zero off-diagonal values, one for checking zero overlaps, when computing multi-determinantal density matrices.
+        If `None`, no density matrices for the resulting multi-determinants will be computed.
     :param integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
     :param linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
     :param use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
@@ -1178,6 +1190,10 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
     :param angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
     :param angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
     :param angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+
+    :return: The result will be returned as an object containing the Slater determinant basis and the linear
+        combination coefficients as a two-dimensional array with each column corresponding to one
+        computed multi-determinantal state.
     """
 
 # ------------------------------------------------

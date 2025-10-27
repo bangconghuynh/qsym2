@@ -4,6 +4,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::format_err;
+use itertools::Itertools;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
@@ -206,8 +207,48 @@ impl PySlaterDeterminantReal {
         det
     }
 
+    /// Returns the Python-exposed structure constraint information.
     pub fn structure_constraint(&self) -> &PyStructureConstraint {
         &self.structure_constraint
+    }
+}
+
+impl<'a, SC> SlaterDeterminant<'a, f64, SC>
+where
+    SC: StructureConstraint
+        + Clone
+        + fmt::Display
+        + TryInto<PyStructureConstraint, Error = anyhow::Error>,
+{
+    /// Extracts the information in the real [`SlaterDeterminant`] structure into [`PySlaterDeterminantReal`].
+    ///
+    /// # Returns
+    ///
+    /// The [`PySlaterDeterminantReal`] structure with the same information.
+    pub fn to_python<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> Result<PySlaterDeterminantReal, anyhow::Error> {
+        Ok(PySlaterDeterminantReal::new(
+            self.structure_constraint().clone().try_into()?,
+            self.complex_symmetric(),
+            self.coefficients()
+                .iter()
+                .map(|coeffs| coeffs.to_pyarray(py))
+                .collect_vec(),
+            self.occupations()
+                .iter()
+                .map(|occ| occ.to_pyarray(py))
+                .collect_vec(),
+            self.threshold(),
+            self.mo_energies().map(|mo_energies| {
+                mo_energies
+                    .iter()
+                    .map(|mo_e| mo_e.to_pyarray(py))
+                    .collect_vec()
+            }),
+            self.energy().ok().map(|energy| *energy),
+        ))
     }
 }
 
@@ -376,6 +417,45 @@ impl PySlaterDeterminantComplex {
 
     pub fn structure_constraint(&self) -> &PyStructureConstraint {
         &self.structure_constraint
+    }
+}
+
+impl<'a, SC> SlaterDeterminant<'a, C128, SC>
+where
+    SC: StructureConstraint
+        + Clone
+        + fmt::Display
+        + TryInto<PyStructureConstraint, Error = anyhow::Error>,
+{
+    /// Extracts the information in the complex [`SlaterDeterminant`] structure into [`PySlaterDeterminantComplex`].
+    ///
+    /// # Returns
+    ///
+    /// The [`PySlaterDeterminantComplex`] structure with the same information.
+    pub fn to_python<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> Result<PySlaterDeterminantComplex, anyhow::Error> {
+        Ok(PySlaterDeterminantComplex::new(
+            self.structure_constraint().clone().try_into()?,
+            self.complex_symmetric(),
+            self.coefficients()
+                .iter()
+                .map(|coeffs| coeffs.to_pyarray(py))
+                .collect_vec(),
+            self.occupations()
+                .iter()
+                .map(|occ| occ.to_pyarray(py))
+                .collect_vec(),
+            self.threshold(),
+            self.mo_energies().map(|mo_energies| {
+                mo_energies
+                    .iter()
+                    .map(|mo_e| mo_e.to_pyarray(py))
+                    .collect_vec()
+            }),
+            self.energy().ok().map(|energy| *energy),
+        ))
     }
 }
 

@@ -256,7 +256,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
             }
 
             // Preparation
-            let sao = pysao_r.to_owned_array();
+            let sao_r = pysao_r.to_owned_array();
             let coefficients_r = pycoefficients_r.to_owned_array();
             let energies_r = pyenergies_r.to_owned_array();
             let dets_r = if augment_to_generalised {
@@ -326,7 +326,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao(&sao)
+                    .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
@@ -349,7 +349,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao(&sao)
+                    .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
