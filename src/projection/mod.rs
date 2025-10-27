@@ -21,7 +21,7 @@ where
     // ----------------
     // Required methods
     // ----------------
-    /// Projects the orbit onto an irreducible representation.
+    /// Projects the orbit onto a symmetry subspace.
     fn project_onto(&self, row: &G::RowSymbol) -> Self::Projected<'_>;
 
     // ----------------
