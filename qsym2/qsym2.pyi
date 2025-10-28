@@ -382,7 +382,7 @@ class PySpinOrbitCoupled(Enum):
     JAdapted2C = 0
     r"""Variant for two-component $`j`$-adapted basis functions."""
 
-    JAdapted4C = 0
+    JAdapted4C = 1
     r"""Variant for four-component $`j`$-adapted basis functions."""
 
 PyStructureConstraint: TypeAlias = PySpinConstraint | PySpinOrbitCoupled

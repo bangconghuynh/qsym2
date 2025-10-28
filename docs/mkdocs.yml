@@ -107,6 +107,8 @@ plugins:
             # Render auto-generated summaries of attributes, functions, etc.
             # at the start of each symbol's documentation.
             summary: false
+            # Order members as they appear in the source file.
+            members_order: source
             # --------
             # HEADINGS
             # --------

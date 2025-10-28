@@ -287,8 +287,8 @@ where
             .iter()
             .map(|row| row.chars().count())
             .max()
-            .unwrap_or(7)
-            .max(7);
+            .unwrap_or(8)
+            .max(8);
         let sq_norm_length = sq_norms
             .iter()
             .map(|sq_norm| sq_norm.chars().count())

@@ -245,8 +245,8 @@ where
                 .iter()
                 .map(|row| row.chars().count())
                 .max()
-                .unwrap_or(7)
-                .max(7);
+                .unwrap_or(8)
+                .max(8);
             let norm_length = norms
                 .iter()
                 .map(|norm| norm.chars().count())
