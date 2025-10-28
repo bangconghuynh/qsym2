@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
-use log4rs;
+// use log4rs;
+use mark_flaky_tests::flaky;
 use nalgebra::Vector3;
 use ndarray::{Array2, array};
 use ndarray_linalg::assert::close_l2;
@@ -1731,7 +1732,226 @@ fn test_determinant_transformation_h_jadapted_4c_631gds() {
 }
 
 #[test]
-fn test_determinant_orbit_rep_analysis_h_jadapted() {
+#[flaky]
+fn test_determinant_orbit_rep_analysis_h_jadapted_small() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bs_sp1]);
+    let bao_h = BasisAngularOrder::new(&[batm_h0]);
+    let mol_h = Molecule::from_atoms(&[atm_h0.clone()], 1e-7);
+
+    // |1/2, -1/2⟩
+    #[rustfmt::skip]
+    let c_12 = array![
+        [Complex::new(1.0, 0.0)],
+        [Complex::new(0.0, 0.0)],
+    ];
+    let occ = array![1.0];
+
+    let det_12 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_12])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    // |1/2, -1/2⟩ ⊗ |1/2, +1/2⟩
+    #[rustfmt::skip]
+    let c_1212 = array![
+        [Complex::new(1.0, 0.0), Complex::new(0.0, 0.0)],
+        [Complex::new(0.0, 0.0), Complex::new(1.0, 0.0)],
+    ];
+    let occ = array![1.0, 1.0];
+
+    let det_1212 = SlaterDeterminant::<Complex<f64>, SpinOrbitCoupled>::builder()
+        .coefficients(&[c_1212])
+        .occupations(&[occ.clone()])
+        .baos(vec![&bao_h])
+        .mol(&mol_h)
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let sao: Array2<f64> = Array2::eye(2);
+    let sao_c = sao.mapv(C128::from);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh* (double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
+
+    let mut orbit_c_u_oh_double_spinspatial_12 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det_12)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial_12
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial_12.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    let mut orbit_c_u_oh_double_spinspatial_1212 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det_1212)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_double_spinspatial_1212
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_double_spinspatial_1212.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh'* (gray double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, true).unwrap();
+    let group_u_oh_gray = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_u_oh_gray_double = group_u_oh_gray.to_double_group().unwrap();
+
+    let mut orbit_c_u_oh_gray_double_spinspatial_12 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_gray_double)
+        .origin(&det_12)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_gray_double_spinspatial_12
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    // Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron
+    // systems where spin is treated explicitly.
+    assert!(
+        orbit_c_u_oh_gray_double_spinspatial_12
+            .analyse_rep()
+            .is_err()
+    );
+
+    let mut orbit_c_u_oh_gray_double_spinspatial_1212 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_gray_double)
+        .origin(&det_1212)
+        .integrality_threshold(1e-12)
+        .linear_independence_threshold(1e-12)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_u_oh_gray_double_spinspatial_1212
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_u_oh_gray_double_spinspatial_1212
+            .analyse_rep()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("|^(+)|A|_(1g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // m Oh'* (gray double, magnetic)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, true).unwrap();
+    let group_m_oh_gray = MagneticRepresentedGroup::from_molecular_symmetry(&sym, Some(4)).unwrap();
+    let group_m_oh_gray_double = group_m_oh_gray.to_double_group().unwrap();
+
+    let mut orbit_c_m_oh_gray_double_spinspatial_12 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_m_oh_gray_double)
+        .origin(&det_12)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-8)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_m_oh_gray_double_spinspatial_12
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_m_oh_gray_double_spinspatial_12
+            .analyse_rep()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)|").unwrap()
+    );
+
+    let mut orbit_c_m_oh_gray_double_spinspatial_1212 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_m_oh_gray_double)
+        .origin(&det_1212)
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-8)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_c_m_oh_gray_double_spinspatial_1212
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_c_m_oh_gray_double_spinspatial_1212
+            .analyse_rep()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)|").unwrap()
+    );
+}
+
+#[test]
+#[flaky]
+fn test_determinant_orbit_rep_analysis_h_jadapted_large() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();

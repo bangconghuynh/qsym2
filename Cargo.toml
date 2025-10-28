@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2024"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
@@ -14,7 +14,7 @@ bincode = { version = "2.0", features = ["serde"] }
 bitvec = "1.0"
 byteorder = "1.5"
 clap = { version = "4.5", features = ["cargo", "derive"] }
-counter = "0.6"
+counter = "0.7"
 derive_builder = "0.20"
 divisors = "0.2"
 duplicate = "2.0"
@@ -28,6 +28,7 @@ indexmap = { version = "2.10", features = ["rayon", "serde"] }
 lazy_static = "1.5"
 log = "0.4"
 log4rs = { version = "1.3", features = ["file_appender", "pattern_encoder"] }
+mark-flaky-tests = "1.0"
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 ndarray = { version = "0.16", features = ["rayon", "serde"] }
 ndarray-einsum = "0.8.0"
@@ -38,14 +39,14 @@ num-complex = "0.4"
 num-modular = "0.6"
 num-ord = "0.1"
 num-traits = "0.2"
-numpy = { version = "0.25", optional = true }
+numpy = { version = "0.26", optional = true }
 ordered-float = "5.0"
 periodic_table = "0.5"
-phf = { version = "0.12", features = ["macros"] }
+phf = { version = "0.13", features = ["macros"] }
 proptest = "1.7"
 primes = "0.4"
-pyo3 = { version = "0.25", features = ["extension-module", "indexmap", "num-complex", "hashbrown", "py-clone"], optional = true }
-pyo3-log = { version = "0.12", optional = true }
+pyo3 = { version = "0.26", features = ["extension-module", "indexmap", "num-complex", "hashbrown", "py-clone"], optional = true }
+pyo3-log = { version = "0.13", optional = true }
 rand = "0.9"
 rayon = "1.10"
 regex = "1.11"

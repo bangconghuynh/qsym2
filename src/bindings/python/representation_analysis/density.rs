@@ -372,7 +372,7 @@ pub fn rep_analyse_densities(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         da_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -389,7 +389,7 @@ pub fn rep_analyse_densities(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         da_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -445,7 +445,7 @@ pub fn rep_analyse_densities(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         da_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -463,7 +463,7 @@ pub fn rep_analyse_densities(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         da_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))

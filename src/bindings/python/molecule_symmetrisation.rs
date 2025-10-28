@@ -88,7 +88,7 @@ pub fn symmetrise_molecule(
     verbose: u8,
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<PyMolecule> {
-    py.allow_threads(|| {
+    py.detach(|| {
         let mol = match (inp_xyz, inp_mol) {
             (Some(xyz_path), None) => Molecule::from_xyz(xyz_path, 1e-7),
             (None, Some(pymol)) => Molecule::from(pymol),

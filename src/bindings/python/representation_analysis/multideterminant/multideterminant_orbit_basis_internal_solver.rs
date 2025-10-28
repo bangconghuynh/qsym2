@@ -18,7 +18,7 @@ use crate::analysis::{EigenvalueComparisonMode, Overlap};
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::multideterminant::{
-    PyMultiDeterminants, PyMultiDeterminantsComplex, PyMultiDeterminantsReal,
+    PyMultiDeterminantsComplex, PyMultiDeterminantsReal,
 };
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC, PyScalarRC};
@@ -42,15 +42,13 @@ use crate::target::noci::backend::matelem::overlap::OverlapAO;
 use crate::target::noci::backend::solver::noci::SymmetryOrbitNOCISolvable;
 use crate::target::noci::basis::Basis;
 
-type C128 = Complex<f64>;
-
 // ~~~~~~~~~~~~~
 // Macro helpers
 // ~~~~~~~~~~~~~
 macro_rules! generate_get_jk {
     ($get_jk_name:ident, $py_get_jk_func:ident, $t:ty) => {
         let $get_jk_name = move |dm: &Array2<$t>| {
-            Python::with_gil(|py_inner| {
+            Python::attach(|py_inner| {
                 let py_dm = dm.to_pyarray(py_inner);
                 $py_get_jk_func
                     .call1(py_inner, (py_dm,))
@@ -404,7 +402,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
             Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                 // Magnetic groups with corepresentations
                 let group = py
-                    .allow_threads(|| {
+                    .detach(|| {
                         let magsym = pd_res
                             .magnetic_symmetry
                             .as_ref()
@@ -452,7 +450,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 .symmetry_group(&pd_res)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                py.allow_threads(|| {
+                py.detach(|| {
                     mda_driver
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -529,7 +527,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
             Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                 // Unitary groups or magnetic groups with representations
                 let group = py
-                    .allow_threads(|| {
+                    .detach(|| {
                         let sym = if use_magnetic_group.is_some() {
                             pd_res
                                 .magnetic_symmetry
@@ -581,7 +579,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 .symmetry_group(&pd_res)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                py.allow_threads(|| {
+                py.detach(|| {
                     mda_driver
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -732,7 +730,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                         // Magnetic groups with corepresentations
                         let group = py
-                            .allow_threads(|| {
+                            .detach(|| {
                                 let magsym = pd_res
                                     .magnetic_symmetry
                                     .as_ref()
@@ -780,7 +778,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                        py.allow_threads(|| {
+                        py.detach(|| {
                             mda_driver
                                 .run()
                                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -861,7 +859,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                         // Unitary groups or magnetic groups with representations
                         let group = py
-                            .allow_threads(|| {
+                            .detach(|| {
                                 let sym = if use_magnetic_group.is_some() {
                                     pd_res
                                         .magnetic_symmetry
@@ -913,7 +911,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                        py.allow_threads(|| {
+                        py.detach(|| {
                             mda_driver
                                 .run()
                                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1036,7 +1034,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                         // Magnetic groups with corepresentations
                         let group = py
-                            .allow_threads(|| {
+                            .detach(|| {
                                 let magsym = pd_res
                                     .magnetic_symmetry
                                     .as_ref()
@@ -1084,7 +1082,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                        py.allow_threads(|| {
+                        py.detach(|| {
                             mda_driver
                                 .run()
                                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1165,7 +1163,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                         // Unitary groups or magnetic groups with representations
                         let group = py
-                            .allow_threads(|| {
+                            .detach(|| {
                                 let sym = if use_magnetic_group.is_some() {
                                     pd_res
                                         .magnetic_symmetry
@@ -1217,7 +1215,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                        py.allow_threads(|| {
+                        py.detach(|| {
                             mda_driver
                                 .run()
                                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))

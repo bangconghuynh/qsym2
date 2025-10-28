@@ -333,7 +333,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Run the driver
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -356,7 +356,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Run the driver
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -469,7 +469,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -492,7 +492,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -563,7 +563,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -586,7 +586,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

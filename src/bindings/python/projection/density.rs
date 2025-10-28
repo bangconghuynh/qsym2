@@ -168,7 +168,7 @@ pub fn project_densities(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                py.allow_threads(|| {
+                py.detach(|| {
                     dp_driver
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -236,7 +236,7 @@ pub fn project_densities(
                         .symmetry_group(&pd_res)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                py.allow_threads(|| {
+                py.detach(|| {
                     dp_driver
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))

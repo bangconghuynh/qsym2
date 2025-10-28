@@ -50,7 +50,7 @@ type C128 = Complex<f64>;
 macro_rules! generate_noci_solver {
     ($noci_solver_name:ident, $py_solver_func:ident, $pysd:ty, $t:ty, $sc:ty) => {
         let $noci_solver_name = |multidets: &Vec<SlaterDeterminant<$t, $sc>>| {
-            Python::with_gil(|py_inner| {
+            Python::attach(|py_inner| {
                 let pymultidets = multidets
                     .iter()
                     .map(|det| {
@@ -362,7 +362,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     // Magnetic groups with corepresentations
                     let group = py
-                        .allow_threads(|| {
+                        .detach(|| {
                             let magsym = pd_res
                                 .magnetic_symmetry
                                 .as_ref()
@@ -478,7 +478,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -553,7 +553,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     // Unitary groups or magnetic groups with representations
                     let group = py
-                        .allow_threads(|| {
+                        .detach(|| {
                             let sym = if use_magnetic_group.is_some() {
                                 pd_res
                                     .magnetic_symmetry
@@ -673,7 +673,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -799,7 +799,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                             // Magnetic groups with corepresentations
                             let group = py
-                                .allow_threads(|| {
+                                .detach(|| {
                                     let magsym = pd_res
                                         .magnetic_symmetry
                                         .as_ref()
@@ -915,7 +915,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -994,7 +994,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                             // Unitary groups or magnetic groups with representations
                             let group = py
-                                .allow_threads(|| {
+                                .detach(|| {
                                     let sym = if use_magnetic_group.is_some() {
                                         pd_res
                                             .magnetic_symmetry
@@ -1114,7 +1114,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1212,7 +1212,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                             // Magnetic groups with corepresentations
                             let group = py
-                                .allow_threads(|| {
+                                .detach(|| {
                                     let magsym = pd_res
                                         .magnetic_symmetry
                                         .as_ref()
@@ -1328,7 +1328,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1407,7 +1407,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                             // Unitary groups or magnetic groups with representations
                             let group = py
-                                .allow_threads(|| {
+                                .detach(|| {
                                     let sym = if use_magnetic_group.is_some() {
                                         pd_res
                                             .magnetic_symmetry
@@ -1527,7 +1527,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

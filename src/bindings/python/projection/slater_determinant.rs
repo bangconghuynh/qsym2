@@ -234,7 +234,7 @@ pub fn project_slater_determinant(
                     .sao_h(sao_h_opt.as_ref())
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         sdp_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -370,7 +370,7 @@ pub fn project_slater_determinant(
                             .sao_h(sao_h_opt.as_ref())
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sdp_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -502,7 +502,7 @@ pub fn project_slater_determinant(
                             .sao_h(sao_h_opt.as_ref())
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sdp_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

@@ -300,7 +300,7 @@ impl TryFrom<&Symmetry> for PySymmetry {
                         let pyorder_elements = order_elements
                             .iter()
                             .map(|ele| {
-                                Arc::new(Python::with_gil(|py| {
+                                Arc::new(Python::attach(|py| {
                                     ele.raw_axis()
                                         .iter()
                                         .cloned()
@@ -332,7 +332,7 @@ impl TryFrom<&Symmetry> for PySymmetry {
                         let pyorder_generators = order_generators
                             .iter()
                             .map(|ele| {
-                                Arc::new(Python::with_gil(|py| {
+                                Arc::new(Python::attach(|py| {
                                     ele.raw_axis()
                                         .iter()
                                         .cloned()
@@ -416,7 +416,7 @@ pub fn detect_symmetry_group(
     fictitious_magnetic_field: Option<[f64; 3]>,
     fictitious_electric_field: Option<[f64; 3]>,
 ) -> PyResult<(PySymmetry, Option<PySymmetry>)> {
-    py.allow_threads(|| {
+    py.detach(|| {
         let params = SymmetryGroupDetectionParams::builder()
             .distance_thresholds(&distance_thresholds)
             .moi_thresholds(&moi_thresholds)

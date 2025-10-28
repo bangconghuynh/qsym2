@@ -897,7 +897,7 @@ pub fn calc_overlap_2c_real<'py>(
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| PyValueError::new_err(err.to_string()))?,
     );
-    let sao_2c = py.allow_threads(|| {
+    let sao_2c = py.detach(|| {
         let stc = build_shell_tuple_collection![
             <s1, s2>;
             false, false;
@@ -943,7 +943,7 @@ pub fn calc_overlap_2c_complex<'py>(
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| PyValueError::new_err(err.to_string()))?,
     );
-    let sao_2c = py.allow_threads(|| {
+    let sao_2c = py.detach(|| {
         let stc = build_shell_tuple_collection![
             <s1, s2>;
             !complex_symmetric, false;
@@ -990,7 +990,7 @@ pub fn calc_overlap_4c_real<'py>(
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| PyValueError::new_err(err.to_string()))?,
     );
-    let sao_4c = py.allow_threads(|| {
+    let sao_4c = py.detach(|| {
         let stc = build_shell_tuple_collection![
             <s1, s2, s3, s4>;
             false, false, false, false;
@@ -1036,7 +1036,7 @@ pub fn calc_overlap_4c_complex<'py>(
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| PyValueError::new_err(err.to_string()))?,
     );
-    let sao_4c = py.allow_threads(|| {
+    let sao_4c = py.detach(|| {
         let stc = build_shell_tuple_collection![
             <s1, s2, s3, s4>;
             !complex_symmetric, !complex_symmetric, false, false;

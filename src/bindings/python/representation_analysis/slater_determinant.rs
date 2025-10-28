@@ -731,7 +731,7 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -811,7 +811,7 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -925,7 +925,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1008,7 +1008,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1116,7 +1116,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1199,7 +1199,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1326,7 +1326,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1409,7 +1409,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1525,7 +1525,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1608,7 +1608,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

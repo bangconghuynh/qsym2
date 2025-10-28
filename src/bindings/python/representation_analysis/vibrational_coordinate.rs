@@ -292,7 +292,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    py.allow_threads(|| {
+    py.detach(|| {
         let pd_res: SymmetryGroupDetectionResult =
             read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
                 .map_err(|err| PyIOError::new_err(err.to_string()))?;
