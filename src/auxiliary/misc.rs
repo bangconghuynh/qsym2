@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher};
 
 use itertools::{Itertools, MultiProduct};
 use log;
-use ndarray::{stack, Array1, Array2, Axis};
+use ndarray::{Array1, Array2, Axis, stack};
 use num_complex::ComplexFloat;
 
 /// Trait to enable floating point numbers to be hashed.
@@ -151,10 +151,10 @@ impl<'a, T: fmt::Display + fmt::Debug> Error for GramSchmidtError<'a, T> {}
 /// Errors when the orthonormalisation procedure fails, which occurs when there is linear dependency
 /// between the basis vectors and/or when self-orthogonal vectors are encountered.
 pub fn complex_modified_gram_schmidt<T>(
-    vmat: &Array2<T>,
+    vmat: &'_ Array2<T>,
     complex_symmetric: bool,
     thresh: T::Real,
-) -> Result<Array2<T>, GramSchmidtError<T>>
+) -> Result<Array2<T>, GramSchmidtError<'_, T>>
 where
     T: ComplexFloat + fmt::Display + 'static,
 {
@@ -218,7 +218,6 @@ where
             }
         })
     } else {
-        log::error!("Post-Gram--Schmidt orthogonality check failed.");
         Err(GramSchmidtError {
             mat: Some(vmat),
             vecs: None,

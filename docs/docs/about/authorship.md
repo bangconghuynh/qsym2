@@ -19,7 +19,10 @@ The core functionalities of QSym² are described and illustrated in the followin
 
 Research work utilising QSym² for symmetry analysis can be found in the following select publications:
 
-- Wibowo-Teale, M.$^{\dagger}$, **Huynh, B. C.**$^{\dagger}$, Wibowo-Teale, A. M., De Proft, F. & Geerlings, P. Symmetry and reactivity of π-systems in electric and magnetic fields: a perspective from conceptual DFT. arXiv:[2402.15595](https://arxiv.org/abs/2402.15595) (2024). Submitted.
+- Fields, C. *et al.* Timing the escape of a photoexcited electron from a molecular cage. *Nat Commun* **16**, 5062. doi:[10.1038/s41467-025-60260-z](https://doi.org/10.1038/s41467-025-60260-z) (2025).
+
+- Wibowo-Teale, M.$^{\dagger}$, **Huynh, B. C.**$^{\dagger}$, Wibowo-Teale, A. M., De Proft, F. & Geerlings, P. Symmetry and reactivity of π-systems in electric and magnetic fields: a perspective from conceptual DFT. *Phys. Chem. Chem. Phys.* **26**, 15156–15180. doi:[10.1039/D4CP00799A](https://doi.org/10.1039/D4CP00799A) (2024).
+
 - Wibowo, M.$^{\dagger}$, **Huynh, B. C.**$^{\dagger}$, Cheng, C. Y., Irons, T. J. P. & Teale, A. M. Understanding Ground and Excited-State Molecular Structure in Strong Magnetic Fields Using the Maximum Overlap Method. *Mol. Phys.* **121**, e2152748. doi:[10.1080/00268976.2022.2152748](https://doi.org/10.1080/00268976.2022.2152748) (2023).
 - Wibowo-Teale, M., Ennifer, B. J. & Wibowo-Teale, A. M. Real-time time-dependent self-consistent field methods with dynamic magnetic fields. *J. Chem. Phys.* **159**, 104102. doi:[10.1063/5.0160317](https://doi.org/10.1063/5.0160317) (2023).
 

@@ -64,7 +64,7 @@ fn test_orbit_basis_transformation_h2o_cs() {
     let det = SlaterDeterminant::<Complex64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
-        .bao(&bao_h2o)
+        .baos(vec![&bao_h2o])
         .mol(&mol_h2o)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)

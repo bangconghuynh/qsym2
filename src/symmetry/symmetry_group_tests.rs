@@ -365,6 +365,7 @@ fn test_ur_magnetic_double_group(
     });
 }
 
+#[cfg(test)]
 fn test_mr_magnetic_group(
     mol: &Molecule,
     thresh: f64,
@@ -448,6 +449,7 @@ fn test_ur_magnetic_group_from_infinite(
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
+#[cfg(test)]
 fn test_mr_magnetic_group_from_infinite(
     mol: &Molecule,
     finite_order: u32,
@@ -578,6 +580,7 @@ fn test_ur_magnetic_double_group_class_order(
     assert_eq!(&classes, class_order_str);
 }
 
+#[cfg(test)]
 fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)

@@ -4,17 +4,19 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::slice::Iter;
 
 use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
+use serde::{Deserialize, Serialize};
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::auxiliary::atom::Atom;
 use crate::auxiliary::misc::ProductRepeat;
-use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
+use crate::permutation::{PermutableCollection, Permutation, permute_inplace};
 
 #[cfg(test)]
 #[path = "ao_tests.rs"]
@@ -174,7 +176,7 @@ impl PureOrder {
     }
 
     /// Iterates over the constituent $`m_l`$ values.
-    pub fn iter(&self) -> Iter<i32> {
+    pub fn iter(&'_ self) -> Iter<'_, i32> {
         self.mls.iter()
     }
 
@@ -453,7 +455,7 @@ impl CartOrder {
     }
 
     /// Iterates over the constituent tuples.
-    pub fn iter(&self) -> Iter<(u32, u32, u32)> {
+    pub fn iter(&'_ self) -> Iter<'_, (u32, u32, u32)> {
         self.cart_tuples.iter()
     }
 
@@ -566,6 +568,60 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 // SpinorOrder
 // ~~~~~~~~~~~
 
+// SpinorParticleType enum
+// .......................
+
+/// Enumerated type for spinor particle types.
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
+pub enum SpinorParticleType {
+    /// Variant for spinors describing fermionic particles. The optional associated value contains
+    /// any additional balance symmetry to be applied to the spinors.
+    Fermion(Option<SpinorBalanceSymmetry>),
+
+    /// Variant for spinors describing antifermionic particles. The optional associated value
+    /// contains any additional balance symmetry to be applied to the spinors.
+    Antifermion(Option<SpinorBalanceSymmetry>),
+}
+
+impl fmt::Display for SpinorParticleType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SpinorParticleType::Fermion(None) => {
+                write!(f, "fermion")
+            }
+            SpinorParticleType::Fermion(Some(sbs)) => {
+                write!(f, "fermion ({sbs})")
+            }
+            SpinorParticleType::Antifermion(None) => {
+                write!(f, "antifermion")
+            }
+            SpinorParticleType::Antifermion(Some(sbs)) => {
+                write!(f, "antifermion ({sbs})")
+            }
+        }
+    }
+}
+
+// SpinorBalanceSymmetry enum
+// ..........................
+
+/// Enumerated type for spinor balance symmetry types.
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
+pub enum SpinorBalanceSymmetry {
+    /// Variant for kinetic balance, σ·p.
+    KineticBalance,
+}
+
+impl fmt::Display for SpinorBalanceSymmetry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SpinorBalanceSymmetry::KineticBalance => {
+                write!(f, "σ·p")
+            }
+        }
+    }
+}
+
 /// Structure to contain information about the ordering of spinors of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct SpinorOrder {
@@ -578,8 +634,12 @@ pub struct SpinorOrder {
     two_mjs: Vec<i32>,
 
     /// The spatial inversion parity of the spinor Gaussians: `true` if even under spatial inversion
-    /// and `false` if odd.
+    /// and `false` if odd. This is intrinsic to the spinor Gaussians and independent of the
+    /// particle type and any associated balance symmetry.
     pub even: bool,
+
+    /// The particle type described by this spinor shell.
+    pub particle_type: SpinorParticleType,
 }
 
 impl SpinorOrderBuilder {
@@ -621,7 +681,11 @@ impl SpinorOrder {
 
     /// Constructs a new [`SpinorOrder`] structure from its constituting $`2m_j`$ values and a
     /// specified spatial parity.
-    pub fn new(two_mjs: &[i32], even: bool) -> Result<Self, anyhow::Error> {
+    pub fn new(
+        two_mjs: &[i32],
+        even: bool,
+        particle_type: SpinorParticleType,
+    ) -> Result<Self, anyhow::Error> {
         let two_j = two_mjs
             .iter()
             .map(|two_m| two_m.unsigned_abs())
@@ -631,6 +695,7 @@ impl SpinorOrder {
             .two_j(two_j)
             .two_mjs(two_mjs)
             .even(even)
+            .particle_type(particle_type)
             .build()
             .map_err(|err| format_err!(err))?;
         ensure!(spinor_order.verify(), "Invalid `SpinorOrder`.");
@@ -643,20 +708,22 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
-    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
-    /// inversion.
+    /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
+    /// spatial inversion.
+    /// * `particle_type` - The associated particle type.
     ///
     /// # Returns
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with increasing-$`m`$ order.
     #[must_use]
-    pub fn increasingm(two_j: u32, even: bool) -> Self {
+    pub fn increasingm(two_j: u32, even: bool, particle_type: SpinorParticleType) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (-two_j_i32..=two_j_i32).step_by(2).collect_vec();
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
             .even(even)
+            .particle_type(particle_type)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with increasing-m order.")
     }
@@ -667,20 +734,22 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
-    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
-    /// inversion.
+    /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
+    /// spatial inversion.
+    /// * `particle_type` - The associated particle type.
     ///
     /// # Returns
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with decreasing-$`m`$ order.
     #[must_use]
-    pub fn decreasingm(two_j: u32, even: bool) -> Self {
+    pub fn decreasingm(two_j: u32, even: bool, particle_type: SpinorParticleType) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (-two_j_i32..=two_j_i32).rev().step_by(2).collect_vec();
         Self::builder()
             .two_j(two_j)
             .two_mjs(&two_mjs)
             .even(even)
+            .particle_type(particle_type)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with decreasing-m order.")
     }
@@ -690,14 +759,15 @@ impl SpinorOrder {
     /// # Arguments
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
-    /// * `even` - Boolean indicating whether the spinors are even with respect to spatial
-    /// inversion.
+    /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
+    /// spatial inversion.
+    /// * `particle_type` - The associated particle type.
     ///
     /// # Returns
     ///
     /// A [`SpinorOrder`] struct for a specified angular momentum with Molden order.
     #[must_use]
-    pub fn molden(two_j: u32, even: bool) -> Self {
+    pub fn molden(two_j: u32, even: bool, particle_type: SpinorParticleType) -> Self {
         let two_j_i32 = i32::try_from(two_j).expect("`two_j` cannot be converted to `i32`.");
         let two_mjs = (1..=two_j_i32)
             .step_by(2)
@@ -707,6 +777,7 @@ impl SpinorOrder {
             .two_j(two_j)
             .two_mjs(&two_mjs)
             .even(even)
+            .particle_type(particle_type)
             .build()
             .expect("Unable to construct a `SpinorOrder` structure with Molden order.")
     }
@@ -727,7 +798,7 @@ impl SpinorOrder {
     }
 
     /// Iterates over the constituent $`2m_j`$ values.
-    pub fn iter(&self) -> Iter<i32> {
+    pub fn iter(&'_ self) -> Iter<'_, i32> {
         self.two_mjs.iter()
     }
 
@@ -746,15 +817,50 @@ impl SpinorOrder {
     pub fn get_two_m_with_index(&self, i: usize) -> Option<i32> {
         self.two_mjs.get(i).cloned()
     }
+
+    /// Returns the angular momentum quantum number of the spatial part of the spinors in this
+    /// shell.
+    pub fn l(&self) -> u32 {
+        if self.two_j.rem_euclid(4) == 1 {
+            // even l is to the left of j, and odd l to the right
+            if self.even {
+                (self.two_j - 1).div_euclid(2)
+            } else {
+                (self.two_j + 1).div_euclid(2)
+            }
+        } else {
+            assert_eq!(self.two_j.rem_euclid(4), 3);
+            // even l is to the right of j, and odd l to the left
+            if self.even {
+                (self.two_j + 1).div_euclid(2)
+            } else {
+                (self.two_j - 1).div_euclid(2)
+            }
+        }
+    }
+
+    /// Returns the value of $`a = 2(j - l)`$.
+    pub fn a(&self) -> i8 {
+        if self.two_j.rem_euclid(4) == 1 {
+            // even l is to the left of j, and odd l to the right
+            if self.even { 1 } else { -1 }
+        } else {
+            assert_eq!(self.two_j.rem_euclid(4), 3);
+            // even l is to the right of j, and odd l to the left
+            if self.even { -1 } else { 1 }
+        }
+    }
 }
 
 impl fmt::Display for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({})",
+            "Angular momentum: {}/2 ({}; l = {}), {}",
             self.two_j,
-            if self.even { "g" } else { "u" }
+            if self.a() == 1 { "+" } else { "-" },
+            self.l(),
+            self.particle_type,
         )?;
         writeln!(f, "Order:")?;
         for two_m in self.iter() {
@@ -768,9 +874,11 @@ impl fmt::Debug for SpinorOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "Angular momentum: {}/2 ({})",
+            "Angular momentum: {}/2 ({}; l = {}), {}",
             self.two_j,
-            if self.even { "g" } else { "u" }
+            if self.a() == 1 { "+" } else { "-" },
+            self.l(),
+            self.particle_type,
         )?;
         writeln!(f, "Order:")?;
         for two_m in self.iter() {
@@ -851,8 +959,10 @@ impl fmt::Display for ShellOrder {
             ),
             ShellOrder::Spinor(spinor_order) => write!(
                 f,
-                "Spinor ({}) ({})",
-                if spinor_order.even { "g" } else { "u" },
+                "Spinor ({}; l = {}), {}, ({})",
+                if spinor_order.a() == 1 { "+" } else { "-" },
+                spinor_order.l(),
+                spinor_order.particle_type,
                 spinor_order
                     .iter()
                     .map(|two_m| format!("{two_m}/2"))
@@ -1019,7 +1129,7 @@ impl<'a> BasisAtom<'a> {
 
 /// Structure containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
-#[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Builder)]
 pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
     #[builder(setter(custom))]
@@ -1044,7 +1154,8 @@ impl<'a> BasisAngularOrder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
-    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s.
+    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s
+    /// without any additional balance symmetry auxiliary information.
     ///
     /// # Arguments
     ///
@@ -1279,5 +1390,25 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
         }
         writeln!(f, "{}", "┈".repeat(17 + atom_index_length + order_length))?;
         Ok(())
+    }
+}
+
+impl<'a> PartialEq for BasisAngularOrder<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.basis_atoms == other.basis_atoms
+    }
+}
+
+impl<'a> Eq for BasisAngularOrder<'a> {}
+
+impl<'a> Hash for BasisAngularOrder<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.basis_atoms.hash(state);
+    }
+}
+
+impl<'a> fmt::Debug for BasisAngularOrder<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{:?}", self.basis_atoms)
     }
 }

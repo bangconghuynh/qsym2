@@ -24,10 +24,11 @@ mod hamiltonian_tests;
 
 /// Structure for managing the electronic Hamiltonian integrals in an atomic-orbital basis.
 #[derive(Builder)]
-pub struct HamiltonianAO<'a, T, SC>
+pub struct HamiltonianAO<'a, T, SC, F>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Clone,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
     /// The nuclear repulsion energy.
     enuc: T,
@@ -38,21 +39,26 @@ where
 
     /// The two-electron integrals in an atomic-orbital basis (with respect to the specified
     /// structure constraint).
-    twoe: ArrayView4<'a, T>,
+    #[builder(default = "None")]
+    twoe: Option<ArrayView4<'a, T>>,
+
+    #[builder(default = "None")]
+    get_jk: Option<F>,
 
     /// The structure constraint for the wavefunctions described by this Hamiltonian.
     #[builder(setter(skip), default = "PhantomData")]
     structure_constraint: PhantomData<SC>,
 }
 
-impl<'a, T, SC> HamiltonianAO<'a, T, SC>
+impl<'a, T, SC, F> HamiltonianAO<'a, T, SC, F>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Clone,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
     /// Returns a builder for [`HamiltonianAO`].
-    pub fn builder() -> HamiltonianAOBuilder<'a, T, SC> {
-        HamiltonianAOBuilder::<T, SC>::default()
+    pub fn builder() -> HamiltonianAOBuilder<'a, T, SC, F> {
+        HamiltonianAOBuilder::<'a, T, SC, F>::default()
     }
 
     /// Returns the nuclear repulsion energy.
@@ -68,16 +74,21 @@ where
 
     /// Returns the two-electron integrals in an atomic-orbital basis (with respect to the specified
     /// structure constraint).
-    pub fn twoe(&'a self) -> &'a ArrayView4<'a, T> {
-        &self.twoe
+    pub fn twoe(&self) -> Option<&ArrayView4<'a, T>> {
+        self.twoe.as_ref()
+    }
+
+    pub fn get_jk(&self) -> Option<&F> {
+        self.get_jk.as_ref()
     }
 }
 
-impl<'a, T, SC> HamiltonianAO<'a, T, SC>
+impl<'a, T, SC, F> HamiltonianAO<'a, T, SC, F>
 where
     T: ComplexFloat + Lapack + ScalarOperand + FromPrimitive,
     <T as ComplexFloat>::Real: LowerExp,
     SC: StructureConstraint + Display + PartialEq + Clone,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
     /// Calculates the zero-, one-, and two-electron contributions to the matrix element of the
     /// electronic Hamiltonian between two possibly non-orthogonal Slater determinants.
@@ -98,7 +109,7 @@ where
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
     /// orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
-    /// * `thresh_zeroov` - threshold for identifying zero Löwdin overlaps.
+    /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     ///
     /// # Returns
     ///
@@ -171,7 +182,8 @@ where
 
         let zeroe_h_wx = calc_o0_matrix_element(&lowdin_paired_coefficientss, self.enuc, sc)?;
         let onee_h_wx = calc_o1_matrix_element(&lowdin_paired_coefficientss, &self.onee, sc)?;
-        let twoe_h_wx = calc_o2_matrix_element(&lowdin_paired_coefficientss, &self.twoe, sc)?;
+        let twoe_h_wx =
+            calc_o2_matrix_element(&lowdin_paired_coefficientss, self.twoe(), self.get_jk(), sc)?;
         Ok((zeroe_h_wx, onee_h_wx, twoe_h_wx))
     }
 
@@ -234,13 +246,16 @@ where
     }
 }
 
-impl<'a, T, SC> OrbitMatrix<'a, T, SC> for &HamiltonianAO<'a, T, SC>
+impl<'a, T, SC, F> OrbitMatrix<'a, T, SC> for &HamiltonianAO<'a, T, SC, F>
 where
     T: ComplexFloat + Lapack + ScalarOperand + FromPrimitive,
     <T as ComplexFloat>::Real: LowerExp,
     SC: StructureConstraint + Clone + Display + PartialEq,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
+    type MatrixElement = T;
+
     fn calc_matrix_element(
         &self,
         det_w: &SlaterDeterminant<T, SC>,
@@ -258,15 +273,30 @@ where
         )?;
         Ok(zeroe + onee + twoe)
     }
+
+    fn t(x: &T) -> T {
+        *x
+    }
+
+    fn conj(x: &T) -> T {
+        <T as ComplexFloat>::conj(*x)
+    }
+
+    fn zero(&self) -> T {
+        T::zero()
+    }
 }
 
-impl<'a, T, SC> OrbitMatrix<'a, T, SC> for HamiltonianAO<'a, T, SC>
+impl<'a, T, SC, F> OrbitMatrix<'a, T, SC> for HamiltonianAO<'a, T, SC, F>
 where
     T: ComplexFloat + Lapack + ScalarOperand + FromPrimitive,
     <T as ComplexFloat>::Real: LowerExp,
     SC: StructureConstraint + Clone + Display + PartialEq,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
 {
+    type MatrixElement = T;
+
     fn calc_matrix_element(
         &self,
         det_w: &SlaterDeterminant<T, SC>,
@@ -276,5 +306,17 @@ where
         thresh_zeroov: <T as ComplexFloat>::Real,
     ) -> Result<T, anyhow::Error> {
         (&self).calc_matrix_element(det_w, det_x, sao, thresh_offdiag, thresh_zeroov)
+    }
+
+    fn t(x: &T) -> T {
+        *x
+    }
+
+    fn conj(x: &T) -> T {
+        <T as ComplexFloat>::conj(*x)
+    }
+
+    fn zero(&self) -> T {
+        T::zero()
     }
 }

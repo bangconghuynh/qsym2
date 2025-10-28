@@ -105,7 +105,7 @@ fn test_interfaces_binaries_bf3() {
             format!("{ROOT}/tests/binaries/bf3_ccsd/occa").into(),
             format!("{ROOT}/tests/binaries/bf3_ccsd/occb").into(),
         ])
-        .bao(ibao)
+        .baos(vec![ibao])
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .matrix_order(MatrixOrder::ColMajor)
         .byte_order(ByteOrder::LittleEndian)

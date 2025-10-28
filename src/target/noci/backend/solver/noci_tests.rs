@@ -1,26 +1,27 @@
 use approx::{assert_abs_diff_eq, assert_abs_diff_ne};
+use ndarray::Array2;
 // use log4rs;
 use itertools::Itertools;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::ElementMap;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
+use crate::drivers::QSym2Driver;
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
-use crate::drivers::QSym2Driver;
 use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_group::{SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup};
 use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 use crate::target::noci::backend::auxiliary::extract_pyscf_scf_data;
-use crate::target::noci::backend::solver::noci::NOCISolvable;
+use crate::target::noci::backend::solver::noci::SymmetryOrbitNOCISolvable;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -33,7 +34,9 @@ fn test_solver_noci_energy_ch4p_sto3g() {
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -60,10 +63,11 @@ fn test_solver_noci_energy_ch4p_sto3g() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -135,7 +139,9 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -162,10 +168,11 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -231,13 +238,15 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
 
 #[test]
 fn test_solver_noci_energy_h6_sto3g() {
-    // Symmetry: |A|_(2g) ⊕ |E|_(g) ⊕ |T|_(1g)
+    // Symmetry: |A|_(1g) ⊕ |E|_(g) ⊕ |T|_(2g)
     let emap = ElementMap::new();
     let filename = format!("{ROOT}/tests/noci_backend_hdf5/h6_sto3g.hdf5");
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -264,10 +273,11 @@ fn test_solver_noci_energy_h6_sto3g() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -318,15 +328,15 @@ fn test_solver_noci_energy_h6_sto3g() {
     assert!(mda_driver.run().is_ok());
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[0],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap())
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[1],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap())
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[2],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap())
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[3],
@@ -338,19 +348,21 @@ fn test_solver_noci_energy_h6_sto3g() {
     );
     assert_eq!(
         mda_driver.result().unwrap().multidet_symmetries()[5],
-        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(2g)|").unwrap())
+        Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap())
     );
 }
 
 #[test]
-fn test_solver_noci_energy_h6_631gdstar() {
+fn test_solver_noci_energy_h6_631gds() {
     // Symmetry: |T|_(1g) ⊕ |T|_(2g)
     let emap = ElementMap::new();
     let filename = format!("{ROOT}/tests/noci_backend_hdf5/h6_631gds.hdf5");
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -377,10 +389,11 @@ fn test_solver_noci_energy_h6_631gdstar() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -462,7 +475,9 @@ fn test_solver_noci_energy_h4_sto3g() {
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -489,10 +504,11 @@ fn test_solver_noci_energy_h4_sto3g() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -553,7 +569,9 @@ fn test_solver_noci_energy_h4_631gdstar() {
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-7).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -580,10 +598,11 @@ fn test_solver_noci_energy_h4_631gdstar() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )
@@ -644,7 +663,9 @@ fn test_solver_noci_energy_c6h6p_sto3g() {
     let pyscf_data = extract_pyscf_scf_data::<_, f64>(filename).unwrap();
     let mol = pyscf_data.get_mol(&emap, 1e-6).unwrap();
     let bao = pyscf_data.get_bao(&mol).unwrap();
-    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<SpinConstraint>().unwrap();
+    let (overlap_ao, hamiltonian_ao) = pyscf_data.get_integrals::<
+        SpinConstraint, fn(&Array2<f64>) -> Result<(Array2<f64>, Array2<f64>), anyhow::Error>
+    >().unwrap();
     let det = pyscf_data
         .get_slater_determinant(&mol, &bao, SpinConstraint::Unrestricted(2, true), 1e-14)
         .unwrap();
@@ -671,10 +692,11 @@ fn test_solver_noci_energy_c6h6p_sto3g() {
 
     let system = (&hamiltonian_ao, &overlap_ao);
     let multidets = system
-        .solve_symmetry_noci(
+        .solve_symmetry_orbit_noci(
             &[&det],
             &group,
             SymmetryTransformationKind::Spatial,
+            true,
             1e-7,
             1e-7,
         )

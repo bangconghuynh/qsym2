@@ -2,10 +2,10 @@
 
 use std::collections::VecDeque;
 
-use anyhow;
+use anyhow::{self, format_err};
 use derive_builder::Builder;
-use itertools::structs::Product;
 use itertools::Itertools;
+use itertools::structs::Product;
 
 use crate::group::GroupProperties;
 
@@ -80,7 +80,7 @@ where
     I: Clone,
 {
     pub fn builder() -> OrbitBasisBuilder<'g, G, I> {
-        OrbitBasisBuilder::<G, I>::default()
+        OrbitBasisBuilder::<'g, G, I>::default()
     }
 
     /// The origins from which orbits are generated.
@@ -106,6 +106,21 @@ where
         )>,
     > {
         self.prefactors.as_ref()
+    }
+}
+
+impl<'g, G, I> OrbitBasis<'g, G, I>
+where
+    G: GroupProperties,
+    I: Clone,
+{
+    /// Converts this orbit basis into the equivalent eager basis.
+    pub fn to_eager(&self) -> Result<EagerBasis<I>, anyhow::Error> {
+        let elements = self.iter().collect::<Result<Vec<_>, _>>()?;
+        EagerBasis::builder()
+            .elements(elements)
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 

@@ -150,6 +150,7 @@ pub mod integrals;
 pub mod interfaces;
 pub mod io;
 pub mod permutation;
+pub mod projection;
 pub mod rotsym;
 #[cfg(feature = "sandbox")]
 pub mod sandbox;

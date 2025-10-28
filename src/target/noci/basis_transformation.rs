@@ -356,6 +356,9 @@ where
     I: SymmetryTransformable,
     EagerBasis<I>: TimeReversalTransformable,
 {
+    // ----------------
+    // Required methods
+    // ----------------
     fn sym_permute_sites_spatial(
         &self,
         symop: &SymmetryOperation,
@@ -374,5 +377,24 @@ where
                 "Mismatched site permutations across the elements in the basis.".to_string(),
             ))
         }
+    }
+
+    // ----------------------------
+    // Overwritten provided methods
+    // ----------------------------
+    // We need to override this to make sure that we use the correct
+    // `sym_transform_spin_spatial_mut` for the items and not the default
+    // `sym_transform_spin_spatial_mut` which simply combines `transform_spatial_mut`,
+    // `transform_spin_mut`, and `transform_timerev_mut` which is not right if spin--orbit coupling
+    // is at work.
+    fn sym_transform_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        self.elements
+            .iter_mut()
+            .map(|item| item.sym_transform_spin_spatial_mut(symop))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(self)
     }
 }

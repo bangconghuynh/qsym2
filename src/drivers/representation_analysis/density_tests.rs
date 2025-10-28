@@ -99,7 +99,7 @@ fn test_drivers_density_analysis_s4_sqpl_pxpy() {
     let det_ru = SlaterDeterminant::<f64, SpinConstraint>::builder()
         .coefficients(&[calpha.clone(), cbeta.clone()])
         .occupations(&[oalpha, obeta])
-        .bao(&bao_s4)
+        .baos(vec![&bao_s4])
         .mol(&mol_s4)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)

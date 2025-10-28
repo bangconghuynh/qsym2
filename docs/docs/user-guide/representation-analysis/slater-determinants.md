@@ -160,7 +160,8 @@ More methods might become possible in the future. The parameter specifications f
               - false
               matrix_order: RowMajor #(9)!
               byte_order: LittleEndian #(10)!
-              bao: #(11)!
+              baos: #(11)!
+              -
                 ...: ...
             control: #(12)!
               ...: ...
@@ -195,7 +196,7 @@ More methods might become possible in the future. The parameter specifications f
             - `BigEndian`: the least-significant byte is stored at the largest memory address.
         </li> Most systems are little-endian, but this should be verified to ensure that the values in the binary files are read in correctly.
         </br></br>:material-cog-sync-outline: Default: `LittleEndian`.
-        11. :fontawesome-solid-users: This YAML dictionary specifies the basis angular order information for the underlying calculation. For more information, see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
+        11. :fontawesome-solid-users: This YAML list specifies the basis angular order information for the underlying calculation. For more information, see [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order).
         12. :fontawesome-solid-users: This YAML dictionary contains all control parameters for the symmetry analysis of Slater determinants and is identical to that specified for Slater determinant Q-Chem HDF5 archive source.
 
 
@@ -245,7 +246,7 @@ More methods might become possible in the future. The parameter specifications f
         # Data
         inp_sym="mol", #(18)!
         pydet=pydet, #(19)!
-        pybao=pybao, #(20)!
+        pybaos=[pybao], #(20)!
         sao=sao_spatial, #(21)!
         sao_h=None, #(22)!
         sao_spatial_4c=None, #(23)!
@@ -269,15 +270,15 @@ More methods might become possible in the future. The parameter specifications f
     ) #(38)!
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison. See [Basics/Thresholds/Linear independence threshold/#Comparison mode](basics.md/#comparison-mode) for further information.
-    2. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis. See [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) for further information.
-    3. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/enum.SymmetryTransformationKind.html), for indicating the kind of symmetry transformation to be applied on the target. See [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds) for further information.
-    4. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`PySpinConstraint`](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PySpinConstraint.html), for indicating the spin constraint applicable to the Slater determinant. In the Python API, only two spin spaces arranged in decreasing-$m_s$ order are permitted because Python enums do not support associated values.
-    5. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`PySpinOrbitCoupled`](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PySpinOrbitCoupled.html), for indicating the spin--orbit-coupled structure applicable to the Slater determinant. In the Python API, only two-component j-adapted basis structures are permitted.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](../../python/common.md/#qsym2.EigenvalueComparisonMode), for indicating the mode of eigenvalue comparison. See [Basics/Thresholds/Linear independence threshold/#Comparison mode](basics.md/#comparison-mode) for further information.
+    2. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](../../python/common.md/#qsym2.MagneticSymmetryAnalysisKind), for indicating the type of magnetic symmetry to be used for symmetry analysis. See [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) for further information.
+    3. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](../../python/common.md/#qsym2.SymmetryTransformationKind), for indicating the kind of symmetry transformation to be applied on the target. See [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds) for further information.
+    4. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`PySpinConstraint`](../../python/basis.md/#qsym2.PySpinConstraint), for indicating the spin constraint applicable to the Slater determinant. In the Python API, only two spin spaces arranged in decreasing-$m_s$ order are permitted because Python enums do not support associated values.
+    5. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`PySpinOrbitCoupled`](../../python/basis.md/#qsym2.PySpinOrbitCoupled), for indicating the spin--orbit-coupled structure applicable to the Slater determinant. In the Python API, only two-component j-adapted basis structures are permitted.
     6. :fontawesome-solid-users: This specifies a coefficient matrix for one spin space, which is a $N_{\mathrm{bas}} \times N_{\mathrm{MO}}$ `numpy` array. The number of basis functions, $N_{\mathrm{bas}}$, depends on the underlying spin constraint: for *generalised* spin constraint, this is twice the number of spatial basis functions, whereas for *restricted* and *unrestricted* spin constraints, this is the same as the number of spatial basis functions. Each column in the array specifies a molecular orbital which can be occupied or virtual as specified by the occupation numbers.
     7. :fontawesome-solid-users: This specifies an occupation number vector for one spin space, which is a one-dimensional `numpy` array of size $N_{\mathrm{MO}}$. Each value in this array gives the occupation number for the corresponding molecular orbital. Fractional values are allowed, but only when occupation numbers are either $0$ or $1$ can the Slater determinant symmetry be well-defined (otherwise the collection of fractionally occupied molecular orbitals does not actually form a single-determinantal wavefunction).
     8. :fontawesome-solid-users: This specifies an optional orbital energy vector for one spin space, which is a one-dimensional `numpy` array of size $N_{\mathrm{MO}}$. Each value in this array gives the orbital energy for the corresponding molecular orbital.
-    9. :fontawesome-solid-users: [`PySlaterDeterminantReal`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantReal.html) constructs a *real-valued* Slater determinant object. If a *complex-valued* Slater determinant is required instead, use [`PySlaterDeterminantComplex`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantComplex.html).
+    9. :fontawesome-solid-users: [`PySlaterDeterminantReal`](../../python/representation-analysis/slater-determinants.md/#qsym2.PySlaterDeterminantReal) constructs a *real-valued* Slater determinant object. If a *complex-valued* Slater determinant is required instead, use [`PySlaterDeterminantComplex`](../../python/representation-analysis/slater-determinants.md/#qsym2.PySlaterDeterminantComplex).
     10. :fontawesome-solid-users: This specifies the structure constraint applicable to the Slater determinant being specified. The possible options are:
         - `PySpinConstraint.Restricted`: this specifies the *restricted* spin constraint where spatial molecular orbitals are identical across both spin spaces,
         - `PySpinConstraint.Unrestricted`: this specifies the *unrestricted* spin constraint where spatial molecular orbitals can be different across the two spin spaces,
@@ -290,12 +291,12 @@ More methods might become possible in the future. The parameter specifications f
     15. :fontawesome-solid-users: This is optional.
     16. :fontawesome-solid-users: This is optional.
     17. :fontawesome-solid-users: This is the Python driver function for representation analysis of Slater determinants.
-    </br></br>:fontawesome-solid-laptop-code: This is a Python-exposed Rust function, [`rep_analyse_slater_determinant`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/fn.rep_analyse_slater_determinant.html). See the API documentation of this function for more details.
-    18. :fontawesome-solid-users: This specifies the path to the `.qsym2.sym` file that contains the serialised results of the symmetry-group detection (see the documentation for the `out_sym` parameter of the Python [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function in [Symmetry-group detection/#Parameters](../symmetry-group-detection.md/#parameters)). This file should have been generated by the [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function on the underlying molecular system prior to representation analysis.
+    </br></br>:fontawesome-solid-laptop-code: This is a Python-exposed Rust function, [`rep_analyse_slater_determinant`](../../python/representation-analysis/slater-determinants.md/#qsym2.rep_analyse_slater_determinant). See the API documentation of this function for more details.
+    18. :fontawesome-solid-users: This specifies the path to the `.qsym2.sym` file that contains the serialised results of the symmetry-group detection (see the documentation for the `out_sym` parameter of the Python [`detect_symmetry_group`](../../python/symmetry-group-detection.md/#qsym2.detect_symmetry_group) function in [Symmetry-group detection/#Parameters](../symmetry-group-detection.md/#parameters)). This file should have been generated by the [`detect_symmetry_group`](../../python/symmetry-group-detection.md/#qsym2.detect_symmetry_group) function on the underlying molecular system prior to representation analysis.
     </br></br>This name does not need to contain the `.qsym2.sym` extension.
     </br></br>The symmetry results in this file will be used to construct the symmetry group $\mathcal{G}$ to be used in the subsequent representation analysis.
     19. :fontawesome-solid-users: This specifies the Slater determinant to be symmetry-analysed.
-    20. :fontawesome-solid-users: This specifies the basis angular order information for the underlying basis. See [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details of how to specify this.
+    20. :fontawesome-solid-users: This specifies the basis angular order information for the underlying basis. Each item in the list is for one explicit component in the coefficient matrices. See [Basics/Requirements/#Atomic-orbital basis angular order](basics.md/#atomic-orbital-basis-angular-order) for details of how to specify this.
     21. :fontawesome-solid-users: This specifies the two-centre atomic-orbital overlap matrix as a two-dimensional `numpy` array. The dimensions of this matrix must be $n_{\mathrm{comps}}N_{\mathrm{bas}} \times n_{\mathrm{comps}}N_{\mathrm{bas}}$, where $N_{\mathrm{bas}}$ is the number of basis functions specified in the basis angular order information, and $n_{\mathrm{comps}}$ is either $1$ or the total number of explicit components per coefficient matrix.
     22. :fontawesome-solid-users: This specifies the optional complex-symmetric two-centre atomic-orbital spatial matrix as a two-dimensional `numpy` array. The dimensions of this matrix must be $n_{\mathrm{comps}}N_{\mathrm{bas}} \times n_{\mathrm{comps}}N_{\mathrm{bas}}$, where $N_{\mathrm{bas}}$ is the number of basis functions specified in the basis angular order information, and $n_{\mathrm{comps}}$ is either $1$ or the total number of explicit components per coefficient matrix. This is only required if antiunitary operations are ppresent.
     </br></br>:material-cog-sync-outline: Default: `None`.
@@ -344,4 +345,4 @@ More methods might become possible in the future. The parameter specifications f
     </br></br>:material-cog-sync-outline: Default: `False`.
     37. :fontawesome-solid-users: This boolean indicates if density symmetries are to be analysed alongside wavefunction symmetries. If `analyse_mo_symmetries` is set to `True`, then MO density symmetries are also analysed.
     </br></br>:material-cog-sync-outline: Default: `False`.
-    38. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`rep_analyse_slater_determinant`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/fn.rep_analyse_slater_determinant.html) function returns a single [`PySlaterDeterminantRepAnalysisResult`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantRepAnalysisResult.html) object containing the Python-exposed results of the representation analysis.
+    38. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`rep_analyse_slater_determinant`](../../python/representation-analysis/slater-determinants.md/#qsym2.rep_analyse_slater_determinant) function returns a single [`PySlaterDeterminantRepAnalysisResult`](../../python/representation-analysis/slater-determinants.md/#qsym2.PySlaterDeterminantRepAnalysisResult) object containing the Python-exposed results of the representation analysis.

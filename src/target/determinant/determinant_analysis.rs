@@ -3,32 +3,32 @@
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err, Context};
+use anyhow::{self, Context, ensure, format_err};
 use approx;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
 use log;
 use ndarray::{Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
+    UPLO,
     eig::Eig,
     eigh::Eigh,
     solve::Determinant,
     types::{Lapack, Scalar},
-    UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, RepAnalysis,
+    EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap, RepAnalysis, fn_calc_xmat_complex,
+    fn_calc_xmat_real,
 };
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
-use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
+use crate::io::format::{QSym2Output, log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -86,21 +86,21 @@ where
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
         ensure!(
-            self.bao == other.bao,
+            self.baos == other.baos,
             "Inconsistent basis angular order between `self` and `other`."
         );
 
         let thresh = Float::sqrt(self.threshold * other.threshold);
-        ensure!(self
-            .occupations
-            .iter()
-            .chain(other.occupations.iter())
-            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
-                occ,
-                occ.round(),
-                epsilon = thresh,
-                max_relative = thresh
-            ))),
+        ensure!(
+            self.occupations
+                .iter()
+                .chain(other.occupations.iter())
+                .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
+                    occ,
+                    occ.round(),
+                    epsilon = thresh,
+                    max_relative = thresh
+                ))),
             "Overlaps between determinants with fractional occupation numbers are currently not supported."
         );
 
@@ -234,6 +234,44 @@ where
     }
 }
 
+impl<'a, G, T, SC> SlaterDeterminantSymmetryOrbit<'a, G, T, SC>
+where
+    G: SymmetryGroupProperties,
+    T: ComplexFloat + fmt::Debug + Lapack,
+    SC: StructureConstraint + fmt::Display,
+    SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
+{
+    pub fn action(
+        &self,
+    ) -> fn(
+        &G::GroupElement,
+        &SlaterDeterminant<'a, T, SC>,
+    ) -> Result<SlaterDeterminant<'a, T, SC>, anyhow::Error> {
+        match self.symmetry_transformation_kind {
+            SymmetryTransformationKind::Spatial => |op, det| {
+                det.sym_transform_spatial(op).with_context(|| {
+                    format!("Unable to apply `{op}` spatially on the origin determinant")
+                })
+            },
+            SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+                det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                    format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin determinant")
+                })
+            },
+            SymmetryTransformationKind::Spin => |op, det| {
+                det.sym_transform_spin(op).with_context(|| {
+                    format!("Unable to apply `{op}` spin-wise on the origin determinant")
+                })
+            },
+            SymmetryTransformationKind::SpinSpatial => |op, det| {
+                det.sym_transform_spin_spatial(op).with_context(|| {
+                    format!("Unable to apply `{op}` spin-spatially on the origin determinant")
+                })
+            },
+        }
+    }
+}
+
 impl<'a, G, SC> SlaterDeterminantSymmetryOrbit<'a, G, f64, SC>
 where
     G: SymmetryGroupProperties,
@@ -310,28 +348,29 @@ where
         OrbitIterator::new(
             self.group,
             self.origin,
-            match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, det| {
-                    det.sym_transform_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spatially on the origin determinant")
-                    })
-                },
-                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
-                    det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
-                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin determinant")
-                    })
-                },
-                SymmetryTransformationKind::Spin => |op, det| {
-                    det.sym_transform_spin(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-wise on the origin determinant")
-                    })
-                },
-                SymmetryTransformationKind::SpinSpatial => |op, det| {
-                    det.sym_transform_spin_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-spatially on the origin determinant")
-                    })
-                },
-            },
+            self.action(),
+            // match self.symmetry_transformation_kind {
+            //     SymmetryTransformationKind::Spatial => |op, det| {
+            //         det.sym_transform_spatial(op).with_context(|| {
+            //             format!("Unable to apply `{op}` spatially on the origin determinant")
+            //         })
+            //     },
+            //     SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, det| {
+            //         det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+            //             format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin determinant")
+            //         })
+            //     },
+            //     SymmetryTransformationKind::Spin => |op, det| {
+            //         det.sym_transform_spin(op).with_context(|| {
+            //             format!("Unable to apply `{op}` spin-wise on the origin determinant")
+            //         })
+            //     },
+            //     SymmetryTransformationKind::SpinSpatial => |op, det| {
+            //         det.sym_transform_spin_spatial(op).with_context(|| {
+            //             format!("Unable to apply `{op}` spin-spatially on the origin determinant")
+            //         })
+            //     },
+            // },
         )
     }
 }
@@ -374,7 +413,9 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."))
+            Err(format_err!(
+                "`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."
+            ))
         } else {
             if self
                 .group

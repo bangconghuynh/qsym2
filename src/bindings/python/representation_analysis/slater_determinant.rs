@@ -4,6 +4,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::format_err;
+use itertools::Itertools;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
@@ -16,6 +17,7 @@ use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC};
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -24,10 +26,9 @@ use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::GroupProperties;
 use crate::io::format::qsym2_output;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -50,61 +51,32 @@ type C128 = Complex<f64>;
 
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
-///
-/// # Constructor arguments
-///
-/// * `structure_constraint` - The structure constraint applied to the coefficients of the determinant.
-/// Python type: `PySpinConstraint | PySpinOrbitCoupled`.
-/// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-/// are complex-symmetric. Python type: `bool`.
-/// * `coefficients` - The real coefficients for the molecular orbitals of this determinant.
-/// Python type: `list[numpy.2darray[float]]`.
-/// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
-/// `list[numpy.1darray[float]]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
-/// * `mo_energies` - The optional real molecular orbital energies. Python type:
-/// `Optional[list[numpy.1darray[float]]]`.
-/// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PySlaterDeterminantReal {
     /// The structure constraint applied to the coefficients of the determinant.
-    ///
-    /// Python type: `PySpinConstraint | PySpinOrbitCoupled`.
-    structure_constraint: PyStructureConstraint,
+    pub(crate) structure_constraint: PyStructureConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
-    ///
-    /// Python type: `bool`.
     #[pyo3(get)]
-    complex_symmetric: bool,
+    pub(crate) complex_symmetric: bool,
 
     /// The real coefficients for the molecular orbitals of this determinant.
-    ///
-    /// Python type: `list[numpy.2darray[float]]`.
-    coefficients: Vec<Array2<f64>>,
+    pub(crate) coefficients: Vec<Array2<f64>>,
 
     /// The occupation patterns for the molecular orbitals.
-    ///
-    /// Python type: `list[numpy.1darray[float]]`.
-    occupations: Vec<Array1<f64>>,
+    pub(crate) occupations: Vec<Array1<f64>>,
 
     /// The threshold for comparisons.
-    ///
-    /// Python type: `float`.
     #[pyo3(get)]
-    threshold: f64,
+    pub(crate) threshold: f64,
 
     /// The optional real molecular orbital energies.
-    ///
-    /// Python type: `Optional[list[numpy.1darray[float]]]`.
-    mo_energies: Option<Vec<Array1<f64>>>,
+    pub(crate) mo_energies: Option<Vec<Array1<f64>>>,
 
     /// The optional real determinantal energy.
-    ///
-    /// Python type: `Optional[float]`.
     #[pyo3(get)]
-    energy: Option<f64>,
+    pub(crate) energy: Option<f64>,
 }
 
 #[pymethods]
@@ -114,17 +86,12 @@ impl PySlaterDeterminantReal {
     /// # Arguments
     ///
     /// * `structure_constraint` - The structure constraint applied to the coefficients of the determinant.
-    /// Python type: `PySpinConstraint | PySpinOrbitCoupled`.
-    /// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-    /// are complex-symmetric. Python type: `bool`.
+    /// * `complex_symmetric` - A boolean indicating if inner products involving this determinant are complex-symmetric.
     /// * `coefficients` - The real coefficients for the molecular orbitals of this determinant.
-    /// Python type: `list[numpy.2darray[float]]`.
-    /// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
-    /// `list[numpy.1darray[float]]`.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
-    /// * `mo_energies` - The optional real molecular orbital energies. Python type:
-    /// `Optional[list[numpy.1darray[float]]]`.
-    /// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
+    /// * `occupations` - The occupation patterns for the molecular orbitals.
+    /// * `threshold` - The threshold for comparisons.
+    /// * `mo_energies` - The optional real molecular orbital energies.
+    /// * `energy` - The optional real determinantal energy.
     #[new]
     #[pyo3(signature = (structure_constraint, complex_symmetric, coefficients, occupations, threshold, mo_energies=None, energy=None))]
     pub fn new(
@@ -159,10 +126,7 @@ impl PySlaterDeterminantReal {
         det
     }
 
-    pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
-        Ok(self.complex_symmetric)
-    }
-
+    /// The occupation patterns for the molecular orbitals.
     #[getter]
     pub fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
         Ok(self
@@ -172,6 +136,7 @@ impl PySlaterDeterminantReal {
             .collect::<Vec<_>>())
     }
 
+    /// The real coefficients for the molecular orbitals of this determinant.
     #[getter]
     pub fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<f64>>>> {
         Ok(self
@@ -179,6 +144,20 @@ impl PySlaterDeterminantReal {
             .iter()
             .map(|occ| occ.to_pyarray(py))
             .collect::<Vec<_>>())
+    }
+
+    /// The real molecular orbital energies, if any.
+    #[getter]
+    pub fn mo_energies<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Option<Vec<Bound<'py, PyArray1<f64>>>>> {
+        Ok(self.mo_energies.as_ref().map(|mo_energies| {
+            mo_energies
+                .iter()
+                .map(|mo_en| mo_en.to_pyarray(py))
+                .collect::<Vec<_>>()
+        }))
     }
 }
 
@@ -188,8 +167,8 @@ impl PySlaterDeterminantReal {
     ///
     /// # Arguments
     ///
-    /// * `bao` - The [`BasisAngularOrder`] for the basis set in which the Slater determinant is
-    /// given.
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -201,7 +180,7 @@ impl PySlaterDeterminantReal {
     /// Errors if the [`SlaterDeterminant`] fails to build.
     pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
-        bao: &'a BasisAngularOrder,
+        baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
     ) -> Result<SlaterDeterminant<'b, f64, SC>, anyhow::Error>
     where
@@ -212,7 +191,7 @@ impl PySlaterDeterminantReal {
     {
         let det = SlaterDeterminant::<f64, SC>::builder()
             .structure_constraint(self.structure_constraint.clone().try_into()?)
-            .bao(bao)
+            .baos(baos.to_vec())
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
             .coefficients(&self.coefficients)
@@ -228,8 +207,48 @@ impl PySlaterDeterminantReal {
         det
     }
 
+    /// Returns the Python-exposed structure constraint information.
     pub fn structure_constraint(&self) -> &PyStructureConstraint {
         &self.structure_constraint
+    }
+}
+
+impl<'a, SC> SlaterDeterminant<'a, f64, SC>
+where
+    SC: StructureConstraint
+        + Clone
+        + fmt::Display
+        + TryInto<PyStructureConstraint, Error = anyhow::Error>,
+{
+    /// Extracts the information in the real [`SlaterDeterminant`] structure into [`PySlaterDeterminantReal`].
+    ///
+    /// # Returns
+    ///
+    /// The [`PySlaterDeterminantReal`] structure with the same information.
+    pub fn to_python<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> Result<PySlaterDeterminantReal, anyhow::Error> {
+        Ok(PySlaterDeterminantReal::new(
+            self.structure_constraint().clone().try_into()?,
+            self.complex_symmetric(),
+            self.coefficients()
+                .iter()
+                .map(|coeffs| coeffs.to_pyarray(py))
+                .collect_vec(),
+            self.occupations()
+                .iter()
+                .map(|occ| occ.to_pyarray(py))
+                .collect_vec(),
+            self.threshold(),
+            self.mo_energies().map(|mo_energies| {
+                mo_energies
+                    .iter()
+                    .map(|mo_e| mo_e.to_pyarray(py))
+                    .collect_vec()
+            }),
+            self.energy().ok().map(|energy| *energy),
+        ))
     }
 }
 
@@ -237,63 +256,33 @@ impl PySlaterDeterminantReal {
 // Complex
 // ~~~~~~~
 
-/// Python-exposed structure to marshall complex Slater determinant information between Rust and
-/// Python.
-///
-/// # Constructor arguments
-///
-/// * `structure_constraint` - The spin constraint applied to the coefficients of the determinant.
-/// Python type: `PySpinConstraint | PySpinOrbitCoupled`.
-/// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-/// are complex-symmetric. Python type: `bool`.
-/// * `coefficients` - The complex coefficients for the molecular orbitals of this determinant.
-/// Python type: `list[numpy.2darray[float]]`.
-/// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
-/// `list[numpy.1darray[float]]`.
-/// * `threshold` - The threshold for comparisons. Python type: `float`.
-/// * `mo_energies` - The optional complex molecular orbital energies. Python type:
-/// `Optional[list[numpy.1darray[complex]]]`.
-/// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
+/// Python-exposed structure to marshall complex Slater determinant information between Rust and Python.
 #[pyclass]
 #[derive(Clone)]
 pub struct PySlaterDeterminantComplex {
     /// The structure constraint applied to the coefficients of the determinant.
-    ///
-    /// Python type: `PySpinConstraint | PySpinOrbitCoupled`.
-    structure_constraint: PyStructureConstraint,
+    pub(crate) structure_constraint: PyStructureConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
-    ///
-    /// Python type: `bool`.
     #[pyo3(get)]
-    complex_symmetric: bool,
+    pub(crate) complex_symmetric: bool,
 
     /// The complex coefficients for the molecular orbitals of this determinant.
-    ///
-    /// Python type: `list[numpy.2darray[complex]]`.
-    coefficients: Vec<Array2<C128>>,
+    pub(crate) coefficients: Vec<Array2<C128>>,
 
     /// The occupation patterns for the molecular orbitals.
-    ///
-    /// Python type: `list[numpy.1darray[float]]`.
-    occupations: Vec<Array1<f64>>,
+    pub(crate) occupations: Vec<Array1<f64>>,
 
     /// The threshold for comparisons.
-    ///
-    /// Python type: `float`.
     #[pyo3(get)]
-    threshold: f64,
+    pub(crate) threshold: f64,
 
     /// The optional complex molecular orbital energies.
-    ///
-    /// Python type: `Optional[list[numpy.1darray[complex]]]`.
-    mo_energies: Option<Vec<Array1<C128>>>,
+    pub(crate) mo_energies: Option<Vec<Array1<C128>>>,
 
     /// The optional complex determinantal energy.
-    ///
-    /// Python type: `Optional[complex]`.
     #[pyo3(get)]
-    energy: Option<C128>,
+    pub(crate) energy: Option<C128>,
 }
 
 #[pymethods]
@@ -303,17 +292,14 @@ impl PySlaterDeterminantComplex {
     /// # Arguments
     ///
     /// * `structure_constraint` - The structure constraint applied to the coefficients of the
-    /// determinant. Python type: `PySpinConstraint | PySpinOrbitCoupled`.
+    /// determinant.
     /// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-    /// are complex-symmetric. Python type: `bool`.
+    /// are complex-symmetric.
     /// * `coefficients` - The complex coefficients for the molecular orbitals of this determinant.
-    /// Python type: `list[numpy.2darray[complex]]`.
-    /// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
-    /// `list[numpy.1darray[float]]`.
-    /// * `threshold` - The threshold for comparisons. Python type: `float`.
-    /// * `mo_energies` - The optional complex molecular orbital energies. Python type:
-    /// `Optional[list[numpy.1darray[complex]]]`.
-    /// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
+    /// * `occupations` - The occupation patterns for the molecular orbitals.
+    /// * `threshold` - The threshold for comparisons.
+    /// * `mo_energies` - The optional complex molecular orbital energies.
+    /// * `energy` - The optional complex determinantal energy.
     #[new]
     #[pyo3(signature = (structure_constraint, complex_symmetric, coefficients, occupations, threshold, mo_energies=None, energy=None))]
     pub fn new(
@@ -348,10 +334,7 @@ impl PySlaterDeterminantComplex {
         det
     }
 
-    pub fn complex_symmetric<'py>(&self, _py: Python<'py>) -> PyResult<bool> {
-        Ok(self.complex_symmetric)
-    }
-
+    /// The occupation patterns for the molecular orbitals.
     #[getter]
     pub fn occupations<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray1<f64>>>> {
         Ok(self
@@ -361,6 +344,7 @@ impl PySlaterDeterminantComplex {
             .collect::<Vec<_>>())
     }
 
+    /// The complex coefficients for the molecular orbitals of this determinant.
     #[getter]
     pub fn coefficients<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyArray2<C128>>>> {
         Ok(self
@@ -368,6 +352,20 @@ impl PySlaterDeterminantComplex {
             .iter()
             .map(|occ| occ.to_pyarray(py))
             .collect::<Vec<_>>())
+    }
+
+    /// The complex molecular orbital energies, if any.
+    #[getter]
+    pub fn mo_energies<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Option<Vec<Bound<'py, PyArray1<C128>>>>> {
+        Ok(self.mo_energies.as_ref().map(|mo_energies| {
+            mo_energies
+                .iter()
+                .map(|mo_en| mo_en.to_pyarray(py))
+                .collect::<Vec<_>>()
+        }))
     }
 }
 
@@ -377,8 +375,8 @@ impl PySlaterDeterminantComplex {
     ///
     /// # Arguments
     ///
-    /// * `bao` - The [`BasisAngularOrder`] for the basis set in which the Slater determinant is
-    /// given.
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -390,7 +388,7 @@ impl PySlaterDeterminantComplex {
     /// Errors if the [`SlaterDeterminant`] fails to build.
     pub fn to_qsym2<'b, 'a: 'b, SC>(
         &'b self,
-        bao: &'a BasisAngularOrder,
+        baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
     ) -> Result<SlaterDeterminant<'b, C128, SC>, anyhow::Error>
     where
@@ -401,7 +399,7 @@ impl PySlaterDeterminantComplex {
     {
         let det = SlaterDeterminant::<C128, SC>::builder()
             .structure_constraint(self.structure_constraint.clone().try_into()?)
-            .bao(bao)
+            .baos(baos.to_vec())
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
             .coefficients(&self.coefficients)
@@ -419,6 +417,45 @@ impl PySlaterDeterminantComplex {
 
     pub fn structure_constraint(&self) -> &PyStructureConstraint {
         &self.structure_constraint
+    }
+}
+
+impl<'a, SC> SlaterDeterminant<'a, C128, SC>
+where
+    SC: StructureConstraint
+        + Clone
+        + fmt::Display
+        + TryInto<PyStructureConstraint, Error = anyhow::Error>,
+{
+    /// Extracts the information in the complex [`SlaterDeterminant`] structure into [`PySlaterDeterminantComplex`].
+    ///
+    /// # Returns
+    ///
+    /// The [`PySlaterDeterminantComplex`] structure with the same information.
+    pub fn to_python<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> Result<PySlaterDeterminantComplex, anyhow::Error> {
+        Ok(PySlaterDeterminantComplex::new(
+            self.structure_constraint().clone().try_into()?,
+            self.complex_symmetric(),
+            self.coefficients()
+                .iter()
+                .map(|coeffs| coeffs.to_pyarray(py))
+                .collect_vec(),
+            self.occupations()
+                .iter()
+                .map(|occ| occ.to_pyarray(py))
+                .collect_vec(),
+            self.threshold(),
+            self.mo_energies().map(|mo_energies| {
+                mo_energies
+                    .iter()
+                    .map(|mo_e| mo_e.to_pyarray(py))
+                    .collect_vec()
+            }),
+            self.energy().ok().map(|energy| *energy),
+        ))
     }
 }
 
@@ -483,73 +520,70 @@ pub enum PySlaterDeterminant {
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
-/// representation analysis. Python type: `str`.
+/// representation analysis.
 /// * `pydet` - A Python-exposed Slater determinant whose coefficients are of type `float64` or
-/// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
-/// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
-/// Python type: `PyBasisAngularOrder`.
+/// `complex128`.
+/// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
+/// explicit component per coefficient matrix.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
-/// integral. Python type: `float`.
+/// integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
-/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
+/// subspace via the non-zero eigenvalues of the orbit overlap matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
-/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
+/// should be used.
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead. Python type: `bool`.
+/// group is to be used for representation analysis instead.
 /// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
-/// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
+/// should be used to speed up the calculation of orbit overlap matrices.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
 /// transformations to be performed on the origin determinant to generate the orbit. If this
 /// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically. Python type: `SymmetryTransformationKind`.
+/// automatically.
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
-/// Python type: `EigenvalueComparisonMode`.
 /// * `sao` - The atomic-orbital overlap matrix whose elements are of type `float64` or
-/// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
+/// `complex128`.
 /// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
 /// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
-/// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
+/// involved.
 /// * `sao_spatial_4c` - The optional atomic-orbital four-centre overlap matrix whose elements are
 /// of type `float64` or `complex128`.
-/// Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `sao_spatial_4c_h` - The optional complex-symmetric atomic-orbital four-centre overlap matrix
 /// whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry
-/// operations are involved. Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
+/// operations are involved.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
-/// orbitals are to be analysed. Python type: `bool`.
+/// orbitals are to be analysed.
 /// * `analyse_mo_symmetry_projections` - A boolean indicating if the symmetry projections of
-/// individual molecular orbitals are to be analysed. Python type: `bool`.
+/// individual molecular orbitals are to be analysed.
 /// * `analyse_mo_mirror_parities` - A boolean indicating if the mirror parities of individual
-/// molecular orbitals are to be printed. Python type: `bool`.
+/// molecular orbitals are to be printed.
 /// * `analyse_density_symmetries` - A boolean indicating if the symmetries of densities are to be
-/// analysed. Python type: `bool`.
+/// analysed.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
-/// orbit overlap matrix are to be written to the output. Python type: `bool`.
+/// orbit overlap matrix are to be written to the output.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
-/// symmetry group is to be printed out. Python type: `bool`.
+/// symmetry group is to be printed out.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for symmetry analysis. Python type: `Optional[int]`.
+/// will be used for symmetry analysis.
 /// * `angular_function_integrality_threshold` - The threshold for verifying if subspace
-/// multiplicities are integral for the symmetry analysis of angular functions. Python type:
-/// `float`.
+/// multiplicities are integral for the symmetry analysis of angular functions.
 /// * `angular_function_linear_independence_threshold` - The threshold for determining the linear
 /// independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry
-/// analysis of angular functions. Python type: `float`.
+/// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
-/// angular function symmetry analysis. Python type: `int`.
+/// angular function symmetry analysis.
 ///
 /// # Returns
 ///
 /// A Python-exposed [`PySlaterDeterminantRepAnalysisResult`] structure containing the results of the
-/// representation analysis. Python type: `PySlaterDeterminantRepAnalysisResult`.
+/// representation analysis.
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
     pydet,
-    pybao,
+    pybaos,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -576,7 +610,7 @@ pub fn rep_analyse_slater_determinant(
     py: Python<'_>,
     inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
-    pybao: &PyBasisAngularOrder,
+    pybaos: Vec<PyBasisAngularOrder>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -612,9 +646,15 @@ pub fn rep_analyse_slater_determinant(
     qsym2_output!("");
 
     let mol = &pd_res.pre_symmetry.recentred_molecule;
-    let bao = pybao
-        .to_qsym2(mol)
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+    let baos = pybaos
+        .iter()
+        .map(|bao| {
+            bao.to_qsym2(mol)
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let baos_ref = baos.iter().collect::<Vec<_>>();
     let augment_to_generalised = match symmetry_transformation_kind {
         SymmetryTransformationKind::SpatialWithSpinTimeReversal
         | SymmetryTransformationKind::Spin
@@ -666,12 +706,12 @@ pub fn rep_analyse_slater_determinant(
 
             let det_r = if augment_to_generalised {
                 pydet_r
-                    .to_qsym2::<SpinConstraint>(&bao, mol)
+                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     .to_generalised()
             } else {
                 pydet_r
-                    .to_qsym2::<SpinConstraint>(&bao, mol)
+                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
             match &use_magnetic_group {
@@ -691,7 +731,7 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -771,7 +811,7 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         sda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -842,12 +882,12 @@ pub fn rep_analyse_slater_determinant(
                 PyStructureConstraint::SpinConstraint(_) => {
                     let det_r = if augment_to_generalised {
                         pydet_r
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                             .to_generalised()
                     } else {
                         pydet_r
-                            .to_qsym2(&bao, mol)
+                            .to_qsym2(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     };
                     let det_c: SlaterDeterminant<C128, SpinConstraint> = det_r.into();
@@ -885,7 +925,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -968,7 +1008,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1039,7 +1079,7 @@ pub fn rep_analyse_slater_determinant(
                 }
                 PyStructureConstraint::SpinOrbitCoupled(_) => {
                     let det_r = pydet_r
-                        .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                        .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     let det_c: SlaterDeterminant<C128, SpinOrbitCoupled> = det_r.into();
                     let sao_c = pysao_c.to_owned_array();
@@ -1076,7 +1116,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1159,7 +1199,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1235,12 +1275,12 @@ pub fn rep_analyse_slater_determinant(
                 PyStructureConstraint::SpinConstraint(_) => {
                     let det_c = if augment_to_generalised {
                         pydet_c
-                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                             .to_generalised()
                     } else {
                         pydet_c
-                            .to_qsym2::<SpinConstraint>(&bao, mol)
+                            .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                     };
                     let sao_c = match sao {
@@ -1286,7 +1326,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1369,7 +1409,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1440,7 +1480,7 @@ pub fn rep_analyse_slater_determinant(
                 }
                 PyStructureConstraint::SpinOrbitCoupled(_) => {
                     let det_c = pydet_c
-                        .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                        .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                     let sao_c = match sao {
                         PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
@@ -1485,7 +1525,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -1568,7 +1608,7 @@ pub fn rep_analyse_slater_determinant(
                             .symmetry_group(&pd_res)
                             .build()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 sda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

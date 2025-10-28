@@ -39,19 +39,33 @@ pub enum InputShellOrder {
     /// a custom order specified by the ordered exponent tuples.
     CartCustom(Vec<(u32, u32, u32)>),
 
-    /// This variant indicates that the angular functions are spinors arranged in increasing $`m`$
-    /// order. The associated boolean indicates whether the spinors are even with respect to
-    /// spatial inversion.
-    SpinorIncreasingm(bool),
+    /// This variant indicates that the angular functions are spinors describing a fermion arranged
+    /// in increasing $`m`$ order. The associated boolean indicates whether the spinors are even
+    /// with respect to spatial inversion.
+    SpinorFermionIncreasingm(bool, Option<SpinorBalanceSymmetry>),
 
-    /// This variant indicates that the angular functions are spinors arranged in decreasing $`m`$
-    /// order. The associated boolean indicates whether the spinors are even with respect to
-    /// spatial inversion.
-    SpinorDecreasingm(bool),
+    /// This variant indicates that the angular functions are spinors describing a fermion arranged
+    /// in decreasing $`m`$ order. The associated boolean indicates whether the spinors are even
+    /// with respect to spatial inversion.
+    SpinorFermionDecreasingm(bool, Option<SpinorBalanceSymmetry>),
 
-    /// This variant indicates that the angular functions are spinors arranged in a custom order
-    /// specified by the $`m_l`$ values.
-    SpinorCustom(bool, Vec<i32>),
+    /// This variant indicates that the angular functions are spinors describing a fermion arranged
+    /// in a custom order specified by the $`m_l`$ values.
+    SpinorFermionCustom(bool, Vec<i32>, Option<SpinorBalanceSymmetry>),
+
+    /// This variant indicates that the angular functions are spinors describing an antifermion
+    /// arranged in increasing $`m`$ order. The associated boolean indicates whether the spinors are
+    /// even with respect to spatial inversion.
+    SpinorAntifermionIncreasingm(bool, Option<SpinorBalanceSymmetry>),
+
+    /// This variant indicates that the angular functions are spinors describing an antifermion
+    /// arranged in decreasing $`m`$ order. The associated boolean indicates whether the spinors are
+    /// even with respect to spatial inversion.
+    SpinorAntifermionDecreasingm(bool, Option<SpinorBalanceSymmetry>),
+
+    /// This variant indicates that the angular functions are spinors describing an antifermion
+    /// arranged in a custom order specified by the $`m_l`$ values.
+    SpinorAntifermionCustom(bool, Vec<i32>, Option<SpinorBalanceSymmetry>),
 }
 
 impl InputShellOrder {
@@ -68,14 +82,25 @@ impl InputShellOrder {
             InputShellOrder::CartCustom(cart_tuples) => ShellOrder::Cart(
                 CartOrder::new(cart_tuples).expect("Invalid Cartesian tuples provided."),
             ),
-            InputShellOrder::SpinorIncreasingm(even) => {
-                ShellOrder::Spinor(SpinorOrder::increasingm(l, *even))
-            }
-            InputShellOrder::SpinorDecreasingm(even) => {
-                ShellOrder::Spinor(SpinorOrder::decreasingm(l, *even))
-            }
-            InputShellOrder::SpinorCustom(even, mls) => ShellOrder::Spinor(
-                SpinorOrder::new(mls, *even).expect("Invalid 2mj sequence specified."),
+            InputShellOrder::SpinorFermionIncreasingm(even, sbs) => ShellOrder::Spinor(
+                SpinorOrder::increasingm(l, *even, SpinorParticleType::Fermion(sbs.clone())),
+            ),
+            InputShellOrder::SpinorFermionDecreasingm(even, sbs) => ShellOrder::Spinor(
+                SpinorOrder::decreasingm(l, *even, SpinorParticleType::Fermion(sbs.clone())),
+            ),
+            InputShellOrder::SpinorFermionCustom(even, mls, sbs) => ShellOrder::Spinor(
+                SpinorOrder::new(mls, *even, SpinorParticleType::Fermion(sbs.clone()))
+                    .expect("Invalid 2mj sequence specified."),
+            ),
+            InputShellOrder::SpinorAntifermionIncreasingm(even, sbs) => ShellOrder::Spinor(
+                SpinorOrder::increasingm(l, *even, SpinorParticleType::Antifermion(sbs.clone())),
+            ),
+            InputShellOrder::SpinorAntifermionDecreasingm(even, sbs) => ShellOrder::Spinor(
+                SpinorOrder::decreasingm(l, *even, SpinorParticleType::Antifermion(sbs.clone())),
+            ),
+            InputShellOrder::SpinorAntifermionCustom(even, mls, sbs) => ShellOrder::Spinor(
+                SpinorOrder::new(mls, *even, SpinorParticleType::Antifermion(sbs.clone()))
+                    .expect("Invalid 2mj sequence specified."),
             ),
         }
     }
@@ -111,9 +136,12 @@ impl InputBasisShell {
             InputShellOrder::CartQChem
             | InputShellOrder::CartLexicographic
             | InputShellOrder::CartCustom(_) => ((lsize + 1) * (lsize + 2)).div_euclid(2),
-            InputShellOrder::SpinorIncreasingm(_)
-            | InputShellOrder::SpinorDecreasingm(_)
-            | InputShellOrder::SpinorCustom(_, _) => lsize + 1, // lsize = 2j
+            InputShellOrder::SpinorFermionIncreasingm(..)
+            | InputShellOrder::SpinorFermionDecreasingm(..)
+            | InputShellOrder::SpinorFermionCustom(..)
+            | InputShellOrder::SpinorAntifermionIncreasingm(..)
+            | InputShellOrder::SpinorAntifermionDecreasingm(..)
+            | InputShellOrder::SpinorAntifermionCustom(..) => lsize + 1, // lsize = 2j
         }
     }
 

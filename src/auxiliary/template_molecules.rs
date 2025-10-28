@@ -1,10 +1,14 @@
 //! Template molecules for testing purposes.
 
+#[cfg(test)]
 use crate::auxiliary::atom::{Atom, AtomKind, ElementMap};
+#[cfg(test)]
 use crate::auxiliary::molecule::Molecule;
+#[cfg(test)]
 use nalgebra::Point3;
 
 #[must_use]
+#[cfg(test)]
 pub(crate) fn gen_twisted_h8(theta: f64) -> Molecule {
     let emap = ElementMap::new();
     let (atomic_number, atomic_mass) = emap.get("H").expect("Unable to retrieve element.");
@@ -94,6 +98,7 @@ pub(crate) fn gen_twisted_h8(theta: f64) -> Molecule {
 }
 
 #[must_use]
+#[cfg(test)]
 pub(crate) fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
@@ -138,6 +143,7 @@ pub(crate) fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
 }
 
 #[must_use]
+#[cfg(test)]
 pub(crate) fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
@@ -206,6 +212,7 @@ pub(crate) fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
 }
 
 #[must_use]
+#[cfg(test)]
 pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];

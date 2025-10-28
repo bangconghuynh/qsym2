@@ -3,9 +3,9 @@ use std::path::Path;
 
 use byteorder::LittleEndian;
 use itertools::Itertools;
-use log4rs;
+// use log4rs;
 use nalgebra::Vector3;
-use ndarray::{array, Array1, Array2};
+use ndarray::{Array1, Array2, array};
 use num_complex::Complex;
 use serial_test::serial;
 
@@ -14,10 +14,12 @@ use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    SpinorParticleType,
 };
 #[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -28,7 +30,6 @@ use crate::drivers::representation_analysis::{
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
-use crate::drivers::QSym2Driver;
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::io::numeric::NumericReader;
@@ -139,7 +140,7 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta])
-            .bao(&bao_vf6)
+            .baos(vec![&bao_vf6])
             .mol(mol_vf6)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -394,9 +395,30 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     let pd_res = pd_driver.result().unwrap();
     let mol_ch4 = &pd_res.pre_symmetry.recentred_molecule;
 
-    let bssp_1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bssp_3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
-    let bssp_5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
+    let bssp_1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bssp_3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bssp_5 = BasisShell::new(
+        5,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            5,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
 
     let batm_c0 = BasisAtom::new(
         &mol_ch4.atoms[0],
@@ -438,7 +460,7 @@ fn test_drivers_slater_determinant_analysis_ch4_jadapted() {
     let det_cg = SlaterDeterminant::<C128, SpinOrbitCoupled>::builder()
         .coefficients(&[c])
         .occupations(&[occ])
-        .bao(&bao_ch4)
+        .baos(vec![&bao_ch4])
         .mol(mol_ch4)
         .structure_constraint(SpinOrbitCoupled::JAdapted(1))
         .complex_symmetric(false)
@@ -732,7 +754,7 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta])
-            .bao(&bao_vf6)
+            .baos(vec![&bao_vf6])
             .mol(mol_vf6)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -1422,7 +1444,7 @@ fn test_drivers_slater_determinant_analysis_h2co_by_mag_uni() {
     let det_cu = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[ca, cb])
         .occupations(&[oa, ob])
-        .bao(&bao_h2co)
+        .baos(vec![&bao_h2co])
         .mol(mol_h2co)
         .structure_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)

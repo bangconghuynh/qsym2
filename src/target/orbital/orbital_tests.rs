@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 // use env_logger;
-use ndarray::{array, s, Array2};
+use ndarray::{Array2, array, s};
 use num_complex::Complex;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
@@ -9,15 +11,18 @@ use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    SpinorParticleType,
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::UnitaryRepresentedGroup;
+use crate::projection::Projectable;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
+use crate::target::orbital::MolecularOrbital;
 use crate::target::orbital::orbital_analysis::MolecularOrbitalSymmetryOrbit;
 
 type C128 = Complex<f64>;
@@ -130,7 +135,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         SlaterDeterminant::<f64, SpinConstraint>::builder()
             .coefficients(&[calpha, cbeta])
             .occupations(&[oalpha, obeta])
-            .bao(&bao_vf6)
+            .baos(vec![&bao_vf6])
             .mol(&mol_vf6)
             .structure_constraint(SpinConstraint::Unrestricted(2, false))
             .complex_symmetric(false)
@@ -256,9 +261,30 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
     let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs_sp1 = BasisShell::new(1, ShellOrder::Spinor(SpinorOrder::increasingm(1, true)));
-    let bs_sp3 = BasisShell::new(3, ShellOrder::Spinor(SpinorOrder::increasingm(3, true)));
-    let bs_sp5 = BasisShell::new(5, ShellOrder::Spinor(SpinorOrder::increasingm(5, true)));
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bs_sp3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bs_sp5 = BasisShell::new(
+        5,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            5,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp3.clone(), bs_sp5.clone()]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1.clone()]);
@@ -313,7 +339,7 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
         SlaterDeterminant::<f64, SpinOrbitCoupled>::builder()
             .coefficients(&[c])
             .occupations(&[occ.clone()])
-            .bao(&bao_bf4)
+            .baos(vec![&bao_bf4])
             .mol(&mol_bf4)
             .structure_constraint(SpinOrbitCoupled::JAdapted(1))
             .complex_symmetric(false)
@@ -365,4 +391,414 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
                 .calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
         });
+}
+
+#[test]
+fn test_orbital_projection_vf6_oct_lex_order() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_v = Atom::from_xyz("V +0.0 +0.0 +0.0", &emap, 1e-7).unwrap();
+    let atm_f0 = Atom::from_xyz("F +0.0 +0.0 +1.0", &emap, 1e-7).unwrap();
+    let atm_f1 = Atom::from_xyz("F +0.0 +0.0 -1.0", &emap, 1e-7).unwrap();
+    let atm_f2 = Atom::from_xyz("F +1.0 +0.0 +0.0", &emap, 1e-7).unwrap();
+    let atm_f3 = Atom::from_xyz("F -1.0 +0.0 +0.0", &emap, 1e-7).unwrap();
+    let atm_f4 = Atom::from_xyz("F +0.0 +1.0 +0.0", &emap, 1e-7).unwrap();
+    let atm_f5 = Atom::from_xyz("F +0.0 -1.0 +0.0", &emap, 1e-7).unwrap();
+
+    let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+    let bsp_s = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+
+    let batm_v = BasisAtom::new(&atm_v, &[bsc_d]);
+    let batm_f0 = BasisAtom::new(&atm_f0, &[bsp_s.clone()]);
+    let batm_f1 = BasisAtom::new(&atm_f1, &[bsp_s.clone()]);
+    let batm_f2 = BasisAtom::new(&atm_f2, &[bsp_s.clone()]);
+    let batm_f3 = BasisAtom::new(&atm_f3, &[bsp_s.clone()]);
+    let batm_f4 = BasisAtom::new(&atm_f4, &[bsp_s.clone()]);
+    let batm_f5 = BasisAtom::new(&atm_f5, &[bsp_s]);
+
+    let bao_vf6 =
+        BasisAngularOrder::new(&[batm_v, batm_f0, batm_f1, batm_f2, batm_f3, batm_f4, batm_f5]);
+    let mol_vf6 = Molecule::from_atoms(
+        &[
+            atm_v.clone(),
+            atm_f0.clone(),
+            atm_f1.clone(),
+            atm_f2.clone(),
+            atm_f3.clone(),
+            atm_f4.clone(),
+            atm_f5.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_vf6)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
+
+    let thr = 1.0 / 3.0;
+    let sao = array![
+        [1.0, 0.0, 0.0, thr, 0.0, thr, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [thr, 0.0, 0.0, 1.0, 0.0, thr, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [thr, 0.0, 0.0, thr, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    ];
+    let mut sao_g = Array2::zeros((24, 24));
+    sao_g.slice_mut(s![0..12, 0..12]).assign(&sao);
+    sao_g.slice_mut(s![12..24, 12..24]).assign(&sao);
+    let sao_cg = sao_g.mapv(C128::from);
+
+    // -------------------------------------
+    // αdyy
+    // -------------------------------------
+    #[rustfmt::skip]
+    let calpha = array![
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    ].mapv(Complex::from);
+    let mo_dyy = MolecularOrbital::builder()
+        .structure_constraint(SpinConstraint::Restricted(2))
+        .component_index(0)
+        .coefficients(calpha)
+        .baos(vec![&bao_vf6])
+        .mol(&mol_vf6)
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap()
+        .to_generalised();
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh (ordinary, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    let mut orbit_mo_dyy = MolecularOrbitalSymmetryOrbit::builder()
+        .group(&group_u_oh)
+        .origin(&mo_dyy)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_mo_dyy
+        .calc_smat(Some(&sao_cg), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_mo_dyy.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap()
+    );
+
+    for sym in ["||A|_(1g)|", "||E|_(g)|"] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let dyy_p = orbit_mo_dyy.project_onto(&row).unwrap();
+        let mut orbit_dyy_p = MolecularOrbitalSymmetryOrbit::builder()
+            .group(&group_u_oh)
+            .origin(&dyy_p)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_dyy_p
+            .calc_smat(Some(&sao_cg), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        assert_eq!(
+            orbit_dyy_p.analyse_rep().unwrap(),
+            DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
+        );
+    }
+
+    for sym in [
+        "||A|_(2g)|",
+        "||T|_(1g)|",
+        "||T|_(2g)|",
+        "||A|_(1u)|",
+        "||A|_(2u)|",
+        "||E|_(u)|",
+        "||T|_(1u)|",
+        "||T|_(2u)|",
+    ] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let dyy_p = orbit_mo_dyy.project_onto(&row).unwrap();
+        let mut orbit_dyy_p = MolecularOrbitalSymmetryOrbit::builder()
+            .group(&group_u_oh)
+            .origin(&dyy_p)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        assert!(
+            orbit_dyy_p
+                .calc_smat(Some(&sao_cg), None, true)
+                .unwrap()
+                .calc_xmat(false)
+                .is_err()
+        );
+    }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh* (ordinary double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    let mut orbit_mo_dyy_double = MolecularOrbitalSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&mo_dyy)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_mo_dyy_double
+        .calc_smat(Some(&sao_cg), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_mo_dyy_double.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||F~|_(g)|").unwrap()
+    );
+
+    for sym in ["||E~|_(1g)|", "||F~|_(g)|"] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let dyy_p = orbit_mo_dyy_double.project_onto(&row).unwrap();
+        let mut orbit_dyy_p_double = MolecularOrbitalSymmetryOrbit::builder()
+            .group(&group_u_oh_double)
+            .origin(&dyy_p)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_dyy_p_double
+            .calc_smat(Some(&sao_cg), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        assert_eq!(
+            orbit_dyy_p_double.analyse_rep().unwrap(),
+            DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
+        );
+    }
+
+    for sym in ["||E~|_(2g)|", "||E~|_(1u)|", "||E~|_(2u)|", "||F~|_(u)|"] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let dyy_p = orbit_mo_dyy_double.project_onto(&row).unwrap();
+        let mut orbit_dyy_p_double = MolecularOrbitalSymmetryOrbit::builder()
+            .group(&group_u_oh_double)
+            .origin(&dyy_p)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        assert!(
+            orbit_dyy_p_double
+                .calc_smat(Some(&sao_cg), None, true)
+                .unwrap()
+                .calc_xmat(false)
+                .is_err()
+        );
+    }
+}
+
+#[test]
+fn test_orbital_projection_bf4_sqpl_jadapted() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f0 = Atom::from_xyz("F 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f1 = Atom::from_xyz("F 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs_sp1 = BasisShell::new(
+        1,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            1,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bs_sp3 = BasisShell::new(
+        3,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            3,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+    let bs_sp5 = BasisShell::new(
+        5,
+        ShellOrder::Spinor(SpinorOrder::increasingm(
+            5,
+            true,
+            SpinorParticleType::Fermion(None),
+        )),
+    );
+
+    let batm_b0 = BasisAtom::new(&atm_b0, &[bs_sp1.clone(), bs_sp3.clone(), bs_sp5.clone()]);
+    let batm_f0 = BasisAtom::new(&atm_f0, &[bs_sp1.clone()]);
+    let batm_f1 = BasisAtom::new(&atm_f1, &[bs_sp1.clone()]);
+    let batm_f2 = BasisAtom::new(&atm_f2, &[bs_sp1.clone()]);
+    let batm_f3 = BasisAtom::new(&atm_f3, &[bs_sp1.clone()]);
+
+    let bao_bf4 = BasisAngularOrder::new(&[batm_b0, batm_f0, batm_f1, batm_f2, batm_f3]);
+    let mol_bf4 = Molecule::from_atoms(
+        &[
+            atm_b0.clone(),
+            atm_f0.clone(),
+            atm_f1.clone(),
+            atm_f2.clone(),
+            atm_f3.clone(),
+        ],
+        1e-7,
+    );
+
+    #[rustfmt::skip]
+    let c = array![
+        // F0|1/2, -1/2⟩ - F2|1/2, -1/2⟩
+        // B0
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        // F0
+        1.0,
+        0.0,
+        // F1
+        0.0,
+        0.0,
+        // F2
+        -1.0,
+        0.0,
+        // F3
+        0.0,
+        0.0,
+    ].mapv(Complex::from);
+    let mo = MolecularOrbital::builder()
+        .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+        .component_index(0)
+        .coefficients(c)
+        .baos(vec![&bao_bf4])
+        .mol(&mol_bf4)
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
+
+    let sao: Array2<f64> = Array2::eye(20);
+    let sao_c = sao.mapv(C128::from);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // u D4h* (double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_bf4)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let group_u_d4h_double = group_u_d4h.to_double_group().unwrap();
+
+    let mut orbit_mo_double = MolecularOrbitalSymmetryOrbit::builder()
+        .group(&group_u_d4h_double)
+        .origin(&mo)
+        .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+        .build()
+        .unwrap();
+    let _ = orbit_mo_double
+        .calc_smat(Some(&sao_c), None, true)
+        .unwrap()
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_mo_double.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1u)| ⊕ ||E~|_(2u)|").unwrap()
+    );
+
+    for sym in ["||E~|_(1u)|", "||E~|_(2u)|"] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let mo_p = orbit_mo_double.project_onto(&row).unwrap();
+        let mut orbit_mo_p_double = MolecularOrbitalSymmetryOrbit::builder()
+            .group(&group_u_d4h_double)
+            .origin(&mo_p)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_mo_p_double
+            .calc_smat(Some(&sao_c), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        assert_eq!(
+            orbit_mo_p_double.analyse_rep().unwrap(),
+            DecomposedSymbol::<MullikenIrrepSymbol>::new(sym).unwrap()
+        );
+    }
+
+    for sym in ["||E~|_(1g)|", "||E~|_(2g)|"] {
+        let row = MullikenIrrepSymbol::from_str(sym).unwrap();
+        let mo_p = orbit_mo_double.project_onto(&row).unwrap();
+        let mut orbit_mo_p_double = MolecularOrbitalSymmetryOrbit::builder()
+            .group(&group_u_d4h_double)
+            .origin(&mo_p)
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        assert!(
+            orbit_mo_p_double
+                .calc_smat(Some(&sao_c), None, true)
+                .unwrap()
+                .calc_xmat(false)
+                .is_err()
+        );
+    }
 }

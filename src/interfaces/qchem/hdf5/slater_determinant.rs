@@ -4,7 +4,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 
-use anyhow::{self, bail, format_err, Context};
+use anyhow::{self, Context, bail, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use factorial::DoubleFactorial;
@@ -12,7 +12,7 @@ use hdf5::{self, H5Type};
 use lazy_static::lazy_static;
 use log;
 use nalgebra::Point3;
-use ndarray::{s, Array1, Array2, Array4, Axis, Ix3};
+use ndarray::{Array1, Array2, Array4, Axis, Ix3, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use num_traits::{One, ToPrimitive, Zero};
@@ -20,29 +20,29 @@ use numeric_sort;
 use periodic_table::periodic_table;
 use regex::Regex;
 
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::angmom::spinor_rotation_3d::{SpinConstraint, StructureConstraint};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::*;
 use crate::basis::ao_integrals::*;
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::drivers::QSym2Driver;
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
 };
-use crate::drivers::QSym2Driver;
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::io::format::{
     log_macsec_begin, log_macsec_end, log_micsec_begin, log_micsec_end, qsym2_error, qsym2_output,
 };
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
@@ -935,9 +935,10 @@ where
             })
             .ok();
 
+        let ncomps = spincons.n_explicit_comps_per_coefficient_matrix();
         SlaterDeterminant::builder()
             .structure_constraint(spincons)
-            .bao(bao)
+            .baos((0..ncomps).map(|_| bao).collect::<Vec<_>>())
             .complex_symmetric(false)
             .mol(mol)
             .coefficients(&cs)
@@ -1014,17 +1015,22 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
 
             #[cfg(feature = "integrals")]
             let sao_4c: Option<Array4<f64>> = basis_set_opt.map(|basis_set| {
-                log::debug!("Computing four-centre overlap integrals for density symmetry analysis...");
+                log::debug!(
+                    "Computing four-centre overlap integrals for density symmetry analysis..."
+                );
                 let stc = build_shell_tuple_collection![
                     <s1, s2, s3, s4>;
                     false, false, false, false;
                     &basis_set, &basis_set, &basis_set, &basis_set;
                     f64
                 ];
-                let sao_4c = stc.overlap([0, 0, 0, 0])
+                let sao_4c = stc
+                    .overlap([0, 0, 0, 0])
                     .pop()
                     .expect("Unable to retrieve the four-centre overlap tensor.");
-                log::debug!("Computing four-centre overlap integrals for density symmetry analysis... Done.");
+                log::debug!(
+                    "Computing four-centre overlap integrals for density symmetry analysis... Done."
+                );
                 sao_4c
             });
 

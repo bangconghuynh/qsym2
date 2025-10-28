@@ -11,9 +11,12 @@ use pyo3::prelude::*;
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
+use crate::bindings::python::integrals::{
+    PyBasisAngularOrder, PyStructureConstraint,
+};
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray1RC, PyArray2RC};
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
@@ -22,9 +25,8 @@ use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::io::format::qsym2_output;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -47,66 +49,61 @@ type C128 = Complex<f64>;
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
-/// representation analysis. Python type: `str`.
+/// representation analysis.
 /// * `pydets` - A list of Python-exposed Slater determinants whose coefficients are of type
 /// `float64` or `complex128`. These determinants serve as basis states for non-orthogonal
 /// configuration interaction to yield multi-determinantal wavefunctions, the symmetry of which will
 /// be analysed by this function.
-/// Python type: `list[PySlaterDeterminantReal | PySlaterDeterminantComplex]`.
 /// * `coefficients` - The coefficient matrix where each column gives the linear combination
 /// coefficients for one multi-determinantal wavefunction. The number of rows must match the number
 /// of determinants specified in `pydets`. The elements are of type `float64` or `complex128`.
-/// Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `energies` - The `float64` or `complex128` energies of the multi-determinantal wavefunctions.
 /// The number of terms must match the number of columns of `coefficients`.
-/// Python type: `numpy.1darray[float] | numpy.1darray[complex]`.
-/// * `pybao` - A Python-exposed Python-exposed structure containing basis angular order information.
-/// Python type: `PyBasisAngularOrder`.
+/// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
+/// explicit component per coefficient matrix.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
-/// integral. Python type: `float`.
+/// integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
-/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
+/// subspace via the non-zero eigenvalues of the orbit overlap matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
-/// should be used. Python type: `None | MagneticSymmetryAnalysisKind`.
+/// should be used.
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead. Python type: `bool`.
+/// group is to be used for representation analysis instead.
 /// * `use_cayley_table` - A boolean indicating if the Cayley table for the group, if available,
-/// should be used to speed up the calculation of orbit overlap matrices. Python type: `bool`.
+/// should be used to speed up the calculation of orbit overlap matrices.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
 /// transformations to be performed on the origin determinant to generate the orbit. If this
-/// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically. Python type: `SymmetryTransformationKind`.
+/// contains spin transformation, the multi-determinant will be augmented to generalised spin
+/// constraint automatically.
 /// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
 /// overlap eigenvalues with the specified `linear_independence_threshold`.
-/// Python type: `EigenvalueComparisonMode`.
 /// * `sao` - The atomic-orbital overlap matrix whose elements are of type `float64` or
-/// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
+/// `complex128`.
 /// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
 /// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
-/// involved. Python type: `None | numpy.2darray[float] | numpy.2darray[complex]`.
+/// involved.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
-/// orbit overlap matrix are to be written to the output. Python type: `bool`.
+/// orbit overlap matrix are to be written to the output.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
-/// symmetry group is to be printed out. Python type: `bool`.
+/// symmetry group is to be printed out.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for symmetry analysis. Python type: `Optional[int]`.
+/// will be used for symmetry analysis.
 /// * `angular_function_integrality_threshold` - The threshold for verifying if subspace
-/// multiplicities are integral for the symmetry analysis of angular functions. Python type:
-/// `float`.
+/// multiplicities are integral for the symmetry analysis of angular functions.
 /// * `angular_function_linear_independence_threshold` - The threshold for determining the linear
 /// independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry
-/// analysis of angular functions. Python type: `float`.
+/// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
-/// angular function symmetry analysis. Python type: `int`.
+/// angular function symmetry analysis.
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
     pydets,
     coefficients,
     energies,
-    pybao,
+    pybaos,
     integrality_threshold,
     linear_independence_threshold,
     use_magnetic_group,
@@ -129,7 +126,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
     pydets: Vec<PySlaterDeterminant>,
     coefficients: PyArray2RC,
     energies: PyArray1RC,
-    pybao: &PyBasisAngularOrder,
+    pybaos: Vec<PyBasisAngularOrder>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
@@ -161,9 +158,15 @@ pub fn rep_analyse_multideterminants_eager_basis(
 
     // Set up basic parameters
     let mol = &pd_res.pre_symmetry.recentred_molecule;
-    let bao = pybao
-        .to_qsym2(mol)
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+    let baos = pybaos
+        .iter()
+        .map(|bao| {
+            bao.to_qsym2(mol)
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let baos_ref = baos.iter().collect::<Vec<_>>();
     let augment_to_generalised = match symmetry_transformation_kind {
         SymmetryTransformationKind::SpatialWithSpinTimeReversal
         | SymmetryTransformationKind::Spin
@@ -253,7 +256,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
             }
 
             // Preparation
-            let sao = pysao_r.to_owned_array();
+            let sao_r = pysao_r.to_owned_array();
             let coefficients_r = pycoefficients_r.to_owned_array();
             let energies_r = pyenergies_r.to_owned_array();
             let dets_r = if augment_to_generalised {
@@ -262,7 +265,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .map(|pydet| {
                         if let PySlaterDeterminant::Real(pydet_r) = pydet {
                             pydet_r
-                                .to_qsym2(&bao, mol)
+                                .to_qsym2(&baos_ref, mol)
                                 .map(|det_r| det_r.to_generalised())
                         } else {
                             bail!("Unexpected complex type for a Slater determinant.")
@@ -274,7 +277,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .iter()
                     .map(|pydet| {
                         if let PySlaterDeterminant::Real(pydet_r) = pydet {
-                            pydet_r.to_qsym2(&bao, mol)
+                            pydet_r.to_qsym2(&baos_ref, mol)
                         } else {
                             bail!("Unexpected complex type for a Slater determinant.")
                         }
@@ -323,14 +326,14 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao(&sao)
+                    .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Run the driver
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -346,14 +349,14 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
                     .multidets(multidets.iter().collect::<Vec<_>>())
-                    .sao(&sao)
+                    .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Run the driver
-                    py.allow_threads(|| {
+                    py.detach(|| {
                         mda_driver
                             .run()
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -391,14 +394,14 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         pydets
                             .iter()
                             .map(|pydet| match pydet {
-                                PySlaterDeterminant::Real(pydet_r) => {
-                                    pydet_r.to_qsym2::<SpinConstraint>(&bao, mol).map(|det_r| {
+                                PySlaterDeterminant::Real(pydet_r) => pydet_r
+                                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
+                                    .map(|det_r| {
                                         SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
                                             .to_generalised()
-                                    })
-                                }
+                                    }),
                                 PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                                    .to_qsym2::<SpinConstraint>(&bao, mol)
+                                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
                                     .map(|det_c| det_c.to_generalised()),
                             })
                             .collect::<Result<Vec<_>, _>>()
@@ -406,13 +409,13 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         pydets
                             .iter()
                             .map(|pydet| match pydet {
-                                PySlaterDeterminant::Real(pydet_r) => {
-                                    pydet_r.to_qsym2::<SpinConstraint>(&bao, mol).map(|det_r| {
+                                PySlaterDeterminant::Real(pydet_r) => pydet_r
+                                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
+                                    .map(|det_r| {
                                         SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
-                                    })
-                                }
+                                    }),
                                 PySlaterDeterminant::Complex(pydet_c) => {
-                                    pydet_c.to_qsym2::<SpinConstraint>(&bao, mol)
+                                    pydet_c.to_qsym2::<SpinConstraint>(&baos_ref, mol)
                                 }
                             })
                             .collect::<Result<Vec<_>, _>>()
@@ -466,7 +469,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -489,7 +492,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -502,12 +505,12 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         .iter()
                         .map(|pydet| match pydet {
                             PySlaterDeterminant::Real(pydet_r) => pydet_r
-                                .to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                                .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                                 .map(|det_r| {
                                     SlaterDeterminant::<C128, SpinOrbitCoupled>::from(det_r)
                                 }),
                             PySlaterDeterminant::Complex(pydet_c) => {
-                                pydet_c.to_qsym2::<SpinOrbitCoupled>(&bao, mol)
+                                pydet_c.to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                             }
                         })
                         .collect::<Result<Vec<_>, _>>()
@@ -560,7 +563,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -583,7 +586,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                             // Run the driver
-                            py.allow_threads(|| {
+                            py.detach(|| {
                                 mda_driver
                                     .run()
                                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

@@ -1,11 +1,12 @@
 //! Orbitals.
 
+use std::collections::HashSet;
 use std::fmt;
 
-use anyhow::{self, format_err};
+use anyhow::{self, ensure, format_err};
 use approx;
 use derive_builder::Builder;
-use ndarray::{s, Array1, Array2, Ix2};
+use ndarray::{Array1, Array2, Ix2, s};
 use ndarray_einsum::*;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
@@ -20,6 +21,7 @@ use crate::target::density::Density;
 mod orbital_tests;
 
 pub mod orbital_analysis;
+pub mod orbital_projection;
 mod orbital_transformation;
 
 // ==================
@@ -48,8 +50,9 @@ where
     complex_conjugated: bool,
 
     /// The angular order of the basis functions with respect to which the coefficients are
-    /// expressed.
-    bao: &'a BasisAngularOrder<'a>,
+    /// expressed. Each [`BasisAngularOrder`] corresponds to one explicit component in the
+    /// coefficient matrix (see [`StructureConstraint::n_explicit_comps_per_coefficient_matrix`]).
+    baos: Vec<&'a BasisAngularOrder<'a>>,
 
     /// A boolean indicating if inner products involving this molecular orbital should be the
     /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
@@ -75,24 +78,29 @@ where
     SC: StructureConstraint,
 {
     fn validate(&self) -> Result<(), String> {
-        let bao = self
-            .bao
-            .ok_or("No `BasisAngularOrder` found.".to_string())?;
-        let nbas = bao.n_funcs();
-        let coefficients = self
-            .coefficients
-            .as_ref()
-            .ok_or("No coefficients found.".to_string())?;
-        let component_index = self
-            .component_index
-            .ok_or("No `component_index` found.".to_string())?;
-
         let structcons = self
             .structure_constraint
             .as_ref()
             .ok_or("No structure constraints found.".to_string())?;
+        let baos = self
+            .baos
+            .as_ref()
+            .ok_or("No `BasisAngularOrder`s found.".to_string())?;
+        let baos_length_check = baos.len() == structcons.n_explicit_comps_per_coefficient_matrix();
+        if !baos_length_check {
+            log::error!(
+                "The number of `BasisAngularOrder`s provided does not match the number of explicit components per coefficient matrix."
+            );
+        }
+
+        let nbas_tot = baos.iter().map(|bao| bao.n_funcs()).sum::<usize>();
+        let coefficients = self
+            .coefficients
+            .as_ref()
+            .ok_or("No coefficients found.".to_string())?;
+
         let coefficients_shape_check = {
-            let nrows = nbas * structcons.n_explicit_comps_per_coefficient_matrix();
+            let nrows = nbas_tot;
             if !coefficients.shape()[0] == nrows {
                 log::error!(
                     "Unexpected shapes of coefficient vector: {} {} expected, but {} found.",
@@ -107,15 +115,29 @@ where
         };
 
         let mol = self.mol.ok_or("No molecule found.".to_string())?;
-        let natoms_check = mol.atoms.len() == bao.n_atoms();
+        let natoms_set = baos.iter().map(|bao| bao.n_atoms()).collect::<HashSet<_>>();
+        if natoms_set.len() != 1 {
+            return Err("Inconsistent numbers of atoms between `BasisAngularOrder`s of different explicit components.".to_string());
+        };
+        let n_atoms = natoms_set.iter().next().ok_or_else(|| {
+            "Unable to retrieve the number of atoms from the `BasisAngularOrder`s.".to_string()
+        })?;
+        let natoms_check = mol.atoms.len() == *n_atoms;
         if !natoms_check {
-            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+            log::error!(
+                "The number of atoms in the molecule does not match the number of local sites in the basis."
+            );
         }
 
-        if coefficients_shape_check && natoms_check {
+        if baos_length_check && coefficients_shape_check && natoms_check {
             Ok(())
         } else {
-            Err("Molecular orbital validation failed.".to_string())
+            Err(format!(
+                "Molecular orbital validation failed:
+                    baos_length ({baos_length_check}),
+                    coefficients_shape ({coefficients_shape_check}),
+                    natoms ({natoms_check})."
+            ))
         }
     }
 }
@@ -146,10 +168,10 @@ where
         &self.structure_constraint
     }
 
-    /// Returns a shared reference to the [`BasisAngularOrder`] description of the basis in which
-    /// the orbital coefficients are written.
-    pub fn bao(&self) -> &BasisAngularOrder {
-        self.bao
+    /// Returns a shared reference to the [`BasisAngularOrder`] description of the basis sets in
+    /// which the orbital coefficients are written.
+    pub fn baos(&'_ self) -> &Vec<&'_ BasisAngularOrder<'_>> {
+        &self.baos
     }
 
     /// Returns the molecule associated with this molecular orbital.
@@ -182,7 +204,8 @@ where
     pub fn to_generalised(&self) -> Self {
         match self.structure_constraint {
             SpinConstraint::Restricted(n) => {
-                let nbas = self.bao.n_funcs();
+                let bao = self.baos[0];
+                let nbas = bao.n_funcs();
 
                 let cr = &self.coefficients;
                 let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
@@ -191,7 +214,7 @@ where
                 cg.slice_mut(s![start..end]).assign(cr);
                 Self::builder()
                     .coefficients(cg)
-                    .bao(self.bao)
+                    .baos((0..n).map(|_| bao).collect::<Vec<_>>())
                     .mol(self.mol)
                     .structure_constraint(SpinConstraint::Generalised(n, false))
                     .component_index(0)
@@ -201,7 +224,8 @@ where
                     .expect("Unable to construct a generalised molecular orbital.")
             }
             SpinConstraint::Unrestricted(n, increasingm) => {
-                let nbas = self.bao.n_funcs();
+                let bao = self.baos[0];
+                let nbas = bao.n_funcs();
 
                 let cr = &self.coefficients;
                 let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
@@ -210,7 +234,7 @@ where
                 cg.slice_mut(s![start..end]).assign(cr);
                 Self::builder()
                     .coefficients(cg)
-                    .bao(self.bao)
+                    .baos((0..n).map(|_| bao).collect::<Vec<_>>())
                     .mol(self.mol)
                     .structure_constraint(SpinConstraint::Generalised(n, increasingm))
                     .component_index(0)
@@ -239,7 +263,7 @@ impl<'a> MolecularOrbital<'a, f64, SpinConstraint> {
                     .expect("Unable to convert the resultant density matrix to two dimensions.");
                 Density::<f64>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -256,7 +280,7 @@ impl<'a> MolecularOrbital<'a, f64, SpinConstraint> {
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
                 Density::<f64>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -271,7 +295,22 @@ impl<'a> MolecularOrbital<'a, f64, SpinConstraint> {
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao().n_funcs();
+
+                let nspatial_set = self
+                    .baos()
+                    .iter()
+                    .map(|bao| bao.n_funcs())
+                    .collect::<HashSet<_>>();
+                ensure!(
+                    nspatial_set.len() == 1,
+                    "Mismatched numbers of basis functions between the explicit components."
+                );
+                let nspatial = *nspatial_set.iter().next().ok_or_else(|| {
+                    format_err!(
+                        "Unable to extract the number of basis functions per explicit component."
+                    )
+                })?;
+
                 let denmat = (0..usize::from(nspins)).fold(
                     Array2::<f64>::zeros((nspatial, nspatial)),
                     |acc, ispin| {
@@ -283,7 +322,7 @@ impl<'a> MolecularOrbital<'a, f64, SpinConstraint> {
                 );
                 Density::<f64>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -317,7 +356,7 @@ where
                 .map(|x| x * nspins_t);
                 Density::<Complex<T>>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -337,7 +376,7 @@ where
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
                 Density::<Complex<T>>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -355,7 +394,22 @@ where
                 .expect("Unable to construct a density matrix from the coefficient matrix.")
                 .into_dimensionality::<Ix2>()
                 .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao().n_funcs();
+
+                let nspatial_set = self
+                    .baos()
+                    .iter()
+                    .map(|bao| bao.n_funcs())
+                    .collect::<HashSet<_>>();
+                ensure!(
+                    nspatial_set.len() == 1,
+                    "Mismatched numbers of basis functions between the explicit components in the generalised spin constraint."
+                );
+                let nspatial = *nspatial_set.iter().next().ok_or_else(|| {
+                    format_err!(
+                        "Unable to extract the number of basis functions per explicit component."
+                    )
+                })?;
+
                 let denmat = (0..usize::from(nspins)).fold(
                     Array2::<Complex<T>>::zeros((nspatial, nspatial)),
                     |acc, ispin| {
@@ -367,7 +421,7 @@ where
                 );
                 Density::<Complex<T>>::builder()
                     .density_matrix(denmat)
-                    .bao(self.bao())
+                    .bao(self.baos()[0])
                     .mol(self.mol())
                     .complex_symmetric(self.complex_symmetric())
                     .threshold(self.threshold())
@@ -385,38 +439,56 @@ where
 {
     /// Constructs the total density of the molecular orbital.
     pub fn to_total_density(&'a self) -> Result<Density<'a, Complex<T>>, anyhow::Error> {
-        match self.structure_constraint {
-            SpinOrbitCoupled::JAdapted(ncomps) => {
-                let full_denmat = einsum(
-                    "m,n->mn",
-                    &[
-                        &self.coefficients.view(),
-                        &self.coefficients.map(Complex::conj).view(),
-                    ],
-                )
-                .expect("Unable to construct a density matrix from the coefficient matrix.")
-                .into_dimensionality::<Ix2>()
-                .expect("Unable to convert the resultant density matrix to two dimensions.");
-                let nspatial = self.bao().n_funcs();
-                let denmat = (0..usize::from(ncomps)).fold(
-                    Array2::<Complex<T>>::zeros((nspatial, nspatial)),
-                    |acc, icomp| {
-                        acc + full_denmat.slice(s![
-                            icomp * nspatial..(icomp + 1) * nspatial,
-                            icomp * nspatial..(icomp + 1) * nspatial
-                        ])
-                    },
-                );
-                Density::<Complex<T>>::builder()
-                    .density_matrix(denmat)
-                    .bao(self.bao())
-                    .mol(self.mol())
-                    .complex_symmetric(self.complex_symmetric())
-                    .threshold(self.threshold())
-                    .build()
-                    .map_err(|err| format_err!(err))
-            }
-        }
+        Err(format_err!(
+            "The total density of a spin--orbit-coupled molecular orbital is not implemented."
+        ))
+        // match self.structure_constraint {
+        //     SpinOrbitCoupled::JAdapted(ncomps) => {
+        //         let full_denmat = einsum(
+        //             "m,n->mn",
+        //             &[
+        //                 &self.coefficients.view(),
+        //                 &self.coefficients.map(Complex::conj).view(),
+        //             ],
+        //         )
+        //         .expect("Unable to construct a density matrix from the coefficient matrix.")
+        //         .into_dimensionality::<Ix2>()
+        //         .expect("Unable to convert the resultant density matrix to two dimensions.");
+        //
+        //         let nfuncs_per_comp_set = self
+        //             .baos()
+        //             .iter()
+        //             .map(|bao| bao.n_funcs())
+        //             .collect::<HashSet<_>>();
+        //         ensure!(
+        //             nfuncs_per_comp_set.len() == 1,
+        //             "Mismatched numbers of basis functions between the explicit components."
+        //         );
+        //         let nfuncs_per_comp = *nfuncs_per_comp_set.iter().next().ok_or_else(|| {
+        //             format_err!(
+        //                 "Unable to extract the number of basis functions per explicit component."
+        //             )
+        //         })?;
+        //
+        //         let denmat = (0..usize::from(ncomps)).fold(
+        //             Array2::<Complex<T>>::zeros((nfuncs_per_comp, nfuncs_per_comp)),
+        //             |acc, icomp| {
+        //                 acc + full_denmat.slice(s![
+        //                     icomp * nfuncs_per_comp..(icomp + 1) * nfuncs_per_comp,
+        //                     icomp * nfuncs_per_comp..(icomp + 1) * nfuncs_per_comp
+        //                 ])
+        //             },
+        //         );
+        //         Density::<Complex<T>>::builder()
+        //             .density_matrix(denmat)
+        //             .bao(self.baos()[0])
+        //             .mol(self.mol())
+        //             .complex_symmetric(self.complex_symmetric())
+        //             .threshold(self.threshold())
+        //             .build()
+        //             .map_err(|err| format_err!(err))
+        //     }
+        // }
     }
 }
 
@@ -436,7 +508,7 @@ where
     fn from(value: MolecularOrbital<'a, T, SC>) -> Self {
         MolecularOrbital::<'a, Complex<T>, SC>::builder()
             .coefficients(value.coefficients.map(Complex::from))
-            .bao(value.bao)
+            .baos(value.baos.clone())
             .mol(value.mol)
             .structure_constraint(value.structure_constraint)
             .component_index(value.component_index)
@@ -468,7 +540,7 @@ where
         );
         self.structure_constraint == other.structure_constraint
             && self.component_index == other.component_index
-            && self.bao == other.bao
+            && self.baos == other.baos
             && self.mol == other.mol
             && coefficients_eq
     }

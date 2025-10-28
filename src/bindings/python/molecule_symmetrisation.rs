@@ -11,10 +11,10 @@ use pyo3::prelude::*;
 use crate::auxiliary::atom::AtomKind;
 use crate::auxiliary::molecule::Molecule;
 use crate::bindings::python::symmetry_group_detection::PyMolecule;
+use crate::drivers::QSym2Driver;
 use crate::drivers::molecule_symmetrisation_bootstrap::{
     MoleculeSymmetrisationBootstrapDriver, MoleculeSymmetrisationBootstrapParams,
 };
-use crate::drivers::QSym2Driver;
 use crate::io::QSym2FileType;
 
 /// Python-exposed function to perform molecule symmetrisation by bootstrapping and log the result
@@ -25,36 +25,33 @@ use crate::io::QSym2FileType;
 /// # Arguments
 ///
 /// * `inp_xyz` - An optional string providing the path to an XYZ file containing the molecule to
-/// be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified. Python type: `Optional[str]`.
+/// be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified.
 /// * `inp_mol` - An optional `PyMolecule` structure containing the molecule to be symmetrised. Only
-/// one of `inp_xyz` or `inp_mol` can be specified. Python type: `PyMolecule`.
+/// one of `inp_xyz` or `inp_mol` can be specified.
 /// * `out_target_sym` - An optional path for a [`QSym2FileType::Sym`] file to be saved that
 /// contains the symmetry-group detection results of the symmetrised molecule at the target
-/// thresholds. Python type: `Optional[str]`.
-/// * `loose_moi_threshold` - The loose MoI threshold. Python type: `float`.
-/// * `loose_distance_threshold` - The loose distance threshold. Python type: `float`.
-/// * `target_moi_threshold` - The target (tight) MoI threshold. Python type: `float`.
-/// * `target_distance_threshold` - The target (tight) distance threshold. Python type: `float`.
+/// thresholds.
+/// * `loose_moi_threshold` - The loose MoI threshold.
+/// * `loose_distance_threshold` - The loose distance threshold.
+/// * `target_moi_threshold` - The target (tight) MoI threshold.
+/// * `target_distance_threshold` - The target (tight) distance threshold.
 /// * `use_magnetic_group` - A boolean indicating if the magnetic group (*i.e.* the group including
-/// time-reversed operations) is to be used for the symmetrisation. Python type: `bool`.
+/// time-reversed operations) is to be used for the symmetrisation.
 /// * `reorientate_molecule` - A boolean indicating if the molecule is also reoriented to align its
-/// principal axes with the Cartesian axes. Python type: `bool`.
-/// * `max_iterations` - The maximum number of iterations for the symmetrisation process. Python
-/// type: `int`.
+/// principal axes with the Cartesian axes.
+/// * `max_iterations` - The maximum number of iterations for the symmetrisation process.
 /// * `consistent_target_symmetry_iterations` - The number of consecutive iterations during which
 /// the symmetry group at the target level of threshold must be consistently found for convergence
 /// to be reached, if this group cannot become identical to the symmetry group at the loose level
-/// of threshold. Python type: `int`.
-/// * `verbose` - The print-out level. Python type: `int`.
+/// of threshold.
+/// * `verbose` - The print-out level.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for the symmetrisation. Python type: `Optional[int]`.
+/// will be used for the symmetrisation.
 ///
 /// # Returns
 ///
 /// The symmetrised molecule.
-///
-/// Python type: `PyMolecule`
 ///
 /// # Errors
 ///
@@ -91,14 +88,14 @@ pub fn symmetrise_molecule(
     verbose: u8,
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<PyMolecule> {
-    py.allow_threads(|| {
+    py.detach(|| {
         let mol = match (inp_xyz, inp_mol) {
             (Some(xyz_path), None) => Molecule::from_xyz(xyz_path, 1e-7),
             (None, Some(pymol)) => Molecule::from(pymol),
             _ => {
                 return Err(PyRuntimeError::new_err(
                     "One and only one of `inp_xyz` or `inp_mol` must be specified.",
-                ))
+                ));
             }
         };
 

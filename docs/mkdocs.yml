@@ -37,6 +37,9 @@ theme:
 markdown_extensions:
   - admonition
   - attr_list
+  - markdown_katex:
+      no_inline_svg: True
+      insert_fonts_css: True
   - md_in_html
   - pymdownx.caret
   - pymdownx.details
@@ -70,6 +73,83 @@ plugins:
         color: hsl(169.00, 46.00%, 64.00%)
         background_color: hsl(173.15, 3%, 12%)
         font_family: Outfit
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [..]
+          inventories:
+          - https://docs.python.org/3/objects.inv
+          options:
+            allow_inspection: false
+            find_stubs_package: true
+            # ----------
+            # DOCSTRINGS
+            # ----------
+            # Tables are generally too large, lists will fix this.
+            docstring_section_style: list
+            docstring_options:
+              # Discard first line of `__init__` method docstrings,
+              # useful when merging such docstrings into their parent class'.
+              ignore_init_summary: true
+            # ----------------
+            # CROSS-REFERENCES
+            # ----------------
+            # Enable cross-references in signatures.
+            signature_crossrefs: true
+            # Unwrap actual types from `Annotated` type annotations.
+            unwrap_annotated: true
+            # -------
+            # MEMBERS
+            # -------
+            # Only render pulic symbols.
+            # Show class inherited members.
+            inherited_members: true
+            # Render auto-generated summaries of attributes, functions, etc.
+            # at the start of each symbol's documentation.
+            summary: false
+            # --------
+            # HEADINGS
+            # --------
+            # For auto-generated pages, one module per page,
+            # make the module heading be the H1 heading of the page.
+            heading_level: 1
+            # Render headings for parameters, making them linkable.
+            parameter_headings: true
+            # Render headings for type parameters too.
+            type_parameter_headings: true
+            # Always show the heading for the symbol you render with `::: id`.
+            show_root_heading: true
+            # Only show the name of the symbols you inject render `::: id`.
+            show_root_full_path: false
+            # Show the type of symbol (class, function, etc.) in the heading.
+            show_symbol_type_heading: true
+            # Show the type of symbol (class, function, etc.) in the table of contents.
+            show_symbol_type_toc: true
+            # ----------
+            # SIGNATURES
+            # ----------
+            # Format code to 80 + 10% margin (Black and Ruff defaults)
+            # in signatures and attribute value code blocks.
+            # Needs Black/Ruff installed.
+            line_length: 80
+            # Merge signature and docstring of `__init__` methods
+            # into their parent class signature and docstring.
+            merge_init_into_class: true
+            # Render signatures and attribute values in a separate code block,
+            # below the symbol heading.
+            separate_signature: true
+            # Show type annotations in signatures.
+            show_signature_annotations: true
+            # Show type parameters in signatures.
+            show_signature_type_parameters: true
+            # -----
+            # OTHER
+            # -----
+            show_submodules: true
+            show_category_heading: true
+            show_source: false
+            show_if_no_docstring: false
+
 extra:
   social:
     - icon: fontawesome/brands/gitlab
@@ -118,7 +198,26 @@ nav:
       - user-guide/representation-analysis/vibrational-coordinates.md
       - user-guide/representation-analysis/electron-densities.md
       - user-guide/representation-analysis/real-space-functions.md
+    - Projection:
+      - user-guide/projection/basics.md
+      - user-guide/projection/slater-determinants.md
+      - user-guide/projection/electron-densities.md
   - API documentation: https://qsym2.dev/api
+  - Python bindings:
+    - python/index.md
+    - python/common.md
+    - python/basis.md
+    - python/symmetry-group-detection.md
+    - python/molecule-symmetrisation.md
+    - python/integral-evaluation.md
+    - Representation analysis:
+      - python/representation-analysis/slater-determinants.md
+      - python/representation-analysis/densities.md
+      - python/representation-analysis/vibrational-coordinates.md
+      - python/representation-analysis/multideterminants.md
+    - Projection:
+      - python/projection/slater-determinants.md
+      - python/projection/densities.md
   - About:
     - about/authorship.md
     - about/development.md

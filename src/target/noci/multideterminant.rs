@@ -1,18 +1,23 @@
 //! Multi-determinant wavefunctions for non-orthogonal configuration interaction.
 
 use std::collections::HashSet;
-use std::fmt;
+use std::fmt::{self, LowerExp};
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+use anyhow::{ensure, format_err};
 use derive_builder::Builder;
+use itertools::Itertools;
 use log;
-use ndarray::Array1;
+use ndarray::{Array1, Array2, ArrayView2, Axis, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
+use crate::group::GroupProperties;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::noci::backend::nonortho::{calc_lowdin_pairing, calc_transition_density_matrix};
+use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 
 use super::basis::Basis;
 
@@ -177,6 +182,11 @@ where
         self.complex_conjugated
     }
 
+    /// Returns the complex-symmetric flag of the multi-determinantal wavefunction.
+    pub fn complex_symmetric(&self) -> bool {
+        self.complex_symmetric
+    }
+
     /// Returns the basis of determinants in which this multi-determinantal wavefunction is
     /// defined.
     pub fn basis(&self) -> &B {
@@ -197,6 +207,156 @@ where
     /// Returns the threshold with which multi-determinantal wavefunctions are compared.
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Specific implementations for OrbitBasis
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>
+where
+    T: ComplexFloat + Lapack,
+    G: GroupProperties + Clone,
+    SC: StructureConstraint + Hash + Eq + fmt::Display + Clone,
+{
+    /// Converts this multi-determinant with an orbit basis into a multi-determinant with the
+    /// equivalent eager basis.
+    pub fn to_eager_basis(
+        &self,
+    ) -> Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, anyhow::Error>
+    {
+        MultiDeterminant::<T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>::builder()
+            .complex_conjugated(self.complex_conjugated)
+            .basis(self.basis.to_eager()?)
+            .coefficients(self.coefficients().clone())
+            .energy(self.energy.clone())
+            .threshold(self.threshold)
+            .build()
+            .map_err(|err| format_err!(err))
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Generic implementation for all Basis
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+impl<'a, T, B, SC> MultiDeterminant<'a, T, B, SC>
+where
+    T: ComplexFloat + Lapack + ScalarOperand,
+    <T as ComplexFloat>::Real: LowerExp + fmt::Display,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+{
+    /// Calculates the (contravariant) density matrix $`\mathbf{P}(\hat{\iota})`$ of the
+    /// multi-determinantal wavefunction in the AO basis.
+    ///
+    /// Note that the contravariant density matrix $`\mathbf{P}(\hat{\iota})`$ needs to be converted
+    /// to the mixed form $`\tilde{\mathbf{P}}(\hat{\iota})`$ given by
+    /// ```math
+    ///     \tilde{\mathbf{P}}(\hat{\iota}) = \mathbf{P}(\hat{\iota}) \mathbf{S}_{\mathrm{AO}}
+    /// ```
+    /// before being diagonalised to obtain natural orbitals and their occupation numbers.
+    ///
+    /// # Arguments
+    ///
+    /// * `sao` - The atomic-orbital overlap matrix.
+    /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
+    /// orbital overlap matrix two Slater determinants during Löwdin pairing.
+    /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
+    pub fn density_matrix(
+        &self,
+        sao: &ArrayView2<T>,
+        thresh_offdiag: <T as ComplexFloat>::Real,
+        thresh_zeroov: <T as ComplexFloat>::Real,
+    ) -> Result<Array2<T>, anyhow::Error> {
+        let nao = sao.nrows();
+        let dets = self.basis().iter().collect::<Result<Vec<_>, _>>()?;
+        let denmat = dets.iter()
+            .zip(self.coefficients().iter())
+            .cartesian_product(dets.iter().zip(self.coefficients().iter()))
+            .fold(
+                Ok(Array2::<T>::zeros((nao, nao))),
+                |acc_res, ((det_w, c_w), (det_x, c_x))| {
+                    ensure!(
+                        det_w.structure_constraint() == det_x.structure_constraint(),
+                        "Inconsistent spin constraints: {} != {}.",
+                        det_w.structure_constraint(),
+                        det_x.structure_constraint(),
+                    );
+
+                    if det_w.complex_symmetric() != det_x.complex_symmetric() {
+                        return Err(format_err!(
+                            "The `complex_symmetric` booleans of the specified determinants do not match: `det_w` (`{}`) != `det_x` (`{}`).",
+                            det_w.complex_symmetric(),
+                            det_x.complex_symmetric(),
+                        ));
+                    }
+                    let complex_symmetric = det_w.complex_symmetric();
+                    let lowdin_paired_coefficientss = det_w
+                        .coefficients()
+                        .iter()
+                        .zip(det_w.occupations().iter())
+                        .zip(det_x.coefficients().iter().zip(det_x.occupations().iter()))
+                        .map(|((cw, occw), (cx, occx))| {
+                            let occw_indices = occw
+                                .iter()
+                                .enumerate()
+                                .filter_map(|(i, occ_i)| {
+                                    if occ_i.abs() >= det_w.threshold() {
+                                        Some(i)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<Vec<_>>();
+                            let ne_w = occw_indices.len();
+                            let cw_occ = cw.select(Axis(1), &occw_indices);
+                            let occx_indices = occx
+                                .iter()
+                                .enumerate()
+                                .filter_map(|(i, occ_i)| {
+                                    if occ_i.abs() >= det_x.threshold() {
+                                        Some(i)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<Vec<_>>();
+                            let ne_x = occx_indices.len();
+                            ensure!(ne_w == ne_x, "Inconsistent number of electrons: {ne_w} != {ne_x}.");
+                            let cx_occ = cx.select(Axis(1), &occx_indices);
+                            calc_lowdin_pairing(
+                                &cw_occ.view(),
+                                &cx_occ.view(),
+                                sao,
+                                complex_symmetric,
+                                thresh_offdiag,
+                                thresh_zeroov,
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    let den_wx = calc_transition_density_matrix(&lowdin_paired_coefficientss, &self.structure_constraint())?;
+
+                    let c_w = if self.complex_conjugated() {
+                        if complex_symmetric { c_w.conj() } else { *c_w }
+                    } else {
+                        if complex_symmetric { *c_w } else { c_w.conj() }
+                    };
+                    let c_x = if self.complex_conjugated() {
+                        c_x.conj()
+                    } else {
+                        *c_x
+                    };
+                    let den_wx = if self.complex_conjugated() {
+                        den_wx.mapv(|v| v.conj())
+                    } else {
+                        den_wx
+                    };
+                    acc_res.map(|acc| acc + den_wx * c_w * c_x)
+                },
+            );
+        denmat
     }
 }
 

@@ -5,7 +5,8 @@ use std::{
 };
 
 use anyhow::{self, ensure, format_err};
-use ndarray::{ArrayView2, Ix2, ScalarOperand};
+use log;
+use ndarray::{Array2, ArrayView2, Ix2, ScalarOperand};
 use ndarray_linalg::Lapack;
 use num::FromPrimitive;
 use num_complex::ComplexFloat;
@@ -21,7 +22,7 @@ use crate::{
         determinant::SlaterDeterminant,
         noci::{
             backend::{
-                matelem::{hamiltonian::HamiltonianAO, overlap::OverlapAO, OrbitMatrix},
+                matelem::{OrbitMatrix, hamiltonian::HamiltonianAO, overlap::OverlapAO},
                 solver::GeneralisedEigenvalueSolvable,
             },
             basis::OrbitBasis,
@@ -34,8 +35,8 @@ use crate::{
 #[path = "noci_tests.rs"]
 mod noci_tests;
 
-/// Trait for solving the NOCI problem.
-pub trait NOCISolvable<'a, G>
+/// Trait for solving the NOCI problem using symmetry orbits.
+pub trait SymmetryOrbitNOCISolvable<'a, G>
 where
     G: SymmetryGroupProperties + Clone,
     Self::NumType: ComplexFloat + Lapack,
@@ -53,6 +54,10 @@ where
     /// Constructs and solves the NOCI problem using symmetry for a set of origin Slater
     /// determinants.
     ///
+    /// Symmetry is used to construct the full NOCI basis from the origin Slater determinants.
+    /// Optionally, symmetry is also used to speed up the computation of the NOCI Hamiltonian and
+    /// overlap matrices via Cayley tables and group closure.
+    ///
     /// # Arguments
     ///
     /// * `origins` - A list of Slater determinants to be used as origins for symmetry orbits, the
@@ -60,6 +65,8 @@ where
     /// * `group` - The symmetry group acting on the origins to generate symmetry orbits.
     /// * `symmetry_transform_kind` - The transformation kind dictating how `group` acts on the
     /// origin Slater determinants.
+    /// * `use_cayley_table` - Boolean indicating if group closure is to be utilised to speed up
+    /// the construction of the orbit matrices.
     /// * `thresh_offdiag` - Threshold for verifying zero off-diagonal elements in matrices that
     /// are expected to be diagonal.
     /// * `thresh_zeroov` - Threshold for determining zero Löwdin overlaps in Löwdin pairing.
@@ -67,11 +74,12 @@ where
     /// # Returns
     ///
     /// A vector of multi-determinants, each of which is for one NOCI state.
-    fn solve_symmetry_noci(
+    fn solve_symmetry_orbit_noci(
         &'a self,
         origins: &[&SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>],
         group: &'a G,
         symmetry_transform_kind: SymmetryTransformationKind,
+        use_cayley_table: bool,
         thresh_offdiag: Self::RealType,
         thresh_zeroov: Self::RealType,
     ) -> Result<
@@ -91,16 +99,18 @@ where
     >;
 }
 
-impl<'a, G, T, SC> NOCISolvable<'a, G> for (&'a HamiltonianAO<'a, T, SC>, &'a OverlapAO<'a, T, SC>)
+impl<'a, G, T, SC, F> SymmetryOrbitNOCISolvable<'a, G>
+    for (&'a HamiltonianAO<'a, T, SC, F>, &'a OverlapAO<'a, T, SC>)
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + Lapack + ScalarOperand + FromPrimitive + Sync + Send,
     <T as ComplexFloat>::Real: LowerExp + Sync,
     SC: StructureConstraint + Clone + Eq + Display + Hash + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable + Sync,
-    for<'b> SlaterDeterminant<'b, T, SC>: Overlap<T, Ix2>,
-    for<'b> (&'b ArrayView2<'b, T>, &'b ArrayView2<'b, T>):
+    for<'c> SlaterDeterminant<'c, T, SC>: Overlap<T, Ix2>,
+    for<'c> (&'c ArrayView2<'c, T>, &'c ArrayView2<'c, T>):
         GeneralisedEigenvalueSolvable<NumType = T, RealType = <T as ComplexFloat>::Real>,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
 {
     type NumType = T;
 
@@ -108,11 +118,12 @@ where
 
     type StructureConstraintType = SC;
 
-    fn solve_symmetry_noci(
+    fn solve_symmetry_orbit_noci(
         &'a self,
         origins: &[&SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>],
         group: &'a G,
         symmetry_transform_kind: SymmetryTransformationKind,
+        use_cayley_table: bool,
         thresh_offdiag: Self::RealType,
         thresh_zeroov: Self::RealType,
     ) -> Result<
@@ -174,18 +185,20 @@ where
         };
         let hmat = hamiltonian_ao.calc_orbit_matrix(
             &orbit_basis,
-            true,
+            use_cayley_table,
             overlap_ao.sao(),
             thresh_offdiag,
             thresh_zeroov,
         )?;
+        log::debug!("NOCI Hamiltonian matrix:\n  {hmat:+.8e}");
         let smat = overlap_ao.calc_orbit_matrix(
             &orbit_basis,
-            true,
+            use_cayley_table,
             overlap_ao.sao(),
             thresh_offdiag,
             thresh_zeroov,
         )?;
+        log::debug!("NOCI overlap matrix:\n  {smat:+.8e}");
         let noci_res = (&hmat.view(), &smat.view())
             .solve_generalised_eigenvalue_problem_with_canonical_orthogonalisation(
                 *complex_symmetric,

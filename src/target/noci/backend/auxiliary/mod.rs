@@ -14,6 +14,7 @@ use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder, SpinorOrder,
+    SpinorParticleType,
 };
 use crate::target::determinant::SlaterDeterminant;
 
@@ -145,7 +146,11 @@ where
                             ShellOrder::Cart(CartOrder::lex(l))
                         } else if row[3] == 2 {
                             let spatial_even = row[4];
-                            ShellOrder::Spinor(SpinorOrder::increasingm(l, spatial_even == 1))
+                            ShellOrder::Spinor(SpinorOrder::increasingm(
+                                l,
+                                spatial_even == 1,
+                                SpinorParticleType::Fermion(None),
+                            ))
                         } else {
                             panic!()
                         };
@@ -164,15 +169,19 @@ where
     T: ComplexFloat + Lapack + TryFrom<<T as ComplexFloat>::Real>,
 {
     /// Extracts the integrals from the HDF5 data file.
-    pub(crate) fn get_integrals<SC: StructureConstraint + Clone>(
-        &self,
-    ) -> Result<(OverlapAO<T, SC>, HamiltonianAO<T, SC>), anyhow::Error> {
+    pub(crate) fn get_integrals<SC, F>(
+        &'_ self,
+    ) -> Result<(OverlapAO<'_, T, SC>, HamiltonianAO<'_, T, SC, F>), anyhow::Error>
+    where
+        SC: StructureConstraint + Clone,
+        F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone,
+    {
         let overlap_ao = OverlapAO::<T, SC>::builder()
             .sao(self.integrals_sao.view())
             .build()?;
-        let hamiltonian_ao = HamiltonianAO::<T, SC>::builder()
+        let hamiltonian_ao = HamiltonianAO::<T, SC, F>::builder()
             .onee(self.integrals_onee_h.view())
-            .twoe(self.integrals_twoe_h.view())
+            .twoe(Some(self.integrals_twoe_h.view()))
             .enuc(self.mol_enuc.try_into().map_err(|_| {
                 format_err!("Unable to convert the nuclear repulsion energy into the correct type.")
             })?)
@@ -214,7 +223,11 @@ where
         SlaterDeterminant::<T, SC>::builder()
             .coefficients(&cs)
             .occupations(&occs)
-            .bao(&bao)
+            .baos(
+                (0..sc.n_explicit_comps_per_coefficient_matrix())
+                    .map(|_| bao)
+                    .collect::<Vec<_>>(),
+            )
             .mol(&mol)
             .structure_constraint(sc)
             .complex_symmetric(false)

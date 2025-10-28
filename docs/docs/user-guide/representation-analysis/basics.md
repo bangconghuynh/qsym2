@@ -71,54 +71,56 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
       - !SlaterDeterminant
         source: !Binaries #(1)!
           ...
-          bao: #(2)!
-          - atom: [0, "O"] #(3)!
-            basis_shells: #(4)!
-            - l: 0 #(5)!
-              shell_order: !PureIncreasingm #(6)!
-            - l: 1
-              shell_order: !PureDecreasingm
-            - l: 3
-              shell_order: !PureCustom #(7)!
-              - 0
-              - 1
-              - -1
-              - 2
-              - -2
-              - 3
-              - -3
-          - atom: [1, "H"]
-            basis_shells:
-            - l: 1
-              shell_order: !CartLexicographic
-            - l: 3
-              shell_order: !CartQChem
-            - l: 2
-              shell_order: !CartCustom #(8)!
-              - [2, 0, 0]
-              - [0, 2, 0]
-              - [0, 0, 2]
-              - [1, 1, 0]
-              - [1, 0, 1]
-              - [0, 1, 1]
-          - atom: [2, "H"]
-            basis_shells:
-            - l: 1
-              shell_order: !SpinorDecreasingm true #(9)!
-            - l: 3
-              shell_order: !SpinorIncreasingm false
-            - l: 5
-              shell_order: !SpinorCustom
-              - true
-              - [1, -1, 3, -3, 5, -5] #(10)!
+          baos: #(2)!
+          - #(3)!
+            - atom: [0, "O"] #(4)!
+              basis_shells: #(5)!
+              - l: 0 #(6)!
+                shell_order: !PureIncreasingm #(7)!
+              - l: 1
+                shell_order: !PureDecreasingm
+              - l: 3
+                shell_order: !PureCustom #(8)!
+                - 0
+                - 1
+                - -1
+                - 2
+                - -2
+                - 3
+                - -3
+            - atom: [1, "H"]
+              basis_shells:
+              - l: 1
+                shell_order: !CartLexicographic
+              - l: 3
+                shell_order: !CartQChem
+              - l: 2
+                shell_order: !CartCustom #(9)!
+                - [2, 0, 0]
+                - [0, 2, 0]
+                - [0, 0, 2]
+                - [1, 1, 0]
+                - [1, 0, 1]
+                - [0, 1, 1]
+            - atom: [2, "H"]
+              basis_shells:
+              - l: 1
+                shell_order: !SpinorDecreasingm true #(10)!
+              - l: 3
+                shell_order: !SpinorIncreasingm false
+              - l: 5
+                shell_order: !SpinorCustom
+                - true
+                - [1, -1, 3, -3, 5, -5] #(11)!
     ```
 
     1. :fontawesome-solid-users: This is an example data source ([Slater determinant specified via binary coefficient files](slater-determinants.md)) where a manual specification of basis angular order is required. If other data sources for other analysis targets also require a manual specification of basis angular order, the format will be the same.
-    2. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: Under the hood, this key wraps around the [`InputBasisAngularOrder`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisAngularOrder.html) struct which consists of a vector of [`InputBasisAtom`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisAtom.html) structs.
-    3. :fontawesome-solid-users: This key, `atom`, specifies the index and name of an atom in the basis set.
-    4. :fontawesome-solid-users: This key, `basis_shells`, gives the ordered shells associated with this atom. Each item in this list specifies the angular momentum information of one shell centred on the prevailing atom.</br></br>:fontawesome-solid-laptop-code: Under the hood, this key is a vector of [`InputBasisShell`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisShell.html) structs.
-    5. :fontawesome-solid-users: This key, `l`, specifies the rank of this shell. For a pure shell, this is the angular momentum $l$; for a Cartesian shell, this is the sum of the Cartesian powers $n_x + n_y + n_z$; and for a spinor shell, this is $2j$ and must be odd.
-    6. :fontawesome-solid-users: This key, `shell_order`, specifies the type and ordering of the basis functions in this shell. The following variants are supported:
+    2. :fontawesome-solid-users: This is a list of lists where each outer list contains the angular order information for one explicit component of the coefficient matrices.</br></br>:fontawesome-solid-laptop-code: Under the hood, this key is a vector of [`InputBasisAngularOrder`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisAngularOrder.html) structs.
+    3. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: Under the hood, this wraps around the [`InputBasisAngularOrder`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisAngularOrder.html) struct which consists of a vector of [`InputBasisAtom`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisAtom.html) structs.
+    4. :fontawesome-solid-users: This key, `atom`, specifies the index and name of an atom in the basis set.
+    5. :fontawesome-solid-users: This key, `basis_shells`, gives the ordered shells associated with this atom. Each item in this list specifies the angular momentum information of one shell centred on the prevailing atom.</br></br>:fontawesome-solid-laptop-code: Under the hood, this key is a vector of [`InputBasisShell`](https://qsym2.dev/api/qsym2/interfaces/input/ao_basis/struct.InputBasisShell.html) structs.
+    6. :fontawesome-solid-users: This key, `l`, specifies the rank of this shell. For a pure shell, this is the angular momentum $l$; for a Cartesian shell, this is the sum of the Cartesian powers $n_x + n_y + n_z$; and for a spinor shell, this is $2j$ and must be odd.
+    7. :fontawesome-solid-users: This key, `shell_order`, specifies the type and ordering of the basis functions in this shell. The following variants are supported:
         - `!PureIncreasingm`: the basis functions are pure real solid harmonics, arranged in increasing-$m_l$ order,
         - `!PureDecreasingm`: the basis functions are pure real solid harmonics, arranged in decreasing-$m_l$ order,
         - `!PureCustom`: the basis functions are pure real solid harmonics, arranged in a custom order to be specified by the $m_l$ values,
@@ -128,10 +130,10 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
         - `!SpinorIncreasingm`: the basis functions are spinors, arranged in increasing-$m_j$ order,
         - `!SpinorDecreasingm`: the basis functions are spinors, arranged in decreasing-$m_j$ order,
         - `!SpinorCustom`: the basis functions are spinors, arranged in a custom order to be specified by the $2m_j$ values.
-    7. :fontawesome-solid-users: The order of the elements in this list specifies the $m_l$ order of the functions in this shell. Invalid $m_l$ values for a specified $l$ value (*i.e.* $\lvert m_l \rvert > l$) will result in an error. Invalid number of elements (*i.e.* not $2l + 1$) will also result in an error.
-    8. :fontawesome-solid-users: Each element in this list is a tuple `[n_x, n_y, n_z]` containing the exponents of one Cartesian component: $x^{n_x} y^{n_y} z^{n_z}$. The order of the elements in this list specifies the order of the Cartesian components in this shell. Invalid exponents (*i.e.* $n_x + n_y + n_z \ne l$) will result in an error. Invalid number of elements (*i.e.* not $(l + 1)(l + 2)/2$) will also result in an error.
-    9. :fontawesome-solid-users: The spinor shell order requires an additional boolean indicating whether the spinor functions are even with respect to spatial inversion.
-    10. :fontawesome-solid-users: The order of the elements in this list specifies the $2m_j$ order of the functions in this shell. Invalid $2m_j$ values for a specified $2j$ value (*i.e.* $\lvert 2m_j \rvert > 2j$ or $2m_j$ is even) will result in an error. Invalid number of elements (*i.e.* not $2j + 1$) will also result in an error.
+    8. :fontawesome-solid-users: The order of the elements in this list specifies the $m_l$ order of the functions in this shell. Invalid $m_l$ values for a specified $l$ value (*i.e.* $\lvert m_l \rvert > l$) will result in an error. Invalid number of elements (*i.e.* not $2l + 1$) will also result in an error.
+    9. :fontawesome-solid-users: Each element in this list is a tuple `[n_x, n_y, n_z]` containing the exponents of one Cartesian component: $x^{n_x} y^{n_y} z^{n_z}$. The order of the elements in this list specifies the order of the Cartesian components in this shell. Invalid exponents (*i.e.* $n_x + n_y + n_z \ne l$) will result in an error. Invalid number of elements (*i.e.* not $(l + 1)(l + 2)/2$) will also result in an error.
+    10. :fontawesome-solid-users: The spinor shell order requires an additional boolean indicating whether the spinor functions are even with respect to spatial inversion.
+    11. :fontawesome-solid-users: The order of the elements in this list specifies the $2m_j$ order of the functions in this shell. Invalid $2m_j$ values for a specified $2j$ value (*i.e.* $\lvert 2m_j \rvert > 2j$ or $2m_j$ is even) will result in an error. Invalid number of elements (*i.e.* not $2j + 1$) will also result in an error.
 
 === "Python"
     ```python
@@ -188,7 +190,9 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
     ```
 
     1. :fontawesome-solid-laptop-code: :fontawesome-solid-users: This function provides a convenient Pythonic way to generate the Q-Chem order of Cartesian functions in a shell.
-    2. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: The [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) class is a Python-exposed Rust structure for marshalling basis angular order information between Python and Rust. This is subsequently converted to the pure Rust structure [`BasisAngularOrder`](https://qsym2.dev/api/qsym2/basis/ao/struct.BasisAngularOrder.html). Under the hood, the initialiser of this class takes in a list of tuples, each of which provides information for one basis atom. The API documentation for [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) can be consulted for further information.
+    2. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: The [`PyBasisAngularOrder`](../../python/basis.md/#qsym2.PyBasisAngularOrder) class is a Python-exposed Rust structure for marshalling basis angular order information between Python and Rust. This is subsequently converted to the pure Rust structure [`BasisAngularOrder`](https://qsym2.dev/api/qsym2/basis/ao/struct.BasisAngularOrder.html).
+    Under the hood, the initialiser of this class takes in a list of tuples, each of which provides information for one basis atom.
+    The Rust API documentation for [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) can be consulted for further information.
     3. :fontawesome-solid-users: The first element of this tuple specifies the name of an atom in the order that it appears in the basis set.
     4. :fontawesome-solid-users: The second element of this tuple gives the ordered shells associated with this atom. Each item in this list is a tuple specifying the angular momentum information of one shell centred on the prevailing atom and has the form `(angmom, shell_type, order | (order, even))` where:
         - `angmom` is an integer indicating the rank of the shell: for a pure shell, this is the angular momentum $l$; for a Cartesian shell, this is the sum of the Cartesian powers $n_x + n_y + n_z$; and for a spinor shell, this is $2j$ and must be odd,
@@ -206,7 +210,8 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
             decreasing-$m_j$ order, or a list of $2m_j$ values for custom order, and
         - `even` is a boolean indicating whether the pure or spinor shell is even with respect to spatial inversion.
         </li> Note that for Cartesian shells, only `order` can be specified, whereas for pure or spinor shells, both `(order, even)` must be specified.<br><br>
-        </li>:fontawesome-solid-laptop-code: Under the hood, this is handled by [`PyShellOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PyShellOrder.html) which is a Python-exposed enumerated type to manage shell order information.
+        </li>:fontawesome-solid-laptop-code: Under the hood, the third element of the tuple is handled by [`PyShellOrder`](../../python/basis.md/#qsym2.PyShellOrder) which is a Python-exposed enumerated type to manage shell order information as a Python type alias.
+        See the [Rust API documentation](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PyShellOrder.html) for more information.
     5. :fontawesome-solid-users: This example specifies a spherical *gerade* $S$-shell in which functions are arranged in increasing-$m_l$ order.
     6. :fontawesome-solid-users: This example specifies a spherical *ungerade* $P$-shell in which functions are arranged in decreasing-$m_l$ order.
     7. :fontawesome-solid-users: This example specifies a spherical *ungerade* $F$-shell in which functions are arranged in a custom $m_l$ order: $0, +1, -1, +2, -2, +3, -3$.
@@ -307,7 +312,7 @@ The above thresholds can be specified as follows.
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](../../python/common.md/#qsym2.EigenvalueComparisonMode), for indicating the mode of eigenvalue comparison.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The specification of thresholds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
     4. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
@@ -375,7 +380,7 @@ The above choices can be specified as follows.
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](../../python/common.md/#qsym2.MagneticSymmetryAnalysisKind), for indicating the type of magnetic symmetry to be used for symmetry analysis.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for magnetic group analysis can be specified in any analysis driver function.
     3. :fontawesome-solid-users: The possible options are:
         - `None`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
@@ -497,7 +502,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/enum.SymmetryTransformationKind.html), for indicating the kind of symmetry transformation to be applied on the target.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](../../python/common.md/#qsym2.SymmetryTransformationKind), for indicating the kind of symmetry transformation to be applied on the target.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for symmetry transformation kinds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
