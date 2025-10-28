@@ -365,7 +365,7 @@ The required basis set information can therefore be extracted by adding the foll
         # Data
         inp_sym="mol", #(2)!
         pydet=pydet,
-        pybao=pybao,
+        pybaos=[pybao],
         sao=sao_spatial,
         sao_h=None,
         sao_spatial_4c=sao_spatial_4c, #(3)!

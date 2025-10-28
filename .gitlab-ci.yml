@@ -79,6 +79,9 @@ mkdocs:
   script:
     - pip install "mkdocs-material[imaging]"
     - pip install mkdocs-git-revision-date-localized-plugin
+    - pip install "mkdocstrings[python]"
+    - pip install ruff
+    - pip install markdown-katex
     - cd docs
     - mkdocs build --site-dir public
     - cd ..

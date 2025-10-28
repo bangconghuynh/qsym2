@@ -335,8 +335,8 @@ The required basis angular order information can be extracted by adding the foll
     )
     ```
 
-    1. :material-information-variant-circle: The [`PySlaterDeterminantReal`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantReal.html) class is only applicable to real Slater determinants.
-    If complex Slater determinants are present, use [`PySlaterDeterminantComplex`](https://qsym2.dev/api/qsym2/bindings/python/representation_analysis/slater_determinant/struct.PySlaterDeterminantComplex.html) instead.
+    1. :material-information-variant-circle: The [`PySlaterDeterminantReal`](../python/representation-analysis/slater-determinants.md/#qsym2.PySlaterDeterminantReal) class is only applicable to real Slater determinants.
+    If complex Slater determinants are present, use [`PySlaterDeterminantComplex`](../python/representation-analysis/slater-determinants.md/#qsym2.PySlaterDeterminantComplex) instead.
     </br></br>See [User guide/Representation analysis/Slater determinants/#Parameters](../user-guide/representation-analysis/slater-determinants.md/#parameters) for detailed explanations of the parameters.
 
 6. Finally, instruct QSym² to perform representation analysis for the Slater determinant above together with its constituting molecular orbitals by adding the following to `adamantane.py`:
@@ -352,7 +352,7 @@ The required basis angular order information can be extracted by adding the foll
         # Data
         inp_sym="mol", #(2)!
         pydet=pydet,
-        pybao=pybao,
+        pybaos=[pybao],
         sao=sao_spatial,
         sao_h=None,
         sao_spatial_4c=None,

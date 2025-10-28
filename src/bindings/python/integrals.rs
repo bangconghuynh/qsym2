@@ -84,7 +84,7 @@ pub enum ShellType {
     SpinorFermion,
 
     /// Variant for a spinor shell corresponding to a fermion with the kinetic balance symmetry due
-    /// to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
+    /// to $`\mathbf{\sigma} \cdot \hat{\mathbf{p}}`$.
     SpinorFermionKineticBalance,
 
     /// Variant for a spinor shell corresponding to an antifermion without any additional balance
@@ -92,7 +92,7 @@ pub enum ShellType {
     SpinorAntifermion,
 
     /// Variant for a spinor shell describing an antifermion with the kinetic balance symmetry due
-    /// to $`\mathbf{\sigma} \dot \hat{\mathbf{p}}`$.
+    /// to $`\mathbf{\sigma} \cdot \hat{\mathbf{p}}`$.
     SpinorAntifermionKineticBalance,
 }
 

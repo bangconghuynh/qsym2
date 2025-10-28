@@ -190,7 +190,9 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
     ```
 
     1. :fontawesome-solid-laptop-code: :fontawesome-solid-users: This function provides a convenient Pythonic way to generate the Q-Chem order of Cartesian functions in a shell.
-    2. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: The [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) class is a Python-exposed Rust structure for marshalling basis angular order information between Python and Rust. This is subsequently converted to the pure Rust structure [`BasisAngularOrder`](https://qsym2.dev/api/qsym2/basis/ao/struct.BasisAngularOrder.html). Under the hood, the initialiser of this class takes in a list of tuples, each of which provides information for one basis atom. The API documentation for [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) can be consulted for further information.
+    2. :fontawesome-solid-users: Each item in this list specifies the angular order information for all shells on one atom in the molecule.</br></br>:fontawesome-solid-laptop-code: The [`PyBasisAngularOrder`](../../python/basis.md/#qsym2.PyBasisAngularOrder) class is a Python-exposed Rust structure for marshalling basis angular order information between Python and Rust. This is subsequently converted to the pure Rust structure [`BasisAngularOrder`](https://qsym2.dev/api/qsym2/basis/ao/struct.BasisAngularOrder.html).
+    Under the hood, the initialiser of this class takes in a list of tuples, each of which provides information for one basis atom.
+    The Rust API documentation for [`PyBasisAngularOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/struct.PyBasisAngularOrder.html) can be consulted for further information.
     3. :fontawesome-solid-users: The first element of this tuple specifies the name of an atom in the order that it appears in the basis set.
     4. :fontawesome-solid-users: The second element of this tuple gives the ordered shells associated with this atom. Each item in this list is a tuple specifying the angular momentum information of one shell centred on the prevailing atom and has the form `(angmom, shell_type, order | (order, even))` where:
         - `angmom` is an integer indicating the rank of the shell: for a pure shell, this is the angular momentum $l$; for a Cartesian shell, this is the sum of the Cartesian powers $n_x + n_y + n_z$; and for a spinor shell, this is $2j$ and must be odd,
@@ -208,7 +210,8 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
             decreasing-$m_j$ order, or a list of $2m_j$ values for custom order, and
         - `even` is a boolean indicating whether the pure or spinor shell is even with respect to spatial inversion.
         </li> Note that for Cartesian shells, only `order` can be specified, whereas for pure or spinor shells, both `(order, even)` must be specified.<br><br>
-        </li>:fontawesome-solid-laptop-code: Under the hood, this is handled by [`PyShellOrder`](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PyShellOrder.html) which is a Python-exposed enumerated type to manage shell order information.
+        </li>:fontawesome-solid-laptop-code: Under the hood, the third element of the tuple is handled by [`PyShellOrder`](../../python/basis.md/#qsym2.PyShellOrder) which is a Python-exposed enumerated type to manage shell order information as a Python type alias.
+        See the [Rust API documentation](https://qsym2.dev/api/qsym2/bindings/python/integrals/enum.PyShellOrder.html) for more information.
     5. :fontawesome-solid-users: This example specifies a spherical *gerade* $S$-shell in which functions are arranged in increasing-$m_l$ order.
     6. :fontawesome-solid-users: This example specifies a spherical *ungerade* $P$-shell in which functions are arranged in decreasing-$m_l$ order.
     7. :fontawesome-solid-users: This example specifies a spherical *ungerade* $F$-shell in which functions are arranged in a custom $m_l$ order: $0, +1, -1, +2, -2, +3, -3$.
@@ -309,7 +312,7 @@ The above thresholds can be specified as follows.
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](https://qsym2.dev/api/qsym2/analysis/enum.EigenvalueComparisonMode.html), for indicating the mode of eigenvalue comparison.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`EigenvalueComparisonMode`](../../python/common.md/#qsym2.EigenvalueComparisonMode), for indicating the mode of eigenvalue comparison.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The specification of thresholds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
     4. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
@@ -377,7 +380,7 @@ The above choices can be specified as follows.
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](https://qsym2.dev/api/qsym2/drivers/representation_analysis/enum.MagneticSymmetryAnalysisKind.html), for indicating the type of magnetic symmetry to be used for symmetry analysis.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`MagneticSymmetryAnalysisKind`](../../python/common.md/#qsym2.MagneticSymmetryAnalysisKind), for indicating the type of magnetic symmetry to be used for symmetry analysis.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for magnetic group analysis can be specified in any analysis driver function.
     3. :fontawesome-solid-users: The possible options are:
         - `None`: this specifies choice 1 &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
@@ -499,7 +502,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
     )
     ```
 
-    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/enum.SymmetryTransformationKind.html), for indicating the kind of symmetry transformation to be applied on the target.
+    1. :fontawesome-solid-laptop-code: This is a Python-exposed Rust enum, [`SymmetryTransformationKind`](../../python/common.md/#qsym2.SymmetryTransformationKind), for indicating the kind of symmetry transformation to be applied on the target.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The choices for symmetry transformation kinds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
