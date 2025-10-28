@@ -207,7 +207,9 @@ nav:
     - python/index.md
     - python/common.md
     - python/basis.md
-    - python/integrals.md
+    - python/symmetry-group-detection.md
+    - python/molecule-symmetrisation.md
+    - python/integral-evaluation.md
     - Representation analysis:
       - python/representation-analysis/slater-determinants.md
       - python/representation-analysis/densities.md

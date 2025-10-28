@@ -179,7 +179,9 @@ def detect_symmetry_group(
     fictitious_electric_field: tuple[float, float, float] | None = None,
 ) -> tuple[PySymmetry, PySymmetry | None]:
     r"""
-    Python-exposed function to perform symmetry-group detection and log the result via the `qsym2-output` logger at the `INFO` level.
+    Python-exposed function to perform symmetry-group detection.
+
+    The result is also logged via the `qsym2-output` logger at the `INFO` level.
 
     Parameters:
         inp_xyz: An optional string providing the path to an XYZ file containing the molecule to be analysed. Only one of `inp_xyz` or `inp_mol` can be specified.
@@ -227,7 +229,9 @@ def symmetrise_molecule(
     infinite_order_to_finite: int | None = None,
 ) -> PyMolecule:
     r"""
-    Python-exposed function to perform molecule symmetrisation by bootstrapping and log the result via the `qsym2-output` logger at the `INFO` level.
+    Python-exposed function to perform molecule symmetrisation by bootstrapping.
+
+    The result is also logged via the `qsym2-output` logger at the `INFO` level.
 
     Parameters:
         inp_xyz: An optional string providing the path to an XYZ file containing the molecule to be symmetrised. Only one of `inp_xyz` or `inp_mol` can be specified.

@@ -1,6 +1,6 @@
 ---
-title: Integrals
-description: Python bindings for integral calculations in QSym²
+title: Integral evaluation
+description: Python bindings for integral evaluation in QSym²
 ---
 
 ::: qsym2

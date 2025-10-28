@@ -9,8 +9,6 @@ description: Python bindings for common quantities in QSym²
         - MagneticSymmetryAnalysisKind
         - SymmetryTransformationKind
         - EigenvalueComparisonMode
-        - PyMolecule
-        - PySymmetry
         - Py1DArray_f64
         - Py1DArray_c128
         - Py2DArray_f64
