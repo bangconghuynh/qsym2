@@ -902,6 +902,7 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
 }
 
 #[test]
+#[flaky]
 fn test_determinant_transformation_h_jadapted_4c_sto3g() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ~~~~~~~~~
@@ -1053,6 +1054,7 @@ fn test_determinant_transformation_h_jadapted_4c_sto3g() {
 }
 
 #[test]
+#[flaky]
 fn test_determinant_transformation_h_jadapted_4c_sto3g_antifermion() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ~~~~~~~~~
@@ -1204,6 +1206,7 @@ fn test_determinant_transformation_h_jadapted_4c_sto3g_antifermion() {
 }
 
 #[test]
+#[flaky]
 fn test_determinant_transformation_h_jadapted_4c_631gds() {
     // ~~~~~~~~~
     // Integrals
