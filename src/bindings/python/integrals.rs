@@ -214,17 +214,17 @@ impl PyBasisAngularOrder {
                     .dataset("aobasis/shell_to_atom_map")
                     .map_err(|err| PyValueError::new_err(err.to_string()))?
                     .read_1d::<usize>()
-                    .map_err(|err| PyValueError::new_err(err.to_string()))?
-                    .iter()
-                    .zip(shell_types.iter())
-                    .flat_map(|(&idx, shell_type)| {
-                        if *shell_type == -1 {
-                            vec![idx, idx]
-                        } else {
-                            vec![idx]
-                        }
-                    })
-                    .collect::<Vec<_>>();
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?;
+                // .iter()
+                // .zip(shell_types.iter())
+                // .flat_map(|(&idx, shell_type)| {
+                //     if *shell_type == -1 {
+                //         vec![idx, idx]
+                //     } else {
+                //         vec![idx]
+                //     }
+                // })
+                // .collect::<Vec<_>>();
                 let nuclei = sp_group
                     .dataset("structure/nuclei")
                     .map_err(|err| PyValueError::new_err(err.to_string()))?
@@ -302,7 +302,7 @@ impl PyBasisAngularOrder {
                     .into_iter()
                     .map(|(atom_idx, v)| {
                         let element = elements
-                            .get(nuclei[atom_idx])
+                            .get(nuclei[atom_idx] - 1)
                             .map(|el| el.symbol.to_string())
                             .ok_or_else(|| {
                                 PyValueError::new_err(format!(
@@ -365,7 +365,9 @@ impl PyBasisAngularOrder {
     ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
-            "The number of basis atoms does not match the number of ordinary atoms."
+            "The number of basis atoms ({}) does not match the number of ordinary atoms ({}).",
+            self.basis_atoms.len(),
+            mol.atoms.len()
         );
         let basis_atoms = self
             .basis_atoms
