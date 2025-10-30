@@ -125,7 +125,7 @@ impl fmt::Display for DensityProjectionParams {
         )?;
         writeln!(
             f,
-            "Use double group for analysis: {}",
+            "Use double group for projection: {}",
             nice_bool(self.use_double_group)
         )?;
         if let Some(finite_order) = self.infinite_order_to_finite {
@@ -342,7 +342,7 @@ where
             sym_res
                 .magnetic_symmetry
                 .as_ref()
-                .ok_or("Magnetic symmetry requested for representation analysis, but no magnetic symmetry found.")?
+                .ok_or("Magnetic symmetry requested for symmetry projection, but no magnetic symmetry found.")?
         } else {
             &sym_res.unitary_symmetry
         };
