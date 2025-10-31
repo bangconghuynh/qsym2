@@ -1,11 +1,11 @@
+use std::fmt::format;
+
 use anyhow::{self, ensure, format_err};
 use duplicate::duplicate_item;
 use itertools::Itertools;
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis, Ix2, LinalgScalar, stack};
 use ndarray_einsum::einsum;
-use ndarray_linalg::{
-    Eig, EigGeneralized, Eigh, GeneralizedEigenvalue, Lapack, Norm, Scalar, UPLO,
-};
+use ndarray_linalg::{Eig, EigGeneralized, Eigh, GeneralizedEigenvalue, Lapack, Scalar, UPLO};
 use num::traits::FloatConst;
 use num::{Float, One};
 use num_complex::{Complex, ComplexFloat};
@@ -134,12 +134,32 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
     ) -> Result<GeneralisedEigenvalueResult<Self::NumType>, anyhow::Error> {
         let (hmat, smat) = (self.0.to_owned(), self.1.to_owned());
 
-        // Real, symmetric S and H
-        let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
-        ensure!(
-            deviation_h <= thresh_offdiag,
-            "Hamiltonian matrix is not real-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
-        );
+        // Symmetrise `hmat` and `smat` to improve numerical stability
+        let (hmat, smat): (Array2<dtype_>, Array2<dtype_>) = {
+            // Real, symmetric S and H
+            let (pos, &max_offdiag_h) = (hmat.to_owned() - hmat.t())
+                    .map(|v| v.abs())
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a.total_cmp(b))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian symmetric deviation matrix."))?;
+            log::debug!("Hamiltonian matrix:\n  {hmat:+.3e}");
+            log::debug!(
+                "Hamiltonian matrix symmetric deviation:\n  {:+.3e}",
+                hmat.to_owned() - hmat.t()
+            );
+            let (pos_i, pos_j) = (pos.div_euclid(hmat.ncols()), pos.rem_euclid(hmat.ncols()));
+            ensure!(
+                max_offdiag_h <= thresh_offdiag,
+                "Hamiltonian matrix is not real-symmetric: ||H - H^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e} at ({pos_i}, {pos_j})."
+            );
+            log::debug!("Overlap matrix:\n  {smat:+.3e}");
+
+            (
+                (hmat.to_owned() + hmat.t().to_owned()).map(|v| v / (2.0)),
+                (smat.to_owned() + smat.t().to_owned()).map(|v| v / (2.0)),
+            )
+        };
 
         // CanonicalOrthogonalisationResult::calc_canonical_orthogonal_matrix checks for
         // real-symmetry of S.
@@ -157,21 +177,26 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
         let hmat_t = xmat_d.dot(&hmat).dot(&xmat);
         let smat_t = xmat_d.dot(&smat).dot(&xmat);
 
+        log::debug!("Canonical-orthogonalised NOCI Hamiltonian matrix H~:\n  {hmat_t:+.8e}");
+        log::debug!("Canonical-orthogonalised NOCI overlap matrix S~:\n  {smat_t:+.8e}");
+
         // Over the reals, canonical orthogonalisation cannot handle `smat` with negative
         // eigenvalues. This means that `smat_t` can only be the identity.
-        let max_diff = (&smat_t - &Array2::<dtype_>::eye(smat_t.nrows()))
+        let (pos, max_diff) = (&smat_t - &Array2::<dtype_>::eye(smat_t.nrows()))
             .iter()
             .map(|x| ComplexFloat::abs(*x))
-            .max_by(|x, y| {
+            .enumerate()
+            .max_by(|(_, x), (_, y)| {
                 x.partial_cmp(y)
                     .expect("Unable to compare two `abs` values.")
             })
             .ok_or_else(|| {
                 format_err!("Unable to determine the maximum element of the |S - I| matrix.")
             })?;
+        let (pos_i, pos_j) = (pos.div_euclid(hmat.ncols()), pos.rem_euclid(hmat.ncols()));
         ensure!(
             max_diff <= thresh_offdiag,
-            "The orthogonalised overlap matrix is not the identity matrix: the maximum absolute deviation is {max_diff:.3e} > {thresh_offdiag:.3e}."
+            "The orthogonalised overlap matrix is not the identity matrix: the maximum absolute deviation is {max_diff:.3e} > {thresh_offdiag:.3e} at ({pos_i}, {pos_j})."
         );
 
         let (eigvals_t, eigvecs_t) = hmat_t.eigh(UPLO::Lower)?;
@@ -208,15 +233,23 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
         let (hmat, smat) = (self.0.to_owned(), self.1.to_owned());
 
         // Real, symmetric S and H
-        let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
+        let max_offdiag_h = *(hmat.to_owned() - hmat.t())
+                .map(|v| v.abs())
+                .iter()
+                .max_by(|a, b| a.total_cmp(b))
+                .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian symmetric deviation matrix."))?;
         ensure!(
-            deviation_h <= thresh_offdiag,
-            "Hamiltonian matrix is not real-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+            max_offdiag_h <= thresh_offdiag,
+            "Hamiltonian matrix is not real-symmetric: ||H - H^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
         );
-        let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
+        let max_offdiag_s = *(smat.to_owned() - smat.t())
+                .map(|v| v.abs())
+                .iter()
+                .max_by(|a, b| a.total_cmp(b))
+                .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap symmetric deviation matrix."))?;
         ensure!(
-            deviation_s <= thresh_offdiag,
-            "Overlap matrix is not real-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            max_offdiag_s <= thresh_offdiag,
+            "Overlap matrix is not real-symmetric: ||S - S^T|| = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
         );
 
         let (geneigvals, eigvecs) =
@@ -319,15 +352,23 @@ where
         // Symmetrise `hmat` and `smat` to improve numerical stability
         let (hmat, smat): (Array2<Complex<T>>, Array2<Complex<T>>) = if complex_symmetric {
             // Complex-symmetric
-            let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
+            let max_offdiag_h = *(hmat.to_owned() - hmat.t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-symmetric deviation matrix."))?;
             ensure!(
-                deviation_h <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-symmetric: ||H - H^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
-            let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
+            let max_offdiag_s = *(smat.to_owned() - smat.t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
-                deviation_s <= thresh_offdiag,
-                "Overlap matrix is not complex-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_s <= thresh_offdiag,
+                "Overlap matrix is not complex-symmetric: ||S - S^T||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
             );
             (
                 (hmat.to_owned() + hmat.t().to_owned())
@@ -337,15 +378,23 @@ where
             )
         } else {
             // Complex-Hermitian
-            let deviation_h = (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2();
+            let max_offdiag_h = *(hmat.to_owned() - hmat.map(|v| v.conj()).t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-Hermitian deviation matrix."))?;
             ensure!(
-                deviation_h <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
-            let deviation_s = (smat.to_owned() - smat.map(|v| v.conj()).t()).norm_l2();
+            let max_offdiag_s = *(smat.to_owned() - smat.map(|v| v.conj()).t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-Hermitian deviation matrix."))?;
             ensure!(
-                deviation_s <= thresh_offdiag,
-                "Overlap matrix is not complex-Hermitian: ||S - S^†|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_s <= thresh_offdiag,
+                "Overlap matrix is not complex-Hermitian: ||S - S^†||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
             );
             (
                 (hmat.to_owned() + hmat.map(|v| v.conj()).t().to_owned())
@@ -374,15 +423,23 @@ where
         let (hmat_t_sym, smat_t_sym): (Array2<Complex<T>>, Array2<Complex<T>>) =
             if complex_symmetric {
                 // Complex-symmetric
-                let deviation_h = (hmat_t.to_owned() - hmat_t.t()).norm_l2();
+                let max_offdiag_h = *(hmat_t.to_owned() - hmat_t.t())
+                        .mapv(|v| ComplexFloat::abs(v))
+                        .iter()
+                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-symmetric deviation matrix."))?;
                 ensure!(
-                    deviation_h <= thresh_offdiag,
-                    "Transformed Hamiltonian matrix is not complex-symmetric: ||H~ - (H~)^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                    max_offdiag_h <= thresh_offdiag,
+                    "Transformed Hamiltonian matrix is not complex-symmetric: ||H~ - (H~)^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
                 );
-                let deviation_s = (smat_t.to_owned() - smat_t.t()).norm_l2();
+                let max_offdiag_s = *(smat_t.to_owned() - smat_t.t())
+                        .mapv(|v| ComplexFloat::abs(v))
+                        .iter()
+                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
                 ensure!(
-                    deviation_s <= thresh_offdiag,
-                    "Transformed overlap matrix is not complex-symmetric: ||S~ - (S~)^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                    max_offdiag_s <= thresh_offdiag,
+                    "Transformed overlap matrix is not complex-symmetric: ||S~ - (S~)^T||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
                 );
                 let hmat_t_s = (hmat_t.to_owned() + hmat_t.t().to_owned())
                     .map(|v| v / (Complex::<T>::one() + Complex::<T>::one()));
@@ -391,15 +448,23 @@ where
                 (hmat_t_s, smat_t_s)
             } else {
                 // Complex-Hermitian
-                let deviation_h = (hmat_t.to_owned() - hmat_t.map(|v| v.conj()).t()).norm_l2();
+                let max_offdiag_h = *(hmat_t.to_owned() - hmat_t.map(|v| v.conj()).t())
+                        .mapv(|v| ComplexFloat::abs(v))
+                        .iter()
+                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-Hermitian deviation matrix."))?;
                 ensure!(
-                    deviation_h <= thresh_offdiag,
-                    "Transformed Hamiltonian matrix is not complex-Hermitian: ||H~ - (H~)^†|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                    max_offdiag_h <= thresh_offdiag,
+                    "Transformed Hamiltonian matrix is not complex-Hermitian: ||H~ - (H~)^†||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
                 );
-                let deviation_s = (smat_t.to_owned() - smat_t.map(|v| v.conj()).t()).norm_l2();
+                let max_offdiag_s = *(smat_t.to_owned() - smat_t.map(|v| v.conj()).t())
+                        .mapv(|v| ComplexFloat::abs(v))
+                        .iter()
+                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-Hermitian deviation matrix."))?;
                 ensure!(
-                    deviation_s <= thresh_offdiag,
-                    "Transformed overlap matrix is not complex-Hermitian: ||S~ - (S~)^†|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                    max_offdiag_s <= thresh_offdiag,
+                    "Transformed overlap matrix is not complex-Hermitian: ||S~ - (S~)^†||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
                 );
                 let hmat_t_s = (hmat_t.to_owned() + hmat_t.map(|v| v.conj()).t().to_owned())
                     .map(|v| v / (Complex::<T>::one() + Complex::<T>::one()));
@@ -488,27 +553,43 @@ where
 
         if complex_symmetric {
             // Complex-symmetric H and S
-            let deviation_h = (hmat.to_owned() - hmat.t()).norm_l2();
+            let max_offdiag_h = *(hmat.to_owned() - hmat.t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-symmetric deviation matrix."))?;
             ensure!(
-                deviation_h <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-symmetric: ||H - H^T|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-symmetric: ||H - H^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
-            let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
+            let max_offdiag_s = *(smat.to_owned() - smat.t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
-                deviation_s <= thresh_offdiag,
-                "Overlap matrix is not complex-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_s <= thresh_offdiag,
+                "Overlap matrix is not complex-symmetric: ||S - S^T||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
             );
         } else {
             // Complex-Hermitian H and S
-            let deviation_h = (hmat.to_owned() - hmat.map(|v| v.conj()).t()).norm_l2();
+            let max_offdiag_h = *(hmat.to_owned() - hmat.map(|v| v.conj()).t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-Hermitian deviation matrix."))?;
             ensure!(
-                deviation_h <= thresh_offdiag,
-                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†|| = {deviation_h:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_h <= thresh_offdiag,
+                "Hamiltonian matrix is not complex-Hermitian: ||H - H^†||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
-            let deviation_s = (smat.to_owned() - smat.map(|v| v.conj()).t()).norm_l2();
+            let max_offdiag_s = *(smat.to_owned() - smat.map(|v| v.conj()).t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-Hermitian deviation matrix."))?;
             ensure!(
-                deviation_s <= thresh_offdiag,
-                "Overlap matrix is not complex-Hermitian: ||S - S^†|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                max_offdiag_s <= thresh_offdiag,
+                "Overlap matrix is not complex-Hermitian: ||S - S^†||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
             );
         }
 

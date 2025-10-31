@@ -491,7 +491,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 .to_pyarray(py);
                 let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                 let density_matrices = if calculate_density_matrices {
-                    Some(
+                    log::debug!("Calculating density matrices...");
+                    let res = Some(
                         multidets
                             .iter()
                             .map(|multidet| {
@@ -510,7 +511,9 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                     })
                             })
                             .collect::<Result<Vec<_>, _>>()?,
-                    )
+                    );
+                    log::debug!("Calculating density matrices... Done.");
+                    res
                 } else {
                     None
                 };
@@ -620,7 +623,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 .to_pyarray(py);
                 let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                 let density_matrices = if calculate_density_matrices {
-                    Some(
+                    log::debug!("Calculating density matrices...");
+                    let res = Some(
                         multidets
                             .iter()
                             .map(|multidet| {
@@ -639,7 +643,9 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                     })
                             })
                             .collect::<Result<Vec<_>, _>>()?,
-                    )
+                    );
+                    log::debug!("Calculating density matrices... Done.");
+                    res
                 } else {
                     None
                 };
@@ -821,7 +827,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .to_pyarray(py);
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
-                            Some(
+                            log::debug!("Calculating density matrices...");
+                            let res = Some(
                                 multidets
                                     .iter()
                                     .map(|multidet| {
@@ -842,7 +849,9 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                             })
                                     })
                                     .collect::<Result<Vec<_>, _>>()?,
-                            )
+                            );
+                            log::debug!("Calculating density matrices... Done.");
+                            res
                         } else {
                             None
                         };
@@ -954,7 +963,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .to_pyarray(py);
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
-                            Some(
+                            log::debug!("Calculating density matrices...");
+                            let res = Some(
                                 multidets
                                     .iter()
                                     .map(|multidet| {
@@ -975,7 +985,9 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                             })
                                     })
                                     .collect::<Result<Vec<_>, _>>()?,
-                            )
+                            );
+                            log::debug!("Calculating density matrices... Done.");
+                            res
                         } else {
                             None
                         };
@@ -1016,19 +1028,6 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     })
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-
-                // // DEBUG
-                // let (zeroe, onee, twoe) = hamiltonian_ao
-                //     .calc_hamiltonian_matrix_element_contributions(
-                //         &origins_c[0],
-                //         &origins_c[0],
-                //         overlap_ao.sao(),
-                //         1e-10,
-                //         1e-7,
-                //     )
-                //     .unwrap();
-                // log::debug!("Origin energies:\n  {zeroe}\n  {onee}\n  {twoe}");
-                // // END DEBUG
 
                 match &use_magnetic_group {
                     Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
@@ -1125,7 +1124,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .to_pyarray(py);
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
-                            Some(
+                            log::debug!("Calculating density matrices...");
+                            let res = Some(
                                 multidets
                                     .iter()
                                     .map(|multidet| {
@@ -1146,7 +1146,9 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                             })
                                     })
                                     .collect::<Result<Vec<_>, _>>()?,
-                            )
+                            );
+                            log::debug!("Calculating density matrices... Done.");
+                            res
                         } else {
                             None
                         };
@@ -1258,7 +1260,8 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         .to_pyarray(py);
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
-                            Some(
+                            log::debug!("Calculating density matrices...");
+                            let res = Some(
                                 multidets
                                     .iter()
                                     .map(|multidet| {
@@ -1279,7 +1282,9 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                             })
                                     })
                                     .collect::<Result<Vec<_>, _>>()?,
-                            )
+                            );
+                            log::debug!("Calculating density matrices... Done.");
+                            res
                         } else {
                             None
                         };
