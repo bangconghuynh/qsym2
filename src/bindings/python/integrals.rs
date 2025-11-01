@@ -399,7 +399,7 @@ impl PyBasisAngularOrder {
 /// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
@@ -441,7 +441,7 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
 /// Python-exposed enumerated type to marshall basis spin--orbit-coupled layout in the coupled
 /// treatment of spin and spatial degrees of freedom between Rust and Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PySpinOrbitCoupled {
     /// Variant for two-component $`j`$-adapted basis functions.
     JAdapted2C,
@@ -475,7 +475,7 @@ impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
 
 /// Python-exposed enumerated type to handle the union type `PySpinConstraint | PySpinOrbitCoupled`
 /// in Python.
-#[derive(FromPyObject, Clone, PartialEq, Eq, Hash)]
+#[derive(FromPyObject, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PyStructureConstraint {
     /// Variant for Python-exposed spin constraint layout.
     SpinConstraint(PySpinConstraint),

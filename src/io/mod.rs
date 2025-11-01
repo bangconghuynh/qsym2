@@ -25,6 +25,9 @@ pub enum QSym2FileType {
 
     /// Variant for binary files containing character tables.
     Chr,
+
+    /// Variant for binary files containing Python-exposed multi-determinants.
+    Pymdet,
 }
 
 impl QSym2FileType {
@@ -35,6 +38,7 @@ impl QSym2FileType {
             QSym2FileType::Grp => "qsym2.grp".to_string(),
             QSym2FileType::Rep => "qsym2.rep".to_string(),
             QSym2FileType::Chr => "qsym2.chr".to_string(),
+            QSym2FileType::Pymdet => "qsym2.pymdet".to_string(),
         }
     }
 }

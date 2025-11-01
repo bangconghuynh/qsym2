@@ -3,6 +3,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
+use std::path::PathBuf;
 
 use anyhow::format_err;
 use itertools::Itertools;
@@ -11,6 +12,8 @@ use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use pyo3::types::PyType;
+use serde::{Deserialize, Serialize};
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::molecule::Molecule;
@@ -19,6 +22,8 @@ use crate::bindings::python::integrals::PyStructureConstraint;
 use crate::bindings::python::representation_analysis::slater_determinant::{
     PySlaterDeterminantComplex, PySlaterDeterminantReal,
 };
+use crate::io::format::qsym2_output;
+use crate::io::{QSym2FileType, read_qsym2_binary, write_qsym2_binary};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::EagerBasis;
 use crate::target::noci::multideterminant::MultiDeterminant;
@@ -39,7 +44,7 @@ type C128 = Complex<f64>;
 //
 /// Python-exposed structure to marshall real multi-determinant information between Rust and Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PyMultiDeterminantsReal {
     /// The basis of Slater determinants in which the multi-determinantal states are expressed.
     #[pyo3(get)]
@@ -180,6 +185,49 @@ impl PyMultiDeterminantsReal {
             })
             .map(|denmats| denmats[state_index].to_pyarray(py))
     }
+
+    /// Saves the real Python-exposed multi-determinants as a binary file with `.qsym2.pymdet`
+    /// extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the binary file to be saved without the `.qsym2.pymdet` extension.
+    ///
+    /// # Returns
+    ///
+    /// A return code indicating if the serialisation process has been successful.
+    pub fn to_qsym2_binary<'py>(&self, _py: Python<'py>, name: PathBuf) -> PyResult<usize> {
+        let mut path = name.to_path_buf();
+        path.set_extension(QSym2FileType::Pymdet.ext());
+        qsym2_output!(
+            "Real Python-exposed multi-determinants saved as {}.",
+            path.display().to_string()
+        );
+        write_qsym2_binary(name, QSym2FileType::Pymdet, self)
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+    }
+
+    /// Reads the real Python-exposed multi-determinants from a binary file with `.qsym2.pymdet`
+    /// extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the binary file to be read from without the `.qsym2.pymdet` extension.
+    ///
+    /// # Returns
+    ///
+    /// A real Python-exposed multi-determinants structure.
+    #[staticmethod]
+    pub fn from_qsym2_binary(name: PathBuf) -> PyResult<Self> {
+        let mut path = name.to_path_buf();
+        path.set_extension(QSym2FileType::Pymdet.ext());
+        qsym2_output!(
+            "Real Python-exposed multi-determinants read in from {}.",
+            path.display().to_string()
+        );
+        read_qsym2_binary(name, QSym2FileType::Pymdet)
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+    }
 }
 
 impl PyMultiDeterminantsReal {
@@ -249,7 +297,7 @@ impl PyMultiDeterminantsReal {
 /// Python-exposed structure to marshall complex multi-determinant information between Rust and
 /// Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PyMultiDeterminantsComplex {
     /// The basis of Slater determinants in which the multi-determinantal states are expressed.
     #[pyo3(get)]
@@ -389,6 +437,49 @@ impl PyMultiDeterminantsComplex {
                 )
             })
             .map(|denmats| denmats[state_index].to_pyarray(py))
+    }
+
+    /// Saves the complex Python-exposed multi-determinants as a binary file with `.qsym2.pymdet`
+    /// extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the binary file to be saved without the `.qsym2.pymdet` extension.
+    ///
+    /// # Returns
+    ///
+    /// A return code indicating if the serialisation process has been successful.
+    pub fn to_qsym2_binary<'py>(&self, _py: Python<'py>, name: PathBuf) -> PyResult<usize> {
+        let mut path = name.to_path_buf();
+        path.set_extension(QSym2FileType::Pymdet.ext());
+        qsym2_output!(
+            "Complex Python-exposed multi-determinants saved as {}.",
+            path.display().to_string()
+        );
+        write_qsym2_binary(name, QSym2FileType::Pymdet, self)
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+    }
+
+    /// Reads the complex Python-exposed multi-determinants from a binary file with `.qsym2.pymdet`
+    /// extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the binary file to be read from without the `.qsym2.pymdet` extension.
+    ///
+    /// # Returns
+    ///
+    /// A complex Python-exposed multi-determinants structure.
+    #[staticmethod]
+    pub fn from_qsym2_binary(name: PathBuf) -> PyResult<Self> {
+        let mut path = name.to_path_buf();
+        path.set_extension(QSym2FileType::Pymdet.ext());
+        qsym2_output!(
+            "Complex Python-exposed multi-determinants read in from {}.",
+            path.display().to_string()
+        );
+        read_qsym2_binary(name, QSym2FileType::Pymdet)
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
     }
 }
 

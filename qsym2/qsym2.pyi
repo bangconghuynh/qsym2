@@ -1015,6 +1015,29 @@ class PyMultiDeterminantsReal:
     def state_density_matrix(self, state_index: int) -> Py2DArray_f64:
         r"""Returns the density matrix for a particular state."""
 
+    def to_qsym2_binary(self, name: str) -> int:
+        r"""
+        Saves the real Python-exposed multi-determinants as a binary file with `.qsym2.pymdet` extension.
+       
+        Parameters:
+            name: The name of the binary file to be saved without the `.qsym2.pymdet` extension.
+       
+        Returns:
+            A return code indicating if the serialisation process has been successful.
+        """
+
+    @staticmethod
+    def from_qsym2_binary(name: str) -> PyMultiDeterminantsReal:
+        r"""
+        Reads the real Python-exposed multi-determinants from a binary file with `.qsym2.pymdet` extension.
+       
+        Parameters:
+            name: The name of the binary file to be read from without the `.qsym2.pymdet` extension.
+       
+        Returns:
+            A real Python-exposed multi-determinants structure.
+        """
+
 class PyMultiDeterminantsComplex:
     r"""
     Python-exposed structure to marshall complex multi-determinant information between Rust and Python.
@@ -1072,6 +1095,29 @@ class PyMultiDeterminantsComplex:
 
     def state_density_matrix(self, state_index: int) -> Py2DArray_c128:
         r"""Returns the density matrix for a particular state."""
+
+    def to_qsym2_binary(self, name: str) -> int:
+        r"""
+        Saves the complex Python-exposed multi-determinants as a binary file with `.qsym2.pymdet` extension.
+       
+        Parameters:
+            name: The name of the binary file to be saved without the `.qsym2.pymdet` extension.
+       
+        Returns:
+            A return code indicating if the serialisation process has been successful.
+        """
+
+    @staticmethod
+    def from_qsym2_binary(name: str) -> PyMultiDeterminantsReal:
+        r"""
+        Reads the complex Python-exposed multi-determinants from a binary file with `.qsym2.pymdet` extension.
+       
+        Parameters:
+            name: The name of the binary file to be read from without the `.qsym2.pymdet` extension.
+       
+        Returns:
+            A complex Python-exposed multi-determinants structure.
+        """
 
 PyMultiDeterminants: TypeAlias = PyMultiDeterminantsReal | PyMultiDeterminantsComplex
 
