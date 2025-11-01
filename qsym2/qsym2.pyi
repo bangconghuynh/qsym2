@@ -1108,7 +1108,7 @@ class PyMultiDeterminantsComplex:
         """
 
     @staticmethod
-    def from_qsym2_binary(name: str) -> PyMultiDeterminantsReal:
+    def from_qsym2_binary(name: str) -> PyMultiDeterminantsComplex:
         r"""
         Reads the complex Python-exposed multi-determinants from a binary file with `.qsym2.pymdet` extension.
        
