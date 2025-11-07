@@ -343,7 +343,7 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
 /// anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
 /// normalised.
-
+///
 /// # Returns
 ///
 /// The representation matrix $`\mathbf{R}(\phi, \hat{\mathbf{n}})`$.

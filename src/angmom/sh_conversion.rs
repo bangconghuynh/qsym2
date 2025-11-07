@@ -163,7 +163,7 @@ fn norm_sph_gaussian(n: u32, alpha: f64) -> f64 {
 /// # Arguments
 ///
 /// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the non-negative exponents of
-/// the Cartesian components of the Cartesian Gaussian.
+///   the Cartesian components of the Cartesian Gaussian.
 /// * `alpha` - The coefficient on the exponent of the Gaussian term.
 ///
 /// # Returns
@@ -273,11 +273,11 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 /// # Arguments
 ///
 /// * `lpureqns` - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
-/// harmonic component of the solid harmonic Gaussian.
+///   harmonic component of the solid harmonic Gaussian.
 /// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
-/// components of the Cartesian Gaussian.
+///   components of the Cartesian Gaussian.
 /// * `csphase` - If `true`, the Condon--Shortley phase will be used as defined above.
-/// If `false`, this phase will be set to unity.
+///   If `false`, this phase will be set to unity.
 ///
 /// # Returns
 ///
@@ -432,9 +432,9 @@ pub fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) 
 /// # Arguments
 ///
 /// * `lcartqns1` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
-/// components of the first Cartesian Gaussian.
+///   components of the first Cartesian Gaussian.
 /// * `lcartqns2` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
-/// components of the first Cartesian Gaussian.
+///   components of the first Cartesian Gaussian.
 ///
 /// # Returns
 ///
@@ -562,11 +562,11 @@ fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
 /// # Arguments
 ///
 /// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
-/// components of the Cartesian Gaussian.
+///   components of the Cartesian Gaussian.
 /// * `lpureqns` - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
-/// harmonic component of the solid harmonic Gaussian.
+///   harmonic component of the solid harmonic Gaussian.
 /// * `csphase` - If `true`, the Condon--Shortley phase will be used as defined in
-/// [`complexc`]. If `false`, this phase will be set to unity.
+///   [`complexc`]. If `false`, this phase will be set to unity.
 ///
 /// # Returns
 ///
@@ -618,9 +618,9 @@ pub fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: boo
 ///
 /// * `l` - The spherical harmonic degree.
 /// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
-/// $`\lambda_{\mathrm{cs}} = 1`$.
+///   $`\lambda_{\mathrm{cs}} = 1`$.
 /// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
-/// Gaussians.
+///   Gaussians.
 ///
 /// # Returns
 ///
@@ -672,7 +672,7 @@ pub fn sh_c2r_mat(l: u32, csphase: bool, pureorder: &PureOrder) -> Array2<Comple
             "Permutation to obtain `pureorder` from the increasing-m order could not be found.",
         );
         let image = perm.image();
-        upmat.select(Axis(0), &image).select(Axis(1), &image)
+        upmat.select(Axis(0), image).select(Axis(1), image)
     } else {
         upmat
     }
@@ -717,9 +717,9 @@ pub fn sh_c2r_mat(l: u32, csphase: bool, pureorder: &PureOrder) -> Array2<Comple
 ///
 /// * `l` - The spherical harmonic degree.
 /// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
-/// $`\lambda_{\mathrm{cs}} = 1`$.
+///   $`\lambda_{\mathrm{cs}} = 1`$.
 /// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
-/// Gaussians.
+///   Gaussians.
 ///
 /// # Returns
 ///
@@ -779,15 +779,15 @@ pub fn sh_r2c_mat(l: u32, csphase: bool, pureorder: &PureOrder) -> Array2<Comple
 /// # Arguments
 ///
 /// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
+///   also for the radial part of the solid harmonic Gaussian.
 /// * `l` - The degree of the complex spherical harmonic factor in the solid
-///  harmonic Gaussian.
+///   harmonic Gaussian.
 /// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
-/// Gaussians.
+///   Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
-/// coefficients. See [`complexc`] for more details.
+///   coefficients. See [`complexc`] for more details.
 /// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
-/// Gaussians.
+///   Gaussians.
 ///
 /// # Returns
 ///
@@ -861,15 +861,15 @@ pub fn sh_cl2cart_mat(
 /// # Arguments
 ///
 /// * `l` - The degree of the complex spherical harmonic factor in the solid
-///  harmonic Gaussian.
+///   harmonic Gaussian.
 /// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
+///   also for the radial part of the solid harmonic Gaussian.
 /// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
-/// Gaussians.
+///   Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
-/// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
+///   $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
 /// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
-/// Gaussians.
+///   Gaussians.
 ///
 /// # Returns
 ///
@@ -945,16 +945,16 @@ pub fn sh_cart2cl_mat(
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
-/// * l - The degree of the complex spherical harmonic factor in the solid
-///  harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
-/// Gaussians.
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
+///   also for the radial part of the solid harmonic Gaussian.
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
+///   harmonic Gaussian.
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+///   Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
-/// coefficients. See [`complexc`] for more details.
+///   coefficients. See [`complexc`] for more details.
 /// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
-/// Gaussians.
+///   Gaussians.
 ///
 /// # Returns
 ///
@@ -1026,15 +1026,15 @@ pub fn sh_rl2cart_mat(
 /// # Arguments
 ///
 /// * `l` - The degree of the complex spherical harmonic factor in the solid
-///  harmonic Gaussian.
+///   harmonic Gaussian.
 /// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
+///   also for the radial part of the solid harmonic Gaussian.
 /// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
-/// Gaussians.
+///   Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
-/// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
+///   $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
 /// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
-/// Gaussians.
+///   Gaussians.
 ///
 /// # Returns
 ///
@@ -1067,13 +1067,13 @@ pub fn sh_cart2rl_mat(
 /// # Arguments
 ///
 /// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
+///   also for the radial part of the solid harmonic Gaussian.
 /// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
-/// Gaussians.
+///   Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
-/// $`c`$ coefficients. See [`complexc`] for more details.
+///   $`c`$ coefficients. See [`complexc`] for more details.
 /// * `pureorder` - A closure to generate a [`PureOrder`] struct giving the ordering of the
-/// components of the pure Gaussians for a particular value of `l`.
+///   components of the pure Gaussians for a particular value of `l`.
 ///
 /// # Returns
 ///
@@ -1107,13 +1107,13 @@ pub fn sh_r2cart(
 /// # Arguments
 ///
 /// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
+///   also for the radial part of the solid harmonic Gaussian.
 /// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
-/// Gaussians.
+///   Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
-/// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
+///   $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
 /// * `pureorder` - A closure to generate a [`PureOrder`] struct giving the ordering of the
-/// components of the pure Gaussians for a particular value of `l`.
+///   components of the pure Gaussians for a particular value of `l`.
 ///
 /// # Returns
 ///
