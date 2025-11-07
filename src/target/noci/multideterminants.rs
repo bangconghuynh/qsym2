@@ -13,6 +13,7 @@ use ndarray::{Array1, Array2, Array3, ArrayView2, Axis, Ix1, Ix3, ScalarOperand,
 use ndarray_einsum::einsum;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
+use rayon::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
@@ -327,10 +328,11 @@ where
 
 impl<'a, T, B, SC> MultiDeterminants<'a, T, B, SC>
 where
-    T: ComplexFloat + Lapack + ScalarOperand,
-    <T as ComplexFloat>::Real: LowerExp + fmt::Display,
-    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    T: ComplexFloat + Lapack + ScalarOperand + Send + Sync,
+    <T as ComplexFloat>::Real: LowerExp + fmt::Display + Sync,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone + Sync,
+    SlaterDeterminant<'a, T, SC>: Send + Sync,
 {
     /// Calculates the (contravariant) density matrices $`\mathbf{P}_m(\hat{\iota})`$ of all
     /// multi-determinantal wavefunctions in this collection in the AO basis.
@@ -367,8 +369,9 @@ where
         let sqnorms_denmats_res = dets.iter()
             .zip(self.coefficients().rows())
             .cartesian_product(dets.iter().zip(self.coefficients().rows()))
+            .par_bridge()
             .fold(
-                Ok((Array1::<T>::zeros(nmultidets), Array3::<T>::zeros((nmultidets, nao, nao)))),
+                || Ok((Array1::<T>::zeros(nmultidets), Array3::<T>::zeros((nmultidets, nao, nao)))),
                 |acc_res, ((det_w, c_wm), (det_x, c_xm))| {
                     ensure!(
                         det_w.structure_constraint() == det_x.structure_constraint(),
@@ -463,6 +466,17 @@ where
                         Ok((sqnorm_acc + ov_wx_m, denmat_acc + denmat_wx_mij))
                     })
                 },
+            )
+            .reduce(
+                || Ok((Array1::<T>::zeros(nmultidets), Array3::<T>::zeros((nmultidets, nao, nao)))),
+                |sqnorms_denmats_res_a: Result<(Array1<T>, Array3<T>), anyhow::Error>, sqnorms_denmats_res_b: Result<(Array1<T>, Array3<T>), anyhow::Error>| {
+                    sqnorms_denmats_res_a.and_then(|(sqnorm_acc, denmat_acc)| sqnorms_denmats_res_b.and_then(|(sqnorm, denmat)| {
+                        Ok((
+                            sqnorm_acc + sqnorm,
+                            denmat_acc + denmat
+                        ))
+                    }))
+                }
             );
         sqnorms_denmats_res.and_then(|(sqnorms, denmats)| {
             if normalised_wavefunctions {

@@ -12,6 +12,7 @@ use log;
 use ndarray::{Array1, Array2, ArrayView2, Axis, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
+use rayon::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
@@ -243,10 +244,11 @@ where
 
 impl<'a, T, B, SC> MultiDeterminant<'a, T, B, SC>
 where
-    T: ComplexFloat + Lapack + ScalarOperand,
-    <T as ComplexFloat>::Real: LowerExp + fmt::Display,
-    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    T: ComplexFloat + Lapack + ScalarOperand + Send + Sync,
+    <T as ComplexFloat>::Real: LowerExp + fmt::Display + Sync,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync,
+    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone + Sync,
+    SlaterDeterminant<'a, T, SC>: Send + Sync,
 {
     /// Calculates the (contravariant) density matrix $`\mathbf{P}(\hat{\iota})`$ of the
     /// multi-determinantal wavefunction in the AO basis.
@@ -276,8 +278,9 @@ where
         let sqnorm_denmat_res = dets.iter()
             .zip(self.coefficients().iter())
             .cartesian_product(dets.iter().zip(self.coefficients().iter()))
+            .par_bridge()
             .fold(
-                Ok((T::zero(), Array2::<T>::zeros((nao, nao)))),
+                || Ok((T::zero(), Array2::<T>::zeros((nao, nao)))),
                 |acc_res, ((det_w, c_w), (det_x, c_x))| {
                     ensure!(
                         det_w.structure_constraint() == det_x.structure_constraint(),
@@ -361,6 +364,17 @@ where
                     };
                     acc_res.map(|(sqnorm_acc, denmat_acc)| (sqnorm_acc + ov_wx * c_w * c_x, denmat_acc + den_wx * c_w * c_x))
                 },
+            )
+            .reduce(
+                || Ok((T::zero(), Array2::<T>::zeros((nao, nao)))),
+                |sqnorm_denmat_res_a: Result<(T, Array2<T>), anyhow::Error>, sqnorm_denmat_res_b: Result<(T, Array2<T>), anyhow::Error>| {
+                    sqnorm_denmat_res_a.and_then(|(sqnorm_acc, denmat_acc)| sqnorm_denmat_res_b.and_then(|(sqnorm, denmat)| {
+                        Ok((
+                            sqnorm_acc + sqnorm,
+                            denmat_acc + denmat
+                        ))
+                    }))
+                }
             );
         sqnorm_denmat_res.map(|(sqnorm, denmat)| {
             if normalised_wavefunction {
