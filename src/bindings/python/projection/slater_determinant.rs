@@ -9,7 +9,6 @@ use numpy::{PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::{IntoPyObjectExt, prelude::*};
 
-use crate::analysis::Overlap;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::projection::PyProjectionTarget;
@@ -298,20 +297,14 @@ pub fn project_slater_determinant(
                                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                                 .and_then(|multidet| {
                                     multidet
-                                        .overlap(multidet, sao_opt.as_ref(), sao_h_opt.as_ref())
+                                        .density_matrix(
+                                            &sao.view(),
+                                            thresh_offdiag,
+                                            thresh_zeroov,
+                                            true,
+                                        )
+                                        .map(|denmat| denmat.to_pyarray(py))
                                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                        .and_then(|sq_norm| {
-                                            multidet
-                                                .density_matrix(
-                                                    &sao.view(),
-                                                    thresh_offdiag,
-                                                    thresh_zeroov,
-                                                )
-                                                .map_err(|err| {
-                                                    PyRuntimeError::new_err(err.to_string())
-                                                })
-                                                .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                        })
                                 })
                         })
                         .collect::<Result<Vec<_>, _>>()?,
@@ -437,29 +430,15 @@ pub fn project_slater_determinant(
                                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                                             .and_then(|multidet| {
                                                 multidet
-                                                    .overlap(
-                                                        multidet,
-                                                        sao_opt.as_ref(),
-                                                        sao_h_opt.as_ref(),
+                                                    .density_matrix(
+                                                        &sao.view(),
+                                                        thresh_offdiag,
+                                                        thresh_zeroov,
+                                                        true,
                                                     )
+                                                    .map(|denmat| denmat.to_pyarray(py))
                                                     .map_err(|err| {
                                                         PyRuntimeError::new_err(err.to_string())
-                                                    })
-                                                    .and_then(|sq_norm| {
-                                                        multidet
-                                                            .density_matrix(
-                                                                &sao.view(),
-                                                                thresh_offdiag,
-                                                                thresh_zeroov,
-                                                            )
-                                                            .map_err(|err| {
-                                                                PyRuntimeError::new_err(
-                                                                    err.to_string(),
-                                                                )
-                                                            })
-                                                            .map(|denmat| {
-                                                                (denmat / sq_norm).to_pyarray(py)
-                                                            })
                                                     })
                                             })
                                     })
@@ -569,29 +548,15 @@ pub fn project_slater_determinant(
                                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))
                                             .and_then(|multidet| {
                                                 multidet
-                                                    .overlap(
-                                                        multidet,
-                                                        sao_opt.as_ref(),
-                                                        sao_h_opt.as_ref(),
+                                                    .density_matrix(
+                                                        &sao.view(),
+                                                        thresh_offdiag,
+                                                        thresh_zeroov,
+                                                        true,
                                                     )
+                                                    .map(|denmat| denmat.to_pyarray(py))
                                                     .map_err(|err| {
                                                         PyRuntimeError::new_err(err.to_string())
-                                                    })
-                                                    .and_then(|sq_norm| {
-                                                        multidet
-                                                            .density_matrix(
-                                                                &sao.view(),
-                                                                thresh_offdiag,
-                                                                thresh_zeroov,
-                                                            )
-                                                            .map_err(|err| {
-                                                                PyRuntimeError::new_err(
-                                                                    err.to_string(),
-                                                                )
-                                                            })
-                                                            .map(|denmat| {
-                                                                (denmat / sq_norm).to_pyarray(py)
-                                                            })
                                                     })
                                             })
                                     })

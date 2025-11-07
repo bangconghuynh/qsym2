@@ -3361,12 +3361,10 @@ fn test_determinant_projection_s4_sqpl_pz() {
     for sym in ["||A|_(1g)|", "||A|_(2g)|", "||B|_(1g)|", "||B|_(2g)|"] {
         let row = MullikenIrrepSymbol::from_str(sym).unwrap();
         let projected = orbit_cg_u_d4h_spatial_1e.project_onto(&row).unwrap();
-        let norm_sq = projected.overlap(&projected, Some(&sao), None).unwrap();
         let mixed_denmat = projected
-            .density_matrix(&sao.view(), 1e-7, 1e-7)
+            .density_matrix(&sao.view(), 1e-7, 1e-7, true)
             .unwrap()
-            .dot(&sao)
-            / norm_sq;
+            .dot(&sao);
         assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
         assert_abs_diff_eq!(mixed_denmat.trace().unwrap(), 3.0, epsilon = 1e-7);
 
@@ -3392,12 +3390,10 @@ fn test_determinant_projection_s4_sqpl_pz() {
     // ||E|_(u)|
     let row = MullikenIrrepSymbol::from_str("||E|_(u)|").unwrap();
     let projected = orbit_cg_u_d4h_spatial_1e.project_onto(&row).unwrap();
-    let norm_sq = projected.overlap(&projected, Some(&sao), None).unwrap();
     let mixed_denmat = projected
-        .density_matrix(&sao.view(), 1e-7, 1e-7)
+        .density_matrix(&sao.view(), 1e-7, 1e-7, true)
         .unwrap()
-        .dot(&sao)
-        / norm_sq;
+        .dot(&sao);
     assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
     assert_abs_diff_eq!(mixed_denmat.trace().unwrap(), 3.0, epsilon = 1e-7);
 
@@ -3559,12 +3555,10 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
     for sym in ["||A|_(1g)|", "||E|_(g)|"] {
         let row = MullikenIrrepSymbol::from_str(sym).unwrap();
         let dyy_p = orbit_cg_u_oh_spatial_dyy.project_onto(&row).unwrap();
-        let norm_sq = dyy_p.overlap(&dyy_p, Some(&sao_cg), None).unwrap();
         let mixed_denmat = dyy_p
-            .density_matrix(&sao_cg.view(), 1e-7, 1e-7)
+            .density_matrix(&sao_cg.view(), 1e-7, 1e-7, true)
             .unwrap()
-            .dot(&sao_cg)
-            / norm_sq;
+            .dot(&sao_cg);
         assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
         assert_abs_diff_eq!(mixed_denmat.trace().unwrap().abs(), 1.0, epsilon = 1e-7);
 
@@ -3649,12 +3643,10 @@ fn test_determinant_projection_vf6_oct_qchem_order() {
         let dyy_p = orbit_cg_u_oh_double_spin_spatial_dyy
             .project_onto(&row)
             .unwrap();
-        let norm_sq = dyy_p.overlap(&dyy_p, Some(&sao_cg), None).unwrap();
         let mixed_denmat = dyy_p
-            .density_matrix(&sao_cg.view(), 1e-7, 1e-7)
+            .density_matrix(&sao_cg.view(), 1e-7, 1e-7, true)
             .unwrap()
-            .dot(&sao_cg)
-            / norm_sq;
+            .dot(&sao_cg);
         assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
         assert_abs_diff_eq!(mixed_denmat.trace().unwrap().abs(), 1.0, epsilon = 1e-7);
 

@@ -10,6 +10,7 @@ use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
@@ -52,7 +53,7 @@ type C128 = Complex<f64>;
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PySlaterDeterminantReal {
     /// The structure constraint applied to the coefficients of the determinant.
     pub(crate) structure_constraint: PyStructureConstraint,
@@ -258,7 +259,7 @@ where
 
 /// Python-exposed structure to marshall complex Slater determinant information between Rust and Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PySlaterDeterminantComplex {
     /// The structure constraint applied to the coefficients of the determinant.
     pub(crate) structure_constraint: PyStructureConstraint,

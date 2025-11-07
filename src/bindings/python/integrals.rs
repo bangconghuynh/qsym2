@@ -214,17 +214,17 @@ impl PyBasisAngularOrder {
                     .dataset("aobasis/shell_to_atom_map")
                     .map_err(|err| PyValueError::new_err(err.to_string()))?
                     .read_1d::<usize>()
-                    .map_err(|err| PyValueError::new_err(err.to_string()))?
-                    .iter()
-                    .zip(shell_types.iter())
-                    .flat_map(|(&idx, shell_type)| {
-                        if *shell_type == -1 {
-                            vec![idx, idx]
-                        } else {
-                            vec![idx]
-                        }
-                    })
-                    .collect::<Vec<_>>();
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?;
+                // .iter()
+                // .zip(shell_types.iter())
+                // .flat_map(|(&idx, shell_type)| {
+                //     if *shell_type == -1 {
+                //         vec![idx, idx]
+                //     } else {
+                //         vec![idx]
+                //     }
+                // })
+                // .collect::<Vec<_>>();
                 let nuclei = sp_group
                     .dataset("structure/nuclei")
                     .map_err(|err| PyValueError::new_err(err.to_string()))?
@@ -302,7 +302,7 @@ impl PyBasisAngularOrder {
                     .into_iter()
                     .map(|(atom_idx, v)| {
                         let element = elements
-                            .get(nuclei[atom_idx])
+                            .get(nuclei[atom_idx] - 1)
                             .map(|el| el.symbol.to_string())
                             .ok_or_else(|| {
                                 PyValueError::new_err(format!(
@@ -365,7 +365,9 @@ impl PyBasisAngularOrder {
     ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
-            "The number of basis atoms does not match the number of ordinary atoms."
+            "The number of basis atoms ({}) does not match the number of ordinary atoms ({}).",
+            self.basis_atoms.len(),
+            mol.atoms.len()
         );
         let basis_atoms = self
             .basis_atoms
@@ -397,7 +399,7 @@ impl PyBasisAngularOrder {
 /// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
@@ -439,7 +441,7 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
 /// Python-exposed enumerated type to marshall basis spin--orbit-coupled layout in the coupled
 /// treatment of spin and spatial degrees of freedom between Rust and Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PySpinOrbitCoupled {
     /// Variant for two-component $`j`$-adapted basis functions.
     JAdapted2C,
@@ -473,7 +475,7 @@ impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
 
 /// Python-exposed enumerated type to handle the union type `PySpinConstraint | PySpinOrbitCoupled`
 /// in Python.
-#[derive(FromPyObject, Clone, PartialEq, Eq, Hash)]
+#[derive(FromPyObject, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PyStructureConstraint {
     /// Variant for Python-exposed spin constraint layout.
     SpinConstraint(PySpinConstraint),

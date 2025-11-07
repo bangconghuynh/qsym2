@@ -3,3 +3,4 @@
 pub mod backend;
 pub mod basis;
 pub mod multideterminant;
+pub mod multideterminants;

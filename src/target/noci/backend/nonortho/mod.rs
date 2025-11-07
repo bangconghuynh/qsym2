@@ -11,7 +11,7 @@ use ndarray::{
 };
 use ndarray_einsum::einsum;
 use ndarray_linalg::types::Lapack;
-use ndarray_linalg::{Determinant, Eig, Eigh, Norm, SVD, Scalar, UPLO};
+use ndarray_linalg::{Determinant, Eig, Eigh, SVD, Scalar, UPLO};
 use num::{Complex, Float};
 use num_complex::ComplexFloat;
 
@@ -1154,10 +1154,12 @@ impl CanonicalOrthogonalisable for ArrayView2<'_, dtype_> {
         let smat = self;
 
         // Real, symmetric S
-        let deviation_s = (smat.to_owned() - smat.t()).norm_l2();
+        let max_offdiag_s = *(smat.to_owned() - smat.t()).map(|v| v.abs()).iter()
+                .max_by(|a, b| a.total_cmp(b))
+                .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap symmetric deviation matrix."))?;
         ensure!(
-            deviation_s <= thresh_offdiag,
-            "Overlap matrix is not real-symmetric: ||S - S^T|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+            max_offdiag_s <= thresh_offdiag,
+            "Overlap matrix is not real-symmetric: ||S - S^T||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
         );
 
         // S is real-symmetric, so U is orthogonal, i.e. U^T = U^(-1).
@@ -1210,14 +1212,24 @@ where
 
         if complex_symmetric {
             // Complex-symmetric S
+            let max_offdiag = *(smat.to_owned() - smat.t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
-                (smat.to_owned() - smat.t()).norm_l2() <= thresh_offdiag,
+                max_offdiag <= thresh_offdiag,
                 "Overlap matrix is not complex-symmetric."
             );
         } else {
             // Complex-Hermitian S
+            let max_offdiag = *(smat.to_owned() - smat.map(|v| v.conj()).t())
+                    .mapv(|v| ComplexFloat::abs(v))
+                    .iter()
+                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
-                (smat.to_owned() - smat.map(|v| v.conj()).t()).norm_l2() <= thresh_offdiag,
+                max_offdiag <= thresh_offdiag,
                 "Overlap matrix is not complex-Hermitian."
             );
         }
@@ -1263,13 +1275,15 @@ where
                 .dot(&nonzero_umat)
         };
 
-        let deviation_s = (nonzero_s_eig_from_u - Array2::from_diag(&nonzero_s_eig)).norm_l2();
+        let max_offdiag_s = *(nonzero_s_eig_from_u - Array2::from_diag(&nonzero_s_eig)).mapv(|v| ComplexFloat::abs(v)).iter()
+                .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap symmetric deviation matrix."))?;
         ensure!(
-            deviation_s <= thresh_offdiag,
+            max_offdiag_s <= thresh_offdiag,
             if complex_symmetric {
-                "Canonical orthogonalisation has failed: ||U^T.S.U - s|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                "Canonical orthogonalisation has failed: ||U^T.S.U - s||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
             } else {
-                "Canonical orthogonalisation has failed: ||U^†.S.U - s|| = {deviation_s:.3e} > {thresh_offdiag:.3e}."
+                "Canonical orthogonalisation has failed: ||U^†.S.U - s||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
             }
         );
 
