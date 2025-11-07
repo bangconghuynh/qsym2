@@ -175,12 +175,10 @@ fn test_drivers_slater_determinant_projection_vf6() {
             .unwrap()
             .as_ref()
             .unwrap();
-        let norm_sq = dyy_p.overlap(&dyy_p, Some(&sao), None).unwrap();
         let mixed_denmat = dyy_p
-            .density_matrix(&sao.view(), 1e-7, 1e-7)
+            .density_matrix(&sao.view(), 1e-7, 1e-7, true)
             .unwrap()
-            .dot(&sao)
-            / norm_sq;
+            .dot(&sao);
         assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
         assert_abs_diff_eq!(mixed_denmat.trace().unwrap().abs(), 3.0, epsilon = 1e-7);
 
@@ -268,12 +266,10 @@ fn test_drivers_slater_determinant_projection_vf6() {
             .unwrap()
             .as_ref()
             .unwrap();
-        let norm_sq = dyy_p.overlap(&dyy_p, Some(&sao), None).unwrap();
         let mixed_denmat = dyy_p
-            .density_matrix(&sao.view(), 1e-7, 1e-7)
+            .density_matrix(&sao.view(), 1e-7, 1e-7, true)
             .unwrap()
-            .dot(&sao)
-            / norm_sq;
+            .dot(&sao);
         assert_abs_diff_ne!(mixed_denmat.norm_l2(), 0.0, epsilon = 1e-7);
         assert_abs_diff_eq!(mixed_denmat.trace().unwrap().abs(), 3.0, epsilon = 1e-7);
 

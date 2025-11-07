@@ -7,14 +7,14 @@ use std::path::PathBuf;
 use anyhow::{bail, format_err};
 use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, ShapeBuilder};
+use ndarray::{Array1, Array2, Axis, ShapeBuilder};
 use num_complex::Complex;
 use numpy::{PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError};
 use pyo3::types::PyFunction;
 use pyo3::{IntoPyObjectExt, prelude::*};
 
-use crate::analysis::{EigenvalueComparisonMode, Overlap};
+use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
 use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::multideterminant::{
@@ -41,6 +41,7 @@ use crate::target::noci::backend::matelem::hamiltonian::HamiltonianAO;
 use crate::target::noci::backend::matelem::overlap::OverlapAO;
 use crate::target::noci::backend::solver::noci::SymmetryOrbitNOCISolvable;
 use crate::target::noci::basis::Basis;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 // ~~~~~~~~~~~~~
 // Macro helpers
@@ -492,28 +493,21 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                 let density_matrices = if calculate_density_matrices {
                     log::debug!("Calculating density matrices...");
-                    let res = Some(
-                        multidets
-                            .iter()
-                            .map(|multidet| {
-                                multidet
-                                    .overlap(multidet, Some(&sao_r), None)
-                                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                    .and_then(|sq_norm| {
-                                        multidet
-                                            .density_matrix(
-                                                &sao_r.view(),
-                                                thresh_offdiag,
-                                                thresh_zeroov,
-                                            )
-                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                            .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                    })
-                            })
-                            .collect::<Result<Vec<_>, _>>()?,
-                    );
+                    let multidets_collection = MultiDeterminants::from_multideterminant_vec(
+                        &multidets.iter().collect_vec(),
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    let denmats_opt = multidets_collection
+                        .density_matrices(&sao_r.view(), thresh_offdiag, thresh_zeroov, true)
+                        .map(|denmats| {
+                            denmats
+                                .axis_iter(Axis(0))
+                                .map(|denmat| denmat.to_pyarray(py))
+                                .collect_vec()
+                        })
+                        .ok();
                     log::debug!("Calculating density matrices... Done.");
-                    res
+                    denmats_opt
                 } else {
                     None
                 };
@@ -624,28 +618,21 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                 let density_matrices = if calculate_density_matrices {
                     log::debug!("Calculating density matrices...");
-                    let res = Some(
-                        multidets
-                            .iter()
-                            .map(|multidet| {
-                                multidet
-                                    .overlap(multidet, Some(&sao_r), None)
-                                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                    .and_then(|sq_norm| {
-                                        multidet
-                                            .density_matrix(
-                                                &sao_r.view(),
-                                                thresh_offdiag,
-                                                thresh_zeroov,
-                                            )
-                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                            .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                    })
-                            })
-                            .collect::<Result<Vec<_>, _>>()?,
-                    );
+                    let multidets_collection = MultiDeterminants::from_multideterminant_vec(
+                        &multidets.iter().collect_vec(),
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    let denmats_opt = multidets_collection
+                        .density_matrices(&sao_r.view(), thresh_offdiag, thresh_zeroov, true)
+                        .map(|denmats| {
+                            denmats
+                                .axis_iter(Axis(0))
+                                .map(|denmat| denmat.to_pyarray(py))
+                                .collect_vec()
+                        })
+                        .ok();
                     log::debug!("Calculating density matrices... Done.");
-                    res
+                    denmats_opt
                 } else {
                     None
                 };
@@ -828,30 +815,27 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let res = Some(
-                                multidets
-                                    .iter()
-                                    .map(|multidet| {
-                                        multidet
-                                            .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
-                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                            .and_then(|sq_norm| {
-                                                multidet
-                                                    .density_matrix(
-                                                        &sao_c.view(),
-                                                        thresh_offdiag,
-                                                        thresh_zeroov,
-                                                    )
-                                                    .map_err(|err| {
-                                                        PyRuntimeError::new_err(err.to_string())
-                                                    })
-                                                    .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                            })
-                                    })
-                                    .collect::<Result<Vec<_>, _>>()?,
-                            );
+                            let multidets_collection =
+                                MultiDeterminants::from_multideterminant_vec(
+                                    &multidets.iter().collect_vec(),
+                                )
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                            let denmats_opt = multidets_collection
+                                .density_matrices(
+                                    &sao_c.view(),
+                                    thresh_offdiag,
+                                    thresh_zeroov,
+                                    true,
+                                )
+                                .map(|denmats| {
+                                    denmats
+                                        .axis_iter(Axis(0))
+                                        .map(|denmat| denmat.to_pyarray(py))
+                                        .collect_vec()
+                                })
+                                .ok();
                             log::debug!("Calculating density matrices... Done.");
-                            res
+                            denmats_opt
                         } else {
                             None
                         };
@@ -964,30 +948,27 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let res = Some(
-                                multidets
-                                    .iter()
-                                    .map(|multidet| {
-                                        multidet
-                                            .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
-                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                            .and_then(|sq_norm| {
-                                                multidet
-                                                    .density_matrix(
-                                                        &sao_c.view(),
-                                                        thresh_offdiag,
-                                                        thresh_zeroov,
-                                                    )
-                                                    .map_err(|err| {
-                                                        PyRuntimeError::new_err(err.to_string())
-                                                    })
-                                                    .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                            })
-                                    })
-                                    .collect::<Result<Vec<_>, _>>()?,
-                            );
+                            let multidets_collection =
+                                MultiDeterminants::from_multideterminant_vec(
+                                    &multidets.iter().collect_vec(),
+                                )
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                            let denmats_opt = multidets_collection
+                                .density_matrices(
+                                    &sao_c.view(),
+                                    thresh_offdiag,
+                                    thresh_zeroov,
+                                    true,
+                                )
+                                .map(|denmats| {
+                                    denmats
+                                        .axis_iter(Axis(0))
+                                        .map(|denmat| denmat.to_pyarray(py))
+                                        .collect_vec()
+                                })
+                                .ok();
                             log::debug!("Calculating density matrices... Done.");
-                            res
+                            denmats_opt
                         } else {
                             None
                         };
@@ -1125,30 +1106,27 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let res = Some(
-                                multidets
-                                    .iter()
-                                    .map(|multidet| {
-                                        multidet
-                                            .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
-                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                            .and_then(|sq_norm| {
-                                                multidet
-                                                    .density_matrix(
-                                                        &sao_c.view(),
-                                                        thresh_offdiag,
-                                                        thresh_zeroov,
-                                                    )
-                                                    .map_err(|err| {
-                                                        PyRuntimeError::new_err(err.to_string())
-                                                    })
-                                                    .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                            })
-                                    })
-                                    .collect::<Result<Vec<_>, _>>()?,
-                            );
+                            let multidets_collection =
+                                MultiDeterminants::from_multideterminant_vec(
+                                    &multidets.iter().collect_vec(),
+                                )
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                            let denmats_opt = multidets_collection
+                                .density_matrices(
+                                    &sao_c.view(),
+                                    thresh_offdiag,
+                                    thresh_zeroov,
+                                    true,
+                                )
+                                .map(|denmats| {
+                                    denmats
+                                        .axis_iter(Axis(0))
+                                        .map(|denmat| denmat.to_pyarray(py))
+                                        .collect_vec()
+                                })
+                                .ok();
                             log::debug!("Calculating density matrices... Done.");
-                            res
+                            denmats_opt
                         } else {
                             None
                         };
@@ -1261,30 +1239,27 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let res = Some(
-                                multidets
-                                    .iter()
-                                    .map(|multidet| {
-                                        multidet
-                                            .overlap(multidet, Some(&sao_c), sao_h_c.as_ref())
-                                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-                                            .and_then(|sq_norm| {
-                                                multidet
-                                                    .density_matrix(
-                                                        &sao_c.view(),
-                                                        thresh_offdiag,
-                                                        thresh_zeroov,
-                                                    )
-                                                    .map_err(|err| {
-                                                        PyRuntimeError::new_err(err.to_string())
-                                                    })
-                                                    .map(|denmat| (denmat / sq_norm).to_pyarray(py))
-                                            })
-                                    })
-                                    .collect::<Result<Vec<_>, _>>()?,
-                            );
+                            let multidets_collection =
+                                MultiDeterminants::from_multideterminant_vec(
+                                    &multidets.iter().collect_vec(),
+                                )
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                            let denmats_opt = multidets_collection
+                                .density_matrices(
+                                    &sao_c.view(),
+                                    thresh_offdiag,
+                                    thresh_zeroov,
+                                    true,
+                                )
+                                .map(|denmats| {
+                                    denmats
+                                        .axis_iter(Axis(0))
+                                        .map(|denmat| denmat.to_pyarray(py))
+                                        .collect_vec()
+                                })
+                                .ok();
                             log::debug!("Calculating density matrices... Done.");
-                            res
+                            denmats_opt
                         } else {
                             None
                         };

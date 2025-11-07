@@ -12,7 +12,6 @@ use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::PyType;
 use serde::{Deserialize, Serialize};
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
@@ -27,6 +26,7 @@ use crate::io::{QSym2FileType, read_qsym2_binary, write_qsym2_binary};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::EagerBasis;
 use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 type C128 = Complex<f64>;
 
@@ -242,13 +242,13 @@ impl PyMultiDeterminantsReal {
     ///
     /// # Returns
     ///
-    /// The A vector of [`MultiDeterminant`] structures, one for each multi-determinantal state
+    /// A vector of [`MultiDeterminant`] structures, one for each multi-determinantal state
     /// contained in the Python version.
     ///
     /// # Errors
     ///
     /// Errors if the [`MultiDeterminant`] structures fail to build.
-    pub fn to_qsym2<'b, 'a: 'b, SC>(
+    pub fn to_qsym2_individuals<'b, 'a: 'b, SC>(
         &'b self,
         baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
@@ -287,6 +287,55 @@ impl PyMultiDeterminantsReal {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| format_err!(err));
         multidets
+    }
+
+    /// Extracts the information in the [`PyMultiDeterminantsReal`] structure into a `QSym2`'s
+    /// native [`MultiDeterminants`] structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
+    /// * `mol` - The molecule with which the Slater determinant is associated.
+    ///
+    /// # Returns
+    ///
+    /// A [`MultiDeterminants`] structure.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the [`MultiDeterminants`] structure fails to build.
+    pub fn to_qsym2_collection<'b, 'a: 'b, SC>(
+        &'b self,
+        baos: &[&'a BasisAngularOrder],
+        mol: &'a Molecule,
+    ) -> Result<
+        MultiDeterminants<'b, f64, EagerBasis<SlaterDeterminant<'b, f64, SC>>, SC>,
+        anyhow::Error,
+    >
+    where
+        SC: StructureConstraint
+            + Eq
+            + Hash
+            + Clone
+            + fmt::Display
+            + TryFrom<PyStructureConstraint, Error = anyhow::Error>,
+    {
+        let eager_basis = EagerBasis::builder()
+            .elements(
+                self.basis
+                    .iter()
+                    .map(|pydet| pydet.to_qsym2(baos, mol))
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+            .build()?;
+        MultiDeterminants::builder()
+            .basis(eager_basis)
+            .coefficients(self.coefficients.clone())
+            .energies(Ok(self.energies.clone()))
+            .threshold(self.threshold)
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 
@@ -501,7 +550,7 @@ impl PyMultiDeterminantsComplex {
     /// # Errors
     ///
     /// Errors if the [`MultiDeterminant`] structures fail to build.
-    pub fn to_qsym2<'b, 'a: 'b, SC>(
+    pub fn to_qsym2_individuals<'b, 'a: 'b, SC>(
         &'b self,
         baos: &[&'a BasisAngularOrder],
         mol: &'a Molecule,
@@ -540,6 +589,55 @@ impl PyMultiDeterminantsComplex {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| format_err!(err));
         multidets
+    }
+
+    /// Extracts the information in the [`PyMultiDeterminantsComplex`] structure into a `QSym2`'s
+    /// native [`MultiDeterminants`] structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
+    /// given, one for each explicit component per coefficient matrix.
+    /// * `mol` - The molecule with which the Slater determinant is associated.
+    ///
+    /// # Returns
+    ///
+    /// A [`MultiDeterminants`] structure.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the [`MultiDeterminants`] structure fails to build.
+    pub fn to_qsym2_collection<'b, 'a: 'b, SC>(
+        &'b self,
+        baos: &[&'a BasisAngularOrder],
+        mol: &'a Molecule,
+    ) -> Result<
+        MultiDeterminants<'b, C128, EagerBasis<SlaterDeterminant<'b, C128, SC>>, SC>,
+        anyhow::Error,
+    >
+    where
+        SC: StructureConstraint
+            + Eq
+            + Hash
+            + Clone
+            + fmt::Display
+            + TryFrom<PyStructureConstraint, Error = anyhow::Error>,
+    {
+        let eager_basis = EagerBasis::builder()
+            .elements(
+                self.basis
+                    .iter()
+                    .map(|pydet| pydet.to_qsym2(baos, mol))
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+            .build()?;
+        MultiDeterminants::builder()
+            .basis(eager_basis)
+            .coefficients(self.coefficients.clone())
+            .energies(Ok(self.energies.clone()))
+            .threshold(self.threshold)
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 
