@@ -17,6 +17,7 @@ check:
     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -A unused"
     - apt-get update
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
+    - rustup component add clippy
   script:
     - cargo check --release --verbose --features full,python,sandbox --color always
     - cargo clippy --features full,python,sandbox -- -D warnings
