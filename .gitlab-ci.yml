@@ -14,11 +14,12 @@ check:
   tags:
     - archon
   before_script:
-    - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
+    - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -A unused"
     - apt-get update
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
-    - cargo check --release --verbose --features full,sandbox --color always
+    - cargo check --release --verbose --features full,python,sandbox --color always
+    - cargo clippy --features full,python,sandbox -- -D warnings
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
@@ -33,7 +34,7 @@ unit_tests:
     - apt-get update
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
-    - cargo test -r --features full,sandbox -- --include-ignored
+    - cargo test -r --features full,python,sandbox -- --include-ignored
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
