@@ -379,7 +379,7 @@ fn get_anticlockwise_angle(
     normal: &UnitVector3<f64>,
     thresh: f64,
 ) -> f64 {
-    assert!(thresh >= std::f64::EPSILON);
+    assert!(thresh >= f64::EPSILON);
     assert!(vec1.norm() >= thresh);
     assert!(vec2.norm() >= thresh);
     let dot = vec1.dot(vec2);
@@ -831,7 +831,7 @@ impl SphericalConditions {
     /// * `z_basis` - The polar axis.
     /// * `x_basis` - The azimuthal axis.
     /// * `n` - An odd number specifying the number of equal and disjoint arcs belonging to the
-    /// positive hemisphere on the equator.
+    ///   positive hemisphere on the equator.
     ///
     /// # Returns
     ///
@@ -875,7 +875,7 @@ impl SphericalConditions {
             })
             .collect_vec();
 
-        conditions.extend(phi_conditions.into_iter());
+        conditions.extend(phi_conditions);
         Self::builder()
             .z_basis(z_basis)
             .x_basis(x_basis)

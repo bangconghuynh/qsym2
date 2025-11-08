@@ -33,10 +33,10 @@ fn kdelta<T: PartialEq>(i: &T, j: &T) -> u8 {
 /// * `mu` - The index $`\mu`$ satisfying $`-l+1 \le \mu \le l-1`$.
 /// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 /// * `rmat` - The representation matrix of the transformation of interest in the basis of
-/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
-/// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
+///   coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+///   $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
 /// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
-/// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
+///   spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
 ///
@@ -97,10 +97,10 @@ fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<
 /// * `m` - The index $`m`$ satisfying $`-l+1 \le \mu \le l-1`$.
 /// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 /// * `rmat` - The representation matrix of the transformation of interest in the basis of
-/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
-/// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
-/// *  rlm1 - The representation matrix of the transformation of interest in the basis of the real
-/// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
+///   coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+///   $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
+/// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
+///   spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
 ///
@@ -120,10 +120,10 @@ fn func_u(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 /// * `m` - The index $`m`$ satisfying $`-l \le m \le l`$.
 /// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 /// * `rmat` - The representation matrix of the transformation of interest in the basis of
-/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
-/// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
+///   coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+///   $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
 /// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
-/// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
+///   spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
 ///
@@ -172,10 +172,10 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 /// * `m` - The index $`m`$ satisfying $`-l+2 \le m \le l-2`$ and $`m \ne 0`$.
 /// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 /// * `rmat` - The representation matrix of the transformation of interest in the basis of
-/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
-/// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
+///   coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+///   $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
 /// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
-/// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
+///   spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
 ///
@@ -340,9 +340,9 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
 /// # Arguments
 ///
 /// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
-/// anticlockwise rotation when looking down `axis`.
+///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
-/// normalised.
+///   normalised.
 ///
 /// # Returns
 ///
@@ -384,10 +384,10 @@ pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
 ///
 /// * `l` - The spherical harmonic order $`l \ge 2`$.
 /// * `rmat` - The representation matrix of the transformation of interest in the basis of coordinate
-/// *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
-/// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
+///   *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+///   $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
 /// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
-/// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
+///   spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
 ///

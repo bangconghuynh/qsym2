@@ -11,6 +11,7 @@ use pyo3::prelude::*;
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::auxiliary::molecule::Molecule;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::vibrational_coordinate::{
     VibrationalCoordinateRepAnalysisDriver, VibrationalCoordinateRepAnalysisParams,
@@ -19,9 +20,8 @@ use crate::drivers::representation_analysis::{
     CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::io::format::qsym2_output;
-use crate::io::{read_qsym2_binary, QSym2FileType};
+use crate::io::{QSym2FileType, read_qsym2_binary};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -65,12 +65,11 @@ impl PyVibrationalCoordinateCollectionReal {
         frequencies: Bound<'_, PyArray1<f64>>,
         threshold: f64,
     ) -> Self {
-        let vibs = Self {
+        Self {
             coefficients: coefficients.to_owned_array(),
             frequencies: frequencies.to_owned_array(),
             threshold,
-        };
-        vibs
+        }
     }
 
     #[getter]
@@ -103,14 +102,13 @@ impl PyVibrationalCoordinateCollectionReal {
         &'b self,
         mol: &'a Molecule,
     ) -> Result<VibrationalCoordinateCollection<'b, f64>, anyhow::Error> {
-        let vibs = VibrationalCoordinateCollection::<f64>::builder()
+        VibrationalCoordinateCollection::<f64>::builder()
             .mol(mol)
             .coefficients(self.coefficients.clone())
             .frequencies(self.frequencies.clone())
             .threshold(self.threshold)
             .build()
-            .map_err(|err| format_err!(err));
-        vibs
+            .map_err(|err| format_err!(err))
     }
 }
 
@@ -152,12 +150,11 @@ impl PyVibrationalCoordinateCollectionComplex {
         frequencies: Bound<'_, PyArray1<C128>>,
         threshold: f64,
     ) -> Self {
-        let vibs = Self {
+        Self {
             coefficients: coefficients.to_owned_array(),
             frequencies: frequencies.to_owned_array(),
             threshold,
-        };
-        vibs
+        }
     }
 
     #[getter]
@@ -190,14 +187,13 @@ impl PyVibrationalCoordinateCollectionComplex {
         &'b self,
         mol: &'a Molecule,
     ) -> Result<VibrationalCoordinateCollection<'b, C128>, anyhow::Error> {
-        let vibs = VibrationalCoordinateCollection::<C128>::builder()
+        VibrationalCoordinateCollection::<C128>::builder()
             .mol(mol)
             .coefficients(self.coefficients.clone())
             .frequencies(self.frequencies.clone())
             .threshold(self.threshold)
             .build()
-            .map_err(|err| format_err!(err));
-        vibs
+            .map_err(|err| format_err!(err))
     }
 }
 
@@ -258,6 +254,7 @@ pub enum PyVibrationalCoordinateCollection {
 /// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,

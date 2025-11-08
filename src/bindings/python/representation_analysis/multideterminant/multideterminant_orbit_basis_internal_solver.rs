@@ -162,6 +162,7 @@ macro_rules! generate_get_jk {
 /// The result will be returned as an object containing the Slater determinant basis and the linear
 /// combination coefficients as a two-dimensional array with each column corresponding to one
 /// computed multi-determinantal state.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
@@ -459,8 +460,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // Collect multi-determinantal wavefunctions for returning
                 let basis = multidets
-                    .iter()
-                    .next()
+                    .first()
                     .and_then(|multidet| {
                         multidet
                             .basis()
@@ -584,8 +584,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // Collect multi-determinantal wavefunctions for returning
                 let basis = multidets
-                    .iter()
-                    .next()
+                    .first()
                     .and_then(|multidet| {
                         multidet
                             .basis()
@@ -779,8 +778,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .iter()
-                            .next()
+                            .first()
                             .and_then(|multidet| {
                                 multidet
                                     .basis()
@@ -912,8 +910,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .iter()
-                            .next()
+                            .first()
                             .and_then(|multidet| {
                                 multidet
                                     .basis()
@@ -1070,8 +1067,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .iter()
-                            .next()
+                            .first()
                             .and_then(|multidet| {
                                 multidet
                                     .basis()
@@ -1203,8 +1199,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .iter()
-                            .next()
+                            .first()
                             .and_then(|multidet| {
                                 multidet
                                     .basis()

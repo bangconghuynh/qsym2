@@ -56,6 +56,7 @@ use crate::io::QSym2FileType;
 /// # Errors
 ///
 /// Errors if any intermediate step in the symmetrisation procedure fails.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_xyz,

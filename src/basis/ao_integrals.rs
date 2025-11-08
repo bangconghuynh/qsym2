@@ -272,17 +272,17 @@ impl BasisShellContraction<f64, f64> {
     /// * `mol` - A molecule.
     /// * `basis_name` - The name of the basis set to be retrieved.
     /// * `cart` - A boolean indicating if the shell functions should have lexicographic Cartesian
-    /// ordering. If `false`, the shell functions shall have increasing-$`m`$ pure ordering
-    /// instead.
+    ///   ordering. If `false`, the shell functions shall have increasing-$`m`$ pure ordering
+    ///   instead.
     /// * `optimised_contraction` - A boolean indicating if the optimised contraction version of
-    /// shells should be requested.
+    ///   shells should be requested.
     /// * `version` - The requested version of the basis set information.
     /// * `mol_bohr` - A boolean indicating of the coordinates of the atoms in `mol` are to be
-    /// interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
-    /// will be converted to Bohr.
+    ///   interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
+    ///   will be converted to Bohr.
     /// * `force_renormalisation` - A boolean indicating if each shell is renormalised by scaling
-    /// its primitive contraction coefficients by the inverse square root of its
-    /// $\mathcal{l}_2$-norm.
+    ///   its primitive contraction coefficients by the inverse square root of its
+    ///   $`\mathcal{l}_2`$-norm.
     ///
     /// # Returns
     ///
@@ -349,9 +349,9 @@ impl BasisShellContraction<f64, f64> {
                                         };
 
                                         let cart_origin = if mol_bohr {
-                                            atom.coordinates.clone()
+                                            atom.coordinates
                                         } else {
-                                            atom.coordinates.clone() * ANGSTROM_TO_BOHR
+                                            atom.coordinates * ANGSTROM_TO_BOHR
                                         };
 
                                         if force_renormalisation {
@@ -527,17 +527,17 @@ impl BasisSet<f64, f64> {
     /// * `mol` - A molecule.
     /// * `basis_name` - The name of the basis set to be retrieved.
     /// * `cart` - A boolean indicating if the shell functions should have lexicographic Cartesian
-    /// ordering. If `false`, the shell functions shall have increasing-$`m`$ pure ordering
-    /// instead.
+    ///   ordering. If `false`, the shell functions shall have increasing-$`m`$ pure ordering
+    ///   instead.
     /// * `optimised_contraction` - A boolean indicating if the optimised contraction version of
-    /// shells should be requested.
+    ///   shells should be requested.
     /// * `version` - The requested version of the basis set information.
     /// * `mol_bohr` - A boolean indicating of the coordinates of the atoms in `mol` are to be
-    /// interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
-    /// will be converted to Bohr.
+    ///   interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
+    ///   will be converted to Bohr.
     /// * `force_renormalisation` - A boolean indicating if each shell is renormalised by scaling
-    /// its primitive contraction coefficients by the inverse square root of its
-    /// $\mathcal{l}_2$-norm.
+    ///   its primitive contraction coefficients by the inverse square root of its
+    ///   $`\mathcal{l}_2`$-norm.
     ///
     /// # Returns
     ///

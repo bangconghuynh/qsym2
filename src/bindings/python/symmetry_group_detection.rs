@@ -179,11 +179,13 @@ pub struct PySymmetry {
     /// The symmetry elements.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
+    #[allow(clippy::type_complexity)]
     elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Arc<Py<PyArray1<f64>>>>>>,
 
     /// The symmetry generators.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
+    #[allow(clippy::type_complexity)]
     generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Arc<Py<PyArray1<f64>>>>>>,
 }
 
@@ -232,7 +234,7 @@ impl PySymmetry {
                             .iter()
                             .map(|axis_arc| Arc::into_inner(axis_arc.clone()))
                             .collect::<Option<Vec<_>>>();
-                        axes_opt.map(|axes| (order.clone(), axes))
+                        axes_opt.map(|axes| (*order, axes))
                     })
                     .collect::<Option<HashMap<_, _>>>()
             })
@@ -267,7 +269,7 @@ impl PySymmetry {
                             .iter()
                             .map(|axis_arc| Arc::into_inner(axis_arc.clone()))
                             .collect::<Option<Vec<_>>>();
-                        axes_opt.map(|axes| (order.clone(), axes))
+                        axes_opt.map(|axes| (*order, axes))
                     })
                     .collect::<Option<HashMap<_, _>>>()
             })
@@ -392,6 +394,7 @@ impl TryFrom<&Symmetry> for PySymmetry {
 /// # Errors
 ///
 /// Returns an error if any intermediate step in the symmetry-group detection procedure fails.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_xyz,
