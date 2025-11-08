@@ -108,7 +108,7 @@ where
     /// * `det_x` - The determinant $`^{x}\Psi`$.
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
-    /// orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
+    ///   orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     ///
     /// # Returns
@@ -201,10 +201,10 @@ where
     /// # Arguments
     ///
     /// * `dets` - A sequence of Slater determinants to be used as the basis for the Hamiltonian
-    /// matrix.
+    ///   matrix.
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
-    /// orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
+    ///   orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
     /// * `thresh_zeroov` - threshold for identifying zero Löwdin overlaps.
     ///
     /// # Returns

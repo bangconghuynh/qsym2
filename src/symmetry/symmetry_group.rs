@@ -83,8 +83,8 @@ pub trait SymmetryGroupProperties:
     ///
     /// * `sym` - A molecular symmetry structure containing the symmetry *elements*.
     /// * `infinite_order_to_finite` - Interpret infinite-order generating
-    /// elements as finite-order generating elements to create a finite subgroup
-    /// of an otherwise infinite group.
+    ///   elements as finite-order generating elements to create a finite subgroup
+    ///   of an otherwise infinite group.
     ///
     /// # Returns
     ///
@@ -486,8 +486,8 @@ impl SymmetryGroupProperties
     ///
     /// * `sym` - A molecular symmetry struct.
     /// * `infinite_order_to_finite` - Interpret infinite-order generating
-    /// elements as finite-order generating elements to create a finite subgroup
-    /// of an otherwise infinite group.
+    ///   elements as finite-order generating elements to create a finite subgroup
+    ///   of an otherwise infinite group.
     ///
     /// # Returns
     ///
@@ -582,7 +582,7 @@ impl SymmetryGroupProperties
                 q_op
             })
             .collect_vec();
-        su2_operations.extend(su2_1_operations.into_iter());
+        su2_operations.extend(su2_1_operations);
         sort_operations(&mut su2_operations);
 
         let group_name = if self.name().contains('+') {
@@ -750,8 +750,8 @@ impl SymmetryGroupProperties
     ///
     /// * `sym` - A molecular symmetry struct.
     /// * `infinite_order_to_finite` - Interpret infinite-order generating
-    /// elements as finite-order generating elements to create a finite subgroup
-    /// of an otherwise infinite group.
+    ///   elements as finite-order generating elements to create a finite subgroup
+    ///   of an otherwise infinite group.
     ///
     /// # Returns
     ///
@@ -891,7 +891,7 @@ impl SymmetryGroupProperties
                 q_op
             })
             .collect_vec();
-        su2_operations.extend(su2_1_operations.into_iter());
+        su2_operations.extend(su2_1_operations);
         sort_operations(&mut su2_operations);
 
         let group_name = if self.name().contains('+') {

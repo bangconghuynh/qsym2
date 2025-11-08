@@ -176,6 +176,7 @@ where
     /// The projected densities. Each tuple in the vector contains the name or description of the
     /// density being projected and an indexmap containing the projected densities indexed by the
     /// requested subspace labels.
+    #[allow(clippy::type_complexity)]
     projected_densities: Vec<(
         String,
         IndexMap<G::RowSymbol, Result<Density<'a, T>, String>>,
@@ -195,6 +196,7 @@ where
     }
 
     /// Returns the projected densities.
+    #[allow(clippy::type_complexity)]
     pub fn projected_densities(
         &self,
     ) -> &Vec<(
@@ -430,8 +432,7 @@ impl<'a> DensityProjectionDriver<'a, gtype_, dtype_> {
         log_cc_transversal(&group);
         let bao = self
             .densities
-            .iter()
-            .next()
+            .first()
             .map(|(_, den)| den.bao())
             .ok_or_else(|| {
                 format_err!("Basis angular order information could not be extracted.")

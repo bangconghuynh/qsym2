@@ -17,13 +17,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis_gen_single;
 use crate::auxiliary::geometry::{
-    self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
+    self, IMINV, PositiveHemisphere, Transform, improper_rotation_matrix, proper_rotation_matrix,
 };
 use crate::auxiliary::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, SymmetryElement, SymmetryElementKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
+    AntiunitaryKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, SymmetryElement, SymmetryElementKind, TRINV,
     TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
@@ -258,16 +258,16 @@ impl SymmetryOperation {
     /// # Arguments
     ///
     /// * `qtn` - A quaternion encoding the proper rotation associated with the
-    /// generating element of the operation to be constructed.
+    ///   generating element of the operation to be constructed.
     /// * `proper` - A boolean indicating if the operation is proper or improper.
     /// * `thresh` - Threshold for comparisons.
     /// * `tr` - A boolean indicating if the resulting symmetry operation should be accompanied by
-    /// a time-reversal operation.
+    ///   a time-reversal operation.
     /// * `su2` - A boolean indicating if the resulting symmetry operation is to contain a proper
-    /// rotation in $`\mathsf{SU}(2)`$. The homotopy class of the operation will be deduced from
-    /// the specified quaternion.
+    ///   rotation in $`\mathsf{SU}(2)`$. The homotopy class of the operation will be deduced from
+    ///   the specified quaternion.
     /// * `poshem` - An option containing any custom positive hemisphere used to distinguish
-    /// positive and negative rotation poles.
+    ///   positive and negative rotation poles.
     ///
     /// # Returns
     ///
@@ -290,11 +290,7 @@ impl SymmetryOperation {
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         let kind = if proper {
-            if tr {
-                TRROT
-            } else {
-                ROT
-            }
+            if tr { TRROT } else { ROT }
         } else if tr {
             TRINV
         } else {
@@ -741,8 +737,8 @@ impl SymmetryOperation {
     /// # Arguments
     ///
     /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need
-    /// to make sure the time reversal specification in `improper_kind` matches that of the
-    /// generating element of `self` as the conversion will take care of this.
+    ///   to make sure the time reversal specification in `improper_kind` matches that of the
+    ///   generating element of `self` as the conversion will take care of this.
     ///
     /// # Panics
     ///
@@ -780,11 +776,7 @@ impl SymmetryOperation {
     pub fn to_symmetry_element(&self) -> SymmetryElement {
         let kind = if self.is_proper() {
             let tr = self.contains_time_reversal();
-            if tr {
-                TRROT
-            } else {
-                ROT
-            }
+            if tr { TRROT } else { ROT }
         } else {
             self.generating_element.kind
         };
@@ -920,13 +912,12 @@ impl SymmetryOperation {
     ///
     /// * `two_j` - The value of $`2j`$ for the basis.
     /// * `increasingm` - A boolean indicating if the $`\ket{j, m_j}`$ kets are arranged in
-    /// increasing $`m_j`$ values.
+    ///   increasing $`m_j`$ values.
     ///
     /// # Errors
     ///
     /// This function returns an error if `two_j` indicates a half-odd-integer spinor basis but the
     /// symmetry operation is one in $`\mathsf{SO}(3)`$.
-    #[must_use]
     pub fn get_wigner_matrix(
         &self,
         two_j: u32,
@@ -1526,11 +1517,7 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         let max_trial_power = u32::MAX;
 
         let q3 = if su2 {
-            if tr2 {
-                (-q3_s, -q3_v)
-            } else {
-                (q3_s, q3_v)
-            }
+            if tr2 { (-q3_s, -q3_v) } else { (q3_s, q3_v) }
         } else if q3_s >= 0.0 {
             (q3_s, q3_v)
         } else {
@@ -1669,22 +1656,16 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
         let total_proper_fraction = c_op
             .total_proper_fraction
             .expect("No total proper fractions found.");
-        let denom = i64::try_from(
+        let denom = i64::from(
             *total_proper_fraction
                 .denom()
                 .expect("The denominator of the total proper fraction cannot be extracted."),
-        )
-        .unwrap_or_else(|_| {
-            panic!("Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`.")
-        });
-        let numer = i64::try_from(
+        );
+        let numer = i64::from(
             *total_proper_fraction
                 .numer()
                 .expect("The numerator of the total proper fraction cannot be extracted."),
-        )
-        .unwrap_or_else(|_| {
-            panic!("Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`.")
-        });
+        );
 
         let negative_rotation = !c_op
             .positive_hemisphere

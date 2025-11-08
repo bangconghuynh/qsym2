@@ -24,7 +24,7 @@ impl ElementOrder {
     /// # Arguments
     ///
     /// * `order` - A floating-point order value which must be either integral or
-    /// infinite.
+    ///   infinite.
     /// * `thresh` - A threshold for determining the integrality of `order`.
     ///
     /// # Returns
@@ -89,7 +89,7 @@ impl Eq for ElementOrder {}
 
 impl PartialOrd for ElementOrder {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.to_float().partial_cmp(&other.to_float())
+        Some(self.cmp(other))
     }
 }
 

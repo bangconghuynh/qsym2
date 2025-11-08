@@ -114,7 +114,7 @@ where
 /// # Arguments
 ///
 /// * `name` - The name of the YAML file to be written (without extensions). The resulting file
-/// will have the `.yml` extension.
+///   will have the `.yml` extension.
 ///
 /// # Returns
 ///

@@ -139,7 +139,7 @@ impl<'a> TimeReversalTransformable
 // SymmetryTransformable
 // ---------------------
 
-impl<'a, 'go, T, B, SC> SymmetryTransformable for MultiDeterminant<'a, T, B, SC>
+impl<'a, T, B, SC> SymmetryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     B: Basis<SlaterDeterminant<'a, T, SC>> + Clone + SymmetryTransformable,

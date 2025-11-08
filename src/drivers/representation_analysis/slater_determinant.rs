@@ -292,9 +292,11 @@ where
     determinant_symmetry: Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
 
     /// The deduced symmetries of the molecular orbitals constituting the determinant, if required.
+    #[allow(clippy::type_complexity)]
     mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 
     /// The deduced symmetry projections of the molecular orbitals constituting the determinant, if required.
+    #[allow(clippy::type_complexity)]
     mo_symmetry_projections: Option<
         Vec<
             Vec<
@@ -309,16 +311,19 @@ where
     >,
 
     /// The deduced mirror parities of the molecular orbitals constituting the determinant, if required.
+    #[allow(clippy::type_complexity)]
     mo_mirror_parities:
         Option<Vec<Vec<Option<IndexMap<SymmetryClassSymbol<SymmetryOperation>, MirrorParity>>>>>,
 
     /// The overlap eigenvalues above and below the linear independence threshold for each
     /// molecular orbital symmetry deduction.
+    #[allow(clippy::type_complexity)]
     mo_symmetries_thresholds: Option<Vec<Vec<(Option<T>, Option<T>)>>>,
 
     /// The deduced symmetries of the various densities constructible from the determinant, if
     /// required. In each tuple, the first element gives a description of the density corresponding
     /// to the symmetry result.
+    #[allow(clippy::type_complexity)]
     determinant_density_symmetries: Option<
         Vec<(
             String,
@@ -328,6 +333,7 @@ where
 
     /// The deduced symmetries of the total densities of the molecular orbitals constituting the
     /// determinant, if required.
+    #[allow(clippy::type_complexity)]
     mo_density_symmetries:
         Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 }
@@ -368,6 +374,7 @@ where
     }
 
     /// Returns the deduced symmetries of the molecular orbitals constituting the determinant, if required.
+    #[allow(clippy::type_complexity)]
     pub fn mo_symmetries(
         &self,
     ) -> &Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>> {
@@ -375,6 +382,7 @@ where
     }
 
     /// Returns the deduced symmetry projections of the molecular orbitals constituting the determinant, if required.
+    #[allow(clippy::type_complexity)]
     pub fn mo_symmetry_projections(
         &self,
     ) -> &Option<
@@ -395,6 +403,7 @@ where
     /// Returns the deduced symmetries of the various densities constructible from the determinant,
     /// if required. In each tuple, the first element gives a description of the density corresponding
     /// to the symmetry result.
+    #[allow(clippy::type_complexity)]
     pub fn determinant_density_symmetries(
         &self,
     ) -> &Option<
@@ -408,6 +417,7 @@ where
 
     /// Returns the deduced symmetries of the total densities of the molecular orbitals constituting
     /// the determinant, if required.
+    #[allow(clippy::type_complexity)]
     pub fn mo_density_symmetries(
         &self,
     ) -> &Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>> {
@@ -717,7 +727,7 @@ where
                     .to_lowercase()
             )?;
             if self.mo_mirror_parities.as_ref().is_some() {
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(
                     f,
                     "Column p[σ] gives the parity under the reflection class σ: {} => even, {} => odd, {} => neither.",
@@ -764,7 +774,7 @@ where
             } else {
                 writeln!(
                     f,
-                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {}",
+                    " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  Eig. below",
                     "Spin",
                     "MO",
                     "Occ.",
@@ -773,7 +783,6 @@ where
                     " ".repeat(mo_mirror_parities_gap),
                     mo_mirror_parities_heading,
                     "Eig. above",
-                    "Eig. below",
                 )?;
             };
             writeln!(f, "{}", "┈".repeat(table_width))?;
@@ -839,7 +848,7 @@ where
                                         })
                                 })
                         })
-                        .unwrap_or(String::new());
+                        .unwrap_or_default();
 
                     let (eig_above_str, eig_below_str) = self
                         .mo_symmetries_thresholds
@@ -1057,10 +1066,10 @@ where
 
         let sao = self.sao.ok_or("No SAO matrix found.".to_string())?;
 
-        if let Some(sao_h) = self.sao_h.flatten() {
-            if sao_h.shape() != sao.shape() {
-                return Err("Mismatched shapes between `sao` and `sao_h`.".to_string());
-            }
+        if let Some(sao_h) = self.sao_h.flatten()
+            && sao_h.shape() != sao.shape()
+        {
+            return Err("Mismatched shapes between `sao` and `sao_h`.".to_string());
         }
 
         match (
@@ -1342,16 +1351,16 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                 params.use_cayley_table,
             )?;
             det_orbit.calc_xmat(false)?;
-            if params.write_overlap_eigenvalues {
-                if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                    log_overlap_eigenvalues(
-                        "Determinant orbit overlap eigenvalues",
-                        smat_eigvals,
-                        params.linear_independence_threshold,
-                        &params.eigenvalue_comparison_mode,
-                    );
-                    qsym2_output!("");
-                }
+            if params.write_overlap_eigenvalues
+                && let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref()
+            {
+                log_overlap_eigenvalues(
+                    "Determinant orbit overlap eigenvalues",
+                    smat_eigvals,
+                    params.linear_independence_threshold,
+                    &params.eigenvalue_comparison_mode,
+                );
+                qsym2_output!("");
             }
 
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -1484,16 +1493,16 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                 .map_err(|err| err.to_string())
                 .and_then(|det_orb| {
                     det_orb.calc_xmat(false).map_err(|err| err.to_string())?;
-                    if params.write_overlap_eigenvalues {
-                        if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
-                            log_overlap_eigenvalues(
-                                "Determinant orbit overlap eigenvalues",
-                                smat_eigvals,
-                                params.linear_independence_threshold,
-                                &params.eigenvalue_comparison_mode,
-                            );
-                            qsym2_output!("");
-                        }
+                    if params.write_overlap_eigenvalues
+                        && let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref()
+                    {
+                        log_overlap_eigenvalues(
+                            "Determinant orbit overlap eigenvalues",
+                            smat_eigvals,
+                            params.linear_independence_threshold,
+                            &params.eigenvalue_comparison_mode,
+                        );
+                        qsym2_output!("");
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
                 });

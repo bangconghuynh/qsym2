@@ -30,16 +30,16 @@ where
             .dimensionality()
             .to_f64()
             .ok_or_else(|| format_err!("Unable to convert the degeneracy to `f64`."))?;
-        let denmat_res = self.generate_orbit_algebra_terms(row).fold(
-            Ok(Array2::<f64>::zeros(self.origin().density_matrix().raw_dim())),
-            |acc_res, item_res| acc_res.and_then(|acc| item_res.and_then(|(chr, den)| {
+        let denmat_res = self.generate_orbit_algebra_terms(row).try_fold(
+            Array2::<f64>::zeros(self.origin().density_matrix().raw_dim()),
+            |acc, item_res| item_res.and_then(|(chr, den)| {
                 let chr_complex = chr.complex_conjugate().complex_value();
                 if chr_complex.im > self.origin().threshold() {
                     Err(format_err!("Complex characters encountered. Density projection fails over the reals."))
                 } else {
                     Ok(acc + dim_f64 * chr_complex.re / group_order * den.density_matrix())
                 }
-            })),
+            }),
         );
         denmat_res.and_then(|denmat| {
             Density::builder()
@@ -75,16 +75,12 @@ where
             .dimensionality()
             .to_f64()
             .ok_or_else(|| format_err!("Unable to convert the degeneracy to `f64`."))?;
-        let denmat_res = self.generate_orbit_algebra_terms(row).fold(
-            Ok(Array2::<Complex<f64>>::zeros(
-                self.origin().density_matrix().raw_dim(),
-            )),
-            |acc_res, item_res| {
-                acc_res.and_then(|acc| {
-                    item_res.and_then(|(chr, den)| {
-                        let chr_complex = chr.complex_conjugate().complex_value();
-                        Ok(acc + dim_f64 * chr_complex / group_order * den.density_matrix())
-                    })
+        let denmat_res = self.generate_orbit_algebra_terms(row).try_fold(
+            Array2::<Complex<f64>>::zeros(self.origin().density_matrix().raw_dim()),
+            |acc, item_res| {
+                item_res.map(|(chr, den)| {
+                    let chr_complex = chr.complex_conjugate().complex_value();
+                    acc + dim_f64 * chr_complex / group_order * den.density_matrix()
                 })
             },
         );

@@ -379,27 +379,17 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
 
 /// Enumerated type indicating the order the matrix elements are traversed when stored into or
 /// read in from a binary file.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub enum MatrixOrder {
+    #[default]
     RowMajor,
     ColMajor,
 }
 
-impl Default for MatrixOrder {
-    fn default() -> Self {
-        MatrixOrder::RowMajor
-    }
-}
-
 /// Enumerated type indicating the byte order of numerical values in binary files.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub enum ByteOrder {
+    #[default]
     LittleEndian,
     BigEndian,
-}
-
-impl Default for ByteOrder {
-    fn default() -> Self {
-        ByteOrder::LittleEndian
-    }
 }

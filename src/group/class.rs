@@ -501,10 +501,10 @@ where
     ///
     /// * `group` - A group with its Cayley table computed.
     /// * `conjugacy_classes` - A vector of hashsets, each of which contains the indices of the
-    /// elements in `group` that are in the same conjugacy class.
+    ///   elements in `group` that are in the same conjugacy class.
     /// * `element_to_conjugacy_classes` - A vector containing the conjugacy class indices for the
-    /// elements in `group`. An element might not have a conjugacy class (*e.g.*
-    /// antiunitary-represented elements in magnetic-represented groups).
+    ///   elements in `group`. An element might not have a conjugacy class (*e.g.*
+    ///   antiunitary-represented elements in magnetic-represented groups).
     ///
     /// # Returns
     ///
@@ -533,10 +533,10 @@ where
     /// # Arguments
     ///
     /// * `conjugacy_classes` - A vector of hashsets, each of which contains the indices of the
-    /// elements in `group` that are in the same conjugacy class.
+    ///   elements in `group` that are in the same conjugacy class.
     /// * `element_to_conjugacy_classes` - A vector containing the conjugacy class indices for the
-    /// elements in `group`. An element might not have a conjugacy class (*e.g.*
-    /// antiunitary-represented elements in magnetic-represented groups).
+    ///   elements in `group`. An element might not have a conjugacy class (*e.g.*
+    ///   antiunitary-represented elements in magnetic-represented groups).
     ///
     /// # Returns
     ///
@@ -712,15 +712,15 @@ where
 
     fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
         &self,
-        predicate: P,
+        mut predicate: P,
     ) -> Vec<Self::ClassSymbol> {
         self.class_structure
             .as_ref()
             .expect("No class structure found.")
             .conjugacy_class_symbols
             .keys()
+            .filter(|&x| predicate(x))
             .cloned()
-            .filter(predicate)
             .collect::<Vec<_>>()
     }
 
@@ -911,15 +911,15 @@ where
 
     fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
         &self,
-        predicate: P,
+        mut predicate: P,
     ) -> Vec<Self::ClassSymbol> {
         self.class_structure
             .as_ref()
             .expect("No class structure found.")
             .conjugacy_class_symbols
             .keys()
+            .filter(|&x| predicate(x))
             .cloned()
-            .filter(predicate)
             .collect::<Vec<_>>()
     }
 

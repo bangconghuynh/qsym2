@@ -7,14 +7,14 @@ use std::str::FromStr;
 
 use approx;
 use log;
-use ndarray::{array, s, Array1, Array2, Zip};
+use ndarray::{Array1, Array2, Zip, array, s};
 use num::integer::lcm;
 use num_modular::{ModularInteger, MontgomeryInt};
 use num_ord::NumOrd;
 use num_traits::{Inv, One, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -332,11 +332,7 @@ where
                             let mut remaining_degenerate_subspaces: Vec<
                                 Vec<Array1<LinAlgMontgomeryInt<u32>>>,
                             > = vec![];
-                            while !degenerate_subspaces.is_empty() {
-                                let subspace = degenerate_subspaces
-                                    .pop()
-                                    .expect("Unexpected empty `degenerate_subspaces`.");
-
+                            while let Some(subspace) = degenerate_subspaces.pop() {
                                 if let Ok(subsubspaces) = split_space(
                                     &nmat_r,
                                     &subspace,
@@ -389,7 +385,10 @@ where
         }
 
         if eigvecs_1d.len() != self.class_number() {
-            log::error!("Degenerate subspaces failed to be fully resolved for all cyclic permutations of class matrices N1, ..., N{}.", self.class_number());
+            log::error!(
+                "Degenerate subspaces failed to be fully resolved for all cyclic permutations of class matrices N1, ..., N{}.",
+                self.class_number()
+            );
         }
         assert_eq!(
             eigvecs_1d.len(),
@@ -518,9 +517,10 @@ where
                     .expect("Unable to construct default irrep symbols.")
             })
             .collect::<Vec<_>>();
-        let default_principal_classes = vec![self
-            .get_cc_symbol_of_index(0)
-            .expect("No conjugacy class symbols found.")];
+        let default_principal_classes = vec![
+            self.get_cc_symbol_of_index(0)
+                .expect("No conjugacy class symbols found."),
+        ];
 
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
         let group_order = class_sizes.iter().sum::<usize>();

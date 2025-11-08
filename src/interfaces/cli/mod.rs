@@ -73,8 +73,8 @@ impl fmt::Display for Cli {
                 output,
                 debug,
             } => {
-                writeln!(f, "{:<11}: {}", "Config file", config.display().to_string())?;
-                writeln!(f, "{:<11}: {}", "Output file", output.display().to_string())?;
+                writeln!(f, "{:<11}: {}", "Config file", config.display())?;
+                writeln!(f, "{:<11}: {}", "Output file", output.display())?;
                 writeln!(f, "{:<11}: {}", "Debug level", debug)?;
                 Ok(())
             }
@@ -92,7 +92,7 @@ pub fn qsym2_output_heading() {
     let version = if let Some(ver) = VERSION {
         format!("v{ver}")
     } else {
-        format!("v unknown")
+        "v unknown".to_string()
     };
     // Banner length: 103
     qsym2_output!("╭─────────────────────────────────────────────────────────────────────────────────────────────────────╮");

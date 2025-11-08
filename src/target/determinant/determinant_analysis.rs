@@ -64,7 +64,7 @@ where
     /// # Arguments
     ///
     /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
-    /// inner product.
+    ///   inner product.
     /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
     ///
     /// # Panics
@@ -241,6 +241,7 @@ where
     SC: StructureConstraint + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
 {
+    #[allow(clippy::type_complexity)]
     pub fn action(
         &self,
     ) -> fn(
@@ -416,17 +417,15 @@ where
             Err(format_err!(
                 "`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."
             ))
+        } else if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            Ok(ComplexFloat::conj)
         } else {
-            if self
-                .group
-                .get_index(i)
-                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-                .contains_time_reversal()
-            {
-                Ok(ComplexFloat::conj)
-            } else {
-                Ok(|x| x)
-            }
+            Ok(|x| x)
         }
     }
 

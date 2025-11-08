@@ -154,7 +154,7 @@ fn construct_vibration_bao(mol: &'_ Molecule) -> BasisAngularOrder<'_> {
     let batms = mol
         .atoms
         .iter()
-        .map(|atom| BasisAtom::new(atom, &[bsp_c.clone()]))
+        .map(|atom| BasisAtom::new(atom, std::slice::from_ref(&bsp_c)))
         .collect::<Vec<_>>();
     BasisAngularOrder::new(&batms)
 }
