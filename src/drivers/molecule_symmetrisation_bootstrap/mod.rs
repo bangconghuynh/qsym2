@@ -33,13 +33,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
+use crate::drivers::QSym2Driver;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
-use crate::drivers::QSym2Driver;
-use crate::io::format::{log_subtitle, log_title, nice_bool, qsym2_output, QSym2Output};
 use crate::io::QSym2FileType;
-use crate::permutation::IntoPermutation;
+use crate::io::format::{QSym2Output, log_subtitle, log_title, nice_bool, qsym2_output};
+use crate::permutation::{IntoPermutation, Permutation};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 
 #[cfg(test)]
@@ -364,7 +364,11 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
         qsym2_output!(
             "  or    : (2) when the target-threshold symmetry contains more elements than the loose-threshold symmetry and has been consistently identified for {} consecutive iteration{}.",
             params.consistent_target_symmetry_iterations,
-            if params.consistent_target_symmetry_iterations == 1 { "" } else { "s" }
+            if params.consistent_target_symmetry_iterations == 1 {
+                ""
+            } else {
+                "s"
+            }
         );
         qsym2_output!("");
 
@@ -496,24 +500,34 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                         .flat_map(|atom| atom.coordinates.coords.iter().cloned())
                         .collect::<Vec<_>>(),
                 )?;
-                let ave_mag_coords = ts.iter().fold(
-                    Ok(Array2::<f64>::zeros(loose_mag_coords.raw_dim())),
-                    |acc: Result<Array2<f64>, anyhow::Error>, (tmat, _, mag_perm_opt, _)| {
-                        // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
-                        // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
-                        // go back to approximately where they were originally.
-                        Ok(acc?
-                            + loose_mag_coords.dot(tmat).select(
-                                Axis(0),
-                                mag_perm_opt
-                                    .as_ref()
-                                    .ok_or_else(|| {
-                                        format_err!("Expected magnetic atom permutation not found.")
-                                    })?
-                                    .image(),
-                            ))
-                    },
-                )? / n_ops_f64;
+                let ave_mag_coords =
+                    ts.iter().try_fold(
+                        Array2::<f64>::zeros(loose_mag_coords.raw_dim()),
+                        |acc: Array2<f64>,
+                         (tmat, _, mag_perm_opt, _): &(
+                            Array2<_>,
+                            _,
+                            Option<Permutation<usize>>,
+                            _,
+                        )| {
+                            // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
+                            // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
+                            // go back to approximately where they were originally.
+                            Ok::<_, anyhow::Error>(
+                                acc + loose_mag_coords.dot(tmat).select(
+                                    Axis(0),
+                                    mag_perm_opt
+                                        .as_ref()
+                                        .ok_or_else(|| {
+                                            format_err!(
+                                                "Expected magnetic atom permutation not found."
+                                            )
+                                        })?
+                                        .image(),
+                                ),
+                            )
+                        },
+                    )? / n_ops_f64;
                 mag_atoms.iter_mut().enumerate().for_each(|(i, atom)| {
                     atom.coordinates = Point3::<f64>::from_slice(
                         ave_mag_coords
@@ -533,14 +547,20 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                         .flat_map(|atom| atom.coordinates.coords.iter().cloned())
                         .collect::<Vec<_>>(),
                 )?;
-                let ave_elec_coords = ts.iter().fold(
-                    Ok(Array2::<f64>::zeros(loose_elec_coords.raw_dim())),
-                    |acc: Result<Array2<f64>, anyhow::Error>, (tmat, _, _, elec_perm_opt)| {
+                let ave_elec_coords = ts.iter().try_fold(
+                    Array2::<f64>::zeros(loose_elec_coords.raw_dim()),
+                    |acc: Array2<f64>,
+                     (tmat, _, _, elec_perm_opt): &(
+                        Array2<_>,
+                        _,
+                        Option<Permutation<usize>>,
+                        _,
+                    )| {
                         // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
                         // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
                         // go back to approximately where they were originally.
-                        Ok(acc?
-                            + loose_elec_coords.dot(tmat).select(
+                        Ok::<_, anyhow::Error>(
+                            acc + loose_elec_coords.dot(tmat).select(
                                 Axis(0),
                                 elec_perm_opt
                                     .as_ref()
@@ -548,7 +568,8 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
                                         format_err!("Expected electric atom permutation not found.")
                                     })?
                                     .image(),
-                            ))
+                            ),
+                        )
                     },
                 )? / n_ops_f64;
                 elec_atoms.iter_mut().enumerate().for_each(|(i, atom)| {
@@ -675,9 +696,10 @@ impl<'a> MoleculeSymmetrisationBootstrapDriver<'a> {
         ensure!(
             prev_target_sym_group_name.as_ref() == verifying_group_name,
             "Mismatched symmetry: iterative symmetry bootstrapping found {}, but verification found {}.",
-            prev_target_sym_group_name.as_ref().unwrap_or(&"--".to_string()),
+            prev_target_sym_group_name
+                .as_ref()
+                .unwrap_or(&"--".to_string()),
             verifying_group_name.unwrap_or(&"--".to_string()),
-
         );
         qsym2_output!("Verifying symmetrisation results... Done.");
         qsym2_output!("");

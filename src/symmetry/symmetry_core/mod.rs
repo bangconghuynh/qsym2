@@ -19,10 +19,10 @@ use crate::auxiliary::geometry::{self, Transform};
 use crate::auxiliary::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    sort_operations, SpecialSymmetryTransformation, SymmetryOperation,
+    SpecialSymmetryTransformation, SymmetryOperation, sort_operations,
 };
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
+    AntiunitaryKind, ROT, SIG, SO3, SymmetryElement, SymmetryElementKind, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -180,10 +180,10 @@ impl PreSymmetry {
     /// # Arguments
     ///
     /// * `order` - The geometrical order $`n`$ of the rotation axis. Only finite
-    /// orders are supported.
+    ///   orders are supported.
     /// * `axis` - The rotation axis.
     /// * `tr` - A flag indicating if time reversal should also be considered in case the
-    /// non-time-reversed symmetry element does not exist.
+    ///   non-time-reversed symmetry element does not exist.
     ///
     /// # Returns
     ///
@@ -225,12 +225,12 @@ impl PreSymmetry {
     /// # Arguments
     ///
     /// * `order` - The geometrical order $`n`$ of the improper rotation axis. Only
-    /// finite orders are supported.
+    ///   finite orders are supported.
     /// * `axis` - The rotation axis.
     /// * `kind` - The convention in which the improper element is defined. The time reversal
-    /// property of this does not matter.
+    ///   property of this does not matter.
     /// * `tr` - A flag indicating if time reversal should also be considered in case the
-    /// non-time-reversed symmetry element does not exist.
+    ///   non-time-reversed symmetry element does not exist.
     ///
     /// # Returns
     ///
@@ -329,10 +329,10 @@ impl Symmetry {
     /// # Arguments
     ///
     /// * `presym` - A pre-symmetry-analysis structure containing the molecule and its rotational
-    /// symmetry required for point-group detection.
+    ///   symmetry required for point-group detection.
     /// * `tr` - A boolean indicating if time reversal should also be considered. A time-reversed
-    /// symmetry element will only be considered if its non-time-reversed version turns out to be
-    /// not a symmetry element.
+    ///   symmetry element will only be considered if its non-time-reversed version turns out to be
+    ///   not a symmetry element.
     pub fn analyse(&mut self, presym: &PreSymmetry, tr: bool) -> Result<&mut Self, anyhow::Error> {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
 
@@ -370,7 +370,9 @@ impl Symmetry {
                 && self.get_generators(&TRROT).is_none()
                 && self.get_generators(&TRSIG).is_none()
             {
-                log::debug!("Antiunitary symmetry requested, but so far only non-time-reversed elements found.");
+                log::debug!(
+                    "Antiunitary symmetry requested, but so far only non-time-reversed elements found."
+                );
                 // Time-reversal requested, but the above analysis gives only non-time-reversed
                 // elements, which means the system must also contain time reversal as a symmetry
                 // operation. This implies that the group is a grey group.
@@ -563,12 +565,12 @@ impl Symmetry {
     /// # Arguments
     ///
     /// * `order` - The order of the improper symmetry element in the convention
-    ///     specified by `kind`.
+    ///   specified by `kind`.
     /// * `axis` - The axis of the improper symmetry element.
     /// * `generator` - A flag indicating if this element should be added as a generator.
     /// * `kind` - The convention in which the improper symmetry element is defined.
     /// * `sigma` - An optional additional string indicating the type of mirror
-    ///     plane in the case the improper element is a mirror plane.
+    ///   plane in the case the improper element is a mirror plane.
     /// * `threshold` - A threshold for element comparisons.
     /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
@@ -576,7 +578,7 @@ impl Symmetry {
     ///
     /// `true` if the specified element is not present and has just been added,
     /// `false` otherwise.
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
     fn add_improper(
         &mut self,
         order: ElementOrder,
@@ -856,23 +858,23 @@ impl Symmetry {
     #[must_use]
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let mut sigma_generators: HashSet<&SymmetryElement> = HashSet::new();
-        if let Some(improper_generators) = self.get_generators(&SIG) {
-            if let Some(sigmas) = improper_generators.get(&ORDER_1) {
-                sigma_generators.extend(
-                    sigmas
-                        .iter()
-                        .filter(|ele| ele.additional_subscript == sigma),
-                );
-            }
+        if let Some(improper_generators) = self.get_generators(&SIG)
+            && let Some(sigmas) = improper_generators.get(&ORDER_1)
+        {
+            sigma_generators.extend(
+                sigmas
+                    .iter()
+                    .filter(|ele| ele.additional_subscript == sigma),
+            );
         }
-        if let Some(tr_improper_generators) = self.get_generators(&TRSIG) {
-            if let Some(sigmas) = tr_improper_generators.get(&ORDER_1) {
-                sigma_generators.extend(
-                    sigmas
-                        .iter()
-                        .filter(|ele| ele.additional_subscript == sigma),
-                );
-            }
+        if let Some(tr_improper_generators) = self.get_generators(&TRSIG)
+            && let Some(sigmas) = tr_improper_generators.get(&ORDER_1)
+        {
+            sigma_generators.extend(
+                sigmas
+                    .iter()
+                    .filter(|ele| ele.additional_subscript == sigma),
+            );
         }
         if sigma_generators.is_empty() {
             None
@@ -1078,7 +1080,7 @@ impl Symmetry {
     /// # Arguments
     ///
     /// * `infinite_order_to_finite` - A finite order to interpret infinite-order generators of
-    /// infinite groups.
+    ///   infinite groups.
     ///
     /// # Returns
     ///
@@ -1502,14 +1504,7 @@ impl Symmetry {
                 log::debug!(
                     "Generating all group elements: {} pass{}, {} element{} (of which {} {} new)",
                     npasses,
-                    {
-                        if npasses > 1 {
-                            "es"
-                        } else {
-                            ""
-                        }
-                    }
-                    .to_string(),
+                    { if npasses > 1 { "es" } else { "" } },
                     existing_operations.len(),
                     {
                         if existing_operations.len() > 1 {
@@ -1517,17 +1512,9 @@ impl Symmetry {
                         } else {
                             ""
                         }
-                    }
-                    .to_string(),
+                    },
                     n_extra_operations,
-                    {
-                        if n_extra_operations == 1 {
-                            "is"
-                        } else {
-                            "are"
-                        }
-                    }
-                    .to_string(),
+                    { if n_extra_operations == 1 { "is" } else { "are" } },
                 );
 
                 extra_operations = existing_operations
@@ -1594,11 +1581,11 @@ impl Default for Symmetry {
 /// # Arguments
 ///
 /// * `presym` - A pre-symmetry-analysis struct containing information about
-/// the molecular system.
+///   the molecular system.
 /// * `sym` - A symmetry struct to store the proper rotation elements found.
 /// * `asymmetric` - If `true`, the search assumes that the group is one of the
-/// Abelian point groups for which the highest possible rotation order is $`2`$
-/// and there can be at most three $`C_2`$ axes.
+///   Abelian point groups for which the highest possible rotation order is $`2`$
+///   and there can be at most three $`C_2`$ axes.
 /// * `tr` - A flag indicating if time reversal should also be considered.
 #[allow(clippy::too_many_lines)]
 fn _search_proper_rotations(
@@ -1765,7 +1752,7 @@ fn _search_proper_rotations(
                             log::debug!("A prolate symmetric top SEA set detected.");
                             for k_fac in divisors::get_divisors(k_sea / 2)
                                 .iter()
-                                .chain(vec![k_sea / 2].iter())
+                                .chain([k_sea / 2].iter())
                             {
                                 let k_fac_order =
                                     ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
@@ -1808,7 +1795,7 @@ fn _search_proper_rotations(
                         );
                         for k_fac in divisors::get_divisors(k_sea / 2)
                             .iter()
-                            .chain(vec![k_sea / 2].iter())
+                            .chain([k_sea / 2].iter())
                         {
                             let k_fac_order =
                                 ElementOrder::Int((*k_fac).try_into().map_err(|_| {
@@ -1859,7 +1846,9 @@ fn _search_proper_rotations(
         log::debug!("Searching for any remaining C2 axes in this SEA group...");
         for atom2s in sea_group.iter().combinations(2) {
             if asymmetric && count_c2 == 3 {
-                log::debug!("Three C2 axes have been found for an asymmetric top. No more C2 axes will be found. The C2 search has completed.");
+                log::debug!(
+                    "Three C2 axes have been found for an asymmetric top. No more C2 axes will be found. The C2 search has completed."
+                );
                 break;
             }
             let atom_i_pos = atom2s[0].coordinates;
@@ -1883,18 +1872,16 @@ fn _search_proper_rotations(
             // not.
             let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
             let c2_check = presym.check_proper(&ORDER_2, &midvec, tr);
-            if midvec.norm() > presym.dist_threshold && c2_check.is_some() {
-                count_c2 += usize::from(
-                    sym.add_proper(
-                        ORDER_2,
-                        &midvec,
-                        false,
-                        presym.dist_threshold,
-                        c2_check
-                            .expect("Expected C2 not found.")
-                            .contains_time_reversal(),
-                    ),
-                );
+            if midvec.norm() > presym.dist_threshold
+                && let Some(c2) = c2_check
+            {
+                count_c2 += usize::from(sym.add_proper(
+                    ORDER_2,
+                    &midvec,
+                    false,
+                    presym.dist_threshold,
+                    c2.contains_time_reversal(),
+                ));
             } else if let Some(electric_atoms) = &presym.recentred_molecule.electric_atoms {
                 let com = presym.recentred_molecule.calc_com();
                 let e_vector = electric_atoms[0].coordinates - com;
@@ -1942,16 +1929,16 @@ fn _search_proper_rotations(
                     None
                 }
             });
-            if let Some(normal) = normal_option {
-                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &normal, tr) {
-                    sym.add_proper(
-                        ORDER_2,
-                        &normal,
-                        false,
-                        presym.dist_threshold,
-                        proper_kind.contains_time_reversal(),
-                    );
-                }
+            if let Some(normal) = normal_option
+                && let Some(proper_kind) = presym.check_proper(&ORDER_2, &normal, tr)
+            {
+                sym.add_proper(
+                    ORDER_2,
+                    &normal,
+                    false,
+                    presym.dist_threshold,
+                    proper_kind.contains_time_reversal(),
+                );
             }
         }
     }

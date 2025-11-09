@@ -10,7 +10,7 @@ use bitvec::prelude::*;
 use derive_builder::Builder;
 use factorial::Factorial;
 use indexmap::IndexSet;
-use num::{integer::lcm, Integer, Unsigned};
+use num::{Integer, Unsigned, integer::lcm};
 use num_traits::{Inv, Pow, PrimInt};
 use serde::{Deserialize, Serialize};
 
@@ -117,7 +117,7 @@ impl<T: PermutationRank> Permutation<T> {
     /// # Arguments
     ///
     /// * `image` - The image of the permutation when acting on an ordered sequence of integers,
-    /// $`0, 1, \ldots`$.
+    ///   $`0, 1, \ldots`$.
     ///
     /// # Returns
     ///
@@ -321,7 +321,7 @@ impl<T: PermutationRank> Permutation<T> {
     /// # Arguments
     ///
     /// * `count_ones_opt` - An optional hashmap containing the number of ones in each of the
-    /// possible bit vectors of length [`Self::rank`].
+    ///   possible bit vectors of length [`Self::rank`].
     ///
     /// # Returns
     ///
@@ -368,7 +368,7 @@ impl<T: PermutationRank> Permutation<T> {
     /// # Arguments
     ///
     /// * `count_ones_opt` - An optional hashmap containing the number of ones in each of the
-    /// possible bit vectors of length [`Self::rank`].
+    ///   possible bit vectors of length [`Self::rank`].
     ///
     /// # Returns
     ///
@@ -591,7 +591,7 @@ where
     /// Calculates the order of this permutation. This is the lowest common multiplier of the
     /// lengths of the disjoint cycles constituting this permutation.
     fn order(&self) -> Self::Int {
-        u32::try_from(
+        u32::from(
             self.cycle_pattern()
                 .iter()
                 .cloned()
@@ -600,7 +600,6 @@ where
                     panic!("Unable to determine the permutation order of `{self}`.")
                 }),
         )
-        .expect("Unable to convert the permutation order to `u32`.")
     }
 }
 
@@ -613,7 +612,7 @@ where
 ///
 /// * `vec` - An exclusive reference to a vector of items to be permuted.
 /// * `perm` - A shared reference to a permutation determining how the items are to be permuted.
-pub(crate) fn permute_inplace<T>(vec: &mut Vec<T>, perm: &Permutation<usize>) {
+pub(crate) fn permute_inplace<T>(vec: &mut [T], perm: &Permutation<usize>) {
     assert_eq!(
         perm.rank(),
         vec.len(),

@@ -20,7 +20,7 @@ pub trait HashableFloat {
     /// Arguments
     ///
     /// * `threshold` - The inverse $`k^{-1}`$ of the factor $`k`$ used in the
-    /// rounding of the float.
+    ///   rounding of the float.
     ///
     /// Returns
     ///
@@ -94,8 +94,7 @@ where
     ///
     /// A [`MultiProduct`] iterator.
     fn product_repeat(self, repeat: usize) -> MultiProduct<Self> {
-        std::iter::repeat(self)
-            .take(repeat)
+        std::iter::repeat_n(self, repeat)
             .multi_cartesian_product()
     }
 }
@@ -138,7 +137,7 @@ impl<'a, T: fmt::Display + fmt::Debug> Error for GramSchmidtError<'a, T> {}
 ///
 /// * `vmat` - Matrix containing column vectors forming a basis for a subspace.
 /// * `complex_symmetric` - A boolean indicating if the vector dot product is complex-symmetric. If
-/// `false`, the conventional Hermitian dot product is used.
+///   `false`, the conventional Hermitian dot product is used.
 /// * `thresh` - A threshold for determining self-orthogonal vectors.
 ///
 /// # Returns

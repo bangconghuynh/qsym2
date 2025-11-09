@@ -95,15 +95,14 @@ impl PyMultiDeterminantsReal {
                 .map(|denmat| denmat.to_owned_array())
                 .collect_vec()
         });
-        if let Some(ref denmats) = density_matrices {
-            if denmats.len() != coefficients.ncols()
+        if let Some(ref denmats) = density_matrices
+            && (denmats.len() != coefficients.ncols()
                 || denmats.len() != energies.len()
-                || coefficients.ncols() != energies.len()
-            {
-                panic!(
-                    "Inconsistent numbers of multi-determinantal states in `coefficients`, `energies`, and `density_matrices`."
-                )
-            }
+                || coefficients.ncols() != energies.len())
+        {
+            panic!(
+                "Inconsistent numbers of multi-determinantal states in `coefficients`, `energies`, and `density_matrices`."
+            )
         };
         Self {
             basis,
@@ -237,7 +236,7 @@ impl PyMultiDeterminantsReal {
     /// # Arguments
     ///
     /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
-    /// given, one for each explicit component per coefficient matrix.
+    ///   given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -248,6 +247,7 @@ impl PyMultiDeterminantsReal {
     /// # Errors
     ///
     /// Errors if the [`MultiDeterminant`] structures fail to build.
+    #[allow(clippy::type_complexity)]
     pub fn to_qsym2_individuals<'b, 'a: 'b, SC>(
         &'b self,
         baos: &[&'a BasisAngularOrder],
@@ -272,8 +272,7 @@ impl PyMultiDeterminantsReal {
                     .collect::<Result<Vec<_>, _>>()?,
             )
             .build()?;
-        let multidets = self
-            .energies
+        self.energies
             .iter()
             .zip(self.coefficients.columns())
             .map(|(e, c)| {
@@ -285,8 +284,7 @@ impl PyMultiDeterminantsReal {
                     .build()
             })
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| format_err!(err));
-        multidets
+            .map_err(|err| format_err!(err))
     }
 
     /// Extracts the information in the [`PyMultiDeterminantsReal`] structure into a `QSym2`'s
@@ -295,7 +293,7 @@ impl PyMultiDeterminantsReal {
     /// # Arguments
     ///
     /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
-    /// given, one for each explicit component per coefficient matrix.
+    ///   given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -305,6 +303,7 @@ impl PyMultiDeterminantsReal {
     /// # Errors
     ///
     /// Errors if the [`MultiDeterminants`] structure fails to build.
+    #[allow(clippy::type_complexity)]
     pub fn to_qsym2_collection<'b, 'a: 'b, SC>(
         &'b self,
         baos: &[&'a BasisAngularOrder],
@@ -397,15 +396,14 @@ impl PyMultiDeterminantsComplex {
                 .map(|denmat| denmat.to_owned_array())
                 .collect_vec()
         });
-        if let Some(ref denmats) = density_matrices {
-            if denmats.len() != coefficients.ncols()
+        if let Some(ref denmats) = density_matrices
+            && (denmats.len() != coefficients.ncols()
                 || denmats.len() != energies.len()
-                || coefficients.ncols() != energies.len()
-            {
-                panic!(
-                    "Inconsistent numbers of multi-determinantal states in `coefficients`, `energies`, and `density_matrices`."
-                )
-            }
+                || coefficients.ncols() != energies.len())
+        {
+            panic!(
+                "Inconsistent numbers of multi-determinantal states in `coefficients`, `energies`, and `density_matrices`."
+            )
         };
         Self {
             basis,
@@ -539,7 +537,7 @@ impl PyMultiDeterminantsComplex {
     /// # Arguments
     ///
     /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
-    /// given, one for each explicit component per coefficient matrix.
+    ///   given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -550,6 +548,7 @@ impl PyMultiDeterminantsComplex {
     /// # Errors
     ///
     /// Errors if the [`MultiDeterminant`] structures fail to build.
+    #[allow(clippy::type_complexity)]
     pub fn to_qsym2_individuals<'b, 'a: 'b, SC>(
         &'b self,
         baos: &[&'a BasisAngularOrder],
@@ -574,8 +573,7 @@ impl PyMultiDeterminantsComplex {
                     .collect::<Result<Vec<_>, _>>()?,
             )
             .build()?;
-        let multidets = self
-            .energies
+        self.energies
             .iter()
             .zip(self.coefficients.columns())
             .map(|(e, c)| {
@@ -587,8 +585,7 @@ impl PyMultiDeterminantsComplex {
                     .build()
             })
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| format_err!(err));
-        multidets
+            .map_err(|err| format_err!(err))
     }
 
     /// Extracts the information in the [`PyMultiDeterminantsComplex`] structure into a `QSym2`'s
@@ -597,7 +594,7 @@ impl PyMultiDeterminantsComplex {
     /// # Arguments
     ///
     /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
-    /// given, one for each explicit component per coefficient matrix.
+    ///   given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -607,6 +604,7 @@ impl PyMultiDeterminantsComplex {
     /// # Errors
     ///
     /// Errors if the [`MultiDeterminants`] structure fails to build.
+    #[allow(clippy::type_complexity)]
     pub fn to_qsym2_collection<'b, 'a: 'b, SC>(
         &'b self,
         baos: &[&'a BasisAngularOrder],

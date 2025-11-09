@@ -36,10 +36,10 @@ impl Symmetry {
     /// # Arguments
     ///
     /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
-    /// system.
+    ///   system.
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
-    /// symmetry element will only be considered if its non-time-reversed version turns out to be
-    /// not a symmetry element.
+    ///   symmetry element will only be considered if its non-time-reversed version turns out to be
+    ///   not a symmetry element.
     #[allow(clippy::too_many_lines)]
     pub(super) fn analyse_symmetric(
         &mut self,
@@ -588,7 +588,7 @@ impl Symmetry {
                         })
                         .ok_or_else(|| format_err!("No σh found either."))?
                         .into_iter()
-                        .chain(self.get_sigma_elements("h").unwrap_or_default().into_iter())
+                        .chain(self.get_sigma_elements("h").unwrap_or_default())
                         .cloned()
                         .collect_vec();
                     sigmas.sort_by_key(SymmetryElement::contains_time_reversal);
@@ -841,9 +841,9 @@ impl Symmetry {
 /// * `sym` - A symmetry struct to store the improper rotation elements found.
 /// * `sigma_h` - A $`\sigma_h`$ mirror plane.
 /// * `non_id_c_elements` - A vector of non-identity rotation elements to
-/// consider.
+///   consider.
 /// * `presym` - A pre-symmetry-analysis struct containing information about
-/// the molecular system.
+///   the molecular system.
 fn _add_sigmahcn(
     sym: &mut Symmetry,
     sigma_h: &SymmetryElement,

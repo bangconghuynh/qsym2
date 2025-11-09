@@ -222,10 +222,10 @@ impl<T: ComplexFloat + Product> LowdinPairedCoefficients<T> {
 /// * `cw` - Coefficient matrix $`^{w}\mathbf{C}`$.
 /// * `cx` - Coefficient matrix $`^{x}\mathbf{C}`$.
 /// * `sao` - The overlap matrix $`\mathbf{S}_{\mathrm{AO}}`$ of the underlying atomic basis
-/// functions.
+///   functions.
 /// * `complex_symmetric` - If `true`, $`\lozenge = \star`$. If `false`, $`\lozenge = \hat{e}`$.
 /// * `thresh_offdiag` - Threshold to check if the off-diagonal elements in the original orbital
-/// overlap matrix and in the Löwdin-paired orbital overlap matrix $`^{wx}\mathbf{\Lambda}`$ are zero.
+///   overlap matrix and in the Löwdin-paired orbital overlap matrix $`^{wx}\mathbf{\Lambda}`$ are zero.
 /// * `thresh_zeroov` - Threshold to identify which Löwdin overlaps $`^{wx}\lambda_i`$ are zero.
 ///
 /// # Returns
@@ -301,20 +301,18 @@ where
                 let uc = u.map(|x| x.conj());
                 let mut cwt = cw.dot(&uc);
                 let det_uc_c = uc.det()?.conj();
-                cwt.column_mut(0)
-                    .iter_mut()
-                    .for_each(|x| *x = *x * det_uc_c);
+                cwt.column_mut(0).iter_mut().for_each(|x| *x *= det_uc_c);
                 cwt
             } else {
                 let mut cwt = cw.dot(&u);
                 let det_u_c = u.det()?.conj();
-                cwt.column_mut(0).iter_mut().for_each(|x| *x = *x * det_u_c);
+                cwt.column_mut(0).iter_mut().for_each(|x| *x *= det_u_c);
                 cwt
             };
 
             let paired_cx = {
                 let mut cxt = cx.dot(&v);
-                cxt.column_mut(0).iter_mut().for_each(|x| *x = *x * det_v_c);
+                cxt.column_mut(0).iter_mut().for_each(|x| *x *= det_v_c);
                 cxt
             };
 
@@ -444,12 +442,9 @@ where
             let nbasis = lowdin_paired_coefficientss[0].nbasis();
             let w = (0..structure_constraint.implicit_factor()?)
                 .cartesian_product(lowdin_paired_coefficientss.iter())
-                .fold(
-                    Ok(Array2::<T>::zeros((nbasis, nbasis))),
-                    |acc_res, (_, lpc)| {
-                        calc_weighted_codensity_matrix(lpc).and_then(|w| acc_res.map(|acc| acc + w))
-                    },
-                )?;
+                .try_fold(Array2::<T>::zeros((nbasis, nbasis)), |acc, (_, lpc)| {
+                    calc_weighted_codensity_matrix(lpc).map(|w| acc + w)
+                })?;
             // i = μ, j = μ'
             einsum("ij,ji->", &[o1, &w.view()])
                 .map_err(|err| format_err!(err))?
@@ -543,10 +538,11 @@ where
                 .cartesian_product(lowdin_paired_coefficientss.iter())
                 .map(|(_, lpc)| calc_weighted_codensity_matrix(lpc))
                 .collect::<Result<Vec<_>, _>>()?;
-            let w = w_sigmas.iter().fold(
-                Ok::<_, anyhow::Error>(Array2::<T>::zeros((nbasis, nbasis))),
-                |acc_res, w_sigma| acc_res.map(|acc| acc + w_sigma),
-            )?;
+            let w = w_sigmas
+                .iter()
+                .fold(Array2::<T>::zeros((nbasis, nbasis)), |acc, w_sigma| {
+                    acc + w_sigma
+                });
 
             match (o2_opt, get_jk_opt) {
                 (Some(o2), None) => {
@@ -562,7 +558,7 @@ where
                         .map(|v| v * reduced_ov / (T::one() + T::one()))?;
                     let k_term = w_sigmas
                         .iter()
-                        .fold(Ok(T::zero()), |acc_res, w_sigma| {
+                        .try_fold(T::zero(), |acc, w_sigma| {
                             einsum("ikjl,li,jk->", &[o2, &w_sigma.view(), &w_sigma.view()])
                                 .map_err(|err| format_err!(err))?
                                 .into_dimensionality::<Ix0>()?
@@ -573,7 +569,7 @@ where
                                         "Unable to extract the result of the einsum contraction."
                                     )
                                 })
-                                .and_then(|v| acc_res.map(|acc| acc + v))
+                                .map(|v| acc + v)
                         })
                         .map(|v| v * reduced_ov / (T::one() + T::one()))?;
                     Ok(j_term - k_term)
@@ -592,8 +588,8 @@ where
                         .map(|v| v * reduced_ov / (T::one() + T::one()))?;
                     let k_term = w_sigmas
                         .iter()
-                        .fold(Ok(T::zero()), |acc_res, w_sigma| {
-                            let (_, k_w_sigma) = get_jk(&w_sigma)?;
+                        .try_fold(T::zero(), |acc, w_sigma| {
+                            let (_, k_w_sigma) = get_jk(w_sigma)?;
                             einsum("il,li->", &[&k_w_sigma.view(), &w_sigma.view()])
                                 .map_err(|err| format_err!(err))?
                                 .into_dimensionality::<Ix0>()?
@@ -604,7 +600,7 @@ where
                                         "Unable to extract the result of the einsum contraction."
                                     )
                                 })
-                                .and_then(|v| acc_res.map(|acc| acc + v))
+                                .map(|v| acc + v)
                         })
                         .map(|v| v * reduced_ov / (T::one() + T::one()))?;
                     Ok(j_term - k_term)
@@ -622,13 +618,9 @@ where
             let nbasis = lowdin_paired_coefficientss[0].nbasis();
             let w = (0..structure_constraint.implicit_factor()?)
                 .cartesian_product(lowdin_paired_coefficientss.iter())
-                .fold(
-                    Ok::<_, anyhow::Error>(Array2::<T>::zeros((nbasis, nbasis))),
-                    |acc_res, (_, lpc)| {
-                        calc_weighted_codensity_matrix(lpc)
-                            .and_then(|w_sigma| acc_res.map(|acc| acc + w_sigma))
-                    },
-                )?;
+                .try_fold(Array2::<T>::zeros((nbasis, nbasis)), |acc, (_, lpc)| {
+                    calc_weighted_codensity_matrix(lpc).map(|w_sigma| acc + w_sigma)
+                })?;
 
             lowdin_paired_coefficientss
                 .iter()
@@ -642,7 +634,7 @@ where
                         None
                     }
                 })
-                .fold(Ok(T::zero()), |acc_res, (w_sigma_res, p_mbar_sigma_res)| {
+                .try_fold(T::zero(), |acc, (w_sigma_res, p_mbar_sigma_res)| {
                     w_sigma_res.and_then(|w_sigma| {
                         p_mbar_sigma_res.and_then(|p_mbar_sigma| {
                             match (o2_opt, get_jk_opt) {
@@ -700,7 +692,7 @@ where
                                             "Unable to extract the result of the einsum contraction."
                                         )
                                     })?;
-                                    acc_res.map(|acc| acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
+                                    Ok(acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
                                 },
                                 (None, Some(get_jk)) => {
                                     // i = μ, j = μ', k = ν, l = ν'
@@ -759,7 +751,7 @@ where
                                             "Unable to extract the result of the einsum contraction."
                                         )
                                     })?;
-                                    acc_res.map(|acc| acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
+                                    Ok(acc + j_term_1 + j_term_2 - k_term_1 - k_term_2)
                                 }
                                 _ => Err(format_err!(
                                     "One and only one of `o2` or `get_jk` should be provided."
@@ -851,7 +843,7 @@ where
                 }
                 (None, Some(get_jk)) => {
                     // i = μ, j = μ', k = ν, l = ν'
-                    let (j_p_nbar, k_p_nbar) = get_jk(&p_nbar)?;
+                    let (j_p_nbar, k_p_nbar) = get_jk(p_nbar)?;
                     let j_term_1 = einsum("ij,ji->", &[&j_p_nbar.view(), &p_mbar.view()])
                         .map_err(|err| format_err!(err))?
                         .into_dimensionality::<Ix0>()?
@@ -860,7 +852,7 @@ where
                         .ok_or_else(|| {
                             format_err!("Unable to extract the result of the einsum contraction.")
                         })?;
-                    let (j_p_mbar, k_p_mbar) = get_jk(&p_mbar)?;
+                    let (j_p_mbar, k_p_mbar) = get_jk(p_mbar)?;
                     let j_term_2 = einsum("ij,ji->", &[&j_p_mbar.view(), &p_nbar.view()])
                         .map_err(|err| format_err!(err))?
                         .into_dimensionality::<Ix0>()?
@@ -948,12 +940,9 @@ where
             let nbasis = lowdin_paired_coefficientss[0].nbasis();
             let w = (0..structure_constraint.implicit_factor()?)
                 .cartesian_product(lowdin_paired_coefficientss.iter())
-                .fold(
-                    Ok(Array2::<T>::zeros((nbasis, nbasis))),
-                    |acc_res, (_, lpc)| {
-                        calc_weighted_codensity_matrix(lpc).and_then(|w| acc_res.map(|acc| acc + w))
-                    },
-                )?;
+                .try_fold(Array2::<T>::zeros((nbasis, nbasis)), |acc, (_, lpc)| {
+                    calc_weighted_codensity_matrix(lpc).map(|w| acc + w)
+                })?;
             Ok(w.mapv(|v| v * reduced_ov))
         } else {
             ensure!(
@@ -989,7 +978,7 @@ where
 ///
 /// * `vmat` - Matrix containing column vectors forming a basis for a subspace.
 /// * `complex_symmetric` - A boolean indicating if the vector dot product is complex-symmetric. If
-/// `false`, the conventional Hermitian dot product is used.
+///   `false`, the conventional Hermitian dot product is used.
 /// * `thresh` - A threshold for determining self-orthogonal vectors.
 ///
 /// # Returns
@@ -1079,11 +1068,11 @@ pub trait CanonicalOrthogonalisable {
     /// # Arguments
     ///
     /// * `complex_symmetric` - Boolean indicating if the orthogonalisation is with respect to the
-    /// complex-symmetric inner product.
+    ///   complex-symmetric inner product.
     /// * `preserves_full_rank` - Boolean indicating if a full-rank square matrix should be left
-    /// unchanged, thus forcing $`\mathbf{X} = \mathbf{I}`$.
+    ///   unchanged, thus forcing $`\mathbf{X} = \mathbf{I}`$.
     /// * `thresh_offdiag` - Threshold for verifying that the orthogonalised matrix is indeed
-    /// orthogonal.
+    ///   orthogonal.
     /// * `thresh_zeroov` - Threshold for determining zero eigenvalues of the input square matrix.
     ///
     /// # Returns
@@ -1213,9 +1202,9 @@ where
         if complex_symmetric {
             // Complex-symmetric S
             let max_offdiag = *(smat.to_owned() - smat.t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
                 max_offdiag <= thresh_offdiag,
@@ -1224,9 +1213,9 @@ where
         } else {
             // Complex-Hermitian S
             let max_offdiag = *(smat.to_owned() - smat.map(|v| v.conj()).t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
                 max_offdiag <= thresh_offdiag,
@@ -1275,8 +1264,8 @@ where
                 .dot(&nonzero_umat)
         };
 
-        let max_offdiag_s = *(nonzero_s_eig_from_u - Array2::from_diag(&nonzero_s_eig)).mapv(|v| ComplexFloat::abs(v)).iter()
-                .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+        let max_offdiag_s = *(nonzero_s_eig_from_u - Array2::from_diag(&nonzero_s_eig)).mapv(ComplexFloat::abs).iter()
+                .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                 .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap symmetric deviation matrix."))?;
         ensure!(
             max_offdiag_s <= thresh_offdiag,

@@ -223,6 +223,7 @@ where
 {
     /// Converts this multi-determinant with an orbit basis into a multi-determinant with the
     /// equivalent eager basis.
+    #[allow(clippy::type_complexity)]
     pub fn to_eager_basis(
         &self,
     ) -> Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, anyhow::Error>
@@ -264,7 +265,7 @@ where
     ///
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
-    /// orbital overlap matrix two Slater determinants during Löwdin pairing.
+    ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     pub fn density_matrix(
         &self,
@@ -343,15 +344,12 @@ where
                     let den_wx = calc_transition_density_matrix(&lowdin_paired_coefficientss, &self.structure_constraint())?;
                     let ov_wx = lowdin_paired_coefficientss
                         .iter()
-                        .map(|lpc| lpc.lowdin_overlaps().iter())
-                        .flatten()
+                        .flat_map(|lpc| lpc.lowdin_overlaps().iter())
                         .fold(T::one(), |acc, ov| acc * *ov);
 
                     let c_w = if self.complex_conjugated() {
                         if complex_symmetric { c_w.conj() } else { *c_w }
-                    } else {
-                        if complex_symmetric { *c_w } else { c_w.conj() }
-                    };
+                    } else if complex_symmetric { *c_w } else { c_w.conj() };
                     let c_x = if self.complex_conjugated() {
                         c_x.conj()
                     } else {
@@ -368,11 +366,11 @@ where
             .reduce(
                 || Ok((T::zero(), Array2::<T>::zeros((nao, nao)))),
                 |sqnorm_denmat_res_a: Result<(T, Array2<T>), anyhow::Error>, sqnorm_denmat_res_b: Result<(T, Array2<T>), anyhow::Error>| {
-                    sqnorm_denmat_res_a.and_then(|(sqnorm_acc, denmat_acc)| sqnorm_denmat_res_b.and_then(|(sqnorm, denmat)| {
-                        Ok((
+                    sqnorm_denmat_res_a.and_then(|(sqnorm_acc, denmat_acc)| sqnorm_denmat_res_b.map(|(sqnorm, denmat)| {
+                        (
                             sqnorm_acc + sqnorm,
                             denmat_acc + denmat
-                        ))
+                        )
                     }))
                 }
             );

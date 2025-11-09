@@ -14,27 +14,27 @@ use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{
-    log_overlap_eigenvalues, EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition,
-    RepAnalysis,
+    EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition, RepAnalysis,
+    log_overlap_eigenvalues,
 };
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, find_spinor_function_representation,
-    AngularFunctionRepAnalysisParams,
+    AngularFunctionRepAnalysisParams, find_angular_function_representation,
+    find_spinor_function_representation,
 };
 use crate::drivers::representation_analysis::{
-    fn_construct_magnetic_group, fn_construct_unitary_group, log_cc_transversal,
-    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind, fn_construct_magnetic_group,
+    fn_construct_unitary_group, log_cc_transversal,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+    QSym2Output, log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title,
 };
-use crate::sandbox::target::real_space_function::real_space_function_analysis::RealSpaceFunctionSymmetryOrbit;
 use crate::sandbox::target::real_space_function::RealSpaceFunction;
+use crate::sandbox::target::real_space_function::real_space_function_analysis::RealSpaceFunctionSymmetryOrbit;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
@@ -393,13 +393,13 @@ where
         };
 
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
-            Err(
-                format!(
-                    "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+            Err(format!(
+                "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
                     Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
-                    sym.group_name.as_ref().expect("No symmetry group name found.")
-                )
-            )
+                sym.group_name
+                    .as_ref()
+                    .expect("No symmetry group name found.")
+            ))
         } else {
             Ok(())
         }
@@ -531,16 +531,16 @@ where
                 real_space_function_orb
                     .calc_xmat(false)
                     .map_err(|err| err.to_string())?;
-                if params.write_overlap_eigenvalues {
-                    if let Some(smat_eigvals) = real_space_function_orb.smat_eigvals.as_ref() {
-                        log_overlap_eigenvalues(
-                            "Real-space function orbit overlap eigenvalues",
-                            smat_eigvals,
-                            params.linear_independence_threshold,
-                            &params.eigenvalue_comparison_mode,
-                        );
-                        qsym2_output!("");
-                    }
+                if params.write_overlap_eigenvalues
+                    && let Some(smat_eigvals) = real_space_function_orb.smat_eigvals.as_ref()
+                {
+                    log_overlap_eigenvalues(
+                        "Real-space function orbit overlap eigenvalues",
+                        smat_eigvals,
+                        params.linear_independence_threshold,
+                        &params.eigenvalue_comparison_mode,
+                    );
+                    qsym2_output!("");
                 }
                 real_space_function_orb
                     .analyse_rep()

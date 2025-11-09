@@ -366,7 +366,7 @@ where
 /// # Arguments
 ///
 /// * `vec_pair` - A pair of vectors for which the Hermitian inner product is to be
-/// calculated.
+///   calculated.
 /// * `class_sizes` - The sizes of the conjugacy classes.
 /// * `perm_for_conj` - The permutation indices to take a vector into its conjugate.
 ///
@@ -440,9 +440,9 @@ where
 ///
 /// * `vs` - Vectors forming a basis for a subspace.
 /// * `class_sizes` - Sizes for the conjugacy classes. This is required to compute the inner
-/// product.
+///   product.
 /// * `perm_for_conj` - The permutation indices to take a vector into its conjugate. This is
-/// required to compute the inner product.
+///   required to compute the inner product.
 ///
 /// # Returns
 ///
@@ -531,9 +531,9 @@ impl<'a, T: Display + Debug> Error for SplitSpaceError<'a, T> {}
 /// * `mat` - A matrix to act on the specified space.
 /// * `vecs` - The basis vectors specifying the space.
 /// * `class_sizes` - Sizes for the conjugacy classes. This is required to compute the inner
-/// product defined in [`self::weighted_hermitian_inprod`].
+///   product defined in [`self::weighted_hermitian_inprod`].
 /// * `perm_for_conj` - The permutation indices to take a vector into its conjugate. This is
-/// required to compute the inner product defined in [`self::weighted_hermitian_inprod`].
+///   required to compute the inner product defined in [`self::weighted_hermitian_inprod`].
 ///
 /// # Returns
 ///
@@ -705,9 +705,9 @@ impl<'a, T: Display + Debug> Error for Split2dSpaceError<'a, T> {}
 ///
 /// * `vecs` - The two basis vectors specifying the space.
 /// * `class_sizes` - Sizes for the conjugacy classes. This is required to compute the inner
-/// product defined in [`self::weighted_hermitian_inprod`].
+///   product defined in [`self::weighted_hermitian_inprod`].
 /// * `perm_for_conj` - The permutation indices to take a vector into its conjugate. This is
-/// required to compute the inner product defined in [`self::weighted_hermitian_inprod`].
+///   required to compute the inner product defined in [`self::weighted_hermitian_inprod`].
 ///
 /// # Returns
 ///

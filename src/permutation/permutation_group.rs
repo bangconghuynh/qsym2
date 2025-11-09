@@ -396,14 +396,14 @@ impl ClassProperties for PermutationGroup {
 
     fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
         &self,
-        predicate: P,
+        mut predicate: P,
     ) -> Vec<Self::ClassSymbol> {
         self.conjugacy_class_symbols
             .as_ref()
             .expect("No class structure found.")
             .iter()
+            .filter(|&x| predicate(x))
             .cloned()
-            .filter(predicate)
             .collect::<Vec<_>>()
     }
 

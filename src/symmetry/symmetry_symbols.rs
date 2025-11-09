@@ -661,9 +661,9 @@ impl<R: Clone + Serialize> fmt::Display for SymmetryClassSymbol<R> {
 /// # Arguments
 ///
 /// * `char_arr` - A view of a two-dimensional square array containing the characters where
-/// each column is for one conjugacy class and each row one irrep.
+///   each column is for one conjugacy class and each row one irrep.
 /// * `class_symbols` - An index map containing the conjugacy class symbols for the columns of
-/// `char_arr`. The keys are the symbols and the values are the column indices.
+///   `char_arr`. The keys are the symbols and the values are the column indices.
 ///
 /// # Returns
 ///
@@ -853,7 +853,7 @@ pub(super) fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
 ///
 /// * `class_symbols` - An indexmap of class symbols and their corresponding indices.
 /// * `force_proper_principal` - A flag indicating if the principal classes are forced to be
-/// proper.
+///   proper.
 /// * `force_principal` - An option containing specific classes that are forced to be principal.
 ///
 /// # Returns
@@ -953,9 +953,9 @@ where
 /// # Arguments
 ///
 /// * `char_arr` - A view of a two-dimensional square array containing the characters where
-/// each column is for one conjugacy class and each row one irrep.
+///   each column is for one conjugacy class and each row one irrep.
 /// * `class_symbols` - An index map containing the conjugacy class symbols for the columns of
-/// `char_arr`. The keys are the symbols and the values are the column indices.
+///   `char_arr`. The keys are the symbols and the values are the column indices.
 /// * `principal_classes` - The principal classes to be used for irrep symbol deduction.
 ///
 /// # Returns
@@ -1353,7 +1353,7 @@ where
 /// * `principal_axis` - The normalised principal rotation axis.
 /// * `thresh` - Threshold for comparisons.
 /// * `force_d` - Flag indicating if vertical mirror planes should be given the $`d`$ symbol
-/// instead of $`v`$.
+///   instead of $`v`$.
 ///
 /// # Returns
 ///
@@ -1422,7 +1422,7 @@ impl fmt::Display for MirrorParity {
 ///
 /// * `group` - A group with a character table.
 /// * `rep` - A representation (that has been decomposed as irreps or ircoreps of `group`) for
-/// which mirror parities are to be deduced.
+///   which mirror parities are to be deduced.
 ///
 /// # Returns
 ///

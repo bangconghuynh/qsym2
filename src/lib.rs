@@ -57,7 +57,7 @@
 //! - `netlib-static`: Downloads, builds LAPACK, and links statically
 //! - `netlib-system`: Finds and links existing LAPACK in the system
 //! - `intel-mkl-static`: Finds and links existing static Intel MKL in the system, or downloads and
-//! links statically if not found
+//!   links statically if not found
 //! - `intel-mkl-system`: Finds and links existing shared Intel MKL in the system
 //!
 //! If the `*-static` backends give rise to numerical problems, please try installing the linear
@@ -70,7 +70,7 @@
 //!
 //! ### Integrals
 //! - `integrals`: Enables the computation of $`n`$-centre overlap integrals and $`n`$-centre
-//! overlap integral derivatives within QSym²
+//!   overlap integral derivatives within QSym²
 //!
 //! ### Composite
 //! - `standard`: Enables the `openblas-static` and `qchem` features

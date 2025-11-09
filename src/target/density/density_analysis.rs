@@ -3,7 +3,7 @@
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err, Context};
+use anyhow::{self, Context, ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -11,18 +11,18 @@ use log;
 use ndarray::{Array1, Array2, Array4, Axis, Ix4};
 use ndarray_einsum::*;
 use ndarray_linalg::{
+    UPLO,
     eig::Eig,
     eigh::Eigh,
     norm::Norm,
     types::{Lapack, Scalar},
-    UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, RepAnalysis,
+    EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap, RepAnalysis, fn_calc_xmat_complex,
+    fn_calc_xmat_real,
 };
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -404,18 +404,18 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."))
+            Err(format_err!(
+                "`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."
+            ))
+        } else if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            Ok(ComplexFloat::conj)
         } else {
-            if self
-                .group
-                .get_index(i)
-                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-                .contains_time_reversal()
-            {
-                Ok(ComplexFloat::conj)
-            } else {
-                Ok(|x| x)
-            }
+            Ok(|x| x)
         }
     }
 

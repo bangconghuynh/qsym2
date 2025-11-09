@@ -47,12 +47,12 @@ pub trait GeneralisedEigenvalueSolvable {
     /// # Arguments
     ///
     /// * `complex_symmetric` - Boolean indicating whether the provided pair of matrices are
-    /// complex-symmetric.
+    ///   complex-symmetric.
     /// * `thresh_offdiag` - Threshold for checking if any off-diagonal elements are non-zero when
-    /// verifying orthogonality.
+    ///   verifying orthogonality.
     /// * `thresh_zeroov` - Threshold for determining zero eigenvalues of $`\mathbf{B}`$.
     /// * `eigenvalue_comparison_mode` - Comparison mode for sorting eigenvalues and their
-    /// corresponding eigenvectors.
+    ///   corresponding eigenvectors.
     ///
     /// # Returns
     ///
@@ -72,12 +72,12 @@ pub trait GeneralisedEigenvalueSolvable {
     /// # Arguments
     ///
     /// * `complex_symmetric` - Boolean indicating whether the provided pair of matrices are
-    /// complex-symmetric.
+    ///   complex-symmetric.
     /// * `thresh_offdiag` - Threshold for checking if any off-diagonal elements are non-zero when
-    /// verifying orthogonality.
+    ///   verifying orthogonality.
     /// * `thresh_zeroov` - Threshold for determining zero eigenvalues of $`\mathbf{B}`$.
     /// * `eigenvalue_comparison_mode` - Comparison mode for sorting eigenvalues and their
-    /// corresponding eigenvectors.
+    ///   corresponding eigenvectors.
     ///
     /// # Returns
     ///
@@ -353,18 +353,18 @@ where
         let (hmat, smat): (Array2<Complex<T>>, Array2<Complex<T>>) = if complex_symmetric {
             // Complex-symmetric
             let max_offdiag_h = *(hmat.to_owned() - hmat.t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-symmetric deviation matrix."))?;
             ensure!(
                 max_offdiag_h <= thresh_offdiag,
                 "Hamiltonian matrix is not complex-symmetric: ||H - H^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
             let max_offdiag_s = *(smat.to_owned() - smat.t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
                 max_offdiag_s <= thresh_offdiag,
@@ -379,18 +379,18 @@ where
         } else {
             // Complex-Hermitian
             let max_offdiag_h = *(hmat.to_owned() - hmat.map(|v| v.conj()).t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-Hermitian deviation matrix."))?;
             ensure!(
                 max_offdiag_h <= thresh_offdiag,
                 "Hamiltonian matrix is not complex-Hermitian: ||H - H^†||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
             let max_offdiag_s = *(smat.to_owned() - smat.map(|v| v.conj()).t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-Hermitian deviation matrix."))?;
             ensure!(
                 max_offdiag_s <= thresh_offdiag,
@@ -424,18 +424,18 @@ where
             if complex_symmetric {
                 // Complex-symmetric
                 let max_offdiag_h = *(hmat_t.to_owned() - hmat_t.t())
-                        .mapv(|v| ComplexFloat::abs(v))
+                        .mapv(ComplexFloat::abs)
                         .iter()
-                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-symmetric deviation matrix."))?;
                 ensure!(
                     max_offdiag_h <= thresh_offdiag,
                     "Transformed Hamiltonian matrix is not complex-symmetric: ||H~ - (H~)^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
                 );
                 let max_offdiag_s = *(smat_t.to_owned() - smat_t.t())
-                        .mapv(|v| ComplexFloat::abs(v))
+                        .mapv(ComplexFloat::abs)
                         .iter()
-                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
                 ensure!(
                     max_offdiag_s <= thresh_offdiag,
@@ -449,18 +449,18 @@ where
             } else {
                 // Complex-Hermitian
                 let max_offdiag_h = *(hmat_t.to_owned() - hmat_t.map(|v| v.conj()).t())
-                        .mapv(|v| ComplexFloat::abs(v))
+                        .mapv(ComplexFloat::abs)
                         .iter()
-                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-Hermitian deviation matrix."))?;
                 ensure!(
                     max_offdiag_h <= thresh_offdiag,
                     "Transformed Hamiltonian matrix is not complex-Hermitian: ||H~ - (H~)^†||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
                 );
                 let max_offdiag_s = *(smat_t.to_owned() - smat_t.map(|v| v.conj()).t())
-                        .mapv(|v| ComplexFloat::abs(v))
+                        .mapv(ComplexFloat::abs)
                         .iter()
-                        .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                        .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-Hermitian deviation matrix."))?;
                 ensure!(
                     max_offdiag_s <= thresh_offdiag,
@@ -554,18 +554,18 @@ where
         if complex_symmetric {
             // Complex-symmetric H and S
             let max_offdiag_h = *(hmat.to_owned() - hmat.t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-symmetric deviation matrix."))?;
             ensure!(
                 max_offdiag_h <= thresh_offdiag,
                 "Hamiltonian matrix is not complex-symmetric: ||H - H^T||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
             let max_offdiag_s = *(smat.to_owned() - smat.t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
             ensure!(
                 max_offdiag_s <= thresh_offdiag,
@@ -574,18 +574,18 @@ where
         } else {
             // Complex-Hermitian H and S
             let max_offdiag_h = *(hmat.to_owned() - hmat.map(|v| v.conj()).t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the Hamiltonian complex-Hermitian deviation matrix."))?;
             ensure!(
                 max_offdiag_h <= thresh_offdiag,
                 "Hamiltonian matrix is not complex-Hermitian: ||H - H^†||_∞ = {max_offdiag_h:.3e} > {thresh_offdiag:.3e}."
             );
             let max_offdiag_s = *(smat.to_owned() - smat.map(|v| v.conj()).t())
-                    .mapv(|v| ComplexFloat::abs(v))
+                    .mapv(ComplexFloat::abs)
                     .iter()
-                    .max_by(|a, b| a.partial_cmp(b).expect(&format!("Unable to compare {a} and {b}.")))
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
                     .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-Hermitian deviation matrix."))?;
             ensure!(
                 max_offdiag_s <= thresh_offdiag,
@@ -729,8 +729,7 @@ where
             })
             .view()
     );
-    let eigvecs_regularised = eigvecs * eigvecs_sgn;
-    eigvecs_regularised
+    eigvecs * eigvecs_sgn
 }
 
 /// Normalises the real eigenvectors with respect to a metric.
@@ -789,7 +788,7 @@ where
 /// * `smat` - The metric.
 /// * `complex_symmetric` - Boolean indicating if the inner product is complex-symmetric or not.
 /// * `thresh` - Optioanl threshold for verifying the orthogonality of the eigenvectors. If `None`,
-/// orthogonality will not be verified.
+///   orthogonality will not be verified.
 ///
 /// # Returns
 ///

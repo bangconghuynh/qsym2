@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::auxiliary::atom::{Atom, AtomKind, ElementMap};
 use crate::auxiliary::geometry::{self, ImproperRotationKind, Transform};
-use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
+use crate::permutation::{PermutableCollection, Permutation, permute_inplace};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -115,7 +115,7 @@ impl Molecule {
     pub fn to_xyz<P: AsRef<Path>>(&self, filename: P) -> Result<(), anyhow::Error> {
         let mut f = BufWriter::new(fs::File::create(filename)?);
         writeln!(f, "{}", self.atoms.len())?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         for atom in self.atoms.iter() {
             writeln!(f, "{}", atom.to_xyz())?;
         }
@@ -424,11 +424,11 @@ impl Molecule {
     /// # Returns
     ///
     /// * The interatomic distance matrix where the distances in each column are sorted in ascending
-    /// order. Column $`j`$ contains the interatomic distances from atom $`j`$ to all other atoms
-    /// (both ordinary and fictitious) in the molecule. Also note that all atoms (both ordinary and
-    /// fictitious) are included here, so the matrix is square.
+    ///   order. Column $`j`$ contains the interatomic distances from atom $`j`$ to all other atoms
+    ///   (both ordinary and fictitious) in the molecule. Also note that all atoms (both ordinary and
+    ///   fictitious) are included here, so the matrix is square.
     /// * A vector of vectors of symmetry-equivalent atom indices. Each inner vector contains
-    /// indices of atoms in one SEA group.
+    ///   indices of atoms in one SEA group.
     pub fn calc_interatomic_distance_matrix(&self) -> (Array2<f64>, Vec<Vec<usize>>) {
         let all_atoms = &self.get_all_atoms();
         let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
@@ -495,7 +495,7 @@ impl Molecule {
     /// # Returns
     ///
     /// * Copies of the atoms in the molecule, grouped into symmetry-equivalent
-    /// groups.
+    ///   groups.
     ///
     /// # Panics
     ///
@@ -523,7 +523,7 @@ impl Molecule {
     /// # Arguments
     ///
     /// * `magnetic_field` - The magnetic field vector. If zero or `None`, any magnetic
-    /// field present will be removed.
+    ///   field present will be removed.
     ///
     /// # Panics
     ///
@@ -566,7 +566,7 @@ impl Molecule {
     /// # Arguments
     ///
     /// * `electric_field` - The electric field vector. If zero or `None`, any electric
-    /// field present will be removed.
+    ///   field present will be removed.
     ///
     /// # Panics
     ///
@@ -590,12 +590,10 @@ impl Molecule {
                     }
                 };
                 let e_vec_norm = e_vec.normalize() * ave_mag * 0.5;
-                self.electric_atoms = Some(vec![Atom::new_special(
-                    AtomKind::Electric(true),
-                    com + e_vec_norm,
-                    self.threshold,
-                )
-                .expect("Unable to construct an electric special atom.")]);
+                self.electric_atoms = Some(vec![
+                    Atom::new_special(AtomKind::Electric(true), com + e_vec_norm, self.threshold)
+                        .expect("Unable to construct an electric special atom."),
+                ]);
             } else {
                 self.electric_atoms = None;
             }
@@ -935,18 +933,8 @@ impl PermutableCollection for Molecule {
         let o_atoms: HashMap<Atom, usize> = other_recentred
             .atoms
             .into_iter()
-            .chain(
-                other_recentred
-                    .magnetic_atoms
-                    .unwrap_or_default()
-                    .into_iter(),
-            )
-            .chain(
-                other_recentred
-                    .electric_atoms
-                    .unwrap_or_default()
-                    .into_iter(),
-            )
+            .chain(other_recentred.magnetic_atoms.unwrap_or_default())
+            .chain(other_recentred.electric_atoms.unwrap_or_default())
             .enumerate()
             .map(|(i, atom)| (atom, i))
             .collect();
@@ -984,7 +972,7 @@ impl PermutableCollection for Molecule {
     /// # Arguments
     ///
     /// * `perm` - A permutation for the atoms. Special fictitious atoms are included after
-    /// ordinary atoms, with magnetic atoms before electric atoms.
+    ///   ordinary atoms, with magnetic atoms before electric atoms.
     ///
     /// # Returns
     ///
@@ -1009,7 +997,7 @@ impl PermutableCollection for Molecule {
     /// # Arguments
     ///
     /// * `perm` - A permutation for the atoms. Special fictitious atoms are included after
-    /// ordinary atoms, with magnetic atoms before electric atoms.
+    ///   ordinary atoms, with magnetic atoms before electric atoms.
     ///
     /// # Panics
     ///

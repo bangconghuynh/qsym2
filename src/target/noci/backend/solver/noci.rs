@@ -61,19 +61,20 @@ where
     /// # Arguments
     ///
     /// * `origins` - A list of Slater determinants to be used as origins for symmetry orbits, the
-    /// concatenation of which constitutes the basis for the NOCI problem.
+    ///   concatenation of which constitutes the basis for the NOCI problem.
     /// * `group` - The symmetry group acting on the origins to generate symmetry orbits.
     /// * `symmetry_transform_kind` - The transformation kind dictating how `group` acts on the
-    /// origin Slater determinants.
+    ///   origin Slater determinants.
     /// * `use_cayley_table` - Boolean indicating if group closure is to be utilised to speed up
-    /// the construction of the orbit matrices.
+    ///   the construction of the orbit matrices.
     /// * `thresh_offdiag` - Threshold for verifying zero off-diagonal elements in matrices that
-    /// are expected to be diagonal.
+    ///   are expected to be diagonal.
     /// * `thresh_zeroov` - Threshold for determining zero Löwdin overlaps in Löwdin pairing.
     ///
     /// # Returns
     ///
     /// A vector of multi-determinants, each of which is for one NOCI state.
+    #[allow(clippy::type_complexity)]
     fn solve_symmetry_orbit_noci(
         &'a self,
         origins: &[&SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>],

@@ -102,10 +102,10 @@ where
     /// # Arguments
     ///
     /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
-    /// with all equal widths.
+    ///   with all equal widths.
     /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
-    /// places for the numerical forms of the characters. If `None`, the characters will be shown
-    /// as exact algebraic forms.
+    ///   places for the numerical forms of the characters. If `None`, the characters will be shown
+    ///   as exact algebraic forms.
     ///
     /// # Returns
     ///
@@ -215,7 +215,7 @@ where
     /// * `irreps` - A slice of Mulliken irreducible representation symbols in the right order.
     /// * `classes` - A slice of conjugacy class symbols in the right order.
     /// * `principal_classes` - A slice of the principal classes used in determining the irrep
-    /// symbols.
+    ///   symbols.
     /// * `char_arr` - A two-dimensional array of characters.
     /// * `frobenius_schurs` - A slice of Frobenius--Schur indicators for the irreps.
     ///
@@ -368,10 +368,10 @@ where
     /// # Arguments
     ///
     /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
-    /// with all equal widths.
+    ///   with all equal widths.
     /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
-    /// places for the numerical forms of the characters. If `None`, the characters will be shown
-    /// as exact algebraic forms.
+    ///   places for the numerical forms of the characters. If `None`, the characters will be shown
+    ///   as exact algebraic forms.
     ///
     /// # Returns
     ///
@@ -460,7 +460,7 @@ where
                 .max()
                 .expect("Unable to find the maximum length for the conjugacy class symbols.");
             let fixed_width = max(char_width, cc_width) + 1;
-            iter::repeat(fixed_width).take(ccs_str.len()).collect()
+            iter::repeat_n(fixed_width, ccs_str.len()).collect()
         };
 
         // Table heading
@@ -553,7 +553,7 @@ where
             .map(|(irrep_symbol, &i)| {
                 let c = characters
                     .par_iter()
-                    .try_fold(|| Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                    .try_fold(Complex::<f64>::zero, |acc, (cc_symbol, character)| {
                         let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
                             format!(
                                 "The conjugacy class `{cc_symbol}` cannot be found in this group."
@@ -569,7 +569,7 @@ where
                                 * character
                         )
                     })
-                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))? / self.get_order().to_f64().ok_or(
+                    .try_reduce(Complex::<f64>::zero, |a, s| Ok(a + s))? / self.get_order().to_f64().ok_or(
                         DecompositionError("The group order cannot be converted to `f64`.".to_string())
                     )?;
 
@@ -704,14 +704,14 @@ where
     ///
     /// * `name` - A name given to the character table.
     /// * `unitary_chartab` - The character table of irreducible representations of the unitary
-    /// halving subgroup, which will be owned by this [`CorepCharacterTable`].
+    ///   halving subgroup, which will be owned by this [`CorepCharacterTable`].
     /// * `ircoreps` - A slice of Mulliken irreducible corepresentation symbols in the right order.
     /// * `classes` - A slice of conjugacy class symbols in the right order. These symbols must be
-    /// of the same type as those of the unitary subgroup.
+    ///   of the same type as those of the unitary subgroup.
     /// * `principal_classes` - A slice of the principal classes of the group.
     /// * `char_arr` - A two-dimensional array of characters,
     /// * `intertwining_numbers` - A slice of the intertwining numbers of the irreducible
-    /// corepresentations in the right order.
+    ///   corepresentations in the right order.
     ///
     /// # Returns
     ///
@@ -863,10 +863,10 @@ where
     /// # Arguments
     ///
     /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
-    /// with all equal widths.
+    ///   with all equal widths.
     /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
-    /// places for the numerical forms of the characters. If `None`, the characters will be shown
-    /// as exact algebraic forms.
+    ///   places for the numerical forms of the characters. If `None`, the characters will be shown
+    ///   as exact algebraic forms.
     ///
     /// # Returns
     ///
@@ -955,7 +955,7 @@ where
                 .max()
                 .expect("Unable to find the maximum length for the conjugacy class symbols.");
             let fixed_width = max(char_width, cc_width) + 1;
-            iter::repeat(fixed_width).take(ccs_str.len()).collect()
+            iter::repeat_n(fixed_width, ccs_str.len()).collect()
         };
 
         // Table heading
@@ -1044,7 +1044,7 @@ where
             .map(|(ircorep_symbol, &i)| {
                 let c = characters
                     .par_iter()
-                    .try_fold(|| Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                    .try_fold(Complex::<f64>::zero, |acc, (cc_symbol, character)| {
                         let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
                             format!(
                                 "The conjugacy class `{cc_symbol}` cannot be found in this group."
@@ -1060,7 +1060,7 @@ where
                                 * character
                         )
                     })
-                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))? / (self.unitary_character_table.get_order().to_f64().ok_or(
+                    .try_reduce(Complex::<f64>::zero, |a, s| Ok(a + s))? / (self.unitary_character_table.get_order().to_f64().ok_or(
                         DecompositionError("The unitary subgroup order cannot be converted to `f64`.".to_string())
                     )? * self.intertwining_numbers.get(ircorep_symbol).and_then(|x| x.to_f64()).ok_or(
                         DecompositionError(

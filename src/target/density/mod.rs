@@ -179,7 +179,7 @@ where
             .build()?;
 
         // Density differences
-        let extra_dens = vec![Ok(("Total density".to_string(), total_den))]
+        vec![Ok(("Total density".to_string(), total_den))]
             .into_iter()
             .chain((0..self.densities.len()).combinations(2).map(|indices| {
                 let i0 = indices[0];
@@ -199,9 +199,7 @@ where
                     den_01,
                 ))
             }))
-            .collect::<Result<Vec<_>, _>>();
-
-        extra_dens
+            .collect::<Result<Vec<_>, _>>()
     }
 }
 
@@ -329,7 +327,9 @@ where
         if denmat_shape && natoms {
             Ok(())
         } else {
-            Err(format!("Density validation failed: `denmat_shape`: {denmat_shape}, `natoms`: {natoms}"))
+            Err(format!(
+                "Density validation failed: `denmat_shape`: {denmat_shape}, `natoms`: {natoms}"
+            ))
         }
     }
 }

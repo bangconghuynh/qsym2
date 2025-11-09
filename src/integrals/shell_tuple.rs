@@ -146,6 +146,7 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     ///
     /// If the j-th shell does not have a $`\mathbf{k}_j`$ plane-wave vector, then the
     /// corresponding $`\mathbf{Q}_j`$ is set to `None`.
+    #[allow(clippy::type_complexity)]
     qs: [Option<Array<Vector3<f64>, Dim<[usize; RANK]>>>; RANK],
 }
 
@@ -319,7 +320,6 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
         let unordered_recombined_shell_indices = gg
             .into_iter()
             .multi_cartesian_product()
-            .into_iter()
             .collect::<Vec<_>>();
 
         log::debug!("Rank-{RANK} shell tuple collection information:");
@@ -332,7 +332,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
             index: 0,
             shell_order: order,
             unordered_recombined_shell_indices,
-            stc: &self,
+            stc: self,
         }
     }
 }
@@ -435,7 +435,7 @@ macro_rules! impl_shell_tuple {
 /// # Patterns
 ///
 /// * `$shell` - A tuple `(shell, cc)` where `shell` is a [`BasisShellContraction`] and `cc` a
-/// boolean indicating if the shell is complex-conjugated.
+///   boolean indicating if the shell is complex-conjugated.
 /// * `$ty` - The data type for the overlap values from this shell tuple.
 macro_rules! build_shell_tuple {
     ( $($shell:expr),+; $ty:ty ) => {

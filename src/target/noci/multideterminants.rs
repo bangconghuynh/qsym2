@@ -240,7 +240,7 @@ where
         self.coefficients
             .columns()
             .into_iter()
-            .zip(energies.into_iter())
+            .zip(energies)
             .map(|(c, e)| {
                 MultiDeterminant::builder()
                     .complex_conjugated(self.complex_conjugated)
@@ -307,6 +307,7 @@ where
 {
     /// Converts this multi-determinantal wavefunction collection with an orbit basis into one with
     /// the equivalent eager basis.
+    #[allow(clippy::type_complexity)]
     pub fn to_eager_basis(
         &self,
     ) -> Result<MultiDeterminants<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, anyhow::Error>
@@ -348,7 +349,7 @@ where
     ///
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
-    /// orbital overlap matrix two Slater determinants during Löwdin pairing.
+    ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     ///
     /// # Returns
@@ -434,15 +435,12 @@ where
                     let den_wx = calc_transition_density_matrix(&lowdin_paired_coefficientss, &self.structure_constraint())?;
                     let ov_wx = lowdin_paired_coefficientss
                         .iter()
-                        .map(|lpc| lpc.lowdin_overlaps().iter())
-                        .flatten()
+                        .flat_map(|lpc| lpc.lowdin_overlaps().iter())
                         .fold(T::one(), |acc, ov| acc * *ov);
 
                     let c_wm = if self.complex_conjugated() {
                         if complex_symmetric { c_wm.map(|v| v.conj()) } else { c_wm.to_owned() }
-                    } else {
-                        if complex_symmetric { c_wm.to_owned() } else { c_wm.map(|v| v.conj()) }
-                    };
+                    } else if complex_symmetric { c_wm.to_owned() } else { c_wm.map(|v| v.conj()) };
                     let c_xm = if self.complex_conjugated() {
                         c_xm.map(|v| v.conj())
                     } else {
@@ -470,11 +468,11 @@ where
             .reduce(
                 || Ok((Array1::<T>::zeros(nmultidets), Array3::<T>::zeros((nmultidets, nao, nao)))),
                 |sqnorms_denmats_res_a: Result<(Array1<T>, Array3<T>), anyhow::Error>, sqnorms_denmats_res_b: Result<(Array1<T>, Array3<T>), anyhow::Error>| {
-                    sqnorms_denmats_res_a.and_then(|(sqnorm_acc, denmat_acc)| sqnorms_denmats_res_b.and_then(|(sqnorm, denmat)| {
-                        Ok((
+                    sqnorms_denmats_res_a.and_then(|(sqnorm_acc, denmat_acc)| sqnorms_denmats_res_b.map(|(sqnorm, denmat)| {
+                        (
                             sqnorm_acc + sqnorm,
                             denmat_acc + denmat
-                        ))
+                        )
                     }))
                 }
             );

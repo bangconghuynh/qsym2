@@ -117,7 +117,7 @@ where
     fn eq(&self, other: &Self) -> bool {
         let thresh = (self.threshold * other.threshold).sqrt();
         let components_eq = approx::relative_eq!(
-            (&self.components - &other.components)
+            (self.components - other.components)
                 .map(|x| ComplexFloat::abs(x).powi(2))
                 .sum()
                 .sqrt(),

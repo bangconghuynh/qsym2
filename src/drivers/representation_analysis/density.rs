@@ -14,28 +14,28 @@ use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, find_spinor_function_representation,
-    AngularFunctionRepAnalysisParams,
+    AngularFunctionRepAnalysisParams, find_angular_function_representation,
+    find_spinor_function_representation,
 };
 use crate::drivers::representation_analysis::{
-    fn_construct_magnetic_group, fn_construct_unitary_group, log_bao, log_cc_transversal,
-    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind, fn_construct_magnetic_group,
+    fn_construct_unitary_group, log_bao, log_cc_transversal,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+    QSym2Output, log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title,
 };
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
-use crate::target::density::density_analysis::DensitySymmetryOrbit;
 use crate::target::density::Density;
+use crate::target::density::density_analysis::DensitySymmetryOrbit;
 
 #[cfg(test)]
 #[path = "density_tests.rs"]
@@ -318,10 +318,7 @@ where
         writeln!(
             f,
             " {:>density_index_length$}  {:<density_text_length$}  {:<symmetry_length$}  {:<eig_above_length$}  Eig. below",
-            "#",
-            "Density",
-            "Symmetry",
-            "Eig. above",
+            "#", "Density", "Symmetry", "Eig. above",
         )?;
         writeln!(f, "{}", "┈".repeat(table_width))?;
         for (deni, (((den, _), den_sym), (eig_above_opt, eig_below_opt))) in self
@@ -336,7 +333,10 @@ where
                 " {:>density_index_length$}  {:<density_text_length$}  {:<symmetry_length$}  {:<eig_above_length$}  {}",
                 deni,
                 den,
-                den_sym.as_ref().map(|sym| sym.to_string()).unwrap_or_else(|err| err.clone()),
+                den_sym
+                    .as_ref()
+                    .map(|sym| sym.to_string())
+                    .unwrap_or_else(|err| err.clone()),
                 eig_above_opt
                     .map(|eig_above| format!("{eig_above:>+.3e}"))
                     .unwrap_or("--".to_string()),
@@ -446,13 +446,12 @@ where
             .sao_spatial_4c
             .ok_or("No four-centre spatial SAO matrix found.".to_string())?;
 
-        if let Some(sao_spatial_4c_h) = self.sao_spatial_4c_h.flatten() {
-            if sao_spatial_4c_h.shape() != sao_spatial_4c.shape() {
-                return Err(
-                    "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`."
-                        .to_string(),
-                );
-            }
+        if let Some(sao_spatial_4c_h) = self.sao_spatial_4c_h.flatten()
+            && sao_spatial_4c_h.shape() != sao_spatial_4c.shape()
+        {
+            return Err(
+                "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`.".to_string(),
+            );
         }
 
         let dens = self
@@ -470,13 +469,13 @@ where
         };
 
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
-            Err(
-                format!(
-                    "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+            Err(format!(
+                "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
                     Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
-                    sym.group_name.as_ref().expect("No symmetry group name found.")
-                )
-            )
+                sym.group_name
+                    .as_ref()
+                    .expect("No symmetry group name found.")
+            ))
         } else {
             let baos = dens
                 .iter()
@@ -594,8 +593,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
         }
         let bao = self
             .densities
-            .iter()
-            .next()
+            .first()
             .map(|(_, den)| den.bao())
             .ok_or_else(|| {
                 format_err!("Basis angular order information could not be extracted.")

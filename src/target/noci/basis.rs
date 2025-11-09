@@ -63,6 +63,7 @@ where
     /// operator has an associated action that defines how it operatres on the elements in the
     /// orbit basis.
     #[builder(default = "None")]
+    #[allow(clippy::type_complexity)]
     prefactors: Option<
         VecDeque<(
             G::GroupElement,
@@ -97,6 +98,7 @@ where
     /// Additional operators acting on the entire orbit basis (right-most operator acts first). Each
     /// operator has an associated action that defines how it operatres on the elements in the
     /// orbit basis.
+    #[allow(clippy::type_complexity)]
     pub fn prefactors(
         &self,
     ) -> Option<
@@ -149,11 +151,11 @@ where
             prefactors
                 .iter()
                 .rev()
-                .try_fold(self.origins.get(0)?.clone(), |acc, (symop, action)| {
+                .try_fold(self.origins.first()?.clone(), |acc, (symop, action)| {
                     (action)(symop, &acc).ok()
                 })
         } else {
-            self.origins.get(0).cloned()
+            self.origins.first().cloned()
         }
     }
 }
@@ -164,6 +166,7 @@ pub struct OrbitBasisIterator<G, I>
 where
     G: GroupProperties,
 {
+    #[allow(clippy::type_complexity)]
     prefactors: Option<
         VecDeque<(
             G::GroupElement,
@@ -197,6 +200,7 @@ where
     /// # Returns
     ///
     /// An orbit basis iterator.
+    #[allow(clippy::type_complexity)]
     fn new(
         prefactors: Option<
             VecDeque<(
@@ -214,7 +218,7 @@ where
                 .elements()
                 .clone()
                 .into_iter()
-                .cartesian_product(origins.into_iter()),
+                .cartesian_product(origins),
             action,
         }
     }
@@ -284,6 +288,6 @@ impl<I: Clone> Basis<I> for EagerBasis<I> {
     }
 
     fn first(&self) -> Option<I> {
-        self.elements.get(0).cloned()
+        self.elements.first().cloned()
     }
 }

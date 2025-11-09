@@ -194,7 +194,7 @@ impl Character {
     /// # Arguments
     ///
     /// * `num_non_int` - A flag indicating of non-integers should be shown in numerical form
-    /// instead of analytic.
+    ///   instead of analytic.
     ///
     /// # Returns
     ///

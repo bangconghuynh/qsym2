@@ -154,6 +154,7 @@ macro_rules! generate_noci_solver {
 /// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
@@ -487,8 +488,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
 
                     // Collect real multi-determinantal wavefunctions for returning
                     let basis = multidets
-                        .iter()
-                        .next()
+                        .first()
                         .and_then(|multidet| {
                             multidet
                                 .basis()
@@ -687,8 +687,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
 
                     // Collect real multi-determinantal wavefunctions for returning
                     let basis = multidets
-                        .iter()
-                        .next()
+                        .first()
                         .and_then(|multidet| {
                             multidet
                                 .basis()
@@ -766,10 +765,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
-            let sao_h_c = sao_h.and_then(|pysao_h| match pysao_h {
+            let sao_h_c = sao_h.map(|pysao_h| match pysao_h {
                 // sao_h must have the same reality as sao.
-                PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
-                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+                PyArray2RC::Real(pysao_h_r) => pysao_h_r.to_owned_array().mapv(Complex::from),
+                PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
             });
 
             match structure_constraint {
@@ -934,8 +933,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
 
                             // Collect complex multi-determinantal wavefunctions for returning
                             let basis = multidets
-                                .iter()
-                                .next()
+                                .first()
                                 .and_then(|multidet| {
                                     multidet
                                         .basis()
@@ -1136,8 +1134,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
 
                             // Collect complex multi-determinantal wavefunctions for returning
                             let basis = multidets
-                                .iter()
-                                .next()
+                                .first()
                                 .and_then(|multidet| {
                                     multidet
                                         .basis()
@@ -1353,8 +1350,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
 
                             // Collect complex multi-determinantal wavefunctions for returning
                             let basis = multidets
-                                .iter()
-                                .next()
+                                .first()
                                 .and_then(|multidet| {
                                     multidet
                                         .basis()
@@ -1555,8 +1551,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
 
                             // Collect complex multi-determinantal wavefunctions for returning
                             let basis = multidets
-                                .iter()
-                                .next()
+                                .first()
                                 .and_then(|multidet| {
                                     multidet
                                         .basis()

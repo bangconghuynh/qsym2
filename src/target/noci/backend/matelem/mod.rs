@@ -39,7 +39,7 @@ where
     /// * `det_x` - The determinant $`^{x}\Psi`$.
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
-    /// orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
+    ///   orbital overlap matrix between $`^{w}\Psi`$ and $`^{x}\Psi`$ during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     ///
     /// # Returns
@@ -69,6 +69,7 @@ where
 
     /// Returns the norm-presearving scalar map connecting diagonally-symmetric elements in the
     /// matrix.
+    #[allow(clippy::type_complexity)]
     fn norm_preserving_scalar_map<'b, G>(
         &self,
         i: usize,
@@ -96,16 +97,14 @@ where
             Err(format_err!(
                 "`norm_preserving_scalar_map` is currently not implemented for complex-symmetric inner products. This thus precludes the use of the Cayley table to speed up the computation of orbit matrices."
             ))
+        } else if group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            Ok(Self::conj)
         } else {
-            if group
-                .get_index(i)
-                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-                .contains_time_reversal()
-            {
-                Ok(Self::conj)
-            } else {
-                Ok(Self::t)
-            }
+            Ok(Self::t)
         }
     }
 
@@ -116,10 +115,10 @@ where
     ///
     /// * `orbit_basis` - The orbit basis in which the matrix elements are to be computed.
     /// * `use_cayley_table` - Boolean indicating whether group closure should be used to speed up
-    /// the computation.
+    ///   the computation.
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
-    /// orbital overlap matrix between two Slater determinants during Löwdin pairing.
+    ///   orbital overlap matrix between two Slater determinants during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     fn calc_orbit_matrix<'g, G>(
         &self,
