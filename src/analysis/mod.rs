@@ -178,20 +178,15 @@ where
 
 /// Enumerated type specifying the comparison mode for filtering out orbit overlap
 /// eigenvalues.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 pub enum EigenvalueComparisonMode {
     /// Compares the eigenvalues using only their real parts.
     Real,
 
     /// Compares the eigenvalues using their moduli.
+    #[default]
     Modulus,
-}
-
-impl Default for EigenvalueComparisonMode {
-    fn default() -> Self {
-        Self::Modulus
-    }
 }
 
 impl fmt::Display for EigenvalueComparisonMode {
