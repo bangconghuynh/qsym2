@@ -134,7 +134,7 @@ impl UnityRoot {
     }
 }
 
-impl<'a, 'b> Mul<&'a UnityRoot> for &'b UnityRoot {
+impl<'a> Mul<&'a UnityRoot> for &UnityRoot {
     type Output = UnityRoot;
 
     fn mul(self, rhs: &'a UnityRoot) -> Self::Output {

@@ -4,11 +4,11 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, format_err, Context};
+use anyhow::{self, Context, format_err};
 use duplicate::duplicate_item;
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array, Array1, Array2, Axis, Dimension, Ix0, Ix2};
+use ndarray::{Array, Array1, Array2, Axis, Dimension, Ix0, Ix2, s};
 use ndarray_einsum::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::{Complex, ComplexFloat};
@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{CharacterTable, DecompositionError, SubspaceDecomposable};
-use crate::group::{class::ClassProperties, GroupProperties};
+use crate::group::{GroupProperties, class::ClassProperties};
 use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
 
@@ -178,20 +178,15 @@ where
 
 /// Enumerated type specifying the comparison mode for filtering out orbit overlap
 /// eigenvalues.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 pub enum EigenvalueComparisonMode {
     /// Compares the eigenvalues using only their real parts.
     Real,
 
     /// Compares the eigenvalues using their moduli.
+    #[default]
     Modulus,
-}
-
-impl Default for EigenvalueComparisonMode {
-    fn default() -> Self {
-        Self::Modulus
-    }
 }
 
 impl fmt::Display for EigenvalueComparisonMode {
@@ -277,7 +272,6 @@ where
     /// currently unclear if the unitary and antiunitary symmetry operators in QSym² commute with
     /// $`\hat{\kappa}`$. This thus precludes the use of the Cayley table to speed up the computation
     /// of the orbit overlap matrix.
-    #[must_use]
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error>;
 
     /// Returns the threshold for integrality checks of irreducible representation or
@@ -301,9 +295,9 @@ where
     ///
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
     /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
-    /// expressed. This is required if antiunitary operations are involved.
+    ///   expressed. This is required if antiunitary operations are involved.
     /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
-    /// to speed up the computation of the overlap matrix.
+    ///   to speed up the computation of the overlap matrix.
     fn calc_smat(
         &mut self,
         metric: Option<&Array<T, D>>,
@@ -314,7 +308,9 @@ where
         let mut smat = Array2::<T>::zeros((order, order));
         let item_0 = self.origin();
         if let (Some(ctb), true) = (self.group().cayley_table(), use_cayley_table) {
-            log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
+            log::debug!(
+                "Cayley table available. Group closure will be used to speed up overlap matrix computation."
+            );
             let ovs = self
                 .iter()
                 .map(|item_res| {
@@ -334,7 +330,9 @@ where
                 smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
             }
         } else {
-            log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");
+            log::debug!(
+                "Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up."
+            );
             for pair in self
                 .iter()
                 .map(|item_res| item_res.map_err(|err| err.to_string()))
@@ -427,7 +425,6 @@ where
     /// # Returns
     ///
     /// The matrix $`\mathbf{T}(g)`$.
-    #[must_use]
     fn calc_tmat(&self, op: &G::GroupElement) -> Result<Array2<T>, anyhow::Error> {
         let ctb = self
             .group()
@@ -463,7 +460,6 @@ where
     /// # Returns
     ///
     /// The matrix $`\mathbf{D}(g)`$.
-    #[must_use]
     fn calc_dmat(&self, op: &G::GroupElement) -> Result<Array2<T>, anyhow::Error> {
         let complex_symmetric = self.origin().complex_symmetric();
         let xmath = if complex_symmetric {
@@ -480,7 +476,7 @@ where
         let smattilde_inv = smattilde
             .inv()
             .expect("The inverse of S~ could not be found.");
-        let dmat = einsum(
+        einsum(
             "ij,jk,kl,lm->im",
             &[&smattilde_inv, &xmath, &self.calc_tmat(op)?, self.xmat()],
         )
@@ -488,10 +484,9 @@ where
         .with_context(|| "Unable to compute the matrix product [(S~)^(-1) X† T X].")?
         .into_dimensionality::<Ix2>()
         .map_err(|err| format_err!(err))
-        .with_context(|| {
-            "Unable to convert the matrix product [(S~)^(-1) X† T X] to two dimensions."
-        });
-        dmat
+        .with_context(
+            || "Unable to convert the matrix product [(S~)^(-1) X† T X] to two dimensions.",
+        )
     }
 
     /// Computes the character of a particular element $`g`$ in the generating group in the basis
@@ -506,7 +501,6 @@ where
     /// # Returns
     ///
     /// The character $`\chi(g)`$.
-    #[must_use]
     fn calc_character(&self, op: &G::GroupElement) -> Result<T, anyhow::Error> {
         let complex_symmetric = self.origin().complex_symmetric();
         let xmath = if complex_symmetric {
@@ -545,7 +539,6 @@ where
     /// # Returns
     ///
     /// The conjugacy class symbols and the corresponding characters.
-    #[must_use]
     fn calc_characters(
         &self,
     ) -> Result<Vec<(<G as ClassProperties>::ClassSymbol, T)>, anyhow::Error> {
@@ -564,7 +557,7 @@ where
         let smattilde_inv = smattilde
             .inv()
             .expect("The inverse of S~ could not be found.");
-        let chis = (0..self.group().class_number()).map(|cc_i| {
+        (0..self.group().class_number()).map(|cc_i| {
             let cc = self.group().get_cc_symbol_of_index(cc_i).unwrap();
             let op = self.group().get_cc_transversal(cc_i).unwrap();
             let chi = einsum(
@@ -580,8 +573,7 @@ where
                 "Unable to extract the character from the representation matrix."
             ))?;
             Ok((cc, chi_val))
-        }).collect::<Result<Vec<_>, _>>();
-        chis
+        }).collect::<Result<Vec<_>, _>>()
     }
 
     /// Reduces the representation or corepresentation spanned by the items in the orbit to a
@@ -604,11 +596,10 @@ where
         let chis = self
             .calc_characters()
             .map_err(|err| DecompositionError(err.to_string()))?;
-        let res = self.group().character_table().reduce_characters(
+        self.group().character_table().reduce_characters(
             &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
             self.integrality_threshold(),
-        );
-        res
+        )
     }
 
     /// Converts a slice of tuples of class symbols and characters to a nicely formatted table.
@@ -704,6 +695,7 @@ where
     ///
     /// A vector of tuples, each of which contains the irreducible row label and the corresponding
     /// projection value.
+    #[allow(clippy::type_complexity)]
     fn calc_projection_compositions(
         &self,
     ) -> Result<
@@ -724,20 +716,20 @@ where
                     .get_cc_symbol_of_index(0)
                     .ok_or(format_err!("Unable to retrieve the identity class."))?;
                 let dim = chartab
-                    .get_character(&row_label, &id_class).complex_value();
+                    .get_character(row_label, &id_class).complex_value();
                 let group_order = group.order().to_f64().ok_or(
                     DecompositionError("The group order cannot be converted to `f64`.".to_string())
                 )?;
                 let projection: Complex<f64> = (0..group.order())
                     .into_par_iter()
-                    .try_fold(|| Complex::<f64>::zero(), |acc, i| {
+                    .try_fold(Complex::<f64>::zero, |acc, i| {
                         let cc_i = group
                             .get_cc_of_element_index(i)
                             .ok_or(format_err!("Unable to retrieve the conjugacy class index of element index {i}."))?;
                         let cc = group
                             .get_cc_symbol_of_index(cc_i)
                             .ok_or(format_err!("Unable to retrieve the conjugacy class symbol of conjugacy class index {cc_i}."))?;
-                        let chi_i_star = group.character_table().get_character(&row_label, &cc).complex_conjugate();
+                        let chi_i_star = group.character_table().get_character(row_label, &cc).complex_conjugate();
                         let s_0i = self
                             .smat()
                             .ok_or(format_err!("No orbit overlap matrix found."))?
@@ -745,7 +737,8 @@ where
                             .ok_or(format_err!("Unable to retrieve the overlap matrix element with index `(0, {i})`."))?;
                         Ok::<_, anyhow::Error>(acc + chi_i_star.complex_value() * s_0i)
                     })
-                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))?;
+                    .try_reduce(Complex::<f64>::zero, |a, s| Ok(a + s))?;
+                #[allow(clippy::op_ref)]
                 Ok::<_, anyhow::Error>((row_label.clone(), &dim * projection / group_order))
             }).collect::<Result<Vec<_>, anyhow::Error>>()
     }

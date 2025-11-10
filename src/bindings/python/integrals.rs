@@ -123,6 +123,7 @@ pub struct PyBasisAngularOrder {
     ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
     ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether
     ///       the spatial parts of the functions in the shell are even with respect to spatial inversion.
+    #[allow(clippy::type_complexity)]
     basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>,
 }
 
@@ -152,6 +153,7 @@ impl PyBasisAngularOrder {
     ///       a boolean indicating whether the spatial parts of the functions in the shell are even
     ///       with respect to spatial inversion.
     #[new]
+    #[allow(clippy::type_complexity)]
     fn new(basis_atoms: Vec<(String, Vec<(u32, ShellType, PyShellOrder)>)>) -> Self {
         Self { basis_atoms }
     }
@@ -196,9 +198,7 @@ impl PyBasisAngularOrder {
 
         let elements = periodic_table::periodic_table();
 
-        log_title(&format!(
-            "Basis angular order extraction from Q-Chem HDF5 archive files",
-        ));
+        log_title("Basis angular order extraction from Q-Chem HDF5 archive files");
         let pybaos = sp_paths
             .iter()
             .map(|sp_path| {
@@ -214,17 +214,17 @@ impl PyBasisAngularOrder {
                     .dataset("aobasis/shell_to_atom_map")
                     .map_err(|err| PyValueError::new_err(err.to_string()))?
                     .read_1d::<usize>()
-                    .map_err(|err| PyValueError::new_err(err.to_string()))?
-                    .iter()
-                    .zip(shell_types.iter())
-                    .flat_map(|(&idx, shell_type)| {
-                        if *shell_type == -1 {
-                            vec![idx, idx]
-                        } else {
-                            vec![idx]
-                        }
-                    })
-                    .collect::<Vec<_>>();
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?;
+                // .iter()
+                // .zip(shell_types.iter())
+                // .flat_map(|(&idx, shell_type)| {
+                //     if *shell_type == -1 {
+                //         vec![idx, idx]
+                //     } else {
+                //         vec![idx]
+                //     }
+                // })
+                // .collect::<Vec<_>>();
                 let nuclei = sp_group
                     .dataset("structure/nuclei")
                     .map_err(|err| PyValueError::new_err(err.to_string()))?
@@ -237,14 +237,14 @@ impl PyBasisAngularOrder {
                     |(shell_type, atom_idx)| {
                         if *shell_type == 0 {
                             // S shell
-                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                            basis_atoms_map.entry(*atom_idx).or_default().push((
                                 0,
                                 ShellType::Cartesian,
                                 PyShellOrder::CartOrder(Some(CartOrder::qchem(0).cart_tuples)),
                             ));
                         } else if *shell_type == 1 {
                             // P shell
-                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                            basis_atoms_map.entry(*atom_idx).or_default().push((
                                 1,
                                 ShellType::Cartesian,
                                 PyShellOrder::CartOrder(Some(CartOrder::qchem(1).cart_tuples)),
@@ -253,7 +253,7 @@ impl PyBasisAngularOrder {
                             // SP shell
                             basis_atoms_map
                                 .entry(*atom_idx)
-                                .or_insert(vec![])
+                                .or_default()
                                 .extend_from_slice(&[
                                     (
                                         0,
@@ -273,10 +273,7 @@ impl PyBasisAngularOrder {
                         } else if *shell_type < 0 {
                             // Cartesian D shell or higher
                             let l = shell_type.unsigned_abs();
-                            // let l_usize = l
-                            //     .to_usize()
-                            //     .unwrap_or_else(|| panic!("Unable to convert the angular momentum value `|{shell_type}|` to `usize`."));
-                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                            basis_atoms_map.entry(*atom_idx).or_default().push((
                                 l,
                                 ShellType::Cartesian,
                                 PyShellOrder::CartOrder(Some(CartOrder::qchem(l).cart_tuples)),
@@ -287,7 +284,7 @@ impl PyBasisAngularOrder {
                             // let l_usize = l
                             //     .to_usize()
                             //     .unwrap_or_else(|| panic!("Unable to convert the angular momentum value `|{shell_type}|` to `usize`."));
-                            basis_atoms_map.entry(*atom_idx).or_insert(vec![]).push((
+                            basis_atoms_map.entry(*atom_idx).or_default().push((
                                 l,
                                 ShellType::Pure,
                                 PyShellOrder::PureSpinorOrder(PyPureSpinorOrder::Standard((
@@ -298,11 +295,11 @@ impl PyBasisAngularOrder {
                         }
                     },
                 );
-                let pybao = basis_atoms_map
+                basis_atoms_map
                     .into_iter()
                     .map(|(atom_idx, v)| {
                         let element = elements
-                            .get(nuclei[atom_idx])
+                            .get(nuclei[atom_idx] - 1)
                             .map(|el| el.symbol.to_string())
                             .ok_or_else(|| {
                                 PyValueError::new_err(format!(
@@ -312,8 +309,7 @@ impl PyBasisAngularOrder {
                         Ok((element, v))
                     })
                     .collect::<Result<Vec<_>, _>>()
-                    .map(|basis_atoms| Self::new(basis_atoms));
-                pybao
+                    .map(Self::new)
             })
             .collect::<Result<Vec<_>, _>>();
 
@@ -365,7 +361,9 @@ impl PyBasisAngularOrder {
     ) -> Result<BasisAngularOrder<'b>, anyhow::Error> {
         ensure!(
             self.basis_atoms.len() == mol.atoms.len(),
-            "The number of basis atoms does not match the number of ordinary atoms."
+            "The number of basis atoms ({}) does not match the number of ordinary atoms ({}).",
+            self.basis_atoms.len(),
+            mol.atoms.len()
         );
         let basis_atoms = self
             .basis_atoms
@@ -397,7 +395,7 @@ impl PyBasisAngularOrder {
 /// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
@@ -439,7 +437,7 @@ impl TryFrom<SpinConstraint> for PySpinConstraint {
 /// Python-exposed enumerated type to marshall basis spin--orbit-coupled layout in the coupled
 /// treatment of spin and spatial degrees of freedom between Rust and Python.
 #[pyclass(eq, eq_int)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PySpinOrbitCoupled {
     /// Variant for two-component $`j`$-adapted basis functions.
     JAdapted2C,
@@ -473,7 +471,7 @@ impl TryFrom<SpinOrbitCoupled> for PySpinOrbitCoupled {
 
 /// Python-exposed enumerated type to handle the union type `PySpinConstraint | PySpinOrbitCoupled`
 /// in Python.
-#[derive(FromPyObject, Clone, PartialEq, Eq, Hash)]
+#[derive(FromPyObject, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PyStructureConstraint {
     /// Variant for Python-exposed spin constraint layout.
     SpinConstraint(PySpinConstraint),
@@ -659,13 +657,13 @@ impl TryFrom<PyBasisShellContraction> for BasisShellContraction<f64, f64> {
 /// # Arguments
 /// * `order` is an integer indicating the order of the shell,
 /// * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
-/// or pure / solid harmonics (`false`), and
+///   or pure / solid harmonics (`false`), and
 /// * `shell_order` specifies how the functions in the shell are ordered:
 ///   * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
-///   tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
-///   `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+///     tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+///     `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
 ///   * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
-///   decreasing-$`m`$ order.
+///     decreasing-$`m`$ order.
 ///
 /// # Returns
 ///
@@ -891,7 +889,7 @@ pub fn calc_overlap_2c_real<'py>(
             .map(|basis_atom| {
                 basis_atom
                     .into_iter()
-                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .map(BasisShellContraction::<f64, f64>::try_from)
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()
@@ -937,7 +935,7 @@ pub fn calc_overlap_2c_complex<'py>(
             .map(|basis_atom| {
                 basis_atom
                     .into_iter()
-                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .map(BasisShellContraction::<f64, f64>::try_from)
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()
@@ -984,7 +982,7 @@ pub fn calc_overlap_4c_real<'py>(
             .map(|basis_atom| {
                 basis_atom
                     .into_iter()
-                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .map(BasisShellContraction::<f64, f64>::try_from)
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()
@@ -1030,7 +1028,7 @@ pub fn calc_overlap_4c_complex<'py>(
             .map(|basis_atom| {
                 basis_atom
                     .into_iter()
-                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
+                    .map(BasisShellContraction::<f64, f64>::try_from)
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()

@@ -402,9 +402,9 @@ where
     /// # Arguments
     ///
     /// * `mol` - The molecule to be associated with the extracted vibrational coordinate
-    /// collection.
+    ///   collection.
     /// * `threshold` - The comparison threshold to be associated with the extracted vibrational
-    /// coordinate collection.
+    ///   coordinate collection.
     ///
     /// # Returns
     ///

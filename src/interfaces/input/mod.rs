@@ -82,7 +82,7 @@ impl InputHandle for Input {
     fn handle(&self) -> Result<(), anyhow::Error> {
         let pd_params_inp = &self.symmetry_group_detection;
         let mut afa_params = AngularFunctionRepAnalysisParams::default();
-        self.analysis_targets.iter().map(|target| match target {
+        self.analysis_targets.iter().try_for_each(|target| match target {
             AnalysisTarget::MolecularSymmetry {
                 xyz,
                 symmetrisation,
@@ -166,13 +166,13 @@ impl InputHandle for Input {
                     SlaterDeterminantSource::QChemArchive(qchemarchive_sd_source) => {
                         log::debug!("Slater determinant source: Q-Chem archive");
                         qchemarchive_sd_source
-                            .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                            .sd_source_handle(pd_params_inp, &afa_params, sda_params)
                             .map(|_| ())
                     }
                     SlaterDeterminantSource::Binaries(binaries_sd_source) => {
                         log::debug!("Slater determinant source: binary files");
                         binaries_sd_source
-                            .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                            .sd_source_handle(pd_params_inp, &afa_params, sda_params)
                             .map(|_| ())
                     }
                 }
@@ -189,12 +189,12 @@ impl InputHandle for Input {
                     VibrationalCoordinateSource::QChemArchive(qchemarchive_vc_source) => {
                         log::debug!("Vibrational coordinate source: Q-Chem archive");
                         qchemarchive_vc_source
-                            .vc_source_handle(&pd_params_inp, &afa_params, &vca_params)
+                            .vc_source_handle(pd_params_inp, &afa_params, vca_params)
                             .map(|_| ())
                     }
                 }
             }
-        }).collect::<Result<_, _>>()
+        })
     }
 }
 

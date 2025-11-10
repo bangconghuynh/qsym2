@@ -87,7 +87,7 @@ impl SymmetryElementKind {
     /// # Arguments
     ///
     /// * `tr` - A boolean indicating whether time reversal is included (`true`) or removed
-    /// (`false`).
+    ///   (`false`).
     ///
     /// # Returns
     ///
@@ -239,11 +239,11 @@ impl fmt::Display for SymmetryElementKind {
 ///
 /// where
 /// * $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
-/// $`\lfloor -n/2 \rfloor < k \le \lfloor n/2 \rfloor`$,
+///   $`\lfloor -n/2 \rfloor < k \le \lfloor n/2 \rfloor`$,
 /// * $`\hat{\gamma}`$ is either the identity $`\hat{e}`$, the inversion operation $`\hat{i}`$, or
-/// a reflection operation $`\hat{\sigma}`$ perpendicular to the axis of rotation,
+///   a reflection operation $`\hat{\sigma}`$ perpendicular to the axis of rotation,
 /// * $`\hat{\alpha}`$ is either the identity $`\hat{e}`$, the complex conjugation $`\hat{K}`$, or
-/// the time reversal $`\hat{\theta}`$.
+///   the time reversal $`\hat{\theta}`$.
 ///
 /// We shall refer to $`\hat{C}_n^k`$ as the *unitary proper rotation part*, $`\hat{\gamma}`$ the
 /// *improper rotation part*, and $`\hat{\alpha}`$ the *antiunitary part* of the symmetry element.
@@ -343,7 +343,7 @@ impl SymmetryElementBuilder {
     /// # Arguments
     ///
     /// * `prop_pow` - A proper power to be set. This will be folded into the interval
-    /// $`(\lfloor -n/2 \rfloor, \lfloor n/2 \rfloor]`$.
+    ///   $`(\lfloor -n/2 \rfloor, \lfloor n/2 \rfloor]`$.
     pub fn proper_power(&mut self, prop_pow: i32) -> &mut Self {
         let raw_proper_order = self
             .raw_proper_order
@@ -370,7 +370,7 @@ impl SymmetryElementBuilder {
     /// # Arguments
     ///
     /// * `ang` - A proper rotation angle to be set. This will be folded into the interval
-    /// $`(-\pi, \pi]`$.
+    ///   $`(-\pi, \pi]`$.
     ///
     /// # Panics
     ///
@@ -1285,10 +1285,10 @@ impl SymmetryElement {
     /// # Arguments
     ///
     /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need
-    /// to make sure the time reversal specification in `improper_kind` matches that of `self` as
-    /// the conversion will take care of this.
+    ///   to make sure the time reversal specification in `improper_kind` matches that of `self` as
+    ///   the conversion will take care of this.
     /// * `preserves_power` - Boolean indicating if the proper rotation power $`k'`$ should be
-    /// preserved or should be set to $`1`$.
+    ///   preserved or should be set to $`1`$.
     ///
     /// # Returns
     ///
@@ -1437,7 +1437,7 @@ impl SymmetryElement {
     /// # Arguments
     ///
     /// * `normal` - A boolean indicating whether the resultant $`\mathsf{SU}(2)`$ proper rotation
-    /// is of homotopy class 0 (`true`) or 1 (`false`) when connected to the identity.
+    ///   is of homotopy class 0 (`true`) or 1 (`false`) when connected to the identity.
     ///
     /// # Returns
     ///
@@ -1459,7 +1459,7 @@ impl SymmetryElement {
     ///
     /// A tuple of two values:
     /// - A value $`\gamma \in [0, 1-1/\sqrt{3}]`$ indicating how close the axis is to one of the
-    /// three Cartesian axes. The closer $`\gamma`$ is to $`0`$, the closer the alignment.
+    ///   three Cartesian axes. The closer $`\gamma`$ is to $`0`$, the closer the alignment.
     /// - An index for the closest axis: `0` for $`z`$, `1` for $`y`$, `2` for $`x`$.
     ///
     /// # Panics

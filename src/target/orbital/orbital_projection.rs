@@ -18,16 +18,16 @@ use crate::target::orbital::MolecularOrbital;
         dtype_  [ f64 ]
         sctype_ [ SpinConstraint ]
         coeffs_ [
-            let c_res = self.generate_orbit_algebra_terms(row).fold(
-                Ok(Array1::zeros(self.origin().coefficients().raw_dim())),
-                |acc_res, item_res| acc_res.and_then(|acc| item_res.and_then(|(chr, mo)| {
+            let c_res = self.generate_orbit_algebra_terms(row).try_fold(
+                Array1::zeros(self.origin().coefficients().raw_dim()),
+                |acc, item_res| item_res.and_then(|(chr, mo)| {
                     let chr_complex = chr.complex_conjugate().complex_value();
                     if chr_complex.im > self.origin().threshold() {
                         Err(format_err!("Complex characters encountered. Density projection fails over the reals."))
                     } else {
                         Ok(acc + dim_f64 * chr_complex.re / group_order * mo.coefficients())
                     }
-                })),
+                }),
             )
         ]
     ]
@@ -35,12 +35,12 @@ use crate::target::orbital::MolecularOrbital;
         dtype_  [ Complex<f64> ]
         sctype_ [ SpinConstraint ]
         coeffs_ [
-            let c_res = self.generate_orbit_algebra_terms(row).fold(
-                Ok(Array1::zeros(self.origin().coefficients().raw_dim())),
-                |acc_res, item_res| acc_res.and_then(|acc| item_res.map(|(chr, mo)| {
+            let c_res = self.generate_orbit_algebra_terms(row).try_fold(
+                Array1::zeros(self.origin().coefficients().raw_dim()),
+                |acc, item_res| item_res.map(|(chr, mo)| {
                     let chr_complex = chr.complex_conjugate().complex_value();
                     acc + dim_f64 * chr_complex / group_order * mo.coefficients()
-                })),
+                }),
             )
         ]
     ]
@@ -48,12 +48,12 @@ use crate::target::orbital::MolecularOrbital;
         dtype_  [ Complex<f64> ]
         sctype_ [ SpinOrbitCoupled ]
         coeffs_ [
-            let c_res = self.generate_orbit_algebra_terms(row).fold(
-                Ok(Array1::zeros(self.origin().coefficients().raw_dim())),
-                |acc_res, item_res| acc_res.and_then(|acc| item_res.map(|(chr, mo)| {
+            let c_res = self.generate_orbit_algebra_terms(row).try_fold(
+                Array1::zeros(self.origin().coefficients().raw_dim()),
+                |acc, item_res| item_res.map(|(chr, mo)| {
                     let chr_complex = chr.complex_conjugate().complex_value();
                     acc + dim_f64 * chr_complex / group_order * mo.coefficients()
-                })),
+                }),
             )
         ]
     ]

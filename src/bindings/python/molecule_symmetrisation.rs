@@ -15,6 +15,7 @@ use crate::drivers::QSym2Driver;
 use crate::drivers::molecule_symmetrisation_bootstrap::{
     MoleculeSymmetrisationBootstrapDriver, MoleculeSymmetrisationBootstrapParams,
 };
+#[allow(unused_imports)]
 use crate::io::QSym2FileType;
 
 /// Python-exposed function to perform molecule symmetrisation by bootstrapping and log the result
@@ -56,6 +57,7 @@ use crate::io::QSym2FileType;
 /// # Errors
 ///
 /// Errors if any intermediate step in the symmetrisation procedure fails.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_xyz,

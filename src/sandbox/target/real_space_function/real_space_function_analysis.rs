@@ -3,7 +3,7 @@
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err, Context};
+use anyhow::{self, Context, ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -11,23 +11,23 @@ use log;
 use nalgebra::Point3;
 use ndarray::{Array1, Array2, Axis, Ix1};
 use ndarray_linalg::{
+    UPLO,
     eig::Eig,
     eigh::Eigh,
     types::{Lapack, Scalar},
-    UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 use rayon::prelude::*;
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, RepAnalysis,
+    EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap, RepAnalysis, fn_calc_xmat_complex,
+    fn_calc_xmat_real,
 };
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
-use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
+use crate::io::format::{QSym2Output, log_subtitle, qsym2_output};
 use crate::sandbox::target::real_space_function::RealSpaceFunction;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
@@ -255,11 +255,13 @@ where
             self.group,
             self.origin,
             match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, real_space_function| {
-                    real_space_function.sym_transform_spatial(op).with_context(|| {
+                SymmetryTransformationKind::Spatial => {
+                    |op, real_space_function| {
+                        real_space_function.sym_transform_spatial(op).with_context(|| {
                         format!("Unable to apply `{op}` spatially on the origin real-space function")
                     })
-                },
+                    }
+                }
                 SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                     |op, real_space_function| {
                         real_space_function.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -267,13 +269,13 @@ where
                     })
                     }
                 }
-                SymmetryTransformationKind::Spin => {
-                    |op, real_space_function| {
-                        real_space_function.sym_transform_spin(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-wise on the origin real-space function")
+                SymmetryTransformationKind::Spin => |op, real_space_function| {
+                    real_space_function.sym_transform_spin(op).with_context(|| {
+                        format!(
+                            "Unable to apply `{op}` spin-wise on the origin real-space function"
+                        )
                     })
-                    }
-                }
+                },
                 SymmetryTransformationKind::SpinSpatial => |op, real_space_function| {
                     real_space_function.sym_transform_spin_spatial(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-spatially on the origin real-space function")
@@ -324,18 +326,18 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric() {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."))
+            Err(format_err!(
+                "`norm_preserving_scalar_map` is currently not implemented for complex symmetric overlaps."
+            ))
+        } else if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            Ok(ComplexFloat::conj)
         } else {
-            if self
-                .group
-                .get_index(i)
-                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-                .contains_time_reversal()
-            {
-                Ok(ComplexFloat::conj)
-            } else {
-                Ok(|x| x)
-            }
+            Ok(|x| x)
         }
     }
 

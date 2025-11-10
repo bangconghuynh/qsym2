@@ -21,10 +21,10 @@ impl Symmetry {
     /// # Arguments
     ///
     /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
-    /// system.
+    ///   system.
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
-    /// symmetry element will only be considered if its non-time-reversed version turns out to be
-    /// not a symmetry element.
+    ///   symmetry element will only be considered if its non-time-reversed version turns out to be
+    ///   not a symmetry element.
     ///
     /// # Returns
     ///
@@ -60,34 +60,33 @@ impl Symmetry {
                 let atom_j_pos = atom2s[1].coordinates;
 
                 // Case B: C2 might cross through any two atoms
-                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &atom_i_pos.coords, tr) {
-                    if self.add_proper(
+                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &atom_i_pos.coords, tr)
+                    && self.add_proper(
                         ORDER_2,
                         &atom_i_pos.coords,
                         false,
                         presym.recentred_molecule.threshold,
                         proper_kind.contains_time_reversal(),
-                    ) {
-                        count_c2 += 1;
-                        count_c2_stable = 0;
-                    }
+                    )
+                {
+                    count_c2 += 1;
+                    count_c2_stable = 0;
                 }
 
                 // Case A: C2 might cross through the midpoint of two atoms
                 let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
-                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &midvec, tr) {
-                    if midvec.norm() > presym.recentred_molecule.threshold
-                        && self.add_proper(
-                            ORDER_2,
-                            &midvec,
-                            false,
-                            presym.recentred_molecule.threshold,
-                            proper_kind.contains_time_reversal(),
-                        )
-                    {
-                        count_c2 += 1;
-                        count_c2_stable = 0;
-                    }
+                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &midvec, tr)
+                    && midvec.norm() > presym.recentred_molecule.threshold
+                    && self.add_proper(
+                        ORDER_2,
+                        &midvec,
+                        false,
+                        presym.recentred_molecule.threshold,
+                        proper_kind.contains_time_reversal(),
+                    )
+                {
+                    count_c2 += 1;
+                    count_c2_stable = 0;
                 }
 
                 // Check if count_c2 has reached stability.
@@ -112,10 +111,10 @@ impl Symmetry {
     /// # Arguments
     ///
     /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
-    /// system.
+    ///   system.
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
-    /// symmetry element will only be considered if its non-time-reversed version turns out to be
-    /// not a symmetry element.
+    ///   symmetry element will only be considered if its non-time-reversed version turns out to be
+    ///   not a symmetry element.
     #[allow(clippy::too_many_lines)]
     pub(super) fn analyse_spherical(
         &mut self,

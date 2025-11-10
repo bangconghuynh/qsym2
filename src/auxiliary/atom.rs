@@ -59,8 +59,8 @@ impl ElementMap<'static> {
 /// # Arguments
 ///
 /// * `mass_str` - A string of mass value that is either `x.y(z)` where the
-///     uncertain digit `z` is enclosed in parentheses, or `[x]` where `x`
-///     is the mass number in place of precise experimental values.
+///   uncertain digit `z` is enclosed in parentheses, or `[x]` where `x`
+///   is the mass number in place of precise experimental values.
 ///
 /// # Returns
 ///
@@ -99,9 +99,9 @@ impl Atom {
     /// # Arguments
     ///
     /// * `line` - A line in an `xyz` file containing an atomic symbol and
-    ///     three Cartesian coordinates.
+    ///   three Cartesian coordinates.
     /// * `emap` - A hash map between atomic symbols and atomic numbers and
-    ///     masses.
+    ///   masses.
     /// * `thresh` - A threshold for approximate equality comparisons.
     ///
     /// # Returns
@@ -169,7 +169,7 @@ impl Atom {
     /// * `atomic_symbol` - The element symbol of the atom.
     /// * `coordinates` - The coordinates of the atom.
     /// * `emap` - A hash map between atomic symbols and atomic numbers and
-    ///     masses.
+    ///   masses.
     /// * `thresh` - The threshold for comparing atoms.
     ///
     /// # Returns
@@ -323,10 +323,9 @@ impl Transform for Atom {
             -1.0,
             epsilon = self.threshold,
             max_relative = self.threshold
-        ) {
-            if let AtomKind::Magnetic(pos) = self.kind {
-                self.kind = AtomKind::Magnetic(!pos);
-            }
+        ) && let AtomKind::Magnetic(pos) = self.kind
+        {
+            self.kind = AtomKind::Magnetic(!pos);
         };
     }
 

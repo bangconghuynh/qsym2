@@ -191,7 +191,7 @@ where
     fn dimensionality(&self) -> usize {
         self.subspaces()
             .iter()
-            .map(|&(ref symbol, &mult)| symbol.dimensionality() * mult)
+            .map(|&(symbol, &mult)| symbol.dimensionality() * mult)
             .sum()
     }
 

@@ -7,7 +7,7 @@ use anyhow::{self, ensure};
 use approx;
 use factorial::Factorial;
 use nalgebra::Vector3;
-use ndarray::{array, Array2, Axis};
+use ndarray::{Array2, Axis, array};
 use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
@@ -222,7 +222,7 @@ impl fmt::Display for SpinOrbitCoupled {
 /// * `mdashi` - Index for $`m'`$ given by $`m'+\tfrac{1}{2}`$.
 /// * `mi` - Index for $`m`$ given by $`m+\tfrac{1}{2}`$.
 /// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
-/// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
+///   the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
 ///
 /// # Returns
 ///
@@ -292,10 +292,10 @@ fn dmat_euler_element(mdashi: usize, mi: usize, euler_angles: (f64, f64, f64)) -
 /// # Arguments
 ///
 /// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
-/// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
+///   the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
 /// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///   arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+///   $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
 /// # Returns
 ///
@@ -329,12 +329,12 @@ pub fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Co
 /// # Arguments
 ///
 /// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
-/// anticlockwise rotation when looking down `axis`.
+///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
-/// normalised.
+///   normalised.
 /// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///   arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+///   $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
 /// # Returns
 ///
@@ -380,11 +380,11 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
 /// # Arguments
 ///
 /// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
-/// $`j`$ is half-integral.
+///   $`j`$ is half-integral.
 /// * `mdashi` - Index for $`m'`$ given by $`m'+\tfrac{1}{2}`$.
 /// * `mi` - Index for $`m`$ given by $`m+\tfrac{1}{2}`$.
 /// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
-/// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
+///   the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
 ///
 /// # Returns
 ///
@@ -420,7 +420,7 @@ pub fn dmat_euler_gen_element(
     let gamma_basic = gamma.rem_euclid(2.0 * std::f64::consts::PI);
     let mut prefactor = (-i * (alpha_basic * mdash + gamma_basic * m)).exp();
 
-    if twoj % 2 != 0 {
+    if !twoj.is_multiple_of(2) {
         // Half-integer j; double-group behaviours possible.
         let alpha_double = approx::relative_eq!(
             alpha.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0),
@@ -446,7 +446,7 @@ pub fn dmat_euler_gen_element(
 
     // tmin = max(0, int(mdash - m))
     // mdash - m = mdashi - mi
-    let tmin = if mdashi > mi { mdashi - mi } else { 0 };
+    let tmin = mdashi.saturating_sub(mi);
 
     let d = (tmin..=tmax).fold(Complex::<f64>::zero(), |acc, t| {
         // j - m = twoj - mi
@@ -535,12 +535,12 @@ pub fn dmat_euler_gen_element(
 /// # Arguments
 ///
 /// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
-/// $`j`$ is half-integral.
+///   $`j`$ is half-integral.
 /// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
-/// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
+///   the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
 /// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(j)}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///   arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+///   $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
 /// # Returns
 ///
@@ -576,14 +576,14 @@ pub fn dmat_euler_gen(
 /// # Arguments
 ///
 /// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
-/// $`j`$ is half-integral.
+///   $`j`$ is half-integral.
 /// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
-/// anticlockwise rotation when looking down `axis`.
+///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
-/// normalised.
+///   normalised.
 /// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///   arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+///   $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
 /// # Returns
 ///
@@ -624,9 +624,9 @@ pub fn dmat_angleaxis_gen_double(
 /// # Arguments
 ///
 /// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
-/// anticlockwise rotation when looking down `axis`.
+///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
-/// vector will be normalised.
+///   vector will be normalised.
 ///
 /// # Returns
 ///
@@ -731,14 +731,14 @@ fn angleaxis_to_euler_double(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) 
 /// # Arguments
 ///
 /// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
-/// $`j`$ is half-integral.
+///   $`j`$ is half-integral.
 /// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
-/// anticlockwise rotation when looking down `axis`.
+///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
-/// normalised.
+///   normalised.
 /// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///   arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+///   $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
 /// # Returns
 ///
@@ -751,12 +751,11 @@ pub fn dmat_angleaxis_gen_single(
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
     let euler_angles = angleaxis_to_euler_single(angle, axis, 1e-14);
-    let mat = dmat_euler_gen(twoj, euler_angles, increasingm);
-    mat
+    dmat_euler_gen(twoj, euler_angles, increasingm)
 }
 
 /// Converts an angle and axis of rotation to Euler angles using the equations in Section
-/// (**3**-5.4) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+/// (**3**-4) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
 /// Publications, Inc., 2005) such that
 ///
 /// ```math
@@ -790,9 +789,9 @@ pub fn dmat_angleaxis_gen_single(
 /// # Arguments
 ///
 /// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
-/// anticlockwise rotation when looking down `axis`.
+///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
-/// vector will be normalised.
+///   vector will be normalised.
 ///
 /// # Returns
 ///
@@ -861,8 +860,9 @@ fn angleaxis_to_euler_single(angle: f64, axis: Vector3<f64>, thresh: f64) -> (f6
                 ) {
                     (alpha - alpha.signum() * 2.0 * std::f64::consts::PI, gamma)
                 } else {
+                    // Even though this is identical to the case above, we repeat it here for
+                    // clarity.
                     (alpha - alpha.signum() * 2.0 * std::f64::consts::PI, gamma)
-                    // panic!("Unable to adjust α = {alpha:+.7} or γ = {gamma:+.7} within [-π, π] so that the resultant Euler angles correspond to a quaternion with a non-negative scalar part (λ = {lambda:+.7}).")
                 }
             } else {
                 (alpha, gamma)
@@ -882,9 +882,7 @@ fn angleaxis_to_euler_single(angle: f64, axis: Vector3<f64>, thresh: f64) -> (f6
                 0.0,
                 epsilon = thresh,
                 max_relative = thresh
-            ) {
-                (0.0, normalised_angle)
-            } else if nz > 0.0 {
+            ) || nz > 0.0 {
                 (0.0, normalised_angle)
             } else {
                 (0.0, -normalised_angle)

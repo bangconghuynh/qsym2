@@ -738,7 +738,7 @@ where
     /// * `name` - A name to be given to the magnetic-reprented group.
     /// * `elements` - A vector of *all* group elements.
     /// * `unitary_subgroup` - The unitary subgroup of the magnetic-represented group. All elements
-    /// of this must be present in `elements`.
+    ///   of this must be present in `elements`.
     ///
     /// # Returns
     ///

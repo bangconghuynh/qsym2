@@ -33,10 +33,11 @@ mod symmetry_transformation_tests;
 // ================
 
 /// Enumerated type for managing the kind of symmetry transformation on an object.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "python", pyclass)]
 pub enum SymmetryTransformationKind {
     /// Spatial-only transformation.
+    #[default]
     Spatial,
 
     /// Spatial-only transformation but with spin-including time reversal.
@@ -47,12 +48,6 @@ pub enum SymmetryTransformationKind {
 
     /// Spin-spatial coupled transformation.
     SpinSpatial,
-}
-
-impl Default for SymmetryTransformationKind {
-    fn default() -> Self {
-        SymmetryTransformationKind::Spatial
-    }
 }
 
 impl fmt::Display for SymmetryTransformationKind {
@@ -95,9 +90,9 @@ pub trait SpatialUnitaryTransformable: Clone {
     /// # Arguments
     ///
     /// * `rmat` - The three-dimensional representation matrix of the transformation in the basis
-    /// of coordinate *functions* $`(y, z, x)`$.
+    ///   of coordinate *functions* $`(y, z, x)`$.
     /// * `perm` - An optional permutation describing how any off-origin sites are permuted amongst
-    /// each other under the transformation.
+    ///   each other under the transformation.
     fn transform_spatial_mut(
         &mut self,
         rmat: &Array2<f64>,
@@ -112,7 +107,7 @@ pub trait SpatialUnitaryTransformable: Clone {
     /// # Arguments
     ///
     /// * `rmat` - The three-dimensional representation matrix of the transformation in the basis
-    /// of coordinate *functions* $`(y, z, x)`$.
+    ///   of coordinate *functions* $`(y, z, x)`$.
     ///
     /// # Returns
     ///
@@ -138,7 +133,7 @@ pub trait SpinUnitaryTransformable: Clone {
     /// # Arguments
     ///
     /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
-    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
+    ///   the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
     fn transform_spin_mut(
         &mut self,
         dmat: &Array2<Complex<f64>>,
@@ -152,7 +147,7 @@ pub trait SpinUnitaryTransformable: Clone {
     /// # Arguments
     ///
     /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
-    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
+    ///   the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
     ///
     /// # Returns
     ///
@@ -488,8 +483,8 @@ where
 /// * `arr` - A coefficient array of any dimensions.
 /// * `atom_perm` - A permutation for the atoms.
 /// * `axes` - The dimensions along which the generalised rows are to be permuted. The number of
-/// generalised rows along each of these dimensions *must* be equal to the number of functions in
-/// the basis.
+///   generalised rows along each of these dimensions *must* be equal to the number of functions in
+///   the basis.
 /// * `bao` - A structure specifying the angular order of the underlying basis.
 ///
 /// # Returns
@@ -544,11 +539,11 @@ where
 /// # Arguments
 ///
 /// * `baos` - Structure specifying the angular order of the underlying basis, one for each
-/// explicit component per coefficient matrix.
+///   explicit component per coefficient matrix.
 /// * `rmat` - The three-dimensional representation matrix of the transformation in the basis
-/// of coordinate *functions* $`(y, z, x)`$.
+///   of coordinate *functions* $`(y, z, x)`$.
 /// * `perm` - An optional permutation describing how any off-origin sites are permuted amongst
-/// each other under the transformation.
+///   each other under the transformation.
 ///
 /// # Returns
 ///
@@ -560,7 +555,7 @@ pub fn assemble_sh_rotation_3d_matrices(
     rmat: &Array2<f64>,
     perm: Option<&Permutation<usize>>,
 ) -> Result<Vec<Vec<Array2<f64>>>, anyhow::Error> {
-    let rmatss_res = baos.iter().map(|&bao| {
+    baos.iter().map(|&bao| {
         let pbao = if let Some(p) = perm {
             bao.permute(p)?
         } else {
@@ -591,7 +586,7 @@ pub fn assemble_sh_rotation_3d_matrices(
             .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, PureOrder::increasingm))
             .collect();
 
-        let rmats_res = pbao.basis_shells()
+        pbao.basis_shells()
             .map(|shl| {
                 let l = usize::try_from(shl.l).unwrap_or_else(|_| {
                     panic!(
@@ -610,7 +605,7 @@ pub fn assemble_sh_rotation_3d_matrices(
                             let perm = pureorder
                                 .get_perm_of(&po_il)
                                 .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
-                            Ok(rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                            Ok(rl.select(Axis(0), perm.image()).select(Axis(1), perm.image()))
                         } else {
                             Ok(rl)
                         }
@@ -667,10 +662,8 @@ pub fn assemble_sh_rotation_3d_matrices(
                     ShellOrder::Spinor(_) => Err(format_err!("Spinor shells cannot have transformation matrices with spherical-harmonic bases."))
                 }
             })
-            .collect::<Result<Vec<Array2<f64>>, _>>();
-        rmats_res
-    }).collect::<Result<Vec<_>, _>>();
-    rmatss_res
+            .collect::<Result<Vec<Array2<f64>>, _>>()
+    }).collect::<Result<Vec<_>, _>>()
 }
 
 /// Assembles spinor rotation matrices for all shells, which also include the unitary part of time
@@ -680,10 +673,10 @@ pub fn assemble_sh_rotation_3d_matrices(
 /// # Arguments
 ///
 /// * `baos` - Structure specifying the angular order of the underlying basis, one for each
-/// explicit component per coefficient matrix.
+///   explicit component per coefficient matrix.
 /// * `symop` - A symmetry operation representing the transformation.
 /// * `perm` - An optional permutation describing how any off-origin sites are permuted amongst
-/// each other under the transformation.
+///   each other under the transformation.
 ///
 /// # Returns
 ///
@@ -695,7 +688,7 @@ pub(crate) fn assemble_spinor_rotation_matrices(
     symop: &SymmetryOperation,
     perm: Option<&Permutation<usize>>,
 ) -> Result<Vec<Vec<Array2<Complex<f64>>>>, anyhow::Error> {
-    let rmatss_res = baos.iter().map(|&bao| {
+    baos.iter().map(|&bao| {
         let pbao = if let Some(p) = perm {
             bao.permute(p)?
         } else {
@@ -744,7 +737,7 @@ pub(crate) fn assemble_spinor_rotation_matrices(
             })
             .collect();
 
-        let rmats_res = pbao.basis_shells()
+        pbao.basis_shells()
             .map(|shl| {
                 let l =
                     usize::try_from(shl.l).unwrap_or_else(|_| {
@@ -764,7 +757,7 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                             let perm = pure_order
                                 .get_perm_of(&po_il)
                                 .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
-                            Ok(rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image()))
+                            Ok(rl.select(Axis(0), perm.image()).select(Axis(1), perm.image()))
                         } else {
                             Ok(rl)
                         }
@@ -829,16 +822,14 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                                 .get_perm_of(&so_il)
                                 .expect("Unable to obtain the permutation that maps `spinor_order` to the increasing order.");
                             if !so_il.even && !symop.is_proper() {
-                                -r2j_raw.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
+                                -r2j_raw.select(Axis(0), perm.image()).select(Axis(1), perm.image())
                             } else {
-                                r2j_raw.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
+                                r2j_raw.select(Axis(0), perm.image()).select(Axis(1), perm.image())
                             }
+                        } else if !spinor_order.even && !symop.is_proper() {
+                            -r2j_raw
                         } else {
-                            if !spinor_order.even && !symop.is_proper() {
-                                -r2j_raw
-                            } else {
-                                r2j_raw
-                            }
+                            r2j_raw
                         };
 
                         // Intrinsic parity of fermion is +1 and antifermion -1.
@@ -859,8 +850,6 @@ pub(crate) fn assemble_spinor_rotation_matrices(
                     }
                 }
             })
-            .collect::<Result<Vec<Array2<Complex<f64>>>, _>>();
-        rmats_res
-    }).collect::<Result<Vec<_>, _>>();
-    rmatss_res
+            .collect::<Result<Vec<Array2<Complex<f64>>>, _>>()
+    }).collect::<Result<Vec<_>, _>>()
 }

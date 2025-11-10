@@ -110,7 +110,7 @@ where
                     let old_coeff_comp: Array1<T> =
                         old_coeff.slice(s![*comp_start..*comp_end]).to_owned();
                     let p_coeff = if let Some(p) = perm {
-                        permute_array_by_atoms(&old_coeff_comp, p, &[Axis(0)], *bao)
+                        permute_array_by_atoms(&old_coeff_comp, p, &[Axis(0)], bao)
                     } else {
                         old_coeff_comp.clone()
                     };
@@ -676,15 +676,7 @@ impl<'a> TimeReversalTransformable for MolecularOrbital<'a, Complex<f64>, SpinOr
             .unwrap();
         let tmatss: Vec<Vec<Array2<Complex<f64>>>> =
             assemble_spinor_rotation_matrices(&self.baos, &t, None)
-                .map_err(|err| TransformationError(err.to_string()))?
-                .iter()
-                .map(|tmats| {
-                    tmats
-                        .iter()
-                        .map(|tmat| tmat.mapv(|x| x.into()))
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
+                .map_err(|err| TransformationError(err.to_string()))?;
         assert_eq!(
             tmatss.len(),
             self.structure_constraint
@@ -784,15 +776,7 @@ impl<'a> SymmetryTransformable for MolecularOrbital<'a, Complex<f64>, SpinOrbitC
         let perm = self.sym_permute_sites_spatial(symop)?;
         let tmatss: Vec<Vec<Array2<Complex<f64>>>> =
             assemble_spinor_rotation_matrices(&self.baos, symop, Some(&perm))
-                .map_err(|err| TransformationError(err.to_string()))?
-                .iter()
-                .map(|tmats| {
-                    tmats
-                        .iter()
-                        .map(|tmat| tmat.mapv(|x| x.into()))
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
+                .map_err(|err| TransformationError(err.to_string()))?;
         let component_boundary_indices = self
             .baos
             .iter()
@@ -827,7 +811,7 @@ impl<'a> SymmetryTransformable for MolecularOrbital<'a, Complex<f64>, SpinOrbitC
                 .map(|(((comp_start, comp_end), bao), tmats)| {
                     let old_coeff_comp: Array1<_> =
                         old_coeff.slice(s![*comp_start..*comp_end]).to_owned();
-                    let p_coeff = permute_array_by_atoms(&old_coeff_comp, &perm, &[Axis(0)], *bao);
+                    let p_coeff = permute_array_by_atoms(&old_coeff_comp, &perm, &[Axis(0)], bao);
                     let pbao = bao
                         .permute(&perm)
                         .map_err(|err| TransformationError(err.to_string()))?;

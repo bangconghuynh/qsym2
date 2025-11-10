@@ -360,7 +360,7 @@ where
             f,
             "  Structure constraint: {}",
             self.multidets
-                .get(0)
+                .first()
                 .map(|multidet_0| multidet_0.structure_constraint().to_string().to_lowercase())
                 .unwrap_or("--".to_string())
         )?;
@@ -503,10 +503,10 @@ where
 
         let sao = self.sao.ok_or("No SAO matrix found.".to_string())?;
 
-        if let Some(sao_h) = self.sao_h.flatten() {
-            if sao_h.shape() != sao.shape() {
-                return Err("Mismatched shapes between `sao` and `sao_h`.".to_string());
-            }
+        if let Some(sao_h) = self.sao_h.flatten()
+            && sao_h.shape() != sao.shape()
+        {
+            return Err("Mismatched shapes between `sao` and `sao_h`.".to_string());
         }
 
         let multidets = self
@@ -822,7 +822,7 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
         }
         if let Some(det) = self
             .multidets
-            .get(0)
+            .first()
             .and_then(|multidet| multidet.basis().first())
         {
             for (bao_i, bao) in det.baos().iter().enumerate() {

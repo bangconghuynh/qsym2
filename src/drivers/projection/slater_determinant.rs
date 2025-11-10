@@ -130,7 +130,7 @@ impl fmt::Display for SlaterDeterminantProjectionParams {
         )?;
         writeln!(
             f,
-            "Use double group for analysis: {}",
+            "Use double group for projection: {}",
             nice_bool(self.use_double_group)
         )?;
         if let Some(finite_order) = self.infinite_order_to_finite {
@@ -181,6 +181,7 @@ where
 
     /// The projected Slater determinants given as an indexmap containing the projected Slater
     /// determinant indexed by the requested subspace labels.
+    #[allow(clippy::type_complexity)]
     projected_determinants: IndexMap<
         G::RowSymbol,
         Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, String>,
@@ -219,6 +220,7 @@ where
     }
 
     /// Returns the projected densities.
+    #[allow(clippy::type_complexity)]
     pub fn projected_determinants(
         &self,
     ) -> &IndexMap<
@@ -404,7 +406,7 @@ where
             sym_res
                 .magnetic_symmetry
                 .as_ref()
-                .ok_or("Magnetic symmetry requested for representation analysis, but no magnetic symmetry found.")?
+                .ok_or("Magnetic symmetry requested for symmetry projection, but no magnetic symmetry found.")?
         } else {
             &sym_res.unitary_symmetry
         };
@@ -446,6 +448,7 @@ where
 
     /// Constructs the appropriate atomic-orbital overlap matrix based on the structure constraint
     /// of the determinant and the specified overlap matrix.
+    #[allow(clippy::type_complexity)]
     fn construct_sao(&self) -> Result<(Option<Array2<T>>, Option<Array2<T>>), anyhow::Error> {
         if let Some(provided_sao) = self.sao {
             let nbas_set = self
@@ -585,7 +588,7 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
 
         let projected_determinants = SlaterDeterminantSymmetryOrbit::builder()
             .group(&group)
-            .origin(&original_sd)
+            .origin(original_sd)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .integrality_threshold(1e-14)
             .linear_independence_threshold(1e-14)
@@ -645,7 +648,7 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
         let (sao_opt, sao_h_opt) = self.construct_sao()?;
         let result = SlaterDeterminantProjectionResult::builder()
             .parameters(params)
-            .determinant(&self.determinant)
+            .determinant(self.determinant)
             .group(group.clone())
             .projected_determinants(projected_determinants)
             .sao(sao_opt)

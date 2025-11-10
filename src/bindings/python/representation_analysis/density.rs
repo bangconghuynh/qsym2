@@ -68,12 +68,11 @@ impl PyDensityReal {
         density_matrix: Bound<'_, PyArray2<f64>>,
         threshold: f64,
     ) -> Self {
-        let det = Self {
+        Self {
             complex_symmetric,
             density_matrix: density_matrix.to_owned_array(),
             threshold,
-        };
-        det
+        }
     }
 
     #[getter]
@@ -103,15 +102,14 @@ impl PyDensityReal {
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
     ) -> Result<Density<'b, f64>, anyhow::Error> {
-        let den = Density::<f64>::builder()
+        Density::<f64>::builder()
             .bao(bao)
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
             .density_matrix(self.density_matrix.clone())
             .threshold(self.threshold)
             .build()
-            .map_err(|err| format_err!(err));
-        den
+            .map_err(|err| format_err!(err))
     }
 }
 
@@ -148,12 +146,11 @@ impl PyDensityComplex {
         density_matrix: Bound<'_, PyArray2<C128>>,
         threshold: f64,
     ) -> Self {
-        let det = Self {
+        Self {
             complex_symmetric,
             density_matrix: density_matrix.to_owned_array(),
             threshold,
-        };
-        det
+        }
     }
 
     #[getter]
@@ -183,15 +180,14 @@ impl PyDensityComplex {
         bao: &'a BasisAngularOrder,
         mol: &'a Molecule,
     ) -> Result<Density<'b, C128>, anyhow::Error> {
-        let den = Density::<C128>::builder()
+        Density::<C128>::builder()
             .bao(bao)
             .complex_symmetric(self.complex_symmetric)
             .mol(mol)
             .density_matrix(self.density_matrix.clone())
             .threshold(self.threshold)
             .build()
-            .map_err(|err| format_err!(err));
-        den
+            .map_err(|err| format_err!(err))
     }
 }
 
@@ -257,6 +253,7 @@ pub enum PyDensity {
 /// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,

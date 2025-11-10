@@ -74,8 +74,8 @@ impl fmt::Display for MagneticSymmetryAnalysisKind {
 ///
 /// * `bao` - The basis angular order information structure.
 /// * `index` - The optional index for the explicit component to which the basis angular
-/// information corresponds. If `None`, then it is assumed that the basis angular order information
-/// is uniform across all explicit components.
+///   information corresponds. If `None`, then it is assumed that the basis angular order information
+///   is uniform across all explicit components.
 pub(crate) fn log_bao(bao: &BasisAngularOrder, index: Option<usize>) {
     if let Some(i) = index {
         log_subtitle(&format!("Basis angular order (explicit component {i})"));

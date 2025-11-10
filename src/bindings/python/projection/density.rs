@@ -63,6 +63,7 @@ type C128 = Complex<f64>;
 /// The result will be returned as a list of tuples, each of which contains the name/description of
 /// an original density and a dictionary in which the keys are the subspace labels and the values
 /// are the corresponding projected density.
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,

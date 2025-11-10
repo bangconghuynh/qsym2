@@ -10,6 +10,7 @@ use num_complex::Complex;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled, StructureConstraint};
@@ -52,7 +53,7 @@ type C128 = Complex<f64>;
 /// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PySlaterDeterminantReal {
     /// The structure constraint applied to the coefficients of the determinant.
     pub(crate) structure_constraint: PyStructureConstraint,
@@ -103,7 +104,7 @@ impl PySlaterDeterminantReal {
         mo_energies: Option<Vec<Bound<'_, PyArray1<f64>>>>,
         energy: Option<f64>,
     ) -> Self {
-        let det = Self {
+        Self {
             structure_constraint,
             complex_symmetric,
             coefficients: coefficients
@@ -122,8 +123,7 @@ impl PySlaterDeterminantReal {
                     .collect::<Vec<_>>()
             }),
             energy,
-        };
-        det
+        }
     }
 
     /// The occupation patterns for the molecular orbitals.
@@ -168,7 +168,7 @@ impl PySlaterDeterminantReal {
     /// # Arguments
     ///
     /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
-    /// given, one for each explicit component per coefficient matrix.
+    ///   given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -189,7 +189,7 @@ impl PySlaterDeterminantReal {
             + fmt::Display
             + TryFrom<PyStructureConstraint, Error = anyhow::Error>,
     {
-        let det = SlaterDeterminant::<f64, SC>::builder()
+        SlaterDeterminant::<f64, SC>::builder()
             .structure_constraint(self.structure_constraint.clone().try_into()?)
             .baos(baos.to_vec())
             .complex_symmetric(self.complex_symmetric)
@@ -203,8 +203,7 @@ impl PySlaterDeterminantReal {
             )
             .threshold(self.threshold)
             .build()
-            .map_err(|err| format_err!(err));
-        det
+            .map_err(|err| format_err!(err))
     }
 
     /// Returns the Python-exposed structure constraint information.
@@ -247,7 +246,7 @@ where
                     .map(|mo_e| mo_e.to_pyarray(py))
                     .collect_vec()
             }),
-            self.energy().ok().map(|energy| *energy),
+            self.energy().ok().copied(),
         ))
     }
 }
@@ -258,7 +257,7 @@ where
 
 /// Python-exposed structure to marshall complex Slater determinant information between Rust and Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PySlaterDeterminantComplex {
     /// The structure constraint applied to the coefficients of the determinant.
     pub(crate) structure_constraint: PyStructureConstraint,
@@ -311,7 +310,7 @@ impl PySlaterDeterminantComplex {
         mo_energies: Option<Vec<Bound<'_, PyArray1<C128>>>>,
         energy: Option<C128>,
     ) -> Self {
-        let det = Self {
+        Self {
             structure_constraint,
             complex_symmetric,
             coefficients: coefficients
@@ -330,8 +329,7 @@ impl PySlaterDeterminantComplex {
                     .collect::<Vec<_>>()
             }),
             energy,
-        };
-        det
+        }
     }
 
     /// The occupation patterns for the molecular orbitals.
@@ -376,7 +374,7 @@ impl PySlaterDeterminantComplex {
     /// # Arguments
     ///
     /// * `baos` - The [`BasisAngularOrder`]s for the basis set in which the Slater determinant is
-    /// given, one for each explicit component per coefficient matrix.
+    ///   given, one for each explicit component per coefficient matrix.
     /// * `mol` - The molecule with which the Slater determinant is associated.
     ///
     /// # Returns
@@ -397,7 +395,7 @@ impl PySlaterDeterminantComplex {
             + fmt::Display
             + TryFrom<PyStructureConstraint, Error = anyhow::Error>,
     {
-        let det = SlaterDeterminant::<C128, SC>::builder()
+        SlaterDeterminant::<C128, SC>::builder()
             .structure_constraint(self.structure_constraint.clone().try_into()?)
             .baos(baos.to_vec())
             .complex_symmetric(self.complex_symmetric)
@@ -411,8 +409,7 @@ impl PySlaterDeterminantComplex {
             )
             .threshold(self.threshold)
             .build()
-            .map_err(|err| format_err!(err));
-        det
+            .map_err(|err| format_err!(err))
     }
 
     pub fn structure_constraint(&self) -> &PyStructureConstraint {
@@ -454,7 +451,7 @@ where
                     .map(|mo_e| mo_e.to_pyarray(py))
                     .collect_vec()
             }),
-            self.energy().ok().map(|energy| *energy),
+            self.energy().ok().copied(),
         ))
     }
 }
@@ -579,6 +576,7 @@ pub enum PySlaterDeterminant {
 ///
 /// A Python-exposed [`PySlaterDeterminantRepAnalysisResult`] structure containing the results of the
 /// representation analysis.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
@@ -1287,28 +1285,27 @@ pub fn rep_analyse_slater_determinant(
                         PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                         PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
                     };
-                    let sao_h_c = sao_h.and_then(|pysao_h| match pysao_h {
+                    let sao_h_c = sao_h.map(|pysao_h| match pysao_h {
                         // sao_h must have the same reality as sao.
                         PyArray2RC::Real(pysao_h_r) => {
-                            Some(pysao_h_r.to_owned_array().mapv(Complex::from))
+                            pysao_h_r.to_owned_array().mapv(Complex::from)
                         }
-                        PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+                        PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
                     });
-                    let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
+                    let sao_spatial_4c_c = sao_spatial_4c.map(|pysao4c| match pysao4c {
                         // sao_spatial_4c must have the same reality as sao.
                         PyArray4RC::Real(pysao4c_r) => {
-                            Some(pysao4c_r.to_owned_array().mapv(Complex::from))
+                            pysao4c_r.to_owned_array().mapv(Complex::from)
                         }
-                        PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+                        PyArray4RC::Complex(pysao4c_c) => pysao4c_c.to_owned_array(),
                     });
-                    let sao_spatial_4c_h_c =
-                        sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
-                            // sao_spatial_4c_h must have the same reality as sao.
-                            PyArray4RC::Real(pysao4c_h_r) => {
-                                Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
-                            }
-                            PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
-                        });
+                    let sao_spatial_4c_h_c = sao_spatial_4c_h.map(|pysao4c_h| match pysao4c_h {
+                        // sao_spatial_4c_h must have the same reality as sao.
+                        PyArray4RC::Real(pysao4c_h_r) => {
+                            pysao4c_h_r.to_owned_array().mapv(Complex::from)
+                        }
+                        PyArray4RC::Complex(pysao4c_h_c) => pysao4c_h_c.to_owned_array(),
+                    });
                     match &use_magnetic_group {
                         Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                             let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -1486,28 +1483,27 @@ pub fn rep_analyse_slater_determinant(
                         PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                         PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
                     };
-                    let sao_h_c = sao_h.and_then(|pysao_h| match pysao_h {
+                    let sao_h_c = sao_h.map(|pysao_h| match pysao_h {
                         // sao_spatial_h must have the same reality as sao.
                         PyArray2RC::Real(pysao_h_r) => {
-                            Some(pysao_h_r.to_owned_array().mapv(Complex::from))
+                            pysao_h_r.to_owned_array().mapv(Complex::from)
                         }
-                        PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+                        PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
                     });
-                    let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
+                    let sao_spatial_4c_c = sao_spatial_4c.map(|pysao4c| match pysao4c {
                         // sao_spatial_4c must have the same reality as sao.
                         PyArray4RC::Real(pysao4c_r) => {
-                            Some(pysao4c_r.to_owned_array().mapv(Complex::from))
+                            pysao4c_r.to_owned_array().mapv(Complex::from)
                         }
-                        PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+                        PyArray4RC::Complex(pysao4c_c) => pysao4c_c.to_owned_array(),
                     });
-                    let sao_spatial_4c_h_c =
-                        sao_spatial_4c_h.and_then(|pysao4c_h| match pysao4c_h {
-                            // sao_spatial_4c_h must have the same reality as sao.
-                            PyArray4RC::Real(pysao4c_h_r) => {
-                                Some(pysao4c_h_r.to_owned_array().mapv(Complex::from))
-                            }
-                            PyArray4RC::Complex(pysao4c_h_c) => Some(pysao4c_h_c.to_owned_array()),
-                        });
+                    let sao_spatial_4c_h_c = sao_spatial_4c_h.map(|pysao4c_h| match pysao4c_h {
+                        // sao_spatial_4c_h must have the same reality as sao.
+                        PyArray4RC::Real(pysao4c_h_r) => {
+                            pysao4c_h_r.to_owned_array().mapv(Complex::from)
+                        }
+                        PyArray4RC::Complex(pysao4c_h_c) => pysao4c_h_c.to_owned_array(),
+                    });
                     match &use_magnetic_group {
                         Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                             let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<

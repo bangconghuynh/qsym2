@@ -97,6 +97,7 @@ type C128 = Complex<f64>;
 /// analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
@@ -372,10 +373,10 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
-            let sao_h_c = sao_h.and_then(|pysao_h| match pysao_h {
+            let sao_h_c = sao_h.map(|pysao_h| match pysao_h {
                 // sao_spatial_h must have the same reality as sao_spatial.
-                PyArray2RC::Real(pysao_h_r) => Some(pysao_h_r.to_owned_array().mapv(Complex::from)),
-                PyArray2RC::Complex(pysao_h_c) => Some(pysao_h_c.to_owned_array()),
+                PyArray2RC::Real(pysao_h_r) => pysao_h_r.to_owned_array().mapv(Complex::from),
+                PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
             });
             let coefficients_c = match coefficients {
                 PyArray2RC::Real(pycoefficients_r) => {

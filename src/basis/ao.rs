@@ -294,7 +294,7 @@ impl CartOrder {
     /// inconsistent components).
     pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
         let first_tuple = cart_tuples
-            .get(0)
+            .first()
             .ok_or(format_err!("No Cartesian tuples found."))?;
         let lcart = first_tuple.0 + first_tuple.1 + first_tuple.2;
         let cart_order = CartOrder::builder()
@@ -533,9 +533,9 @@ impl PermutableCollection for CartOrder {
 /// # Arguments
 ///
 /// * `cart_tuple` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
-/// components of the Cartesian Gaussian.
+///   components of the Cartesian Gaussian.
 /// * flat - A flag indicating if the string representation is flat (*e.g.* `xxyz`) or compact
-/// (*e.g.* `x^2yz`).
+///   (*e.g.* `x^2yz`).
 ///
 /// Returns
 ///
@@ -709,7 +709,7 @@ impl SpinorOrder {
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
     /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
-    /// spatial inversion.
+    ///   spatial inversion.
     /// * `particle_type` - The associated particle type.
     ///
     /// # Returns
@@ -735,7 +735,7 @@ impl SpinorOrder {
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
     /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
-    /// spatial inversion.
+    ///   spatial inversion.
     /// * `particle_type` - The associated particle type.
     ///
     /// # Returns
@@ -760,7 +760,7 @@ impl SpinorOrder {
     ///
     /// * `two_j` - The required spinor angular momentum (times two).
     /// * `even` - Boolean indicating whether the large-component spinors are even with respect to
-    /// spatial inversion.
+    ///   spatial inversion.
     /// * `particle_type` - The associated particle type.
     ///
     /// # Returns
@@ -1030,9 +1030,9 @@ impl BasisShell {
     /// # Arguments
     ///
     /// * `l` - The rank of this shell, which is equal to $`l_{\mathrm{pure}}`$ for a pure shell,
-    /// $`l_{\mathrm{cart}}`$ for a Cartesian shell, or $`2j`$ for a spinor shell.
+    ///   $`l_{\mathrm{cart}}`$ for a Cartesian shell, or $`2j`$ for a spinor shell.
     /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
-    /// functions in this shell.
+    ///   functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
         match &shl_ord {
             ShellOrder::Pure(pureorder) => assert_eq!(pureorder.lpure, l),
@@ -1095,7 +1095,7 @@ impl<'a> BasisAtom<'a> {
     ///
     /// * `atm` - A reference to an atom.
     /// * `bss` - A sequence of [`BasisShell`]s containing the basis functions localised on this
-    /// atom.
+    ///   atom.
     pub fn new(atm: &'a Atom, bss: &[BasisShell]) -> Self {
         BasisAtom::builder()
             .atom(atm)
@@ -1251,7 +1251,7 @@ impl<'a> BasisAngularOrder<'a> {
             let s_shell_boundaries = self.shell_boundary_indices();
             let o_shell_boundaries = other.shell_boundary_indices();
             if s_shell_boundaries.len() == o_shell_boundaries.len() {
-                let image = izip!(
+                izip!(
                     self.basis_shells(),
                     other.basis_shells(),
                     s_shell_boundaries.iter(),
@@ -1263,7 +1263,7 @@ impl<'a> BasisAngularOrder<'a> {
                         let o_shl_ord = &o_bs.shell_order;
                         match (s_shl_ord, o_shl_ord) {
                             (ShellOrder::Pure(s_po), ShellOrder::Pure(o_po)) => Ok(
-                                s_po.get_perm_of(&o_po)
+                                s_po.get_perm_of(o_po)
                                     .unwrap()
                                     .image()
                                     .iter()
@@ -1271,7 +1271,7 @@ impl<'a> BasisAngularOrder<'a> {
                                     .collect_vec(),
                             ),
                             (ShellOrder::Cart(s_co), ShellOrder::Cart(o_co)) => Ok(
-                                s_co.get_perm_of(&o_co)
+                                s_co.get_perm_of(o_co)
                                     .unwrap()
                                     .image()
                                     .iter()
@@ -1288,8 +1288,7 @@ impl<'a> BasisAngularOrder<'a> {
                 .and_then(|image_by_shells| {
                     let flattened_image = image_by_shells.into_iter().flatten().collect_vec();
                     Permutation::from_image(flattened_image)
-                });
-                image
+                })
             } else {
                 Err(format_err!("Mismatched numbers of shells."))
             }

@@ -50,9 +50,9 @@ impl SlaterDeterminantSourceHandle for QChemArchiveSlaterDeterminantSource {
         let qchemarchive_path = &self.path;
         let mut qchem_h5_driver = QChemSlaterDeterminantH5Driver::builder()
             .filename(qchemarchive_path.into())
-            .symmetry_group_detection_input(&pd_params_inp)
-            .angular_function_analysis_parameters(&afa_params)
-            .rep_analysis_parameters(&sda_params)
+            .symmetry_group_detection_input(pd_params_inp)
+            .angular_function_analysis_parameters(afa_params)
+            .rep_analysis_parameters(sda_params)
             .build()
             .with_context(|| "Unable to construct a Q-Chem HDF5 driver when handling Q-Chem archive Slater determinant source")?;
         qchem_h5_driver.run().with_context(|| "Unable to execute the Q-Chem HDF5 driver successfully when handling Q-Chem archive Slater determinant source")?;
@@ -92,9 +92,9 @@ impl VibrationalCoordinateSourceHandle for QChemArchiveVibrationalCoordinateSour
         let qchemarchive_path = &self.path;
         let mut qchem_h5_driver = QChemVibrationH5Driver::builder()
             .filename(qchemarchive_path.into())
-            .symmetry_group_detection_input(&pd_params_inp)
-            .angular_function_analysis_parameters(&afa_params)
-            .rep_analysis_parameters(&vca_params)
+            .symmetry_group_detection_input(pd_params_inp)
+            .angular_function_analysis_parameters(afa_params)
+            .rep_analysis_parameters(vca_params)
             .build()
             .with_context(|| "Unable to construct a Q-Chem HDF5 driver when handling Q-Chem archive vibrational coordinate source")?;
         qchem_h5_driver.run().with_context(|| "Unable to execute the Q-Chem HDF5 driver successfully when handling Q-Chem archive vibrational coordinate source")?;

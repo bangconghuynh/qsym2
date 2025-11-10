@@ -5,31 +5,31 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err, Context};
+use anyhow::{self, Context, ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, Array3, Axis, Ix2};
+use ndarray::{Array1, Array2, Array3, Axis, Ix2, s};
 use ndarray_linalg::{
+    UPLO,
     eig::Eig,
     eigh::Eigh,
     types::{Lapack, Scalar},
-    UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, RepAnalysis,
+    EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap, RepAnalysis, fn_calc_xmat_complex,
+    fn_calc_xmat_real,
 };
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
-use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
+use crate::io::format::{QSym2Output, log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -68,7 +68,7 @@ where
     /// # Arguments
     ///
     /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
-    /// inner product.
+    ///   inner product.
     /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
     ///
     /// # Panics
@@ -345,18 +345,18 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."))
+            Err(format_err!(
+                "`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."
+            ))
+        } else if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            Ok(ComplexFloat::conj)
         } else {
-            if self
-                .group
-                .get_index(i)
-                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-                .contains_time_reversal()
-            {
-                Ok(ComplexFloat::conj)
-            } else {
-                Ok(|x| x)
-            }
+            Ok(|x| x)
         }
     }
 
@@ -453,7 +453,9 @@ where
                     self.integrality_threshold(),
                 );
                 log::debug!("Characters reduced.");
-                log::debug!("Analysing representation symmetry for a multi-determinantal wavefunction... Done.");
+                log::debug!(
+                    "Analysing representation symmetry for a multi-determinantal wavefunction... Done."
+                );
                 res
             } else {
                 Err(DecompositionError(err_str))
@@ -503,10 +505,10 @@ where
     ///
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
     /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
-    /// expressed. This is required if antiunitary operations are involved.
+    ///   expressed. This is required if antiunitary operations are involved.
     /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
-    /// to speed up the computation of the overlap matrix. If `false`, this will revert back to the
-    /// non-optimised overlap matrix calculation.
+    ///   to speed up the computation of the overlap matrix. If `false`, this will revert back to the
+    ///   non-optimised overlap matrix calculation.
     pub(crate) fn calc_smat_optimised(
         &mut self,
         metric: Option<&Array2<T>>,
@@ -519,7 +521,9 @@ where
         );
 
         if let (Some(ctb), true) = (self.group().cayley_table(), use_cayley_table) {
-            log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
+            log::debug!(
+                "Cayley table available. Group closure will be used to speed up overlap matrix computation."
+            );
 
             let order = self.group.order();
             let mut smat = Array2::<T>::zeros((order, order));

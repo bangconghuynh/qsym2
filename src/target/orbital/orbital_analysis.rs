@@ -3,36 +3,36 @@
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err, Context};
+use anyhow::{self, Context, ensure, format_err};
 use approx;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
 use log;
-use ndarray::{s, Array1, Array2, Axis, Ix2};
+use ndarray::{Array1, Array2, Axis, Ix2, s};
 use ndarray_linalg::{
+    UPLO,
     eig::Eig,
     eigh::Eigh,
     solve::Determinant,
     types::{Lapack, Scalar},
-    UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
-    Overlap, RepAnalysis,
+    EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap, RepAnalysis, fn_calc_xmat_complex,
+    fn_calc_xmat_real,
 };
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
-use crate::auxiliary::misc::{complex_modified_gram_schmidt, ProductRepeat};
+use crate::auxiliary::misc::{ProductRepeat, complex_modified_gram_schmidt};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::orbital::MolecularOrbital;
 
 // -------
@@ -211,7 +211,7 @@ where
     /// * `orbitals` - The origin orbitals, each of which generates its own orbit.
     /// * `sym_kind` - The symmetry transformation kind.
     /// * `integrality_thresh` - The threshold of integrality check of multiplicity coefficients in
-    /// each orbit.
+    ///   each orbit.
     /// * `linear_independence_thresh` - The threshold of linear independence for each orbit.
     ///
     /// # Returns
@@ -385,18 +385,18 @@ where
 
     fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
         if self.origin.complex_symmetric {
-            Err(format_err!("`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."))
+            Err(format_err!(
+                "`norm_preserving_scalar_map` is currently not implemented for complex-symmetric overlaps. This thus precludes the use of the Cayley table to speed up the computation of the orbit overlap matrix."
+            ))
+        } else if self
+            .group
+            .get_index(i)
+            .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
+            .contains_time_reversal()
+        {
+            Ok(ComplexFloat::conj)
         } else {
-            if self
-                .group
-                .get_index(i)
-                .unwrap_or_else(|| panic!("Group operation index `{i}` not found."))
-                .contains_time_reversal()
-            {
-                Ok(ComplexFloat::conj)
-            } else {
-                Ok(|x| x)
-            }
+            Ok(|x| x)
         }
     }
 
@@ -479,20 +479,21 @@ where
 /// * `group` - An orbit-generating symmetry group.
 /// * `metric` - The metric of the basis in which the coefficients of `det` and `mos` are written.
 /// * `integrality_threshold` - The threshold of integrality check of multiplicity coefficients in
-/// each orbit.
+///   each orbit.
 /// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
 /// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
 /// * `eigenvalue_comparison_mode` - The mode of comparing the overlap eigenvalues to the specified
-/// `linear_independence_threshold`.
+///   `linear_independence_threshold`.
 /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group, if available,
-/// should be used to speed up the computation of the orbit overlap matrix.
+///   should be used to speed up the computation of the orbit overlap matrix.
 ///
 /// # Returns
 ///
 /// A tuple consisting of:
-/// - the determinant orbit, and
-/// - a vector of vectors of molecular-orbital orbits, where each element of the outer vector is
-/// for one spin space, and each element of an inner vector is for one molecular orbital.
+/// * the determinant orbit, and
+/// * a vector of vectors of molecular-orbital orbits, where each element of the outer vector is
+///   for one spin space, and each element of an inner vector is for one molecular orbital.
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn generate_det_mo_orbits<'a, G, T, SC>(
     det: &'a SlaterDeterminant<'a, T, SC>,
     mos: &'a [Vec<MolecularOrbital<'a, T, SC>>],
@@ -565,7 +566,9 @@ where
     let sao_h = metric_h.unwrap_or(sao);
 
     if let (Some(ctb), true) = (group.cayley_table(), use_cayley_table) {
-        log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
+        log::debug!(
+            "Cayley table available. Group closure will be used to speed up overlap matrix computation."
+        );
         let mut det_smatw0 = Array1::<T>::zeros(order);
         let mut mo_smatw0ss = mo_orbitss
             .iter()
@@ -659,7 +662,9 @@ where
             det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)?(det_smatw0[jinv_i]);
         }
     } else {
-        log::debug!("Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up.");
+        log::debug!(
+            "Cayley table not available or the use of Cayley table not requested. Overlap matrix will be constructed without group-closure speed-up."
+        );
         let indexed_dets = det_orbit
             .iter()
             .map(|det_res| det_res.map_err(|err| err.to_string()))

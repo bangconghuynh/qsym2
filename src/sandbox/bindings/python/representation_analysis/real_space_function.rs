@@ -91,6 +91,7 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 /// analysis of angular functions. Python type: `float`.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis. Python type: `int`.
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
@@ -182,7 +183,7 @@ pub fn rep_analyse_real_space_function_(
 
     let real_space_function = RealSpaceFunction::<dtype_, _>::builder()
         .function(|pt| {
-            Python::with_gil(|py_inner| {
+            Python::attach(|py_inner| {
                 let res = function.call1(py_inner, (pt.x, pt.y, pt.z)).expect(
                     "Unable to apply the real-space function on the specified coordinates.",
                 );
@@ -208,7 +209,7 @@ pub fn rep_analyse_real_space_function_(
             .symmetry_group(&pd_res)
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            py.allow_threads(|| {
+            py.detach(|| {
                 real_space_function_driver
                     .run()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -227,7 +228,7 @@ pub fn rep_analyse_real_space_function_(
             .symmetry_group(&pd_res)
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            py.allow_threads(|| {
+            py.detach(|| {
                 real_space_function_driver
                     .run()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))

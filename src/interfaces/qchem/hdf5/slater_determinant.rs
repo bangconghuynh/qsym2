@@ -362,6 +362,7 @@ where
     rep_analysis_parameters: &'a SlaterDeterminantRepAnalysisParams<f64>,
 
     /// The symmetry of the system and the representation of the Slater determinant.
+    #[allow(clippy::type_complexity)]
     #[builder(default = "None")]
     result: Option<(
         Symmetry,
@@ -656,7 +657,7 @@ where
                         BasisShellContraction {
                             basis_shell: basis_shell_s,
                             contraction: contraction_s,
-                            cart_origin: cart_origin.clone(),
+                            cart_origin,
                             k: None,
                         },
                         BasisShellContraction {
@@ -722,7 +723,7 @@ where
             .iter()
             .enumerate()
             .map(|(atom_i, _)| {
-                let shells = bscs
+                bscs
                     .iter()
                     .zip(shell_to_atom_map.iter())
                     .filter_map(|(bs, atom_index)| {
@@ -732,8 +733,7 @@ where
                             None
                         }
                     })
-                    .collect::<Vec<_>>();
-                shells
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<Vec<BasisShellContraction<f64, f64>>>>();
 

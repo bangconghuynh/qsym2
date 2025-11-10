@@ -26,7 +26,7 @@ use super::nonortho::LowdinPairedCoefficients;
 ///
 /// * `lowdin_paired_coefficients` - Structure containing the Löwdin-paired coefficient matrices.
 /// * `i` - Index of the corresponding Löwdin-paired spin-orbitals for which the unweighted
-/// codensity matrix is to be computed.
+///   codensity matrix is to be computed.
 ///
 /// # Returns
 ///
@@ -92,19 +92,17 @@ where
     T: ComplexFloat + ScalarOperand,
 {
     let nbasis = lowdin_paired_coefficients.nbasis();
-    lowdin_paired_coefficients.nonzero_indices().iter().fold(
-        Ok::<_, anyhow::Error>(Array2::<T>::zeros((nbasis, nbasis))),
-        |acc_res, &i| {
-            acc_res.and_then(|acc| {
-                Ok(acc
-                    + calc_unweighted_codensity_matrix(lowdin_paired_coefficients, i)?
-                        / *lowdin_paired_coefficients
-                            .lowdin_overlaps()
-                            .get(i)
-                            .ok_or_else(|| {
-                                format_err!("Unable to retrieve the Löwdin overlap with index {i}.")
-                            })?)
-            })
-        },
-    )
+    lowdin_paired_coefficients
+        .nonzero_indices()
+        .iter()
+        .try_fold(Array2::<T>::zeros((nbasis, nbasis)), |acc, &i| {
+            Ok(acc
+                + calc_unweighted_codensity_matrix(lowdin_paired_coefficients, i)?
+                    / *lowdin_paired_coefficients
+                        .lowdin_overlaps()
+                        .get(i)
+                        .ok_or_else(|| {
+                            format_err!("Unable to retrieve the Löwdin overlap with index {i}.")
+                        })?)
+        })
 }

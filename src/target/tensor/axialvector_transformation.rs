@@ -34,7 +34,7 @@ where
             .expect("Unable to obtain the determinant of the transformation matrix.");
         let old_components = Array1::from_iter(self.components.iter().cloned());
         let new_components = rmat_xyz.mapv(|x| (det * x).into()).dot(&old_components);
-        self.components = Vector3::from_iterator(new_components.into_iter());
+        self.components = Vector3::from_iterator(new_components);
         Ok(self)
     }
 }

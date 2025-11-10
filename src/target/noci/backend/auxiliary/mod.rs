@@ -169,6 +169,7 @@ where
     T: ComplexFloat + Lapack + TryFrom<<T as ComplexFloat>::Real>,
 {
     /// Extracts the integrals from the HDF5 data file.
+    #[allow(clippy::type_complexity)]
     pub(crate) fn get_integrals<SC, F>(
         &'_ self,
     ) -> Result<(OverlapAO<'_, T, SC>, HamiltonianAO<'_, T, SC, F>), anyhow::Error>
@@ -211,13 +212,11 @@ where
         let cs = self
             .scf_cs
             .axis_iter(Axis(0))
-            .into_iter()
             .map(|c| c.to_owned())
             .collect::<Vec<_>>();
         let occs = self
             .scf_occs
             .axis_iter(Axis(0))
-            .into_iter()
             .map(|c| c.to_owned())
             .collect::<Vec<_>>();
         SlaterDeterminant::<T, SC>::builder()
@@ -228,7 +227,7 @@ where
                     .map(|_| bao)
                     .collect::<Vec<_>>(),
             )
-            .mol(&mol)
+            .mol(mol)
             .structure_constraint(sc)
             .complex_symmetric(false)
             .threshold(threshold)

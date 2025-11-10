@@ -76,7 +76,7 @@ impl Default for AngularFunctionRepAnalysisParams {
 ///
 /// * `group` - A symmetry group.
 /// * `params` - A parameter structure controlling the determination of angular function
-/// symmetries.
+///   symmetries.
 pub(crate) fn find_angular_function_representation<G>(
     group: &G,
     params: &AngularFunctionRepAnalysisParams,
@@ -436,7 +436,7 @@ where
 ///
 /// * `group` - A symmetry group.
 /// * `params` - A parameter structure controlling the determination of spinor function
-/// symmetries.
+///   symmetries.
 pub(crate) fn find_spinor_function_representation<G>(
     group: &G,
     params: &AngularFunctionRepAnalysisParams,
