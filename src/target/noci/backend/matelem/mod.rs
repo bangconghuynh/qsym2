@@ -253,7 +253,6 @@ where
                 .iter()
                 .enumerate()
                 .cartesian_product(orbit_basis_vec.iter().enumerate())
-                .par_bridge()
                 .map(|((i_ii, i_ii_det), (j_jj, j_jj_det))| {
                     let i = i_ii.div_euclid(n_det_origins);
                     let ii = i_ii.rem_euclid(n_det_origins);
