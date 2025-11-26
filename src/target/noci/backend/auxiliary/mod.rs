@@ -219,6 +219,11 @@ where
             .axis_iter(Axis(0))
             .map(|c| c.to_owned())
             .collect::<Vec<_>>();
+        let mo_energies = self
+            .scf_mo_energies
+            .axis_iter(Axis(0))
+            .map(|c| c.to_owned())
+            .collect::<Vec<_>>();
         SlaterDeterminant::<T, SC>::builder()
             .coefficients(&cs)
             .occupations(&occs)
@@ -230,6 +235,7 @@ where
             .mol(mol)
             .structure_constraint(sc)
             .complex_symmetric(false)
+            .mo_energies(Some(mo_energies))
             .threshold(threshold)
             .build()
             .map_err(|err| format_err!(err))

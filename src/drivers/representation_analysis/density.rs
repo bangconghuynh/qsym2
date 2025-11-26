@@ -231,8 +231,19 @@ where
 {
     /// Returns a builder to construct a new [`DensityRepAnalysisResultBuilder`]
     /// structure.
-    fn builder() -> DensityRepAnalysisResultBuilder<'a, G, T> {
+    pub fn builder() -> DensityRepAnalysisResultBuilder<'a, G, T> {
         DensityRepAnalysisResultBuilder::default()
+    }
+
+    /// Returns the control parameters used to obtain this set of electron density representation
+    /// analysis results.
+    pub fn parameters(&self) -> &DensityRepAnalysisParams<<T as ComplexFloat>::Real> {
+        self.parameters
+    }
+
+    /// Returns the densities being analysed and their associated names or descriptions.
+    pub fn densities(&self) -> &Vec<(String, &'a Density<'a, T>)> {
+        &self.densities
     }
 }
 

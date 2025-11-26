@@ -72,7 +72,7 @@ impl Character {
     /// # Returns
     ///
     /// A builder to construct a new character.
-    fn builder() -> CharacterBuilder {
+    pub fn builder() -> CharacterBuilder {
         CharacterBuilder::default()
     }
 

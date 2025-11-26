@@ -51,7 +51,7 @@ impl<T: PermutationRank> Hash for PermutationClassSymbol<T> {
 }
 
 impl<T: PermutationRank> PermutationClassSymbol<T> {
-    fn builder() -> PermutationClassSymbolBuilder<T> {
+    pub fn builder() -> PermutationClassSymbolBuilder<T> {
         PermutationClassSymbolBuilder::default()
     }
 
@@ -216,7 +216,7 @@ impl PermutationIrrepSymbolBuilder {
 }
 
 impl PermutationIrrepSymbol {
-    fn builder() -> PermutationIrrepSymbolBuilder {
+    pub fn builder() -> PermutationIrrepSymbolBuilder {
         PermutationIrrepSymbolBuilder::default()
     }
 

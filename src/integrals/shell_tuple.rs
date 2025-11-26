@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array, Array1, Array2, Dim};
 use rayon::prelude::*;
@@ -14,7 +14,7 @@ use crate::basis::ao_integrals::{BasisSet, BasisShellContraction};
 /// Structure to handle pre-computed properties of a tuple of shells consisting of
 /// non-integration primitives.
 #[derive(Builder)]
-pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
+pub struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// The data type of the overlap values from this shell tuple.
     typ: PhantomData<T>,
 
@@ -151,17 +151,34 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
 }
 
 impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
-    pub(crate) fn builder() -> ShellTupleBuilder<'a, RANK, T> {
+    pub fn builder() -> ShellTupleBuilder<'a, RANK, T> {
         ShellTupleBuilder::<RANK, T>::default()
     }
 
     /// The number of shells in this tuple.
-    fn rank(&self) -> usize {
+    pub fn rank(&self) -> usize {
         RANK
     }
 
+    /// A fixed-size array indicating the angular-shape of this shell tuple.
+    ///
+    /// Each element in the array gives the number of angular functions of the corresponding shell.
+    pub fn angular_shell_shape(&self) -> &[usize; RANK] {
+        &self.angular_shell_shape
+    }
+
+    /// A fixed-size array of arrays of contraction coefficients of non-integration
+    /// primitives.
+    ///
+    /// The i-th array in the vector is for the i-th shell. The j-th element in that
+    /// array then gives the contraction coefficient of the j-th primitive exponent of
+    /// that shell.
+    pub fn ds(&self) -> &[Array1<&'a f64>; RANK] {
+        &self.ds
+    }
+
     /// The maximum angular momentum across all shells.
-    fn lmax(&self) -> u32 {
+    pub fn lmax(&self) -> u32 {
         self.shells
             .iter()
             .map(|(bsc, _)| bsc.basis_shell().l)
@@ -172,7 +189,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
 
 /// Structure to handle all possible shell tuples for a particular type of integral.
 #[derive(Builder)]
-pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
+pub struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
     /// The data type of the overlap values from shell tuples in this collection.
     typ: PhantomData<T>,
 
@@ -197,17 +214,17 @@ pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
 }
 
 impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
-    pub(crate) fn builder() -> ShellTupleCollectionBuilder<'a, RANK, T> {
+    pub fn builder() -> ShellTupleCollectionBuilder<'a, RANK, T> {
         ShellTupleCollectionBuilder::<RANK, T>::default()
     }
 
     /// The maximum angular momentum across all shell tuples.
-    fn lmax(&self) -> u32 {
+    pub fn lmax(&self) -> u32 {
         self.lmax
     }
 
     /// The number of shells in each tuple in the collection.
-    fn rank(&self) -> usize {
+    pub fn rank(&self) -> usize {
         RANK
     }
 
@@ -317,10 +334,8 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
         //     [[0], [0], [1, 1], [1]],
         //     ...
         // ] (12 = 2 * 1 * 3 * 2 terms in total)
-        let unordered_recombined_shell_indices = gg
-            .into_iter()
-            .multi_cartesian_product()
-            .collect::<Vec<_>>();
+        let unordered_recombined_shell_indices =
+            gg.into_iter().multi_cartesian_product().collect::<Vec<_>>();
 
         log::debug!("Rank-{RANK} shell tuple collection information:");
         log::debug!(
@@ -631,7 +646,7 @@ macro_rules! build_shell_tuple_collection {
 use duplicate::duplicate_item;
 use factorial::DoubleFactorial;
 use log;
-use ndarray::{s, Zip};
+use ndarray::{Zip, s};
 use ndarray_einsum::*;
 use num_complex::Complex;
 use num_traits::ToPrimitive;

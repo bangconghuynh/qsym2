@@ -13,6 +13,7 @@ use num_traits::float::TotalOrder;
 
 use crate::analysis::EigenvalueComparisonMode;
 
+use crate::io::format::qsym2_warn;
 use crate::target::noci::backend::nonortho::CanonicalOrthogonalisable;
 
 pub mod noci;
@@ -755,6 +756,7 @@ where
         let (pos_i, pos_j) = (pos.div_euclid(mat.ncols()), pos.rem_euclid(mat.ncols()));
         log::debug!("{matname} matrix:\n  {mat:+.3e}");
         log::debug!("{matname} matrix complex-symmetric deviation:\n  {deviation:+.3e}",);
+        qsym2_warn!("{matname} matrix complex-symmetric deviation:\n  {deviation:+.3e}",);
         ensure!(
             max_offdiag <= thresh_offdiag,
             "The {matname} matrix is not complex-symmetric: ||{matsymbol} - ({matsymbol})^T||_∞ = {max_offdiag:.3e} > {thresh_offdiag:.3e} at ({pos_i}, {pos_j})."
@@ -770,6 +772,7 @@ where
         let (pos_i, pos_j) = (pos.div_euclid(mat.ncols()), pos.rem_euclid(mat.ncols()));
         log::debug!("{matname} matrix:\n  {mat:+.3e}");
         log::debug!("{matname} matrix complex-Hermitian deviation:\n  {deviation:+.3e}",);
+        qsym2_warn!("{matname} matrix complex-Hermitian deviation:\n  {deviation:+.3e}",);
         ensure!(
             max_offdiag <= thresh_offdiag,
             "The {matname} matrix is not complex-Hermitian: ||{matsymbol} - ({matsymbol})^†||_∞ = {max_offdiag:.3e} > {thresh_offdiag:.3e} at ({pos_i}, {pos_j})."
@@ -804,6 +807,7 @@ where
         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the {matname} real-symmetric deviation matrix."))?;
     log::debug!("{matname} matrix:\n  {mat:+.3e}");
     log::debug!("{matname} matrix real-symmetric deviation:\n  {deviation:+.3e}",);
+    qsym2_warn!("{matname} matrix real-symmetric deviation:\n  {deviation:+.3e}",);
     let (pos_i, pos_j) = (pos.div_euclid(mat.ncols()), pos.rem_euclid(mat.ncols()));
     ensure!(
         max_offdiag <= thresh_offdiag,

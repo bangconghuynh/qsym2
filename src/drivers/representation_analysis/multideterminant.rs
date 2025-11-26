@@ -255,8 +255,19 @@ where
 {
     /// Returns a builder to construct a new [`MultiDeterminantRepAnalysisResultBuilder`]
     /// structure.
-    fn builder() -> MultiDeterminantRepAnalysisResultBuilder<'a, G, T, B, SC> {
+    pub fn builder() -> MultiDeterminantRepAnalysisResultBuilder<'a, G, T, B, SC> {
         MultiDeterminantRepAnalysisResultBuilder::default()
+    }
+
+    /// Returns the control parameters used to obtain this set of multi-determinantal wavefunction
+    /// representation analysis results.
+    pub fn parameters(&self) -> &MultiDeterminantRepAnalysisParams<<T as ComplexFloat>::Real> {
+        self.parameters
+    }
+
+    /// Returns the multi-determinantal wavefunctions being analysed.
+    pub fn multidets(&self) -> &Vec<&'a MultiDeterminant<'a, T, B, SC>> {
+        &self.multidets
     }
 
     /// Returns the multi-determinantal wavefunction symmetries obtained from the analysis result.

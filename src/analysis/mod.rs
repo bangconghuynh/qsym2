@@ -24,27 +24,6 @@ use crate::group::{GroupProperties, class::ClassProperties};
 use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::UnitaryRepresentedSymmetryGroup;
 
-// ======
-// Metric
-// ======
-
-/// Structure to handle various choices for the specification of the metric matrices.
-#[derive(Clone)]
-pub(crate) struct Metric<'a, T, D: Dimension> {
-    /// The  Hermitian atomic-orbital overlap matrix of the underlying basis set used to describe
-    /// the determinant. For restricted, unrestricted, and generalised spin constraints, only the
-    /// spatial overlap matrix is required for the full overlap matrix to be deduced. For
-    /// relativistic SOC spin constraint, the full overlap matrix must be specified.
-    hermitian: &'a Array<T, D>,
-
-    /// The full (w.r.t. the pertinent spin constraint) complex-symmetric atomic-orbital overlap
-    /// matrix of the underlying basis set used to describe the determinant. For restricted,
-    /// unrestricted, and generalised spin constraints, only the spatial overlap matrix is required
-    /// for the full overlap matrix to be deduced. For relativistic SOC spin constraint, the full
-    /// overlap matrix must be specified.
-    complex_symmetric: Option<&'a Array<T, D>>,
-}
-
 // =======
 // Overlap
 // =======

@@ -234,7 +234,7 @@ pub struct SymmetryGroupDetectionResult {
 
 impl SymmetryGroupDetectionResult {
     /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
-    fn builder() -> SymmetryGroupDetectionResultBuilder {
+    pub fn builder() -> SymmetryGroupDetectionResultBuilder {
         SymmetryGroupDetectionResultBuilder::default()
     }
 

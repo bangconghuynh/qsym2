@@ -235,14 +235,14 @@ impl fmt::Display for MoleculeSymmetrisationBootstrapParams {
 #[derive(Clone, Builder, Debug)]
 pub struct MoleculeSymmetrisationBootstrapResult<'a> {
     /// The control parameters used to obtain this set of molecule symmetrisation results.
-    parameters: &'a MoleculeSymmetrisationBootstrapParams,
+    pub parameters: &'a MoleculeSymmetrisationBootstrapParams,
 
     /// The symmetrised molecule.
     pub symmetrised_molecule: Molecule,
 }
 
 impl<'a> MoleculeSymmetrisationBootstrapResult<'a> {
-    fn builder() -> MoleculeSymmetrisationBootstrapResultBuilder<'a> {
+    pub fn builder() -> MoleculeSymmetrisationBootstrapResultBuilder<'a> {
         MoleculeSymmetrisationBootstrapResultBuilder::default()
     }
 }
