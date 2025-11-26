@@ -186,7 +186,7 @@ pub struct MoleculeSymmetrisationResult<'a> {
 }
 
 impl<'a> MoleculeSymmetrisationResult<'a> {
-    fn builder() -> MoleculeSymmetrisationResultBuilder<'a> {
+    pub fn builder() -> MoleculeSymmetrisationResultBuilder<'a> {
         MoleculeSymmetrisationResultBuilder::default()
     }
 }

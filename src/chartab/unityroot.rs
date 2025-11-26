@@ -50,7 +50,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// A builder to construct a new unity root.
-    fn builder() -> UnityRootBuilder {
+    pub fn builder() -> UnityRootBuilder {
         UnityRootBuilder::default()
     }
 

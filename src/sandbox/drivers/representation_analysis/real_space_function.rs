@@ -242,7 +242,7 @@ where
     F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Returns a builder to construct a new [`RealSpaceFunctionRepAnalysisResultBuilder`] structure.
-    fn builder() -> RealSpaceFunctionRepAnalysisResultBuilder<'a, G, T, F> {
+    pub fn builder() -> RealSpaceFunctionRepAnalysisResultBuilder<'a, G, T, F> {
         RealSpaceFunctionRepAnalysisResultBuilder::default()
     }
 }

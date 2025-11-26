@@ -499,6 +499,12 @@ impl<E, C> BasisSet<E, C> {
         self.update_shell_boundaries()
     }
 
+
+    /// Returns the function atom boundaries.
+    pub fn atom_boundaries(&self) -> &Vec<(usize, usize)> {
+        &self.atom_boundaries
+    }
+
     /// Returns the function shell boundaries.
     pub fn shell_boundaries(&self) -> &Vec<(usize, usize)> {
         &self.shell_boundaries

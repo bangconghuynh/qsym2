@@ -74,30 +74,31 @@ pub struct BinariesSlaterDeterminantSource {
 impl BinariesSlaterDeterminantSource {
     /// Returns a builder to construct a structure for handling binaries Slater determinant
     /// source.
-    fn builder() -> BinariesSlaterDeterminantSourceBuilder {
+    pub fn builder() -> BinariesSlaterDeterminantSourceBuilder {
         BinariesSlaterDeterminantSourceBuilder::default()
     }
 }
 
 impl Default for BinariesSlaterDeterminantSource {
     fn default() -> Self {
-        BinariesSlaterDeterminantSource {
-            xyz: PathBuf::from("path/to/xyz"),
-            sao: PathBuf::from("path/to/2c/ao/overlap/matrix"),
-            sao_4c: None,
-            coefficients: vec![
+        BinariesSlaterDeterminantSource::builder()
+            .xyz(PathBuf::from("path/to/xyz"))
+            .sao(PathBuf::from("path/to/2c/ao/overlap/matrix"))
+            .sao_4c(None)
+            .coefficients(vec![
                 PathBuf::from("path/to/alpha/coeffs"),
                 PathBuf::from("path/to/beta/coeffs"),
-            ],
-            occupations: vec![
+            ])
+            .occupations(vec![
                 PathBuf::from("path/to/alpha/occupations"),
                 PathBuf::from("path/to/beta/occupations"),
-            ],
-            baos: vec![InputBasisAngularOrder::default()],
-            spin_constraint: SpinConstraint::Unrestricted(2, false),
-            matrix_order: MatrixOrder::default(),
-            byte_order: ByteOrder::default(),
-        }
+            ])
+            .baos(vec![InputBasisAngularOrder::default()])
+            .spin_constraint(SpinConstraint::Unrestricted(2, false))
+            .matrix_order(MatrixOrder::default())
+            .byte_order(ByteOrder::default())
+            .build()
+            .expect("Unable to build a default `BinariesSlaterDeterminantSource`.")
     }
 }
 

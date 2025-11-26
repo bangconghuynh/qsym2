@@ -203,7 +203,7 @@ where
     ColSymbol: CollectionSymbol,
 {
     /// Returns a builder to construct a `RepCharacterTable`.
-    fn builder() -> RepCharacterTableBuilder<RowSymbol, ColSymbol> {
+    pub fn builder() -> RepCharacterTableBuilder<RowSymbol, ColSymbol> {
         RepCharacterTableBuilder::default()
     }
 
@@ -694,7 +694,7 @@ where
     UC: CharacterTable,
 {
     /// Returns a builder to construct a new [`CorepCharacterTable`].
-    fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC> {
+    pub fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC> {
         CorepCharacterTableBuilder::default()
     }
 

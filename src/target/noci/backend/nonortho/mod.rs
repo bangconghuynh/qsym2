@@ -157,6 +157,11 @@ impl<T: ComplexFloat> LowdinPairedCoefficients<T> {
         &self.zero_indices
     }
 
+    /// Returns the threshold for determining the zero Löwdin overlaps.
+    pub fn thresh_zeroov(&self) -> T::Real {
+        self.thresh_zeroov
+    }
+
     /// Returns the indices of the non-zero Löwdin overlaps.
     pub fn nonzero_indices(&self) -> IndexSet<usize> {
         (0..self.lowdin_dim())

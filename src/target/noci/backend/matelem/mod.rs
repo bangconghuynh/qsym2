@@ -7,7 +7,6 @@ use log;
 use ndarray::{Array2, Array3, ArrayView2, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::symmetry::symmetry_element::SpecialSymmetryTransformation;

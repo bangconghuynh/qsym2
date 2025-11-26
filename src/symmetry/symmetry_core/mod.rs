@@ -168,7 +168,7 @@ impl PreSymmetry {
     ///
     /// A builder to construct a new pre-symmetry struct.
     #[must_use]
-    pub(crate) fn builder() -> PreSymmetryBuilder {
+    pub fn builder() -> PreSymmetryBuilder {
         PreSymmetryBuilder::default()
     }
 
@@ -311,7 +311,7 @@ impl Symmetry {
     ///
     /// A builder to construct a new symmetry struct.
     #[must_use]
-    fn builder() -> SymmetryBuilder {
+    pub fn builder() -> SymmetryBuilder {
         SymmetryBuilder::default()
     }
 

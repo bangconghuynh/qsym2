@@ -55,6 +55,11 @@ where
         DensitiesBuilder::default()
     }
 
+    /// Returns the structure constraint associated with the multiple densities.
+    pub fn structure_constraint(&self) -> &SC {
+        &self.structure_constraint
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &Density<'a, T>> {
         self.densities.iter().cloned()
     }

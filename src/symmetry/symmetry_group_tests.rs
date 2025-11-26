@@ -365,32 +365,31 @@ fn test_ur_magnetic_double_group(
     });
 }
 
-#[cfg(test)]
-fn test_mr_magnetic_group(
-    mol: &Molecule,
-    thresh: f64,
-    name: &str,
-    order: usize,
-    class_number: usize,
-    abelian: bool,
-    mag_group_type: GroupType,
-) {
-    let presym = PreSymmetry::builder()
-        .moi_threshold(thresh)
-        .molecule(mol)
-        .build()
-        .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true).unwrap();
-    let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
-    assert_eq!(group.group_type(), mag_group_type);
-    verify_abstract_group(&group, name, order, class_number, abelian);
-
-    // IntoPermutation
-    group.elements().into_iter().for_each(|op| {
-        assert!(op.act_permute(mol).is_some());
-    });
-}
+// fn test_mr_magnetic_group(
+//     mol: &Molecule,
+//     thresh: f64,
+//     name: &str,
+//     order: usize,
+//     class_number: usize,
+//     abelian: bool,
+//     mag_group_type: GroupType,
+// ) {
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(thresh)
+//         .molecule(mol)
+//         .build()
+//         .unwrap();
+//     let mut magsym = Symmetry::new();
+//     magsym.analyse(&presym, true).unwrap();
+//     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
+//     assert_eq!(group.group_type(), mag_group_type);
+//     verify_abstract_group(&group, name, order, class_number, abelian);
+//
+//     // IntoPermutation
+//     group.elements().into_iter().for_each(|op| {
+//         assert!(op.act_permute(mol).is_some());
+//     });
+// }
 
 fn test_ur_ordinary_group_from_infinite(
     mol: &Molecule,
@@ -449,42 +448,41 @@ fn test_ur_magnetic_group_from_infinite(
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
-#[cfg(test)]
-fn test_mr_magnetic_group_from_infinite(
-    mol: &Molecule,
-    finite_order: u32,
-    thresh: f64,
-    name: &str,
-    _finite_name: &str,
-    order: usize,
-    class_number: usize,
-    abelian: bool,
-    mag_group_type: GroupType,
-) {
-    let presym = PreSymmetry::builder()
-        .moi_threshold(thresh)
-        .molecule(mol)
-        .build()
-        .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true).unwrap();
-    let group =
-        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
-    assert_eq!(
-        group
-            .elements()
-            .iter()
-            .filter(|op| op.contains_time_reversal())
-            .count(),
-        group
-            .elements()
-            .iter()
-            .filter(|op| !op.contains_time_reversal())
-            .count(),
-    );
-    assert_eq!(group.group_type(), mag_group_type);
-    verify_abstract_group(&group, name, order, class_number, abelian);
-}
+// fn test_mr_magnetic_group_from_infinite(
+//     mol: &Molecule,
+//     finite_order: u32,
+//     thresh: f64,
+//     name: &str,
+//     _finite_name: &str,
+//     order: usize,
+//     class_number: usize,
+//     abelian: bool,
+//     mag_group_type: GroupType,
+// ) {
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(thresh)
+//         .molecule(mol)
+//         .build()
+//         .unwrap();
+//     let mut magsym = Symmetry::new();
+//     magsym.analyse(&presym, true).unwrap();
+//     let group =
+//         MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
+//     assert_eq!(
+//         group
+//             .elements()
+//             .iter()
+//             .filter(|op| op.contains_time_reversal())
+//             .count(),
+//         group
+//             .elements()
+//             .iter()
+//             .filter(|op| !op.contains_time_reversal())
+//             .count(),
+//     );
+//     assert_eq!(group.group_type(), mag_group_type);
+//     verify_abstract_group(&group, name, order, class_number, abelian);
+// }
 
 fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
@@ -580,26 +578,25 @@ fn test_ur_magnetic_double_group_class_order(
     assert_eq!(&classes, class_order_str);
 }
 
-#[cfg(test)]
-fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
-    let presym = PreSymmetry::builder()
-        .moi_threshold(thresh)
-        .molecule(mol)
-        .build()
-        .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true).unwrap();
-    let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
-    let classes = (0..group.class_number())
-        .map(|i| {
-            group
-                .get_cc_symbol_of_index(i)
-                .expect("Unable to retrieve all class symbols.")
-                .to_string()
-        })
-        .collect_vec();
-    assert_eq!(&classes, class_order_str);
-}
+// fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(thresh)
+//         .molecule(mol)
+//         .build()
+//         .unwrap();
+//     let mut magsym = Symmetry::new();
+//     magsym.analyse(&presym, true).unwrap();
+//     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
+//     let classes = (0..group.class_number())
+//         .map(|i| {
+//             group
+//                 .get_cc_symbol_of_index(i)
+//                 .expect("Unable to retrieve all class symbols.")
+//                 .to_string()
+//         })
+//         .collect_vec();
+//     assert_eq!(&classes, class_order_str);
+// }
 
 /********
 Spherical
