@@ -656,10 +656,8 @@ use crate::basis::ao::{CartOrder, ShellOrder};
 type C128 = Complex<f64>;
 
 impl_shell_tuple![RANK_2, <s1, s2>];
-#[cfg(test)]
 impl_shell_tuple![RANK_3, <s1, s2, s3>];
 impl_shell_tuple![RANK_4, <s1, s2, s3, s4>];
-#[cfg(test)]
 impl_shell_tuple![RANK_5, <s1, s2, s3, s4, s5>];
 
 pub(crate) use {build_shell_tuple, build_shell_tuple_collection};

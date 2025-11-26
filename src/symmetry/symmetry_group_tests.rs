@@ -10,13 +10,13 @@ use crate::auxiliary::molecule::Molecule;
 use crate::auxiliary::template_molecules;
 use crate::group::class::ClassProperties;
 use crate::group::{
-    EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,
-    BWGRP, BWGRP2, GRGRP, GRGRP2, ORGRP, ORGRP2,
+    BWGRP, BWGRP2, EagerGroup, GRGRP, GRGRP2, GroupProperties, GroupType, ORGRP, ORGRP2,
+    UnitaryRepresentedGroup,
 };
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
-use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryOperation, ROT};
+use crate::symmetry::symmetry_element::{ROT, RotationGroup, SymmetryElement, SymmetryOperation};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
@@ -1552,19 +1552,7 @@ fn test_ur_group_linear_atom_electric_field_cinfv_small() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -1590,19 +1578,7 @@ fn test_ur_group_linear_atom_electric_field_cinfv_large() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -1942,19 +1918,7 @@ fn test_ur_group_linear_c2h2_electric_field_cinfv_small() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -1977,19 +1941,7 @@ fn test_ur_group_linear_c2h2_electric_field_cinfv_large() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -2011,18 +1963,8 @@ fn test_ur_group_linear_c2h2_electric_field_grey_cinfv_small() {
             "C∞v + θ·C∞v",
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }),
             false,
             GRGRP,
@@ -2047,18 +1989,8 @@ fn test_ur_group_linear_c2h2_electric_field_grey_cinfv_large() {
             "C∞v + θ·C∞v",
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }),
             false,
             GRGRP,
@@ -2079,19 +2011,7 @@ fn test_ur_group_linear_n3_cinfv_small() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -2111,19 +2031,7 @@ fn test_ur_group_linear_n3_cinfv_large() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -2142,18 +2050,8 @@ fn test_ur_group_linear_n3_grey_cinfv_small() {
             "C∞v + θ·C∞v",
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }),
             false,
             GRGRP,
@@ -2175,18 +2073,8 @@ fn test_ur_group_linear_n3_grey_cinfv_large() {
             "C∞v + θ·C∞v",
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }),
             false,
             GRGRP,
@@ -2255,19 +2143,7 @@ fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf_small() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             n == 2,
             BWGRP,
         );
@@ -2291,19 +2167,7 @@ fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf_large() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             n == 2,
             BWGRP,
         );
@@ -2326,19 +2190,7 @@ fn test_ur_group_linear_n3_electric_field_cinfv_small() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -2361,19 +2213,7 @@ fn test_ur_group_linear_n3_electric_field_cinfv_large() {
             "C∞v",
             format!("C{n}v").as_str(),
             2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } }),
             false,
         );
     }
@@ -2395,18 +2235,8 @@ fn test_ur_group_linear_n3_electric_field_grey_cinfv_small() {
             "C∞v + θ·C∞v",
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }),
             false,
             GRGRP,
@@ -2431,18 +2261,8 @@ fn test_ur_group_linear_n3_electric_field_grey_cinfv_large() {
             "C∞v + θ·C∞v",
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }),
             false,
             GRGRP,
@@ -2812,19 +2632,8 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
             thresh,
             format!("C{n}v").as_str(),
             2 * n as usize,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }) as usize,
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } })
+                as usize,
             false,
             BWGRP,
         );
@@ -3839,19 +3648,8 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_cnv() {
             thresh,
             format!("C{n}v").as_str(),
             2 * n as usize,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }) as usize,
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } })
+                as usize,
             false,
         );
     }
@@ -3873,18 +3671,8 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_grey_cnv() {
             thresh,
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n as usize,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }) as usize,
             false,
             GRGRP,
@@ -3909,19 +3697,8 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
             thresh,
             format!("C{n}v").as_str(),
             2 * n as usize,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }) as usize,
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } })
+                as usize,
             false,
         );
     }
@@ -3944,18 +3721,8 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_grey_cnv(
             thresh,
             format!("C{n}v + θ·C{n}v").as_str(),
             4 * n as usize,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }) as usize,
             false,
             GRGRP,
@@ -4652,18 +4419,8 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh
             thresh,
             format!("D{n}h").as_str(),
             4 * n as usize,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }) as usize,
             false,
             BWGRP,
@@ -5189,19 +4946,8 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_dn() {
             thresh,
             format!("D{n}").as_str(),
             2 * n as usize,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }) as usize,
+            ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + { if n % 2 == 0 { 4 } else { 2 } })
+                as usize,
             false,
         );
     }
@@ -5223,18 +4969,8 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_grey_dn() {
             thresh,
             format!("D{n} + θ·D{n}").as_str(),
             4 * n as usize,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }) as usize,
             false,
             GRGRP,
@@ -5876,18 +5612,8 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
             thresh,
             format!("D{n}h").as_str(),
             4 * n as usize,
-            2 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            2 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }) as usize,
             false,
         );
@@ -5912,18 +5638,8 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
             thresh,
             format!("D{n}h + θ·D{n}h").as_str(),
             8 * n as usize,
-            4 * ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
+            4 * ({ if n % 2 == 0 { n / 2 - 1 } else { n / 2 } } + {
+                if n % 2 == 0 { 4 } else { 2 }
             }) as usize,
             false,
             GRGRP,
