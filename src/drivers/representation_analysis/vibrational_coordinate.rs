@@ -13,28 +13,28 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::{
-    find_angular_function_representation, find_spinor_function_representation,
-    AngularFunctionRepAnalysisParams,
+    AngularFunctionRepAnalysisParams, find_angular_function_representation,
+    find_spinor_function_representation,
 };
 use crate::drivers::representation_analysis::{
-    fn_construct_magnetic_group, fn_construct_unitary_group, log_cc_transversal,
-    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind, fn_construct_magnetic_group,
+    fn_construct_unitary_group, log_cc_transversal,
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::io::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+    QSym2Output, log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title,
 };
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
-use crate::target::vibration::vibration_analysis::VibrationalCoordinateSymmetryOrbit;
 use crate::target::vibration::VibrationalCoordinateCollection;
+use crate::target::vibration::vibration_analysis::VibrationalCoordinateSymmetryOrbit;
 
 #[cfg(test)]
 #[path = "vibrational_coordinate_tests.rs"]
@@ -230,8 +230,19 @@ where
 {
     /// Returns a builder to construct a new [`VibrationalCoordinateRepAnalysisResultBuilder`]
     /// structure.
-    fn builder() -> VibrationalCoordinateRepAnalysisResultBuilder<'a, G, T> {
+    pub fn builder() -> VibrationalCoordinateRepAnalysisResultBuilder<'a, G, T> {
         VibrationalCoordinateRepAnalysisResultBuilder::default()
+    }
+
+    /// Returns the control parameters used to obtain this set of vibrational coordinate
+    /// representation analysis results.
+    pub fn parameters(&self) -> &VibrationalCoordinateRepAnalysisParams<<T as ComplexFloat>::Real> {
+        self.parameters
+    }
+
+    /// Returns the collection of vibrational coordinates being analysed.
+    pub fn vibrational_coordinate_collection(&self) -> &VibrationalCoordinateCollection<'a, T> {
+        self.vibrational_coordinate_collection
     }
 }
 
@@ -498,13 +509,13 @@ where
         };
 
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
-            Err(
-                format!(
-                    "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+            Err(format!(
+                "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
                     Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
-                    sym.group_name.as_ref().expect("No symmetry group name found.")
-                )
-            )
+                sym.group_name
+                    .as_ref()
+                    .expect("No symmetry group name found.")
+            ))
         } else {
             Ok(())
         }

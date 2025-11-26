@@ -15,6 +15,7 @@ use crate::auxiliary::misc::{self, HashableFloat};
 
 // https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0
 /// Constant for converting $`a_0`$ to $`Å`$.
+#[allow(dead_code)]
 pub(crate) const BOHR_TO_ANGSTROM: f64 = 0.529177210903;
 
 /// Constant for converting $`Å`$ to $`a_0`$.

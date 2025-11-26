@@ -195,6 +195,16 @@ where
         DensityProjectionResultBuilder::default()
     }
 
+    /// Returns the control parameters used to obtain this set of electron density projection results.
+    pub fn parameters(&self) -> &DensityProjectionParams {
+        self.parameters
+    }
+
+    /// Returns the densities being projected and their associated names or descriptions.
+    pub fn densities(&self) -> &Vec<(String, &'a Density<'a, T>)> {
+        &self.densities
+    }
+
     /// Returns the projected densities.
     #[allow(clippy::type_complexity)]
     pub fn projected_densities(

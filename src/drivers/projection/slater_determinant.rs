@@ -170,7 +170,7 @@ where
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
-    /// The control parameters used to obtain this set of electron density projection results.
+    /// The control parameters used to obtain this set of Slater determinant projection results.
     parameters: &'a SlaterDeterminantProjectionParams,
 
     /// The Slater determinant being projected.
@@ -217,6 +217,16 @@ where
 {
     pub fn builder() -> SlaterDeterminantProjectionResultBuilder<'a, G, T, SC> {
         SlaterDeterminantProjectionResultBuilder::default()
+    }
+
+    /// Returns the control parameters used to obtain this set of Slater determinant projection results.
+    pub fn parameters(&self) -> &SlaterDeterminantProjectionParams {
+        self.parameters
+    }
+
+    /// Returns the Slater determinan being projected.
+    pub fn determinant(&self) -> &SlaterDeterminant<'a, T, SC> {
+        self.determinant
     }
 
     /// Returns the projected densities.

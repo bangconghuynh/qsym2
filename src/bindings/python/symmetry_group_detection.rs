@@ -190,7 +190,7 @@ pub struct PySymmetry {
 }
 
 impl PySymmetry {
-    fn builder() -> PySymmetryBuilder {
+    pub fn builder() -> PySymmetryBuilder {
         PySymmetryBuilder::default()
     }
 }

@@ -90,7 +90,7 @@ pub struct PermutationGroup {
 }
 
 impl PermutationGroup {
-    fn builder() -> PermutationGroupBuilder {
+    pub fn builder() -> PermutationGroupBuilder {
         PermutationGroupBuilder::default()
     }
 }

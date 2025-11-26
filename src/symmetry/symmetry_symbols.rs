@@ -127,7 +127,7 @@ pub struct MullikenIrrepSymbol {
 }
 
 impl MullikenIrrepSymbol {
-    fn builder() -> MullikenIrrepSymbolBuilder {
+    pub fn builder() -> MullikenIrrepSymbolBuilder {
         MullikenIrrepSymbolBuilder::default()
     }
 
@@ -166,7 +166,7 @@ pub struct MullikenIrcorepSymbol {
 
 impl MullikenIrcorepSymbol {
     /// Returns a builder to construct a new [`MullikenIrcorepSymbol`] structure.
-    fn builder() -> MullikenIrcorepSymbolBuilder {
+    pub fn builder() -> MullikenIrcorepSymbolBuilder {
         MullikenIrcorepSymbolBuilder::default()
     }
 
@@ -202,7 +202,7 @@ pub struct SymmetryClassSymbol<R: Clone + Serialize> {
 }
 
 impl<R: Clone + Serialize> SymmetryClassSymbol<R> {
-    fn builder() -> SymmetryClassSymbolBuilder<R> {
+    pub fn builder() -> SymmetryClassSymbolBuilder<R> {
         SymmetryClassSymbolBuilder::default()
     }
 

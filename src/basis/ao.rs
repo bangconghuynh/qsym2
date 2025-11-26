@@ -10,7 +10,9 @@ use std::slice::Iter;
 use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::{Itertools, izip};
+use itertools::Itertools;
+#[cfg(test)]
+use itertools::izip;
 use serde::{Deserialize, Serialize};
 
 use crate::angmom::ANGMOM_LABELS;
@@ -71,7 +73,7 @@ impl PureOrderBuilder {
 
 impl PureOrder {
     /// Returns a builder to construct a new [`PureOrder`] structure.
-    fn builder() -> PureOrderBuilder {
+    pub fn builder() -> PureOrderBuilder {
         PureOrderBuilder::default()
     }
 
@@ -281,7 +283,7 @@ impl CartOrderBuilder {
 
 impl CartOrder {
     /// Returns a builder to construct a new [`CartOrder`] structure.
-    fn builder() -> CartOrderBuilder {
+    pub fn builder() -> CartOrderBuilder {
         CartOrderBuilder::default()
     }
 
@@ -675,7 +677,7 @@ impl SpinorOrderBuilder {
 
 impl SpinorOrder {
     /// Returns a builder to construct a new [`SpinorOrder`] structure.
-    fn builder() -> SpinorOrderBuilder {
+    pub fn builder() -> SpinorOrderBuilder {
         SpinorOrderBuilder::default()
     }
 
@@ -1021,7 +1023,7 @@ impl BasisShell {
     /// # Returns
     ///
     /// A builder to construct a new [`BasisShell`].
-    fn builder() -> BasisShellBuilder {
+    pub fn builder() -> BasisShellBuilder {
         BasisShellBuilder::default()
     }
 
@@ -1085,7 +1087,7 @@ impl<'a> BasisAtom<'a> {
     /// # Returns
     ///
     /// A builder to construct a new [`BasisAtom`].
-    pub(crate) fn builder() -> BasisAtomBuilder<'a> {
+    pub fn builder() -> BasisAtomBuilder<'a> {
         BasisAtomBuilder::default()
     }
 
@@ -1150,7 +1152,7 @@ impl<'a> BasisAngularOrder<'a> {
     ///
     /// A builder to construct a new [`BasisAngularOrder`].
     #[must_use]
-    pub(crate) fn builder() -> BasisAngularOrderBuilder<'a> {
+    pub fn builder() -> BasisAngularOrderBuilder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
@@ -1243,6 +1245,7 @@ impl<'a> BasisAngularOrder<'a> {
     /// # Returns
     ///
     /// The mapping permutation, if any.
+    #[cfg(test)]
     pub(crate) fn get_perm_of_functions_fixed_shells(
         &self,
         other: &Self,
