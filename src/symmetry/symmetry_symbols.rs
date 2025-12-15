@@ -17,18 +17,18 @@ use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
 use serde::{Deserialize, Serialize};
 
+use crate::chartab::CharacterTable;
 use crate::chartab::character::Character;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
-    disambiguate_linspace_symbols, CollectionSymbol, DecomposedSymbol,
-    DecomposedSymbolBuilderError, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
-    MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    CollectionSymbol, DecomposedSymbol, DecomposedSymbolBuilderError, GenericSymbol,
+    GenericSymbolParsingError, LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    disambiguate_linspace_symbols,
 };
 use crate::chartab::unityroot::UnityRoot;
-use crate::chartab::CharacterTable;
 use crate::group::FiniteOrder;
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryElement;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element_order::ORDER_1;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
@@ -377,7 +377,9 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
                 self.generic_symbol.set_main(main);
                 true
             } else {
-                log::warn!("Unable to retrieve an unambiguous Mulliken symbol for dimensionality `{dim_u64}`. Main symbol of {self} will be kept unchanged.");
+                log::warn!(
+                    "Unable to retrieve an unambiguous Mulliken symbol for dimensionality `{dim_u64}`. Main symbol of {self} will be kept unchanged."
+                );
                 false
             }
         }
@@ -1071,10 +1073,10 @@ where
         assert!(dim > 0);
         let main = if dim >= 2 {
             // Degenerate irreps
-            INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim).map_or_else(|| {
+            INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim).unwrap_or_else(|| {
                 log::warn!("{} cannot be assigned a standard dimensionality symbol. A generic 'Λ' will be used instead.", dim);
-                "Λ"
-            }, |sym| sym)
+                &"Λ"
+            })
         } else {
             // Non-degenerate irreps
             let complex = irrep.map(|character| character.complex_conjugate()) != irrep;
@@ -1277,11 +1279,7 @@ where
         .enumerate()
         .filter_map(|(i, irrep)| {
             let complex = irrep.map(|character| character.complex_conjugate()) != irrep;
-            if complex {
-                Some(i)
-            } else {
-                None
-            }
+            if complex { Some(i) } else { None }
         })
         .collect::<IndexSet<_>>();
     complex_irrep_indices.reverse();
