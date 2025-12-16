@@ -137,6 +137,9 @@ where
         self.origins.len() * self.group.order()
     }
 
+    /// Iterates over the elements of the [`OrbitBasis`]. Each element is indexed by `iI` where `i`
+    /// enumerates the group elements and `I` enumerates the origins. `I` is the fast index and `i`
+    /// the slow one.
     fn iter(&self) -> Self::BasisIter {
         OrbitBasisIterator::new(
             self.prefactors.clone(),
@@ -190,6 +193,9 @@ where
     I: Clone,
 {
     /// Creates and returns a new orbit basis iterator.
+    ///
+    /// Each element returned by the iterator is indexed by `iI` where `i` enumerates the group
+    /// elements and `I` enumerates the origins. `I` is the fast index and `i` the slow one.
     ///
     /// # Arguments
     ///

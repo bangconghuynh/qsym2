@@ -1099,7 +1099,7 @@ where
                 {
                     "B"
                 } else {
-                    panic!("");
+                    panic!("There are principal rotations but with unexpected non-(±1) characters.");
                     // // There are principal rotations but with non-(±1) characters. These must be
                     // // complex.
                     // "Γ"

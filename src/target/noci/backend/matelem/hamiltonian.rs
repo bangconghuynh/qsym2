@@ -274,6 +274,10 @@ where
         Ok(zeroe + onee + twoe)
     }
 
+    fn op() -> &'a str {
+        "|H|"
+    }
+
     fn t(x: &T) -> T {
         *x
     }
@@ -306,6 +310,10 @@ where
         thresh_zeroov: <T as ComplexFloat>::Real,
     ) -> Result<T, anyhow::Error> {
         (&self).calc_matrix_element(det_w, det_x, sao, thresh_offdiag, thresh_zeroov)
+    }
+
+    fn op() -> &'a str {
+        "|H|"
     }
 
     fn t(x: &T) -> T {
