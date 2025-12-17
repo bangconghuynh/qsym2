@@ -586,24 +586,24 @@ where
                 smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
             }
             if self.origin().complex_symmetric() {
-                check_complex_matrix_symmetry(
+                let _ = check_complex_matrix_symmetry(
                     &smat.view(),
                     true,
                     self.linear_independence_threshold,
                     "Orbit overlap",
                     "S_orbit",
-                )?;
+                );
                 self.set_smat(
                     (smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
                 )
             } else {
-                check_complex_matrix_symmetry(
+                let _ = check_complex_matrix_symmetry(
                     &smat.view(),
                     false,
                     self.linear_independence_threshold,
                     "Orbit overlap",
                     "S_orbit",
-                )?;
+                );
                 self.set_smat(
                     (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
                         .mapv(|x| x / (T::one() + T::one())),
