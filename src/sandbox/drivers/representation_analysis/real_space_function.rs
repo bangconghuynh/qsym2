@@ -320,6 +320,11 @@ where
     ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
         &self.real_space_function_symmetry
     }
+
+    /// Returns the parameters used for the representation analysis.
+    pub fn parameters(&self) -> &RealSpaceFunctionRepAnalysisParams<<T as ComplexFloat>::Real> {
+        self.parameters
+    }
 }
 
 // ------

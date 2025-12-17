@@ -734,7 +734,7 @@ where
 /// * `thresh_offdiag` - Threshold for checking.
 /// * `matname` - Name of the matrix.
 /// * `matsymbol` - Symbol of the matrix.
-fn check_complex_matrix_symmetry<T>(
+pub(crate) fn check_complex_matrix_symmetry<T>(
     mat: &ArrayView2<T>,
     complex_symmetric: bool,
     thresh_offdiag: <T as ComplexFloat>::Real,
@@ -789,7 +789,7 @@ where
 /// * `thresh_offdiag` - Threshold for checking.
 /// * `matname` - Name of the matrix.
 /// * `matsymbol` - Symbol of the matrix.
-fn check_real_matrix_symmetry<T>(
+pub(crate) fn check_real_matrix_symmetry<T>(
     mat: &ArrayView2<T>,
     thresh_offdiag: T,
     matname: &str,
