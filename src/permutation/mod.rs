@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::group::FiniteOrder;
 
-mod permutation_group;
-mod permutation_symbols;
+pub mod permutation_group;
+pub mod permutation_symbols;
 
 #[cfg(test)]
 mod permutation_tests;
@@ -107,7 +107,7 @@ impl<T: PermutationRank> PermutationBuilder<T> {
 impl<T: PermutationRank> Permutation<T> {
     /// Returns a builder to construct a new permutation.
     #[must_use]
-    fn builder() -> PermutationBuilder<T> {
+    pub fn builder() -> PermutationBuilder<T> {
         PermutationBuilder::default()
     }
 

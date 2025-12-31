@@ -158,7 +158,7 @@ macro_rules! impl_shell_tuple_overlap {
             /// # Returns
             ///
             /// A vector of overlap arrays, each of which is for one derivative component.
-            pub(crate) fn overlap(
+            pub fn overlap(
                 &self, ls: [usize; $RANK]
             ) -> Vec<Array<dtype, Dim<[usize; $RANK]>>> {
                 // ~~~~~~~~~~~~~~~~~~~
@@ -905,7 +905,7 @@ macro_rules! impl_shell_tuple_overlap {
             /// # Returns
             ///
             /// A vector of overlap arrays, each of which is for one derivative component.
-            pub(crate) fn overlap(
+            pub fn overlap(
                 &self, ls: [usize; $RANK]
             ) -> Vec<Array<dtype, Dim<[usize; $RANK]>>> {
                 let lex_cart_orders = (0..=*ls.iter().max().expect("Unable to determine the maximum derivative order."))

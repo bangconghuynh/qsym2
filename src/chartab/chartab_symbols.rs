@@ -302,22 +302,22 @@ pub struct GenericSymbol {
 }
 
 impl GenericSymbol {
-    fn builder() -> GenericSymbolBuilder {
+    pub fn builder() -> GenericSymbolBuilder {
         GenericSymbolBuilder::default()
     }
 
     /// Sets the main part of the symbol.
-    pub(crate) fn set_main(&mut self, main: &str) {
+    pub fn set_main(&mut self, main: &str) {
         self.main = main.to_string();
     }
 
     /// Sets the pre-subscript part of the symbol.
-    pub(crate) fn set_presub(&mut self, presub: &str) {
+    pub fn set_presub(&mut self, presub: &str) {
         self.presub = presub.to_string();
     }
 
     /// Sets the post-subscript part of the symbol.
-    pub(crate) fn set_postsub(&mut self, postsub: &str) {
+    pub fn set_postsub(&mut self, postsub: &str) {
         self.postsub = postsub.to_string();
     }
 }
@@ -518,7 +518,7 @@ impl<S> DecomposedSymbol<S>
 where
     S: LinearSpaceSymbol + PartialOrd,
 {
-    fn builder() -> DecomposedSymbolBuilder<S> {
+    pub fn builder() -> DecomposedSymbolBuilder<S> {
         DecomposedSymbolBuilder::<S>::default()
     }
 

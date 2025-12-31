@@ -315,7 +315,7 @@ where
 /// Structure for managing class structures eagerly, *i.e.* all elements and their class maps are
 /// stored.
 #[derive(Builder, Clone, Serialize, Deserialize)]
-pub(super) struct EagerClassStructure<T, ClassSymbol>
+pub struct EagerClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
@@ -491,7 +491,7 @@ where
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// Returns a builder to construct a new class structure.
-    fn builder() -> EagerClassStructureBuilder<T, ClassSymbol> {
+    pub fn builder() -> EagerClassStructureBuilder<T, ClassSymbol> {
         EagerClassStructureBuilder::<T, ClassSymbol>::default()
     }
 
@@ -509,7 +509,7 @@ where
     /// # Returns
     ///
     /// A new class structure.
-    fn new(
+    pub fn new(
         group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
@@ -525,7 +525,7 @@ where
             .conjugacy_class_symbols(group)
             .inverse_conjugacy_classes(ctb)
             .build()
-            .expect("Unable to construct a `EagerClassStructure`.")
+            .expect("Unable to construct an `EagerClassStructure`.")
     }
 
     /// Constructs a new eager class structure without using any information from any Cayley table.
@@ -541,7 +541,7 @@ where
     /// # Returns
     ///
     /// A new class structure.
-    fn new_no_ctb(
+    pub fn new_no_ctb(
         group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
@@ -554,7 +554,7 @@ where
             .conjugacy_class_symbols(group)
             .custom_inverse_conjugacy_classes(inverse_conjugacy_classes)
             .build()
-            .expect("Unable to construct a `EagerClassStructure`.")
+            .expect("Unable to construct an `EagerClassStructure`.")
     }
 
     /// Returns the number of conjugacy classes in the class structure.

@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod auxiliary;
 pub mod denmat;
 pub mod matelem;

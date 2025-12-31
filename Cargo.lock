@@ -950,9 +950,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "foldhash"
-version = "0.1.5"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "foreign-types"
@@ -1253,20 +1253,14 @@ checksum = "65043da274378d68241eb9a8f8f8aa54e349136f7b8e12f63e3ef44043cc30e1"
 
 [[package]]
 name = "hashbrown"
-version = "0.15.5"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+checksum = "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
 dependencies = [
  "allocator-api2",
  "equivalent",
  "foldhash",
 ]
-
-[[package]]
-name = "hashbrown"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
 
 [[package]]
 name = "hdf5-metno"
@@ -1639,7 +1633,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6717a8d2a5a929a1a2eb43a12812498ed141a0bcfb7e8f7844fbdbe4303bba9f"
 dependencies = [
  "equivalent",
- "hashbrown 0.16.0",
+ "hashbrown",
  "rayon",
  "serde",
  "serde_core",
@@ -2094,10 +2088,11 @@ dependencies = [
 
 [[package]]
 name = "ndarray-einsum"
-version = "0.8.0"
-source = "git+https://github.com/bangconghuynh/ndarray-einsum?branch=bump-ndarray-0.17#8a5b93865c38a03881a320bb6b8a0ba3d6c0b750"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7df4ff5c1e55d1a9dcb3fd1cb6506dd2bec71cfbb9d0deb4858693350f30ef28"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown",
  "lazy_static",
  "ndarray",
  "num-traits",
@@ -2283,8 +2278,9 @@ checksum = "f2dcb6053ab98da45585315f79932c5c9821fab8efa4301c0d7b637c91630eb7"
 
 [[package]]
 name = "numpy"
-version = "0.27.0"
-source = "git+https://github.com/bangconghuynh/rust-numpy?branch=bump-ndarray-0.17#afe396b7607d206684578c6fe9394e1e095c80ca"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aac2e6a6e4468ffa092ad43c39b81c79196c2bb773b8db4085f695efe3bba17"
 dependencies = [
  "libc",
  "ndarray",
@@ -2746,7 +2742,7 @@ version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37a6df7eab65fc7bee654a421404947e10a0f7085b6951bf2ea395f4659fb0cf"
 dependencies = [
- "hashbrown 0.16.0",
+ "hashbrown",
  "indexmap",
  "indoc",
  "libc",
@@ -2817,7 +2813,7 @@ dependencies = [
 
 [[package]]
 name = "qsym2"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "approx",

@@ -11,7 +11,7 @@ use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
 use num_traits::Inv;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -227,7 +227,7 @@ where
     /// # Panics
     ///
     /// Panics if the group fails to be constructed.
-    fn builder() -> EagerGroupBuilder<T> {
+    pub fn builder() -> EagerGroupBuilder<T> {
         EagerGroupBuilder::<T>::default()
     }
 
@@ -461,10 +461,10 @@ where
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
+    #[allow(dead_code)]
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
             if self.name.as_ref().expect("Group name not found.").clone() == *"O(3)"
@@ -513,7 +513,7 @@ where
     /// # Returns
     ///
     /// A builder to construct a new unitary-represented group.
-    fn builder() -> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol> {
+    pub fn builder() -> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol> {
         UnitaryRepresentedGroupBuilder::<T, RowSymbol, ColSymbol>::default()
     }
 
@@ -528,13 +528,16 @@ where
     ///
     /// A unitary-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
-    pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
+    pub fn new(
+        name: &str,
+        elements: Vec<T>,
+    ) -> Result<Self, anyhow::Error> {
         let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group?)
             .build()
-            .expect("Unable to construct a unitary group.");
+            .map_err(|err| format_err!(err))?;
         unitary_group.compute_class_structure()?;
         Ok(unitary_group)
     }
@@ -654,6 +657,7 @@ where
     CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
         Serialize + DeserializeOwned,
 {
+    #[allow(dead_code)]
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
             if self.name.as_ref().expect("Group name not found.").clone() == *"O(3)"
@@ -727,7 +731,7 @@ where
     /// # Returns
     ///
     /// A builder to construct a new magnetic-represented group.
-    fn builder() -> MagneticRepresentedGroupBuilder<T, UG, RowSymbol> {
+    pub fn builder() -> MagneticRepresentedGroupBuilder<T, UG, RowSymbol> {
         MagneticRepresentedGroupBuilder::<T, UG, RowSymbol>::default()
     }
 

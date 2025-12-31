@@ -74,6 +74,7 @@ fn combu(nu: u32, ru: u32) -> BigUint {
 /// # Returns
 ///
 /// The number of permutations.
+#[allow(dead_code)]
 fn perm(n: i32, r: i32) -> BigUint {
     if n < 0 || r < 0 || r > n {
         BigUint::zero()
@@ -96,11 +97,12 @@ fn perm(n: i32, r: i32) -> BigUint {
 /// # Returns
 ///
 /// The number of permutations.
-fn permu(nu: u32, ru: u32) -> BigUint {
-    if ru > nu {
+#[allow(dead_code)]
+fn permu(n: u32, r: u32) -> BigUint {
+    if r > n {
         BigUint::zero()
     } else {
-        (nu - ru + 1..=nu).product::<BigUint>()
+        (n - r + 1..=n).product::<BigUint>()
     }
 }
 

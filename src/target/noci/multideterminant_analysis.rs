@@ -34,6 +34,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::noci::backend::solver::check_complex_matrix_symmetry;
 use crate::target::noci::basis::{Basis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
@@ -585,10 +586,24 @@ where
                 smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
             }
             if self.origin().complex_symmetric() {
+                let _ = check_complex_matrix_symmetry(
+                    &smat.view(),
+                    true,
+                    self.linear_independence_threshold,
+                    "Orbit overlap",
+                    "S_orbit",
+                );
                 self.set_smat(
                     (smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
                 )
             } else {
+                let _ = check_complex_matrix_symmetry(
+                    &smat.view(),
+                    false,
+                    self.linear_independence_threshold,
+                    "Orbit overlap",
+                    "S_orbit",
+                );
                 self.set_smat(
                     (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
                         .mapv(|x| x / (T::one() + T::one())),

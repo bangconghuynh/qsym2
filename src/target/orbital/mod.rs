@@ -184,6 +184,11 @@ where
         self.complex_symmetric
     }
 
+    /// Returns the energy of this molecular orbital.
+    pub fn energy(&self) -> Option<T> {
+        self.energy
+    }
+
     /// Returns the threshold with which molecular orbitals are compared.
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold

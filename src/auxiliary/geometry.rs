@@ -717,7 +717,7 @@ impl SphericalConditionsBuilder {
 
 impl SphericalConditions {
     /// Returns a builder to construct [`Self`].
-    fn builder() -> SphericalConditionsBuilder {
+    pub fn builder() -> SphericalConditionsBuilder {
         SphericalConditionsBuilder::default()
     }
 

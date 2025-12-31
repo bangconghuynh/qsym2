@@ -348,7 +348,7 @@ where
 {
     /// Returns a builder to construct a new [`SlaterDeterminantRepAnalysisResultBuilder`]
     /// structure.
-    fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T, SC> {
+    pub fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T, SC> {
         SlaterDeterminantRepAnalysisResultBuilder::default()
     }
 }

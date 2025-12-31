@@ -108,6 +108,10 @@ where
         self.calc_overlap_matrix_element(det_w, det_x)
     }
 
+    fn op() -> &'a str {
+        "|"
+    }
+
     fn t(x: &T) -> T {
         *x
     }
@@ -139,6 +143,10 @@ where
         _thresh_zeroov: <T as ComplexFloat>::Real,
     ) -> Result<T, anyhow::Error> {
         (&self).calc_matrix_element(det_w, det_x, _sao, _thresh_offdiag, _thresh_zeroov)
+    }
+
+    fn op() -> &'a str {
+        "|"
     }
 
     fn t(x: &T) -> T {

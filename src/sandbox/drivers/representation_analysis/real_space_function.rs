@@ -242,7 +242,7 @@ where
     F: Clone + Fn(&Point3<f64>) -> T,
 {
     /// Returns a builder to construct a new [`RealSpaceFunctionRepAnalysisResultBuilder`] structure.
-    fn builder() -> RealSpaceFunctionRepAnalysisResultBuilder<'a, G, T, F> {
+    pub fn builder() -> RealSpaceFunctionRepAnalysisResultBuilder<'a, G, T, F> {
         RealSpaceFunctionRepAnalysisResultBuilder::default()
     }
 }
@@ -319,6 +319,11 @@ where
         &self,
     ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
         &self.real_space_function_symmetry
+    }
+
+    /// Returns the parameters used for the representation analysis.
+    pub fn parameters(&self) -> &RealSpaceFunctionRepAnalysisParams<<T as ComplexFloat>::Real> {
+        self.parameters
     }
 }
 

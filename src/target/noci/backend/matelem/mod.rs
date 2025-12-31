@@ -7,7 +7,6 @@ use log;
 use ndarray::{Array2, Array3, ArrayView2, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::symmetry::symmetry_element::SpecialSymmetryTransformation;
@@ -53,6 +52,9 @@ where
         thresh_offdiag: <T as ComplexFloat>::Real,
         thresh_zeroov: <T as ComplexFloat>::Real,
     ) -> Result<Self::MatrixElement, anyhow::Error>;
+
+    /// Returns a string representing the operator for the matrix element.
+    fn op() -> &'a str;
 
     /// Computes the transpose of a matrix element.
     fn t(x: &Self::MatrixElement) -> Self::MatrixElement;
@@ -181,11 +183,13 @@ where
                 Array3::from_elem((n_det_origins, n_det_origins, order), self.zero());
             for (ii, jj, k, elem_res) in ov_elems {
                 log::debug!(
-                    "⟨g_{k} Ψ_{ii} | Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | Ψ_{jj}⟩ = {}",
+                    "⟨g_{k} Ψ_{ii} {} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} {} Ψ_{jj}⟩ = {}",
+                    Self::op(),
                     group
                         .get_index(k)
                         .map(|g| g.to_string())
                         .unwrap_or_else(|| format!("g_{k}")),
+                    Self::op(),
                     elem_res
                         .as_ref()
                         .map(|v| format!("{v:+.8e}"))
@@ -218,7 +222,7 @@ where
                     ))?;
                 let k = ctb[(jinv, i)];
                 log::debug!(
-                    "{}^(-1) = {} ⇒ ⟨g_{i} Ψ_{ii} | g_{j} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | {} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | Ψ_{jj}⟩ = {:+8e}",
+                    "{}^(-1) = {} ⇒ ⟨g_{i} Ψ_{ii} {} g_{j} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} {} {} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} {} Ψ_{jj}⟩ = {:+8e}",
                     group
                         .get_index(j)
                         .map(|g| g.to_string())
@@ -227,10 +231,12 @@ where
                         .get_index(jinv)
                         .map(|g| g.to_string())
                         .unwrap_or_else(|| format!("g_{jinv}")),
+                    Self::op(),
                     group
                         .get_index(i)
                         .map(|g| g.to_string())
                         .unwrap_or_else(|| format!("g_{i}")),
+                    Self::op(),
                     group
                         .get_index(j)
                         .map(|g| g.to_string())
@@ -239,9 +245,10 @@ where
                         .get_index(k)
                         .map(|g| g.to_string())
                         .unwrap_or_else(|| format!("g_{k}")),
+                    Self::op(),
                     ov_ii_jj_k[(ii, jj, k)],
                 );
-                mat[(i + ii * order, j + jj * order)] =
+                mat[(i * n_det_origins + ii, j * n_det_origins + jj)] =
                     self.norm_preserving_scalar_map(jinv, orbit_basis)?(&ov_ii_jj_k[(ii, jj, k)]);
             }
         } else {
@@ -253,7 +260,6 @@ where
                 .iter()
                 .enumerate()
                 .cartesian_product(orbit_basis_vec.iter().enumerate())
-                .par_bridge()
                 .map(|((i_ii, i_ii_det), (j_jj, j_jj_det))| {
                     let i = i_ii.div_euclid(n_det_origins);
                     let ii = i_ii.rem_euclid(n_det_origins);
@@ -272,11 +278,13 @@ where
             elems.sort_by_key(|v| (v.1, v.0, v.3, v.2));
             for (i, ii, j, jj, elem_res) in elems {
                 log::debug!(
-                    "⟨g_{i} Ψ_{ii} | g_{j} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} | {} Ψ_{jj}⟩ = {}",
+                    "⟨g_{i} Ψ_{ii} {} g_{j} Ψ_{jj}⟩ = ⟨{} Ψ_{ii} {} {} Ψ_{jj}⟩ = {}",
+                    Self::op(),
                     group
                         .get_index(i)
                         .map(|g| g.to_string())
                         .unwrap_or_else(|| format!("g_{i}")),
+                    Self::op(),
                     group
                         .get_index(j)
                         .map(|g| g.to_string())
@@ -286,7 +294,7 @@ where
                         .map(|v| format!("{v:+.8e}"))
                         .unwrap_or_else(|err| err.to_string())
                 );
-                mat[(i + ii * order, j + jj * order)] = elem_res?;
+                mat[(i * n_det_origins + ii, j * n_det_origins + jj)] = elem_res?;
             }
         }
         Ok(mat)

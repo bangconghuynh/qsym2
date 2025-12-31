@@ -243,7 +243,7 @@ impl SymmetryOperation {
     ///
     /// A builder to construct a new symmetry operation.
     #[must_use]
-    pub(crate) fn builder() -> SymmetryOperationBuilder {
+    pub fn builder() -> SymmetryOperationBuilder {
         SymmetryOperationBuilder::default()
     }
 
