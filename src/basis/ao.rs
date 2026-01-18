@@ -841,15 +841,18 @@ impl SpinorOrder {
         }
     }
 
-    /// Returns the value of $`a = 2(j - l)`$.
+    /// Returns the value of $`a = 2(l - j)`$.
+    ///
+    /// The sign of $`a`$ indicates whether one should add or subtract $`1/2`$ from $`j`$ to get to
+    /// $`l`$.
     pub fn a(&self) -> i8 {
         if self.two_j.rem_euclid(4) == 1 {
             // even l is to the left of j, and odd l to the right
-            if self.even { 1 } else { -1 }
+            if self.even { -1 } else { 1 }
         } else {
             assert_eq!(self.two_j.rem_euclid(4), 3);
             // even l is to the right of j, and odd l to the left
-            if self.even { -1 } else { 1 }
+            if self.even { 1 } else { -1 }
         }
     }
 }

@@ -18,7 +18,9 @@ use rayon::prelude::*;
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::backend::nonortho::{calc_lowdin_pairing, calc_transition_density_matrix};
+use crate::target::noci::backend::nonortho::{
+    calc_lowdin_pairing, calc_o0_matrix_element, calc_transition_density_matrix,
+};
 use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
@@ -433,10 +435,7 @@ where
                         })
                         .collect::<Result<Vec<_>, _>>()?;
                     let den_wx = calc_transition_density_matrix(&lowdin_paired_coefficientss, &self.structure_constraint())?;
-                    let ov_wx = lowdin_paired_coefficientss
-                        .iter()
-                        .flat_map(|lpc| lpc.lowdin_overlaps().iter())
-                        .fold(T::one(), |acc, ov| acc * *ov);
+                    let ov_wx = calc_o0_matrix_element(&lowdin_paired_coefficientss, T::one(), &self.structure_constraint())?;
 
                     let c_wm = if self.complex_conjugated() {
                         if complex_symmetric { c_wm.map(|v| v.conj()) } else { c_wm.to_owned() }
