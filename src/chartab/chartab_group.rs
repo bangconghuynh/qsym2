@@ -244,25 +244,15 @@ where
                     log::error!("{err}");
                     panic!("{err}");
                 });
-                eigvecs_1d.extend(eigs_1.iter().filter_map(|(_, eigvecs)| {
+                eigvecs_1d.extend(eigs_1.values().filter_map(|eigvecs| {
                     if eigvecs.len() == 1 {
                         Some(eigvecs[0].clone())
                     } else {
                         None
                     }
                 }));
-                degenerate_subspaces.extend(
-                    eigs_1
-                        .iter()
-                        .filter_map(|(_, eigvecs)| {
-                            if eigvecs.len() > 1 {
-                                Some(eigvecs)
-                            } else {
-                                None
-                            }
-                        })
-                        .cloned(),
-                );
+                degenerate_subspaces
+                    .extend(eigs_1.values().filter(|eigvecs| eigvecs.len() > 1).cloned());
 
                 while !degenerate_subspaces.is_empty() {
                     log::debug!(
