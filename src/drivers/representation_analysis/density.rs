@@ -13,7 +13,9 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
+use crate::analysis::{
+    EigenvalueComparisonMode, Orbit, Overlap, ProjectionDecomposition, RepAnalysis,
+};
 use crate::chartab::SubspaceDecomposable;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::drivers::QSym2Driver;
@@ -577,6 +579,22 @@ where
             doc_sub_ [ "Performs representation analysis using a unitary-represented group and stores the result." ]
             analyse_fn_ [ analyse_representation ]
             construct_group_ [ self.construct_unitary_group()? ]
+            calc_projections_ [
+                log_subtitle("Electron density projection decompositions");
+                qsym2_output!("");
+                qsym2_output!("  Density name: {den_name}");
+                qsym2_output!("");
+                qsym2_output!("  Projections are defined w.r.t. the following inner product:");
+                qsym2_output!("    {}", den_orbit.origin().overlap_definition());
+                qsym2_output!("");
+                den_orbit
+                    .projections_to_string(
+                        &den_orbit.calc_projection_compositions()?,
+                        params.integrality_threshold,
+                    )
+                    .log_output_display();
+                qsym2_output!("");
+            ]
         ]
     }
     duplicate!{
@@ -587,6 +605,7 @@ where
             doc_sub_ [ "Performs corepresentation analysis using a magnetic-represented group and stores the result." ]
             analyse_fn_ [ analyse_corepresentation ]
             construct_group_ [ self.construct_magnetic_group()? ]
+            calc_projections_ [ ]
         ]
     }
 )]
@@ -612,7 +631,8 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
         log_bao(bao, None);
 
         let (den_symmetries, den_symmetries_thresholds): (Vec<_>, Vec<_>) =
-            self.densities.iter().map(|(_, den)| {
+            self.densities.iter().map(|(den_name, den)| {
+                log::debug!("Analysing symmetry for density {den_name}...");
                 DensitySymmetryOrbit::builder()
                     .group(&group)
                     .origin(den)
@@ -681,6 +701,11 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
                             })
                             .unwrap_or((None, None));
                         let den_sym = den_orbit.analyse_rep().map_err(|err| err.to_string());
+
+                        {
+                            calc_projections_
+                        }
+
                         Ok((den_sym, density_symmetry_thresholds))
                     })
                     .unwrap_or_else(|err| (Err(err.to_string()), (None, None)))
