@@ -454,7 +454,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     }
                     let multidets = noci_energies_vec
                         .into_iter()
-                        .zip(noci_coeffs_vec.into_iter())
+                        .zip(noci_coeffs_vec)
                         .map(|(energy, coeffs)| {
                             MultiDeterminant::builder()
                                 .basis(orbit_basis.clone())
@@ -653,7 +653,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     }
                     let multidets = noci_energies_vec
                         .into_iter()
-                        .zip(noci_coeffs_vec.into_iter())
+                        .zip(noci_coeffs_vec)
                         .map(|(energy, coeffs)| {
                             MultiDeterminant::builder()
                                 .basis(orbit_basis.clone())
@@ -899,7 +899,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             }
                             let multidets = noci_energies_vec
                                 .into_iter()
-                                .zip(noci_coeffs_vec.into_iter())
+                                .zip(noci_coeffs_vec)
                                 .map(|(energy, coeffs)| {
                                     MultiDeterminant::builder()
                                         .basis(orbit_basis.clone())
@@ -1100,7 +1100,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             }
                             let multidets = noci_energies_vec
                                 .into_iter()
-                                .zip(noci_coeffs_vec.into_iter())
+                                .zip(noci_coeffs_vec)
                                 .map(|(energy, coeffs)| {
                                     MultiDeterminant::builder()
                                         .basis(orbit_basis.clone())
@@ -1316,7 +1316,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             }
                             let multidets = noci_energies_vec
                                 .into_iter()
-                                .zip(noci_coeffs_vec.into_iter())
+                                .zip(noci_coeffs_vec)
                                 .map(|(energy, coeffs)| {
                                     MultiDeterminant::builder()
                                         .basis(orbit_basis.clone())
@@ -1517,7 +1517,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             }
                             let multidets = noci_energies_vec
                                 .into_iter()
-                                .zip(noci_coeffs_vec.into_iter())
+                                .zip(noci_coeffs_vec)
                                 .map(|(energy, coeffs)| {
                                     MultiDeterminant::builder()
                                         .basis(orbit_basis.clone())
