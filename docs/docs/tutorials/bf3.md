@@ -281,7 +281,7 @@ The required basis set information can therefore be extracted by adding the foll
                     if angmom == 1: #(1)!
                         basis_shell = (angmom, ShellType.Pure, ([+1, -1, 0], False))
                     else:
-                        basis_shell = (angmom.upper(), ShellType.Pure, (True, angmom % 2 == 0))
+                        basis_shell = (angmom, ShellType.Pure, (True, angmom % 2 == 0))
                     atom_shell_tuples.append(basis_shell)
                     
                     bsc = PyBasisShellContraction(

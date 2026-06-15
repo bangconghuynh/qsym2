@@ -1076,13 +1076,13 @@ where
             self.sao_spatial_4c.flatten(),
             self.sao_spatial_4c_h.flatten(),
         ) {
-            (Some(sao_spatial_4c), Some(sao_spatial_4c_h)) => {
-                if sao_spatial_4c_h.shape() != sao_spatial_4c.shape() {
-                    return Err(
-                        "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`."
-                            .to_string(),
-                    );
-                }
+            (Some(sao_spatial_4c), Some(sao_spatial_4c_h))
+                if sao_spatial_4c_h.shape() != sao_spatial_4c.shape() =>
+            {
+                return Err(
+                    "Mismatched shapes between `sao_spatial_4c` and `sao_spatial_4c_h`."
+                        .to_string(),
+                );
             }
             (None, Some(_)) => {
                 return Err("`sao_spatial_4c_h` is provided without `sao_spatial_4c`.".to_string());
