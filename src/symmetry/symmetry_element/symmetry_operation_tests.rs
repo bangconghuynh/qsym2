@@ -12884,3 +12884,175 @@ fn test_symmetry_operation_composition_time_reversal() {
     assert_eq!(tc2z_c2z_c1_isr.to_string(), "θ(Σ)");
     assert_eq!(tc2z_c2z_c1_isr.get_abbreviated_symbol(), "θ(Σ)");
 }
+
+#[test]
+fn print_representation_matrix_time_reversal() {
+    let eps = 1e-12;
+    let time_reversal_element = SymmetryElement::builder()
+        .threshold(eps)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0)) // todo evtl rausnehmen
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3) // todo fragen
+        .build()
+        .unwrap();
+
+    let time_reversal = SymmetryOperation::builder()
+        .generating_element(time_reversal_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    //let wigner_matrix_so3 = time_reversal
+    //    .get_wigner_matrix(4, true)
+    //    .unwrap();
+
+    let time_reversal_su2 = time_reversal.to_su2_class_0();
+
+    let wigner_matrix_su2 = time_reversal_su2
+        .get_wigner_matrix(3, true)
+        .unwrap();
+
+    assert_eq!(time_reversal.order(), 2);
+    assert!(time_reversal.contains_time_reversal());
+    assert!((&time_reversal * &time_reversal).is_identity());
+
+    assert_eq!(time_reversal.order(), 2); // for SO3, order of the time reversal operation is 2
+    assert_eq!(time_reversal_su2.order(), 4); // for spinors (SU2), order of the time reversal operation is 4
+
+    //println!("Representation matrix of time reversal in SO3:");
+    //println!("{}", matrix_to_string_complex(&wigner_matrix_so3, eps));
+
+    println!("Representation matrix of time reversal in SU2 class 0:");
+    println!("{}", matrix_to_string_complex(&wigner_matrix_su2, eps));
+
+
+}
+
+
+#[test]
+fn print_representation_matrix_c2y_xyzbasis(){
+    let eps = 1e-12;
+    let tc2y_element = SymmetryElement::builder()
+        .threshold(eps)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let tc2y = SymmetryOperation::builder()
+        .generating_element(tc2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let spatial_representation_matrix = tc2y.get_3d_spatial_matrix(); // todo which basis is this? mj??
+
+    println!("Representation matrix of c2y in xyz basis:");   
+    println!("{}", matrix_to_string(&spatial_representation_matrix, eps));
+}
+
+#[test]
+fn print_representation_matrix_c2y_wigner(){
+    let eps = 1e-12;
+    let c2y_element = SymmetryElement::builder()
+        .threshold(eps)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2((true)))
+        .build()
+        .unwrap();
+    let c2y = SymmetryOperation::builder()
+        .generating_element(c2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let wigner_matrix_c2y_su2 = c2y
+        .get_wigner_matrix(3, true)
+        .unwrap();
+
+    println!("Wigner representation matrix of c2y:");   
+    println!("{}", matrix_to_string_complex(&wigner_matrix_c2y_su2, eps));
+}
+
+fn matrix_to_string_complex(matrix: &Array2<Complex64>, eps: f64) -> String {
+    let mut out = String::new();
+
+    for row in matrix.rows() {
+        for val in row {
+            let re = if val.re.abs() < eps { 0.0 } else { val.re };
+            let im = if val.im.abs() < eps { 0.0 } else { val.im };
+
+            if im == 0.0 {
+                out.push_str(&format!("{:>12.6} ", re));
+            } else {
+                out.push_str(&format!("{:>12.6}+{:>12.6}i ", re, im));
+            }
+        }
+        out.push('\n');
+    }
+
+    out
+}
+
+fn matrix_to_string(matrix: &Array2<f64>, eps: f64) -> String {
+    let mut out = String::new();
+
+    for row in matrix.rows() {
+        for val in row {
+            let x = if val.abs() < eps { 0.0 } else { *val };
+            out.push_str(&format!("{:>12.6} ", x));
+        }
+        out.push('\n');
+    }
+
+    out
+}
+
+fn cheatsheet() {
+    // ----------
+    // C2x & θC2x
+    // ----------
+    let tc2x_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let tc2x = SymmetryOperation::builder()
+        .generating_element(tc2x_element)
+        .power(1)
+        .build()
+        .unwrap();
+    let tc2x_su2 = tc2x.to_su2_class_0();
+    assert_eq!(tc2x.order(), 2);
+    assert!(tc2x.contains_time_reversal());
+    assert!((&tc2x * &tc2x).is_identity());
+
+    // -----------
+    // θC2x ⋅ θC2x
+    // -----------
+    // From Table 8-6.2 of Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+    // Publications, Inc., 2005), in SU(2), C2x ⋅ C2x = E(QΣ), so θC2x ⋅ θC2x = E(Σ). Note that
+    // since θC2x is antiunitary, corepresentation theory is required.
+    assert!(tc2x.get_wigner_matrix(1, true).is_err());
+    close_l2(
+        &tc2x_su2.get_wigner_matrix(1, true).unwrap().dot(
+            &tc2x_su2
+                .get_wigner_matrix(1, true)
+                .unwrap()
+                .map(|x: &num::Complex<f64>| x.conj()),
+        ),
+        &(Array2::<Complex64>::eye(2)),
+        1e-14,
+    );
+}
