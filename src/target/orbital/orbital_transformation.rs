@@ -253,7 +253,7 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64, SpinConstraint> 
                         self.coefficients *= -1.0;
                         Ok(self)
                     } else {
-                        log::error!("Unsupported spin transformation matrix:\n{}", &rdmat);
+                        log::error!("Unsupported spin transformation matrix:\n{}", rdmat);
                         Err(TransformationError(
                             "Only the identity or negative identity spin transformations are possible with restricted spin constraint."
                                 .to_string(),

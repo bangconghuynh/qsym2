@@ -166,7 +166,7 @@ impl fmt::Display for SymmetryElementKindConversionError {
         write!(
             f,
             "SymmetryElementKindConversionError with message: {}",
-            &self.0
+            self.0
         )
     }
 }

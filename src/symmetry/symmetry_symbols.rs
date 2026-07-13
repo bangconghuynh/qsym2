@@ -1059,7 +1059,7 @@ where
     let mut raw_irrep_symbols = char_arr.rows().into_iter().map(|irrep| {
         // Determine the main symmetry
         let dim = irrep[
-            *class_symbols.get(&e_cc).unwrap_or_else(|| panic!("Class `{}` not found.", &e_cc))
+            *class_symbols.get(&e_cc).unwrap_or_else(|| panic!("Class `{}` not found.", e_cc))
         ].complex_value();
         assert!(
             approx::relative_eq!(dim.im, 0.0)
@@ -1158,7 +1158,7 @@ where
                         class_symbols
                             .get(&ti_cc)
                             .unwrap_or_else(|| {
-                                panic!("Neither `{}` nor `{}` found.", &i_cc, &ti_cc)
+                                panic!("Neither `{}` nor `{}` found.", i_cc, ti_cc)
                             })
                     })
             ].clone();
@@ -1198,7 +1198,7 @@ where
                                 class_symbols
                                     .get(&ts_cc)
                                     .unwrap_or_else(|| {
-                                        panic!("Neither `{}`, `{}`, nor `{}` found.", &s_cc, &s2_cc, &ts_cc)
+                                        panic!("Neither `{}`, `{}`, nor `{}` found.", s_cc, s2_cc, ts_cc)
                                         })
                         })
                     })
@@ -1234,7 +1234,7 @@ where
             // Determine time-reversal symmetry
             let char_trev = irrep[
                 *class_symbols.get(&t_cc).unwrap_or_else(|| {
-                    panic!("Class `{}` not found.", &t_cc)
+                    panic!("Class `{}` not found.", t_cc)
                 })
             ].clone();
             let char_trev_c = char_trev.complex_value();

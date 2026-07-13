@@ -273,7 +273,7 @@ where
             .ok_or_else(|| {
                 format_err!(
                     "Unable to determine the maximum off-diagonal element for\n{}.",
-                    &init_orb_ovmat
+                    init_orb_ovmat
                 )
             })?;
 

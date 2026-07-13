@@ -354,7 +354,7 @@ where
                     format_err!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try relaxing distance thresholds.",
                         op_i_ref,
                         op_j_ref,
-                        &op_k)
+                        op_k)
                     )?;
             Ok::<(), anyhow::Error>(())
         }).into_iter().collect::<Result<(), anyhow::Error>>()?;
@@ -528,10 +528,7 @@ where
     ///
     /// A unitary-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
-    pub fn new(
-        name: &str,
-        elements: Vec<T>,
-    ) -> Result<Self, anyhow::Error> {
+    pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
         let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()
             .name(name.to_string())

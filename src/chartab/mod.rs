@@ -508,11 +508,11 @@ where
         write!(
             f,
             "{}",
-            &itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
+            itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
         )?;
 
         // Table bottom
-        write!(f, "\n{}\n", &"━".repeat(tab_width))
+        write!(f, "\n{}\n", "━".repeat(tab_width))
     }
 
     fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {
@@ -998,11 +998,11 @@ where
         write!(
             f,
             "{}",
-            &itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
+            itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
         )?;
 
         // Table bottom
-        write!(f, "\n{}\n", &"━".repeat(tab_width))
+        write!(f, "\n{}\n", "━".repeat(tab_width))
     }
 
     fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {

@@ -729,14 +729,14 @@ where
                 .unwrap_or_else(|| {
                     panic!(
                         "Unknown conversion of raw symbol `{}` to full symbol.",
-                        &raw_symbol
+                        raw_symbol
                     )
                 })
                 .pop_front()
                 .unwrap_or_else(|| {
                     panic!(
                         "No conversion to full symbol possible for `{}`",
-                        &raw_symbol
+                        raw_symbol
                     )
                 })
         })
