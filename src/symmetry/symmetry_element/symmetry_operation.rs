@@ -23,8 +23,7 @@ use crate::auxiliary::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, SymmetryElement, SymmetryElementKind, TRINV,
-    TRROT, TRSIG,
+    AntiunitaryKind, INV, ROT, RotationGroup, SIG, SO3, SU2_0, SU2_1, SymmetryElement, SymmetryElementKind, TRINV, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -1690,4 +1689,60 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
             c_op.is_su2_class_1(),
         )
     });
+}
+
+pub fn wigner_matrix_ry_minus_pi_su2_true(two_j: u32) -> Result<Array2<f64>, anyhow::Error> {
+    let eps = 1e-12;
+    let c2y_element = SymmetryElement::builder()
+        .threshold(eps)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2((true)))
+        .build()?;
+    let c2y = SymmetryOperation::builder()
+        .generating_element(c2y_element)
+        .power(1)
+        .build()?;
+
+    let m = c2y.get_wigner_matrix(two_j, true)?;
+
+    // optional: prüfen, dass imag ~ 0 ist
+    if m.iter().any(|z| z.im.abs() > eps) {
+        return Err(anyhow::anyhow!("time reversal matrix has non-negligible imaginary parts"));
+    }
+
+    Ok(m.mapv(|z| z.re))
+}
+
+pub fn wigner_matrix_time_reversal(two_j: u32) -> Result<Array2<f64>, anyhow::Error> {
+    let eps = 1e-12;
+    let time_reversal_element = SymmetryElement::builder()
+        .threshold(eps)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0)) 
+        .kind(TRROT)
+        .rotation_group(RotationGroup::SO3) 
+        .build()?;
+
+    let time_reversal = SymmetryOperation::builder()
+        .generating_element(time_reversal_element)
+        .power(1)
+        .build()?;
+    //let wigner_matrix_so3 = time_reversal
+    //    .get_wigner_matrix(4, true)
+    //    .unwrap();
+
+    let time_reversal_su2 = time_reversal.to_su2_class_0();
+
+    let m = time_reversal_su2.get_wigner_matrix(two_j, true)?;
+
+        // optional: prüfen, dass imag ~ 0 ist
+    if m.iter().any(|z| z.im.abs() > eps) {
+        return Err(anyhow::anyhow!("time reversal matrix has non-negligible imaginary parts"));
+    }
+
+    Ok(m.mapv(|z| z.re))
 }

@@ -1469,3 +1469,22 @@ def project_densities(
     Returns:
         The result will be returned as a list of tuples, each of which contains the name/description of an original density and a dictionary in which the keys are the subspace labels and the values are the corresponding projected density.
     """
+
+def calc_overlap_4c_complex(
+    basis_set: Sequence[Sequence[PyBasisShellContraction]], complex_symmetric: bool
+) -> Py4DArray_c128:
+    r"""
+    Calculates the complex-valued four-centre overlap matrix for a basis set.
+
+    Parameters:
+        basis_set: A list of lists of `PyBasisShellContraction`. Each inner list contains shells on one atom.
+        complex_symmetric: A boolean indicating if the complex-symmetric overlap is to be calculated.
+
+    Returns:
+        A four-dimensional array containing the complex four-centre overlap values.
+    """
+
+# -------------------------------------------------------------
+# bindings/python/representation_analysis/slater_determinant.rs
+# -------------------------------------------------------------
+

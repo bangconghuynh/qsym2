@@ -1,6 +1,7 @@
 //! Python bindings for QSym².
 
 use pyo3::prelude::*;
+use pyo3::wrap_pyfunction; // TODO rausnehmen?
 
 pub mod integrals;
 pub mod molecule_symmetrisation;
@@ -15,6 +16,9 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 #[cfg(feature = "sandbox")]
 use crate::sandbox::bindings::python::register_sandbox_module;
+
+#[cfg(feature = "wigner")]
+pub mod wigner;
 
 /// Python module for QSym² implemented in Rust.
 #[pymodule]
@@ -82,6 +86,10 @@ pub fn qsym2(_py: Python<'_>, m: Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_real, &m)?)?;
     #[cfg(feature = "integrals")]
     m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_complex, &m)?)?;
+    #[cfg(feature = "wigner")]
+    m.add_function(wrap_pyfunction!(wigner::py_wigner_matrix_time_reversal, &m)?)?;
+    #[cfg(feature = "wigner")]
+    m.add_function(wrap_pyfunction!(wigner::py_wigner_matrix_ry_minus_pi_su2_true, &m)?)?;
 
     // -------
     // Classes

@@ -12892,9 +12892,9 @@ fn print_representation_matrix_time_reversal() {
         .threshold(eps)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .raw_axis(Vector3::new(1.0, 0.0, 0.0)) // todo evtl rausnehmen
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0)) 
         .kind(TRROT)
-        .rotation_group(RotationGroup::SO3) // todo fragen
+        .rotation_group(RotationGroup::SO3) 
         .build()
         .unwrap();
 
@@ -12911,7 +12911,7 @@ fn print_representation_matrix_time_reversal() {
     let time_reversal_su2 = time_reversal.to_su2_class_0();
 
     let wigner_matrix_su2 = time_reversal_su2
-        .get_wigner_matrix(3, true)
+        .get_wigner_matrix(1, true)
         .unwrap();
 
     assert_eq!(time_reversal.order(), 2);
@@ -12974,7 +12974,7 @@ fn print_representation_matrix_c2y_wigner(){
         .unwrap();
 
     let wigner_matrix_c2y_su2 = c2y
-        .get_wigner_matrix(3, true)
+        .get_wigner_matrix(1, true)
         .unwrap();
 
     println!("Wigner representation matrix of c2y:");   

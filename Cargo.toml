@@ -69,6 +69,7 @@ openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 python = ["dep:numpy", "dep:pyo3", "dep:pyo3-log"]
 integrals = ["dep:reqwest"]
+wigner = []
 qchem = []
 sandbox = []
 

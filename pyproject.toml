@@ -12,4 +12,4 @@ classifiers = [
 ]
 
 [tool.maturin]
-features = ["openblas-static", "integrals", "python"]
+features = ["openblas-static", "integrals", "python", "wigner"]
