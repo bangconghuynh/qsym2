@@ -345,7 +345,7 @@ impl<T: PermutationRank> Permutation<T> {
                     T::zero()
                 } else {
                     let mut bv_k = bv.clone();
-                    bv_k.shift_right((n - k).into());
+                    bv_k.shift_end((n - k).into());
                     k - if let Some(count_ones) = count_ones_opt {
                         *(count_ones.get(&bv_k).unwrap_or_else(|| {
                             panic!("Unable to count the number of ones in `{bv}`.")
