@@ -41,7 +41,7 @@ num-ord = "0.1"
 num-traits = "0.2"
 numpy = { version = "0.27", optional = true }
 # numpy = { git = "https://github.com/bangconghuynh/rust-numpy", branch = "bump-ndarray-0.17", optional = true }
-ordered-float = "5.3"
+ordered-float = "5.5"
 periodic_table = "0.5"
 phf = { version = "0.13", features = ["macros"] }
 proptest = "1.11"
