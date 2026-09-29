@@ -12,6 +12,7 @@ use ndarray_linalg::solve::Determinant;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use num_traits::Float;
+use rayon::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
