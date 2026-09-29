@@ -10,7 +10,8 @@ use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, Array3, Axis, Ix2, s};
+use ndarray::{Array1, Array2, Array3, Axis, Ix0, Ix2, s};
+use ndarray_einsum::*;
 use ndarray_linalg::{
     UPLO,
     eig::Eig,
@@ -35,7 +36,7 @@ use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::backend::solver::check_complex_matrix_symmetry;
-use crate::target::noci::basis::{Basis, OrbitBasis};
+use crate::target::noci::basis::{Basis, FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 // =======
@@ -574,6 +575,150 @@ where
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?;
+            for (i, j) in (0..order).cartesian_product(0..order) {
+                let jinv = ctb
+                    .slice(s![.., j])
+                    .iter()
+                    .position(|&x| x == 0)
+                    .ok_or(format_err!(
+                        "Unable to find the inverse of group element `{j}`."
+                    ))?;
+                let jinv_i = ctb[(jinv, i)];
+                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
+            }
+            if self.origin().complex_symmetric() {
+                let _ = check_complex_matrix_symmetry(
+                    &smat.view(),
+                    true,
+                    self.linear_independence_threshold,
+                    "Orbit overlap",
+                    "S_orbit",
+                );
+                self.set_smat(
+                    (smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
+                )
+            } else {
+                let _ = check_complex_matrix_symmetry(
+                    &smat.view(),
+                    false,
+                    self.linear_independence_threshold,
+                    "Orbit overlap",
+                    "S_orbit",
+                );
+                self.set_smat(
+                    (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
+                        .mapv(|x| x / (T::one() + T::one())),
+                )
+            }
+            Ok(self)
+        } else {
+            self.calc_smat(metric, metric_h, use_cayley_table)
+        }
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Optimised implementation for multi-determinantal wavefunctions constructed from orbits
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+impl<'a, 'go, G, T, SC> MultiDeterminantSymmetryOrbit<'a, 'go, G, T, FCIBasis<'a, T, SC>, SC>
+where
+    'go: 'a,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: Lapack
+        + ComplexFloat<Real = <T as Scalar>::Real>
+        + fmt::Debug
+        + Mul<<T as ComplexFloat>::Real, Output = T>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + Zero
+        + From<u16>
+        + ToPrimitive
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    MultiDeterminant<'a, T, FCIBasis<'a, T, SC>, SC>: SymmetryTransformable,
+    FCIBasis<'a, T, SC>: SymmetryTransformable,
+{
+    /// Calculates and stores the overlap matrix between multi-determinantal wavefunctions in the
+    /// orbit, with respect to a metric of the basis in which the constituting Slater determinants
+    /// are expressed.
+    ///
+    /// This function is particularly optimised for full-configuration-interaction
+    /// multi-determinantal wavefunctions.
+    ///
+    /// # Arguments
+    ///
+    /// * `metric` - The metric of the basis in which the orbit items are expressed.
+    /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
+    ///   expressed. This is required if antiunitary operations are involved.
+    /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
+    ///   to speed up the computation of the overlap matrix. If `false`, this will revert back to the
+    ///   non-optimised overlap matrix calculation.
+    pub(crate) fn calc_smat_optimised(
+        &mut self,
+        metric: Option<&Array2<T>>,
+        metric_h: Option<&Array2<T>>,
+        use_cayley_table: bool,
+    ) -> Result<&mut Self, anyhow::Error> {
+        if let (Some(ctb), true) = (self.group().cayley_table(), use_cayley_table) {
+            log::debug!(
+                "Cayley table available. Group closure will be used to speed up overlap matrix computation."
+            );
+
+            let order = self.group.order();
+            let mut smat = Array2::<T>::zeros((order, order));
+
+            let multidet_0 = self.origin();
+            let fci_basis_0 = multidet_0.basis();
+
+            // i: group element index
+            // I, J: FCI indices
+            #[allow(non_snake_case)]
+            let ovs = self.group().elements().clone().into_iter().enumerate().map(|(i, op)| {
+                let fci_basis_i = match self.symmetry_transformation_kind {
+                    SymmetryTransformationKind::Spatial => fci_basis_0.sym_transform_spatial(&op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin FCI basis")
+                    }),
+                    SymmetryTransformationKind::SpatialWithSpinTimeReversal => fci_basis_0.sym_transform_spatial_with_spintimerev(&op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin FCI basis")
+                    }),
+                    SymmetryTransformationKind::Spin => fci_basis_0.sym_transform_spin(&op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin FCI basis")
+                    }),
+                    SymmetryTransformationKind::SpinSpatial => fci_basis_0.sym_transform_spin_spatial(&op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin FCI basis")
+                    }),
+                }?;
+
+                let ov_iI_0J = fci_basis_i.fci_metric(&fci_basis_0, metric, metric_h)?;
+                let cI = Array1::from_vec(
+                    multidet_0
+                        .coefficients()
+                        .mapv(|v| Ok::<_, anyhow::Error>(self.norm_preserving_scalar_map(i)?(v)))
+                        .into_iter()
+                        .collect::<Result<Vec<_>, _>>()?
+                );
+                let cJ = multidet_0.coefficients();
+                let ov = if multidet_0.complex_symmetric() {
+                    einsum(
+                        "ij,i,j->",
+                        &[&ov_iI_0J, &cI, cJ]
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_dimensionality::<Ix0>()
+                    .map_err(|err| format_err!(err))?
+                } else {
+                    einsum(
+                        "ij,i,j->",
+                        &[&ov_iI_0J, &cI.mapv(ComplexFloat::conj), cJ]
+                    )
+                    .map_err(|err| format_err!(err))?
+                    .into_dimensionality::<Ix0>()
+                    .map_err(|err| format_err!(err))?
+                }.into_iter().next().ok_or(format_err!("Unable to extract the overlap value between `gΦ0` and `Φ0`."));
+                ov
+            }).collect::<Result<Vec<_>, _>>()?;
+
             for (i, j) in (0..order).cartesian_product(0..order) {
                 let jinv = ctb
                     .slice(s![.., j])

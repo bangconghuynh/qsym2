@@ -1,9 +1,12 @@
 // use env_logger;
 use anyhow::format_err;
-use ndarray::array;
+use itertools::Itertools;
+use ndarray::{Array2, array};
+use ndarray_linalg::assert_close_l2;
 
 use num_complex::Complex64;
 
+use crate::analysis::Overlap;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
@@ -14,7 +17,7 @@ use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformable;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::{Basis, OrbitBasis};
+use crate::target::noci::basis::{Basis, FCIBasis, OrbitBasis};
 
 #[test]
 fn test_orbit_basis_transformation_h2o_cs() {
@@ -170,4 +173,112 @@ fn test_orbit_basis_transformation_h2o_cs() {
         k_theta_orbit_basis_u_cs_grey_elements[2].coefficients()[1],
         -cbeta.map(|v| v.conj()),
     );
+}
+
+#[test]
+fn test_fci_basis_iterator_h3_uhf_sto3g() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz(
+        "H  1.000000000000   0.000000000000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h1 = Atom::from_xyz(
+        "H -0.500000000000   0.866025400000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h2 = Atom::from_xyz(
+        "H -0.500000000000  -0.866025400000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+
+    let bsc_s = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bsc_s.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bsc_s.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bsc_s]);
+
+    let bao_h3 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2]);
+    let mol_h3 =
+        Molecule::from_atoms(&[atm_h0.clone(), atm_h1.clone(), atm_h2.clone()], 1e-7).recentre();
+
+    // let presym = PreSymmetry::builder()
+    //     .moi_threshold(1e-6)
+    //     .molecule(&mol_h3)
+    //     .build()
+    //     .unwrap();
+    // let mut sym = Symmetry::new();
+    // sym.analyse(&presym, false).unwrap();
+    // let group_u_cs = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [7.94324234e-01,  6.54637171e-01, -8.04068631e-08],
+        [2.91190143e-01, -6.02756105e-01,  7.81916998e-01],
+        [2.91190196e-01, -6.02756363e-01, -7.81916780e-01],
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [1.99747181e-01,  9.65274322e-08,  1.00975337e+00],
+        [6.07192292e-01, -7.81916825e-01, -2.81823372e-01],
+        [6.07192077e-01,  7.81916954e-01, -2.81823479e-01],
+    ];
+    let oalpha = array![1.0, 1.0, 0.0];
+    let obeta = array![1.0, 0.0, 0.0];
+    let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&[oalpha, obeta])
+        .baos(vec![&bao_h3])
+        .mol(&mol_h3)
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    #[rustfmt::skip]
+    let sao = array![
+        [1.        , 0.18219678, 0.18219678],
+        [0.18219678, 1.        , 0.18219678],
+        [0.18219678, 0.18219678, 1.        ],
+    ];
+
+    // ---------
+    // FCI basis
+    // ---------
+    let occs = vec![
+        vec![array![1.0, 1.0, 0.0], array![1.0, 0.0, 0.0]],
+        vec![array![1.0, 1.0, 0.0], array![0.0, 1.0, 0.0]],
+        vec![array![1.0, 1.0, 0.0], array![0.0, 0.0, 1.0]],
+        vec![array![1.0, 0.0, 1.0], array![1.0, 0.0, 0.0]],
+        vec![array![1.0, 0.0, 1.0], array![0.0, 1.0, 0.0]],
+        vec![array![1.0, 0.0, 1.0], array![0.0, 0.0, 1.0]],
+        vec![array![0.0, 1.0, 1.0], array![1.0, 0.0, 0.0]],
+        vec![array![0.0, 1.0, 1.0], array![0.0, 1.0, 0.0]],
+        vec![array![0.0, 1.0, 1.0], array![0.0, 0.0, 1.0]],
+    ];
+    let fci_basis = FCIBasis::builder()
+        .reference(det)
+        .occupation_patterns(occs)
+        .build()
+        .unwrap();
+
+    assert_eq!(fci_basis.n_items(), 9);
+    let fci_smat = Array2::from_shape_vec(
+        (9, 9),
+        fci_basis
+            .iter()
+            .map(|det_i_res| det_i_res.unwrap())
+            .cartesian_product(fci_basis.iter().map(|det_j_res| det_j_res.unwrap()))
+            .map(|(det_i, det_j)| det_i.overlap(&det_j, Some(&sao), None).unwrap())
+            .collect(),
+    )
+    .unwrap();
+    assert_close_l2!(&fci_smat, &Array2::<f64>::eye(9), 1e-7);
 }

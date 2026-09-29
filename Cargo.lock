@@ -2039,6 +2039,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray-csv"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "886598c6242b8742871beab67185dcd482a207132dc51f1911cefddcfc97b561"
+dependencies = [
+ "csv",
+ "either",
+ "ndarray",
+ "serde",
+]
+
+[[package]]
 name = "ndarray-einsum"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2732,6 +2744,7 @@ dependencies = [
  "cargo-upgrades",
  "clap",
  "counter",
+ "csv",
  "derive_builder",
  "divisors",
  "duplicate",
@@ -2748,6 +2761,7 @@ dependencies = [
  "mark-flaky-tests",
  "nalgebra",
  "ndarray",
+ "ndarray-csv",
  "ndarray-einsum",
  "ndarray-linalg",
  "num 0.4.3",

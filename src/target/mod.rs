@@ -3,7 +3,6 @@
 pub mod density;
 pub mod determinant;
 pub mod noci;
-pub mod fci;
 pub mod orbital;
 pub mod tensor;
 pub mod vibration;
