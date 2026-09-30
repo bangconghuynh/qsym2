@@ -1077,7 +1077,7 @@ fn test_multideterminant_fci_rep_analysis_h3_631gs() {
 }
 
 #[test]
-fn test_multideterminant_fci_rep_analysis_h4_631gs() {
+fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz(
@@ -1236,5 +1236,168 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs() {
         //     "Symmetry: {} - FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}",
         //     orbit_fci_optimised.analyse_rep().unwrap()
         // );
+    }
+}
+
+#[test]
+fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz(
+        "H  1.000000000000   0.000000000000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h1 = Atom::from_xyz(
+        "H  0.000000000000   1.000000000000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h2 = Atom::from_xyz(
+        "H -1.000000000000   0.000000000000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h3 = Atom::from_xyz(
+        "H  0.000000000000  -1.000000000000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+
+    let bsc_s = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bsc_s.clone(), bsc_s.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bsc_s.clone(), bsc_s.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bsc_s.clone(), bsc_s.clone()]);
+    let batm_h3 = BasisAtom::new(&atm_h3, &[bsc_s.clone(), bsc_s]);
+
+    let bao_h4 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2, batm_h3]);
+    let mol_h4 = Molecule::from_atoms(
+        &[
+            atm_h0.clone(),
+            atm_h1.clone(),
+            atm_h2.clone(),
+            atm_h3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol_h4)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+
+    let calpha_f = File::open(&format!("{ROOT}/tests/fci/h4_631gs_rhf/ca")).unwrap();
+    let mut reader = ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(calpha_f);
+    let calpha: Array2<f64> = reader.deserialize_array2((8, 8)).unwrap();
+
+    let cbeta_f = File::open(&format!("{ROOT}/tests/fci/h4_631gs_rhf/cb")).unwrap();
+    let mut reader = ReaderBuilder::new().has_headers(false).from_reader(cbeta_f);
+    let cbeta: Array2<f64> = reader.deserialize_array2((8, 8)).unwrap();
+
+    let sao_f = File::open(&format!("{ROOT}/tests/fci/h4_631gs_rhf/sao")).unwrap();
+    let mut reader = ReaderBuilder::new().has_headers(false).from_reader(sao_f);
+    let sao_spatial: Array2<f64> = reader.deserialize_array2((8, 8)).unwrap();
+
+    let occa_f = File::open(&format!("{ROOT}/tests/fci/h4_631gs_rhf/occ_a")).unwrap();
+    let mut reader = ReaderBuilder::new().has_headers(false).from_reader(occa_f);
+    let occa: Array2<f64> = reader.deserialize_array2((784, 8)).unwrap();
+
+    let occb_f = File::open(&format!("{ROOT}/tests/fci/h4_631gs_rhf/occ_b")).unwrap();
+    let mut reader = ReaderBuilder::new().has_headers(false).from_reader(occb_f);
+    let occb: Array2<f64> = reader.deserialize_array2((784, 8)).unwrap();
+
+    let occs = occa
+        .rows()
+        .into_iter()
+        .zip(occb.rows().into_iter())
+        .map(|(oa, ob)| vec![oa.to_owned(), ob.to_owned()])
+        .collect_vec();
+
+    let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&occs[0])
+        .baos(vec![&bao_h4])
+        .mol(&mol_h4)
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    // ------------
+    // FCI symmetry
+    // ------------
+    let fci_basis = FCIBasis::builder()
+        .reference(det)
+        .occupation_patterns(occs)
+        .build()
+        .unwrap();
+
+    let ci_coefficients_f = File::open(&format!("{ROOT}/tests/fci/h4_631gs_rhf/ci_roots")).unwrap();
+    let mut reader = ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(ci_coefficients_f);
+    let ci_coefficients: Array2<f64> = reader.deserialize_array2((784, 300)).unwrap();
+
+    for i in 0..4 {
+        let fci = MultiDeterminant::builder()
+            .basis(fci_basis.clone())
+            .coefficients(ci_coefficients.slice(s![.., i]).to_owned())
+            .threshold(1e-7)
+            .build()
+            .unwrap();
+
+        let start_optimised = Instant::now();
+        let mut orbit_fci_optimised = MultiDeterminantSymmetryOrbit::builder()
+            .group(&group_u_d4h)
+            .origin(&fci)
+            .integrality_threshold(1e-6)
+            .linear_independence_threshold(1e-6)
+            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_fci_optimised
+            .calc_smat_optimised(Some(&sao_spatial), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        let duration_optimised = start_optimised.elapsed();
+
+        let start_nonoptimised = Instant::now();
+        let mut orbit_fci_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
+            .group(&group_u_d4h)
+            .origin(&fci)
+            .integrality_threshold(1e-6)
+            .linear_independence_threshold(1e-6)
+            .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+            .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
+            .build()
+            .unwrap();
+        let _ = orbit_fci_nonoptimised
+            .calc_smat(Some(&sao_spatial), None, true)
+            .unwrap()
+            .calc_xmat(false);
+        let duration_nonoptimised = start_nonoptimised.elapsed();
+        assert_eq!(
+            orbit_fci_optimised.analyse_rep().unwrap(),
+            orbit_fci_nonoptimised.analyse_rep().unwrap(),
+        );
+        assert!(duration_optimised < duration_nonoptimised);
+        println!(
+            "Symmetry: {} - FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}",
+            orbit_fci_optimised.analyse_rep().unwrap()
+        );
     }
 }
