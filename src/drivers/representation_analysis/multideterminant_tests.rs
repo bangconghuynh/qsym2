@@ -1,6 +1,7 @@
 use anyhow::format_err;
+use itertools::Itertools;
 // use log4rs;
-use ndarray::array;
+use ndarray::{array, s};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
@@ -8,21 +9,21 @@ use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
+use crate::drivers::QSym2Driver;
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::multideterminant::{
     MultiDeterminantRepAnalysisDriver, MultiDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
-use crate::drivers::QSym2Driver;
 use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_group::{SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup};
 use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::OrbitBasis;
+use crate::target::noci::basis::{FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[test]
@@ -230,4 +231,186 @@ fn test_drivers_multideterminant_analysis_bh3() {
         mda_driver.result().unwrap().multidet_symmetries()[2],
         Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')|").unwrap())
     );
+}
+
+#[test]
+fn test_drivers_multideterminant_analysis_fci_basis_h3_sto3g() {
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // ----
+    // Data
+    // ----
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz(
+        "H  1.000000000000   0.000000000000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h1 = Atom::from_xyz(
+        "H -0.500000000000   0.866025400000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+    let atm_h2 = Atom::from_xyz(
+        "H -0.500000000000  -0.866025400000   0.000000000000",
+        &emap,
+        1e-6,
+    )
+    .unwrap();
+
+    let bsc_s = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bsc_s.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bsc_s.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bsc_s]);
+
+    let bao_h3 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2]);
+    let mol_h3 =
+        Molecule::from_atoms(&[atm_h0.clone(), atm_h1.clone(), atm_h2.clone()], 1e-7).recentre();
+
+    #[rustfmt::skip]
+    let sao_spatial = array![
+        [1.        , 0.18219678, 0.18219678],
+        [0.18219678, 1.        , 0.18219678],
+        [0.18219678, 0.18219678, 1.        ],
+    ];
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [7.94324234e-01,  6.54637171e-01, -8.04068631e-08],
+        [2.91190143e-01, -6.02756105e-01,  7.81916998e-01],
+        [2.91190196e-01, -6.02756363e-01, -7.81916780e-01],
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [1.99747181e-01,  9.65274322e-08,  1.00975337e+00],
+        [6.07192292e-01, -7.81916825e-01, -2.81823372e-01],
+        [6.07192077e-01,  7.81916954e-01, -2.81823479e-01],
+    ];
+    let oalpha = array![1.0, 1.0, 0.0];
+    let obeta = array![1.0, 0.0, 0.0];
+    let det = SlaterDeterminant::<f64, SpinConstraint>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&[oalpha, obeta])
+        .baos(vec![&bao_h3])
+        .mol(&mol_h3)
+        .structure_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-7)
+        .build()
+        .unwrap();
+
+    // ---------
+    // FCI basis
+    // ---------
+    let occs = vec![
+        vec![array![1.0, 1.0, 0.0], array![1.0, 0.0, 0.0]],
+        vec![array![1.0, 1.0, 0.0], array![0.0, 1.0, 0.0]],
+        vec![array![1.0, 1.0, 0.0], array![0.0, 0.0, 1.0]],
+        vec![array![1.0, 0.0, 1.0], array![1.0, 0.0, 0.0]],
+        vec![array![1.0, 0.0, 1.0], array![0.0, 1.0, 0.0]],
+        vec![array![1.0, 0.0, 1.0], array![0.0, 0.0, 1.0]],
+        vec![array![0.0, 1.0, 1.0], array![1.0, 0.0, 0.0]],
+        vec![array![0.0, 1.0, 1.0], array![0.0, 1.0, 0.0]],
+        vec![array![0.0, 1.0, 1.0], array![0.0, 0.0, 1.0]],
+    ];
+
+    // ----------
+    // Parameters
+    // ----------
+    let afa_params = AngularFunctionRepAnalysisParams::default();
+
+    let pd_params = SymmetryGroupDetectionParams::builder()
+        .moi_thresholds(&[1e-6])
+        .distance_thresholds(&[1e-6])
+        .field_origin_com(true)
+        .time_reversal(true)
+        .write_symmetry_elements(true)
+        .build()
+        .unwrap();
+    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+        .parameters(&pd_params)
+        .molecule(Some(&mol_h3))
+        .build()
+        .unwrap();
+    assert!(pd_driver.run().is_ok());
+    let pd_res = pd_driver.result().unwrap();
+
+    let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(1e-6)
+        .linear_independence_threshold(1e-6)
+        .use_magnetic_group(None)
+        .use_double_group(false)
+        .use_cayley_table(false)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .write_character_table(Some(CharacterTableDisplay::Symbolic))
+        .build()
+        .unwrap();
+
+    let fci_basis = FCIBasis::builder()
+        .reference(det)
+        .occupation_patterns(occs)
+        .build()
+        .unwrap();
+
+    #[rustfmt::skip]
+    let ci_coefficients = array![
+        [ 8.82430938e-01,  3.91307087e-08, -1.54994478e-07,  2.26109005e-07, -3.60019516e-01,  8.61539297e-10, -2.12731980e-01,  5.69463823e-08,  2.15514948e-01],
+        [-2.22831859e-09, -3.32662924e-01,  5.77350269e-01,  5.61032580e-01,  1.31910354e-07, -4.08248292e-01, -8.21556077e-08,  2.73089402e-01, -3.51311900e-08],
+        [-7.04486954e-02,  8.17481388e-08,  2.14433505e-08,  3.46892742e-07, -7.01859681e-01, -4.94649826e-08,  6.74347907e-01, -2.19131117e-07, -2.18368654e-01],
+        [-1.68825782e-09,  6.69774702e-01, -3.65814542e-01,  6.19607830e-01,  5.09679925e-07, -1.75247536e-01,  1.25314530e-07,  5.43691845e-02, -6.63951602e-08],
+        [-4.29629327e-01,  2.28986196e-07, -1.14795672e-07,  3.38316183e-07, -6.14142799e-01,  1.21262647e-08, -6.56500352e-01, -4.86721025e-08,  8.51736572e-02],
+        [ 9.24828700e-08,  4.08506248e-01,  4.46668842e-01, -2.52927642e-01,  8.13054346e-09, -4.52727580e-01, -6.60926334e-08, -6.03883216e-01,  2.43471194e-07],
+        [-2.63604672e-08, -1.62659796e-01, -4.46668842e-01, -3.29277252e-01, -1.78696026e-07, -7.68570149e-01, -2.88123854e-08,  2.73688059e-01, -2.34504066e-07],
+        [-1.78244953e-01, -2.24652304e-08, -1.06325257e-07, -2.54870557e-08, -2.46486816e-02, -9.73724040e-08,  2.62692392e-01,  3.15644248e-07,  9.47952470e-01],
+        [-4.81018787e-08, -4.97394878e-01, -3.65814542e-01,  3.59071971e-01,  2.37913680e-07, -8.34224054e-02, -4.11717953e-08, -6.94900049e-01,  1.88201729e-07],
+    ];
+
+    let irreps_ref = vec![
+        "||E|^(')|",
+        "||E|^(')|",
+        "||A|^(')_(2)|",
+        "||E|^(')|",
+        "||E|^(')|",
+        "||A|^(')_(2)|",
+        "||A|^(')_(1)|",
+        "||E|^(')|",
+        "||E|^(')|",
+    ];
+
+    let multidets = irreps_ref
+        .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            MultiDeterminant::builder()
+                .basis(fci_basis.clone())
+                .coefficients(ci_coefficients.slice(s![.., i]).to_owned())
+                .threshold(1e-7)
+                .build()
+                .unwrap()
+        })
+        .collect_vec();
+
+    let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
+        UnitaryRepresentedSymmetryGroup,
+        f64,
+        _,
+        SpinConstraint,
+    >::builder()
+    .parameters(&mda_params)
+    .angular_function_parameters(&afa_params)
+    .multidets(multidets.iter().collect_vec())
+    .sao(&sao_spatial)
+    .symmetry_group(pd_res)
+    .build()
+    .unwrap();
+    assert!(mda_driver.run().is_ok());
+
+    for (i, irrep) in irreps_ref.into_iter().enumerate() {
+        assert_eq!(
+            mda_driver.result().unwrap().multidet_symmetries()[i],
+            Ok(DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap())
+        );
+    }
 }

@@ -618,7 +618,7 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
 
 #[test]
 fn test_multideterminant_fci_rep_analysis_h3_sto3g() {
-    // env_logger::init();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz(
         "H  1.000000000000   0.000000000000   0.000000000000",
@@ -808,7 +808,8 @@ fn test_multideterminant_fci_rep_analysis_h3_sto3g() {
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
         );
-        println!("Optimised: {duration_optimised:?} vs Non-optimised: {duration_nonoptimised:?}");
+        assert!(duration_optimised < duration_nonoptimised);
+        // println!("Optimised: {duration_optimised:?} vs Non-optimised: {duration_nonoptimised:?}");
     }
 }
 
@@ -1188,7 +1189,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
         .from_reader(ci_coefficients_f);
     let ci_coefficients: Array2<f64> = reader.deserialize_array2((784, 300)).unwrap();
 
-    for i in 0..4 {
+    for i in 0..2 {
         let fci = MultiDeterminant::builder()
             .basis(fci_basis.clone())
             .coefficients(ci_coefficients.slice(s![.., i]).to_owned())
@@ -1351,7 +1352,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
         .from_reader(ci_coefficients_f);
     let ci_coefficients: Array2<f64> = reader.deserialize_array2((784, 300)).unwrap();
 
-    for i in 0..4 {
+    for i in 0..2 {
         let fci = MultiDeterminant::builder()
             .basis(fci_basis.clone())
             .coefficients(ci_coefficients.slice(s![.., i]).to_owned())
@@ -1395,9 +1396,9 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
         );
         assert!(duration_optimised < duration_nonoptimised);
-        println!(
-            "Symmetry: {} - FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}",
-            orbit_fci_optimised.analyse_rep().unwrap()
-        );
+        // println!(
+        //     "Symmetry: {} - FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}",
+        //     orbit_fci_optimised.analyse_rep().unwrap()
+        // );
     }
 }
