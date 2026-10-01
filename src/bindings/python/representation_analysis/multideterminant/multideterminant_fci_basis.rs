@@ -493,7 +493,7 @@ pub fn rep_analyse_multideterminants_fci_basis(
                     let det_c = match pydet {
                         PySlaterDeterminant::Real(ref pydet_r) => pydet_r
                             .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
-                            .map(|det_r| SlaterDeterminant::<C128, SpinOrbitCoupled>::from(det_r)),
+                            .map(SlaterDeterminant::<C128, SpinOrbitCoupled>::from),
                         PySlaterDeterminant::Complex(ref pydet_c) => {
                             pydet_c.to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
                         }

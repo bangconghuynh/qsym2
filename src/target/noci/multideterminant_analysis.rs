@@ -690,7 +690,7 @@ where
                     }),
                 }?;
 
-                let ov_iI_0J = fci_basis_i.fci_metric(&fci_basis_0, metric, metric_h)?;
+                let ov_iI_0J = fci_basis_i.fci_metric(fci_basis_0, metric, metric_h)?;
                 let cI = Array1::from_vec(
                     multidet_0
                         .coefficients()
@@ -699,7 +699,7 @@ where
                         .collect::<Result<Vec<_>, _>>()?
                 );
                 let cJ = multidet_0.coefficients();
-                let ov = if multidet_0.complex_symmetric() {
+                if multidet_0.complex_symmetric() {
                     einsum(
                         "ij,i,j->",
                         &[&ov_iI_0J, &cI, cJ]
@@ -715,8 +715,7 @@ where
                     .map_err(|err| format_err!(err))?
                     .into_dimensionality::<Ix0>()
                     .map_err(|err| format_err!(err))?
-                }.into_iter().next().ok_or(format_err!("Unable to extract the overlap value between `gΦ0` and `Φ0`."));
-                ov
+                }.into_iter().next().ok_or(format_err!("Unable to extract the overlap value between `gΦ0` and `Φ0`."))
             }).collect::<Result<Vec<_>, _>>()?;
 
             for (i, j) in (0..order).cartesian_product(0..order) {

@@ -12,7 +12,6 @@ use ndarray_linalg::solve::Determinant;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use num_traits::Float;
-use rayon::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
@@ -511,7 +510,7 @@ where
     /// obtained by replacing the occupation pattern in the reference with the corresponding one
     /// from the [`Self::occupation_patterns`] list.
     fn iter(&self) -> Self::BasisIter<'_> {
-        FCIBasisIterator::new(&self)
+        FCIBasisIterator::new(self)
     }
 
     fn first(&self) -> Option<SlaterDeterminant<'a, T, SC>> {
@@ -580,7 +579,7 @@ where
                 .complex_conjugated(reference.complex_conjugated())
                 .mol(reference.mol())
                 .coefficients(reference.coefficients())
-                .occupations(&self.fci_basis.occupation_patterns.get(index)?)
+                .occupations(self.fci_basis.occupation_patterns.get(index)?)
                 .mo_energies(reference.mo_energies().cloned())
                 .threshold(reference.threshold())
                 .build()
