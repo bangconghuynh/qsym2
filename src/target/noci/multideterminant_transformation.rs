@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_transformation::{
     TransformationError,
 };
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
+use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 // ---------------------------
@@ -124,6 +124,26 @@ impl<'a> TimeReversalTransformable
         'a,
         Complex<f64>,
         EagerBasis<SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
+        SpinOrbitCoupled,
+    >
+{
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.basis.transform_timerev_mut()?;
+        self.coefficients.mapv_inplace(|v| v.conj());
+        self.complex_conjugated = !self.complex_conjugated;
+        Ok(self)
+    }
+}
+
+// `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
+// `DefaultTimeReversalTransformable` and so the surrounding `FCIBasis` does not get a blanket
+// implementation of `TimeReversalTransformable`, and neither does the surrounding
+// `MultiDeterminant`.
+impl<'a> TimeReversalTransformable
+    for MultiDeterminant<
+        'a,
+        Complex<f64>,
+        FCIBasis<'a, Complex<f64>, SpinOrbitCoupled>,
         SpinOrbitCoupled,
     >
 {

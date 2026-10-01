@@ -41,7 +41,7 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
+use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis, FCIBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 
@@ -761,6 +761,10 @@ where
                     btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
                     calc_smat_nested [calc_smat]
                 ]
+                [
+                    btype_nested [FCIBasis<'a, dtype_nested, sctype_nested>]
+                    calc_smat_nested [calc_smat_optimised]
+                ]
             ]
             [
                 gtype_ [ UnitaryRepresentedSymmetryGroup ]
@@ -804,6 +808,10 @@ where
                 [
                     btype_nested [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
                     calc_smat_nested [calc_smat]
+                ]
+                [
+                    btype_nested [FCIBasis<'a, dtype_nested, sctype_nested>]
+                    calc_smat_nested [calc_smat_optimised]
                 ]
             ]
             [
@@ -997,7 +1005,8 @@ where
             [
                 btype_nested;
                 [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
-                [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                [FCIBasis<'a, dtype_nested, sctype_nested>]
             ]
             [
                 gtype_ [ UnitaryRepresentedSymmetryGroup ]
@@ -1019,7 +1028,8 @@ where
             [
                 btype_nested;
                 [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
-                [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                [FCIBasis<'a, dtype_nested, sctype_nested>]
             ]
             [
                 gtype_ [ MagneticRepresentedSymmetryGroup ]

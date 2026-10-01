@@ -659,6 +659,7 @@ pub enum PyMultiDeterminants {
 // =====================
 
 mod multideterminant_eager_basis;
+mod multideterminant_fci_basis;
 mod multideterminant_orbit_basis_external_solver;
 mod multideterminant_orbit_basis_internal_solver;
 
