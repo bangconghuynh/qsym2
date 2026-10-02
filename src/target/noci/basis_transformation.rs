@@ -23,11 +23,11 @@ use crate::symmetry::symmetry_transformation::{
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{EagerBasis, FCIBasis, OrbitBasis};
 
-// ~~~~~~~~~~~~~~~~~~~~~~
-// ~~~~~~~~~~~~~~~~~~~~~~
-// Lazy basis from orbits
-// ~~~~~~~~~~~~~~~~~~~~~~
-// ~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// OrbitBasis: Lazy basis from orbits
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ---------------------------
 // SpatialUnitaryTransformable
@@ -263,11 +263,11 @@ where
     }
 }
 
-// ~~~~~~~~~~~
-// ~~~~~~~~~~~
-// Eager basis
-// ~~~~~~~~~~~
-// ~~~~~~~~~~~
+// ~~~~~~~~~~
+// ~~~~~~~~~~
+// EagerBasis
+// ~~~~~~~~~~
+// ~~~~~~~~~~
 
 // ---------------------------
 // SpatialUnitaryTransformable
@@ -401,11 +401,11 @@ where
     }
 }
 
-// ~~~~~~~~~
-// ~~~~~~~~~
-// FCI basis
-// ~~~~~~~~~
-// ~~~~~~~~~
+// ~~~~~~~~
+// ~~~~~~~~
+// FCIBasis
+// ~~~~~~~~
+// ~~~~~~~~
 
 // ---------------------------
 // SpatialUnitaryTransformable
@@ -500,5 +500,21 @@ where
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError> {
         self.reference.sym_permute_sites_spatial(symop)
+    }
+
+    // ----------------------------
+    // Overwritten provided methods
+    // ----------------------------
+    // We need to override this to make sure that we use the correct
+    // `sym_transform_spin_spatial_mut` for the reference and not the default
+    // `sym_transform_spin_spatial_mut` which simply combines `transform_spatial_mut`,
+    // `transform_spin_mut`, and `transform_timerev_mut` which is not right if spin--orbit coupling
+    // is at work.
+    fn sym_transform_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        self.reference.sym_transform_spin_spatial_mut(symop)?;
+        Ok(self)
     }
 }

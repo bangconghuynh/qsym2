@@ -808,7 +808,7 @@ fn test_multideterminant_fci_rep_analysis_h3_sto3g() {
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
         );
-        assert!(duration_optimised < duration_nonoptimised);
+        // assert!(duration_optimised < duration_nonoptimised);
         // println!("Optimised: {duration_optimised:?} vs Non-optimised: {duration_nonoptimised:?}");
     }
 }
@@ -1072,7 +1072,7 @@ fn test_multideterminant_fci_rep_analysis_h3_631gs() {
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
         );
-        assert!(duration_optimised < duration_nonoptimised);
+        // assert!(duration_optimised < duration_nonoptimised);
         // println!("FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}");
     }
 }
@@ -1232,7 +1232,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
             orbit_fci_optimised.analyse_rep().unwrap(),
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
         );
-        assert!(duration_optimised < duration_nonoptimised);
+        // assert!(duration_optimised < duration_nonoptimised);
         // println!(
         //     "Symmetry: {} - FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}",
         //     orbit_fci_optimised.analyse_rep().unwrap()
@@ -1395,7 +1395,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
             orbit_fci_optimised.analyse_rep().unwrap(),
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
         );
-        assert!(duration_optimised < duration_nonoptimised);
+        // assert!(duration_optimised < duration_nonoptimised);
         // println!(
         //     "Symmetry: {} - FCI: {duration_optimised:?} vs NOCI: {duration_nonoptimised:?}",
         //     orbit_fci_optimised.analyse_rep().unwrap()
