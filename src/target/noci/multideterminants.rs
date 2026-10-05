@@ -26,6 +26,12 @@ use crate::target::noci::multideterminant::MultiDeterminant;
 
 use super::basis::Basis;
 
+#[path = "multideterminants_transformation.rs"]
+pub(crate) mod multideterminants_transformation;
+
+#[path = "multideterminants_analysis.rs"]
+pub(crate) mod multideterminants_analysis;
+
 #[cfg(test)]
 #[path = "multideterminants_tests.rs"]
 mod multideterminants_tests;
@@ -42,7 +48,7 @@ pub struct MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     #[builder(setter(skip), default = "PhantomData")]
     _lifetime: PhantomData<&'a ()>,
@@ -89,7 +95,7 @@ impl<'a, T, B, SC> MultiDeterminantsBuilder<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn validate(&self) -> Result<(), String> {
         let basis = self.basis.as_ref().ok_or("No basis found.".to_string())?;
@@ -156,7 +162,7 @@ impl<'a, T, B, SC> MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     /// Returns a builder to construct a new [`MultiDeterminants`].
     pub fn builder() -> MultiDeterminantsBuilder<'a, T, B, SC> {
@@ -230,7 +236,9 @@ where
     }
 
     /// Returns an iterator over the multi-determinantal wavefunctions in this collection.
-    pub fn iter(&self) -> impl Iterator {
+    pub fn iter(
+        &self,
+    ) -> impl Iterator<Item = Result<MultiDeterminant<'a, T, B, SC>, anyhow::Error>> {
         let energies = self
             .energies
             .as_ref()
@@ -260,7 +268,7 @@ impl<'a, T, B, SC> MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     /// Returns the complex-conjugated flag of the multi-determinantal wavefunctions in the
     /// collection.
@@ -294,6 +302,11 @@ where
     /// Returns the threshold with which multi-determinantal wavefunctions are compared.
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
+    }
+
+    /// Returns the number of multi-determinantal wavefunctions in this collection.
+    pub fn n_states(&self) -> usize {
+        self.coefficients().ncols()
     }
 }
 
@@ -334,7 +347,7 @@ where
     T: ComplexFloat + Lapack + ScalarOperand + Send + Sync,
     <T as ComplexFloat>::Real: LowerExp + fmt::Display + Sync,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone + Sync,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: Send + Sync,
 {
     /// Calculates the (contravariant) density matrices $`\mathbf{P}_m(\hat{\iota})`$ of all
@@ -496,7 +509,7 @@ impl<'a, T, B, SC> fmt::Debug for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -515,7 +528,7 @@ impl<'a, T, B, SC> fmt::Display for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

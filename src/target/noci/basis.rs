@@ -1,17 +1,15 @@
-//! Basis for non-orthogonal configuration interaction of Slater determinants.
+//! Basis for configuration interaction of Slater determinants.
 
 use std::collections::VecDeque;
 use std::fmt;
 
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, format_err};
 use derive_builder::Builder;
+use itertools::Itertools;
 use itertools::structs::Product;
-use itertools::{Itertools, izip};
-use ndarray::{Array1, Array2, Axis};
-use ndarray_linalg::solve::Determinant;
+use ndarray::Array1;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
-use num_traits::Float;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
@@ -19,6 +17,9 @@ use crate::target::determinant::SlaterDeterminant;
 
 #[path = "basis_transformation.rs"]
 mod basis_transformation;
+
+#[path = "basis_metric.rs"]
+pub mod basis_metric;
 
 #[cfg(test)]
 #[path = "basis_tests.rs"]
@@ -33,9 +34,12 @@ mod basis_tests;
 // -----------------
 
 /// Trait defining behaviours of a basis consisting of linear-space items.
-pub trait Basis<I> {
+pub trait Basis {
+    /// Type of the item in the basis.
+    type Item;
+
     /// Type of the iterator over items in the basis.
-    type BasisIter<'b>: Iterator<Item = Result<I, anyhow::Error>>
+    type BasisIter<'b>: Iterator<Item = Result<Self::Item, anyhow::Error>>
     where
         Self: 'b;
 
@@ -46,7 +50,7 @@ pub trait Basis<I> {
     fn iter(&self) -> Self::BasisIter<'_>;
 
     /// Shared reference to the first item in the basis.
-    fn first(&self) -> Option<I>;
+    fn first(&self) -> Option<Self::Item>;
 }
 
 // --------------------------------------
@@ -136,11 +140,13 @@ where
     }
 }
 
-impl<'g, G, I> Basis<I> for OrbitBasis<'g, G, I>
+impl<'g, G, I> Basis for OrbitBasis<'g, G, I>
 where
     G: GroupProperties,
     I: Clone,
 {
+    type Item = I;
+
     type BasisIter<'b>
         = OrbitBasisIterator<G, I>
     where
@@ -162,7 +168,7 @@ where
         )
     }
 
-    fn first(&self) -> Option<I> {
+    fn first(&self) -> Option<Self::Item> {
         if let Some(prefactors) = self.prefactors.as_ref() {
             prefactors
                 .iter()
@@ -289,7 +295,9 @@ impl<I: Clone> EagerBasis<I> {
     }
 }
 
-impl<I: Clone> Basis<I> for EagerBasis<I> {
+impl<I: Clone> Basis for EagerBasis<I> {
+    type Item = I;
+
     type BasisIter<'b>
         = std::vec::IntoIter<Result<I, anyhow::Error>>
     where
@@ -308,7 +316,7 @@ impl<I: Clone> Basis<I> for EagerBasis<I> {
             .into_iter()
     }
 
-    fn first(&self) -> Option<I> {
+    fn first(&self) -> Option<Self::Item> {
         self.elements.first().cloned()
     }
 }
@@ -379,124 +387,13 @@ where
     }
 }
 
-impl<'a, T, SC> FCIBasis<'a, T, SC>
-where
-    T: ComplexFloat + Lapack,
-    SC: StructureConstraint + fmt::Display + Clone + PartialEq,
-{
-    /// Computes the FCI metric (*i.e.* the overlap matrix between the basis elements) between this
-    /// FCI basis and another.
-    ///
-    /// # Arguments
-    ///
-    /// * `other` - Another FCI basis.
-    /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
-    ///   inner product.
-    /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
-    ///
-    /// # Returns
-    ///
-    /// The overmap matrix between the basis elements.
-    pub fn fci_metric(
-        &self,
-        other: &FCIBasis<'a, T, SC>,
-        metric: Option<&Array2<T>>,
-        metric_h: Option<&Array2<T>>,
-    ) -> Result<Array2<T>, anyhow::Error> {
-        let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
-        let sao_h = metric_h.unwrap_or(sao);
-
-        let s_ref = self.reference();
-        let o_ref = other.reference();
-        let thresh = Float::sqrt(s_ref.threshold() * o_ref.threshold());
-
-        ensure!(
-            s_ref.structure_constraint() == o_ref.structure_constraint(),
-            "Inconsistent structure constraints between the two FCI bases."
-        );
-        ensure!(
-            s_ref.coefficients().len() == o_ref.coefficients().len(),
-            "Inconsistent numbers of coefficient matrices between the references of the two FCI bases."
-        );
-        ensure!(
-            s_ref.baos() == o_ref.baos(),
-            "Inconsistent basis angular order between the two FCI bases."
-        );
-        ensure!(
-            s_ref.complex_symmetric() == s_ref.complex_symmetric(),
-            "Inconsistent `complex_symmetric` between the two FCI bases."
-        );
-
-        let mo_ov_mats = s_ref
-            .coefficients()
-            .iter()
-            .zip(o_ref.coefficients().iter())
-            .map(|(cw, cx)| {
-                if s_ref.complex_symmetric() {
-                    match (s_ref.complex_conjugated(), o_ref.complex_conjugated()) {
-                        (false, false) => cw.t().dot(sao_h).dot(cx),
-                        (true, false) => cw.t().dot(sao).dot(cx),
-                        (false, true) => cx.t().dot(sao).dot(cw),
-                        (true, true) => cw.t().dot(&sao_h.t()).dot(cx),
-                    }
-                } else {
-                    match (s_ref.complex_conjugated(), o_ref.complex_conjugated()) {
-                        (false, false) => cw.t().mapv(|x| x.conj()).dot(sao).dot(cx),
-                        (true, false) => cw.t().mapv(|x| x.conj()).dot(sao_h).dot(cx),
-                        (false, true) => cx
-                            .t()
-                            .mapv(|x| x.conj())
-                            .dot(sao_h)
-                            .dot(cw)
-                            .mapv(|x| x.conj()),
-                        (true, true) => cw.t().mapv(|x| x.conj()).dot(&sao.t()).dot(cx),
-                    }
-                }
-            })
-            .collect_vec();
-
-        let ovs_vec = self
-            .occupation_patterns
-            .iter()
-            .cartesian_product(other.occupation_patterns.iter())
-            .map(|(s_occs, o_occs)| {
-                let ov = izip!(s_occs, o_occs, &mo_ov_mats)
-                    .map(|(s_occ, o_occ, mo_ov_mat)| {
-                        let nonzero_s_occ =
-                            s_occ.iter().positions(|&occ| occ > thresh).collect_vec();
-                        let nonzero_o_occ =
-                            o_occ.iter().positions(|&occ| occ > thresh).collect_vec();
-                        let mo_ov_mat_occ = mo_ov_mat
-                            .select(Axis(0), &nonzero_s_occ)
-                            .select(Axis(1), &nonzero_o_occ);
-                        mo_ov_mat_occ
-                            .det()
-                            .expect("The determinant of the MO overlap matrix could not be found.")
-                    })
-                    .fold(T::one(), |acc, x| acc * x);
-
-                let implicit_factor = s_ref.structure_constraint().implicit_factor()?;
-                if implicit_factor > 1 {
-                    let p_i32 = i32::try_from(implicit_factor)?;
-                    Ok(ComplexFloat::powi(ov, p_i32))
-                } else {
-                    Ok(ov)
-                }
-            })
-            .collect::<Result<Vec<_>, anyhow::Error>>()?;
-
-        Ok(Array2::from_shape_vec(
-            (self.n_items(), other.n_items()),
-            ovs_vec,
-        )?)
-    }
-}
-
-impl<'a, T, SC> Basis<SlaterDeterminant<'a, T, SC>> for FCIBasis<'a, T, SC>
+impl<'a, T, SC> Basis for FCIBasis<'a, T, SC>
 where
     T: ComplexFloat + Lapack,
     SC: 'a + StructureConstraint + fmt::Display + Clone,
 {
+    type Item = SlaterDeterminant<'a, T, SC>;
+
     type BasisIter<'b>
         = FCIBasisIterator<'b, 'a, T, SC>
     where

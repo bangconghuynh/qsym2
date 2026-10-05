@@ -222,7 +222,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     /// The control parameters used to obtain this set of multi-determinantal wavefunction
@@ -250,7 +250,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     /// Returns a builder to construct a new [`MultiDeterminantRepAnalysisResultBuilder`]
@@ -284,7 +284,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -432,7 +432,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -457,7 +457,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     /// The control parameters for multi-determinantal wavefunction representation analysis.
@@ -499,7 +499,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn validate(&self) -> Result<(), String> {
@@ -601,7 +601,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Clone + Hash + Eq + fmt::Display,
 {
     /// Returns a builder to construct a [`MultiDeterminantRepAnalysisDriver`] structure.
@@ -712,7 +712,7 @@ where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn_construct_unitary_group!(
@@ -730,7 +730,7 @@ where
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn_construct_magnetic_group!(
@@ -965,7 +965,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -982,7 +982,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

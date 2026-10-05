@@ -36,6 +36,7 @@ use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::backend::solver::check_complex_matrix_symmetry;
+use crate::target::noci::basis::basis_metric::BasisMetric;
 use crate::target::noci::basis::{Basis, FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
@@ -53,7 +54,7 @@ where
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
 {
     fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
@@ -94,12 +95,12 @@ where
 
         let s_dets = self.basis.iter().collect::<Result<Vec<_>, _>>()?;
         let o_dets = other.basis.iter().collect::<Result<Vec<_>, _>>()?;
+        let d = self.coefficients.len();
         let swx_vec = s_dets
             .iter()
             .cartesian_product(o_dets.iter())
             .map(|(w, x)| w.overlap(x, metric, metric_h))
             .collect::<Result<Vec<_>, _>>()?;
-        let d = self.coefficients.len();
         let swx = Array2::from_shape_vec((d, d), swx_vec)?;
 
         if self.complex_symmetric {
@@ -138,7 +139,7 @@ where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: 'a + Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
     /// The generating symmetry group.
@@ -158,7 +159,7 @@ where
     /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
 
-    /// The overlap matrix between the symmetry-equivalent multi-eterminantal wavefunctions in the
+    /// The overlap matrix between the symmetry-equivalent multi-determinantal wavefunctions in the
     /// orbit.
     #[builder(setter(skip), default = "None")]
     smat: Option<Array2<T>>,
@@ -189,7 +190,7 @@ where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: 'a + Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
     /// Returns a builder for constructing a new multi-determinantal wavefunction symmetry orbit.
@@ -207,7 +208,7 @@ impl<'a, 'g, G, B, SC> MultiDeterminantSymmetryOrbit<'a, 'g, G, f64, B, SC>
 where
     G: SymmetryGroupProperties,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: 'a + Basis<SlaterDeterminant<'a, f64, SC>> + Clone,
+    B: 'a + Basis<Item = SlaterDeterminant<'a, f64, SC>> + Clone,
     MultiDeterminant<'a, f64, B, SC>: SymmetryTransformable,
 {
     fn_calc_xmat_real!(
@@ -232,7 +233,7 @@ where
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: 'a + Basis<SlaterDeterminant<'a, Complex<T>, SC>> + Clone,
+    B: 'a + Basis<Item = SlaterDeterminant<'a, Complex<T>, SC>> + Clone,
     MultiDeterminant<'a, Complex<T>, B, SC>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
     fn_calc_xmat_complex!(
@@ -265,7 +266,7 @@ where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
-    B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: 'a + Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
     type OrbitIter = OrbitIterator<'a, G, MultiDeterminant<'a, T, B, SC>>;
@@ -328,7 +329,7 @@ where
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: 'a + Basis<SlaterDeterminant<'a, T, SC>> + Clone,
+    B: 'a + Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
 {
     fn set_smat(&mut self, smat: Array2<T>) {
@@ -617,9 +618,9 @@ where
     }
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Optimised implementation for multi-determinantal wavefunctions constructed from orbits
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Optimised implementation for multi-determinantal wavefunctions constructed from FCI bases
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 impl<'a, 'go, G, T, SC> MultiDeterminantSymmetryOrbit<'a, 'go, G, T, FCIBasis<'a, T, SC>, SC>
 where
     'go: 'a,
@@ -628,14 +629,18 @@ where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
-        + Mul<<T as ComplexFloat>::Real, Output = T>,
+        + Mul<<T as ComplexFloat>::Real, Output = T>
+        + Sync
+        + Send,
     <T as ComplexFloat>::Real: fmt::Debug
         + Zero
         + From<u16>
         + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
-        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>
+        + Sync
+        + Send,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync + Send,
     MultiDeterminant<'a, T, FCIBasis<'a, T, SC>, SC>: SymmetryTransformable,
     FCIBasis<'a, T, SC>: SymmetryTransformable,
 {
@@ -690,14 +695,10 @@ where
                     }),
                 }?;
 
-                let ov_iI_0J = fci_basis_i.fci_metric(fci_basis_0, metric, metric_h)?;
-                let cI = Array1::from_vec(
-                    multidet_0
-                        .coefficients()
-                        .mapv(|v| Ok::<_, anyhow::Error>(self.norm_preserving_scalar_map(i)?(v)))
-                        .into_iter()
-                        .collect::<Result<Vec<_>, _>>()?
-                );
+                let ov_iI_0J = fci_basis_i.basis_metric(Some(fci_basis_0), metric, metric_h)?;
+                let cI = multidet_0
+                    .coefficients()
+                    .mapv(self.norm_preserving_scalar_map(i)?);
                 let cJ = multidet_0.coefficients();
                 if multidet_0.complex_symmetric() {
                     einsum(
