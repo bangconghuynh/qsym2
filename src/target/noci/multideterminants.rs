@@ -208,12 +208,10 @@ where
                 .collect::<Vec<_>>(),
         )
         .map_err(|err| format_err!(err))?;
-        let energies = Array1::from_vec(
-            mtds.iter()
-                .flat_map(|mtd| mtd.energy())
-                .cloned()
-                .collect::<Vec<_>>(),
-        );
+        let energies = mtds
+            .iter()
+            .map(|mtd| mtd.energy().cloned().map_err(|err| err.to_owned()))
+            .collect::<Result<Array1<_>, _>>();
 
         let (basis, threshold) = mtds
             .first()
@@ -226,7 +224,7 @@ where
             .basis(basis)
             .coefficients(coefficients)
             .threshold(threshold)
-            .energies(Ok(energies))
+            .energies(energies)
             .build()
             .map_err(|err| format_err!(err))
     }
@@ -245,19 +243,19 @@ where
     /// Returns an iterator over the multi-determinantal wavefunctions in this collection.
     pub fn iter(
         &self,
-    ) -> impl Iterator<Item = Result<MultiDeterminant<'a, T, B, SC>, anyhow::Error>> {
+    ) -> impl Iterator<Item = Result<MultiDeterminant<'a, T, B, SC>, anyhow::Error>> + '_ {
         let energies = self
             .energies
             .as_ref()
             .map(|energies| energies.mapv(|v| Ok(v)))
             .unwrap_or(Array1::from_elem(
-                self.coefficients.ncols(),
+                (self.coefficients.ncols(),),
                 Err("Multi-determinantal energy not available.".to_string()),
             ));
         self.coefficients
             .columns()
             .into_iter()
-            .zip(energies)
+            .zip(energies.into_iter())
             .map(|(c, e)| {
                 MultiDeterminant::builder()
                     .complex_conjugated(self.complex_conjugated)

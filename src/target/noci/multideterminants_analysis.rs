@@ -291,7 +291,7 @@ where
                         &smat,
                         true,
                         self.linear_independence_threshold,
-                        &format!("Orbit overlap (multi-determinantal state {i}"),
+                        &format!("Orbit overlap (multi-determinantal state {i})"),
                         &format!("S_orbit_{i}"),
                     )
                 } else {
@@ -299,7 +299,7 @@ where
                         &smat.view(),
                         false,
                         self.linear_independence_threshold,
-                        &format!("Orbit overlap (multi-determinantal state {i}"),
+                        &format!("Orbit overlap (multi-determinantal state {i})"),
                         &format!("S_orbit_{i}"),
                     )
                 }

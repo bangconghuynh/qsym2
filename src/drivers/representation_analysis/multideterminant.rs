@@ -842,6 +842,7 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
             .zip(smats.axis_iter(Axis(0)))
             .enumerate()
             .map(|(i, (multidet_res, smat_i))| {
+                log::debug!("Dealing with multidet {i}...");
                 log_micsec_begin(&format!("Multi-determinantal wavefunction {i}"));
                 qsym2_output!("");
                 let res = multidet_res.and_then(|multidet| {

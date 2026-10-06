@@ -393,7 +393,7 @@ fn test_drivers_multideterminant_analysis_fci_basis_h3_sto3g() {
         .map(|(i, _)| {
             MultiDeterminant::builder()
                 .basis(fci_basis.clone())
-                .coefficients(ci_coefficients.slice(s![.., i]).to_owned())
+                .coefficients(ci_coefficients.column(i).to_owned())
                 .threshold(1e-7)
                 .build()
                 .unwrap()
