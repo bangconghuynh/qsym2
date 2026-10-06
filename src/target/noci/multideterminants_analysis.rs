@@ -22,7 +22,7 @@ use crate::target::noci::basis::Basis;
 use crate::target::noci::multideterminant::MultiDeterminant;
 use crate::target::noci::multideterminants::MultiDeterminants;
 use crate::{
-    analysis::{EigenvalueComparisonMode, Orbit, OrbitIterator},
+    analysis::{Orbit, OrbitIterator},
     target::noci::basis::basis_metric::BasisSymmetryOrbitMetric,
 };
 
@@ -54,10 +54,9 @@ where
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
     linear_independence_threshold: <T as ComplexFloat>::Real,
 
-    /// The threshold for determining if calculated multiplicities in representation analysis are
-    /// integral.
-    integrality_threshold: <T as ComplexFloat>::Real,
-
+    // /// The threshold for determining if calculated multiplicities in representation analysis are
+    // /// integral.
+    // integrality_threshold: <T as ComplexFloat>::Real,
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
@@ -66,10 +65,9 @@ where
     /// wavefunctions in their respective orbits.
     #[builder(setter(skip), default = "None")]
     smats: Option<Array3<T>>,
-
-    /// An enumerated type specifying the comparison mode for filtering out orbit overlap
-    /// eigenvalues.
-    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    // /// An enumerated type specifying the comparison mode for filtering out orbit overlap
+    // /// eigenvalues.
+    // eigenvalue_comparison_mode: EigenvalueComparisonMode,
 }
 
 // ----------------------------
@@ -91,7 +89,7 @@ where
 
     /// Returns the origin of the multi-determinantal wavefunction symmetry orbit.
     pub fn origin(&self) -> &MultiDeterminants<'a, T, B, SC> {
-        &self.origin
+        self.origin
     }
 
     pub fn smats(&self) -> Option<&Array3<T>> {
@@ -140,31 +138,31 @@ where
     }
 
     fn origin(&self) -> &MultiDeterminants<'a, T, B, SC> {
-        &self.origin
+        self.origin
     }
 
     fn iter(&self) -> Self::OrbitIter {
         OrbitIterator::new(
             self.group,
-            &self.origin,
+            self.origin,
             match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => |op, multidet| {
-                    multidet.sym_transform_spatial(op).with_context(|| {
+                SymmetryTransformationKind::Spatial => |op, multidets| {
+                    multidets.sym_transform_spatial(op).with_context(|| {
                         format!("Unable to apply `{op}` spatially on the origin multi-determinantal wavefunction collection")
                     })
                 },
-                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, multidet| {
-                    multidet.sym_transform_spatial_with_spintimerev(op).with_context(|| {
+                SymmetryTransformationKind::SpatialWithSpinTimeReversal => |op, multidets| {
+                    multidets.sym_transform_spatial_with_spintimerev(op).with_context(|| {
                         format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin multi-determinantal wavefunction collection")
                     })
                 },
-                SymmetryTransformationKind::Spin => |op, multidet| {
-                    multidet.sym_transform_spin(op).with_context(|| {
+                SymmetryTransformationKind::Spin => |op, multidets| {
+                    multidets.sym_transform_spin(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-wise on the origin multi-determinantal wavefunction collection")
                     })
                 },
-                SymmetryTransformationKind::SpinSpatial => |op, multidet| {
-                    multidet.sym_transform_spin_spatial(op).with_context(|| {
+                SymmetryTransformationKind::SpinSpatial => |op, multidets| {
+                    multidets.sym_transform_spin_spatial(op).with_context(|| {
                         format!("Unable to apply `{op}` spin-spatially on the origin multi-determinantal wavefunction collection")
                     })
                 },

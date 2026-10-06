@@ -824,10 +824,10 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
         let mut multidets_orbit = MultiDeterminantsSymmetryOrbit::builder()
             .group(&group)
             .origin(self.multidets)
-            .integrality_threshold(params.integrality_threshold)
+            // .integrality_threshold(params.integrality_threshold)
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
-            .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
+            // .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
             .build()
             .map_err(|err| format_err!(err))?;
         log::debug!("Computing `smats` for multi-determinantal orbit...");
