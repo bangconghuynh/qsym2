@@ -21,6 +21,9 @@ mod basis_transformation;
 #[path = "basis_metric.rs"]
 pub mod basis_metric;
 
+#[path = "basis_orbit.rs"]
+pub mod basis_orbit;
+
 #[cfg(test)]
 #[path = "basis_tests.rs"]
 mod basis_tests;

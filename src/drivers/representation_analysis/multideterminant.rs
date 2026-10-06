@@ -8,7 +8,8 @@ use std::ops::Mul;
 use anyhow::{self, bail, ensure, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
-use ndarray::{Array2, s};
+use itertools::Itertools;
+use ndarray::{Array2, Axis, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
@@ -41,9 +42,10 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis, FCIBasis};
-use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
+use crate::target::noci::multideterminants::MultiDeterminants;
+use crate::target::noci::multideterminants::multideterminants_analysis::MultiDeterminantsSymmetryOrbit;
 
 #[cfg(test)]
 #[path = "multideterminant_tests.rs"]
@@ -230,7 +232,7 @@ where
     parameters: &'a MultiDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The multi-determinantal wavefunctions being analysed.
-    multidets: Vec<&'a MultiDeterminant<'a, T, B, SC>>,
+    multidets: &'a MultiDeterminants<'a, T, B, SC>,
 
     /// The group used for the representation analysis.
     group: G,
@@ -266,8 +268,8 @@ where
     }
 
     /// Returns the multi-determinantal wavefunctions being analysed.
-    pub fn multidets(&self) -> &Vec<&'a MultiDeterminant<'a, T, B, SC>> {
-        &self.multidets
+    pub fn multidets(&self) -> &'a MultiDeterminants<'a, T, B, SC> {
+        self.multidets
     }
 
     /// Returns the multi-determinantal wavefunction symmetries obtained from the analysis result.
@@ -301,7 +303,8 @@ where
         )?;
         writeln!(f)?;
 
-        let multidet_index_length = usize::try_from(self.multidets.len().ilog10() + 1).unwrap_or(4);
+        let multidet_index_length =
+            usize::try_from(self.multidets.n_states().ilog10() + 1).unwrap_or(4);
         let multidet_symmetry_length = self
             .multidet_symmetries
             .iter()
@@ -318,15 +321,15 @@ where
             .max(8);
         let multidet_energy_length = self
             .multidets
-            .iter()
-            .map(|multidet| {
-                multidet
-                    .energy()
+            .energies()
+            .map(|energies| {
+                energies
+                    .iter()
                     .map(|v| format!("{v:+.7}").chars().count())
-                    .unwrap_or(2)
+                    .max()
+                    .unwrap_or(6)
             })
-            .max()
-            .unwrap_or(6)
+            .unwrap_or(2)
             .max(6);
 
         let multidet_eig_above_length: usize = self
@@ -371,9 +374,9 @@ where
             f,
             "  Structure constraint: {}",
             self.multidets
-                .first()
-                .map(|multidet_0| multidet_0.structure_constraint().to_string().to_lowercase())
-                .unwrap_or("--".to_string())
+                .structure_constraint()
+                .to_string()
+                .to_lowercase()
         )?;
         writeln!(f, "{}", "┈".repeat(table_width))?;
         writeln!(
@@ -383,11 +386,21 @@ where
         )?;
         writeln!(f, "{}", "┈".repeat(table_width))?;
 
-        for (multidet_i, multidet) in self.multidets.iter().enumerate() {
-            let multidet_energy_str = multidet
-                .energy()
-                .map(|multidet_energy| format!("{multidet_energy:>+multidet_energy_length$.7}"))
-                .unwrap_or("--".to_string());
+        let multidet_energy_strs = self
+            .multidets
+            .energies()
+            .map(|energies| {
+                energies
+                    .iter()
+                    .map(|e| format!("{e:>+multidet_energy_length$.7}"))
+                    .collect_vec()
+            })
+            .unwrap_or(
+                (0..self.multidets.n_states())
+                    .map(|_| "--".to_string())
+                    .collect_vec(),
+            );
+        for (multidet_i, multidet_energy_str) in multidet_energy_strs.into_iter().enumerate() {
             let multidet_sym_str = self
                 .multidet_symmetries
                 .get(multidet_i)
@@ -464,7 +477,7 @@ where
     parameters: &'a MultiDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The multi-determinantal wavefunctions to be analysed.
-    multidets: Vec<&'a MultiDeterminant<'a, T, B, SC>>,
+    multidets: &'a MultiDeterminants<'a, T, B, SC>,
 
     /// The result from symmetry-group detection on the underlying molecular structure of the
     /// multi-determinantal wavefunctions.
@@ -525,19 +538,18 @@ where
             .as_ref()
             .ok_or("No multi-determinantal wavefunctions found.".to_string())?;
         let mut nfuncs_ncomps_set = multidets
+            .basis()
             .iter()
-            .flat_map(|multidet| {
-                multidet.basis().iter().map(|det_res| {
-                    det_res.map(|det| {
-                        (
-                            det.baos()
-                                .iter()
-                                .map(|bao| bao.n_funcs())
-                                .collect::<Vec<_>>(),
-                            det.structure_constraint()
-                                .n_explicit_comps_per_coefficient_matrix(),
-                        )
-                    })
+            .map(|det_res| {
+                det_res.map(|det| {
+                    (
+                        det.baos()
+                            .iter()
+                            .map(|bao| bao.n_funcs())
+                            .collect::<Vec<_>>(),
+                        det.structure_constraint()
+                            .n_explicit_comps_per_coefficient_matrix(),
+                    )
                 })
             })
             .collect::<Result<HashSet<(Vec<usize>, usize)>, _>>()
@@ -612,53 +624,17 @@ where
     /// Constructs the appropriate atomic-orbital overlap matrix based on the structure constraint of
     /// the multi-determinantal wavefunctions and the provided overlap matrix.
     fn construct_sao(&self) -> Result<(Array2<T>, Option<Array2<T>>), anyhow::Error> {
-        let mut structure_constraint_set = self
-            .multidets
-            .iter()
-            .map(|multidet| multidet.structure_constraint())
-            .collect::<HashSet<_>>();
-        let structure_constraint = if structure_constraint_set.len() == 1 {
-            structure_constraint_set.drain().next().ok_or(format_err!(
-                "Unable to retrieve the structure constraint of the multi-determinantal wavefunctions."
-            ))
-        } else {
-            Err(format_err!(
-                "Inconsistent structure constraints across multi-determinantal wavefunctions."
-            ))
-        }?;
+        let structure_constraint = self.multidets.structure_constraint();
 
-        let mut nfuncss_set = self
+        let nfuncs_vec = self
             .multidets
+            .basis()
+            .first()
+            .expect("Unable to obtain the first determinant in the basis.")
+            .baos()
             .iter()
-            .map(|multidet| {
-                multidet
-                    .basis()
-                    .first()
-                    .expect("Unable to obtain the first determinant in the basis.")
-                    .baos()
-                    .iter()
-                    .map(|bao| bao.n_funcs())
-                    .collect::<Vec<_>>()
-            })
-            .collect::<HashSet<Vec<usize>>>();
-        let nfuncs_vec = if nfuncss_set.len() == 1 {
-            nfuncss_set.drain().next().ok_or(format_err!(
-                "Unable to retrieve the number of basis functions describing the multi-determinantal wavefunctions."
-            ))
-        } else {
-            Err(format_err!(
-                "Inconsistent numbers of basis functions across multi-determinantal wavefunctions."
-            ))
-        }?;
-        // let nbas_set = self
-        //     .multidets
-        //     .iter()
-        //     .next()
-        //     .ok_or_else(|| format_err!("Unable to retrieve "))
-        //     .baos()
-        //     .iter()
-        //     .map(|bao| bao.n_funcs())
-        //     .collect::<HashSet<_>>();
+            .map(|bao| bao.n_funcs())
+            .collect::<Vec<_>>();
         let nfuncs_set = nfuncs_vec.iter().cloned().collect::<HashSet<_>>();
         let uniform_component = nfuncs_set.len() == 1;
         let ncomps = structure_constraint.n_explicit_comps_per_coefficient_matrix();
@@ -839,99 +815,114 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
         if group.is_double_group() {
             let _ = find_spinor_function_representation(&group, self.angular_function_parameters);
         }
-        if let Some(det) = self
-            .multidets
-            .first()
-            .and_then(|multidet| multidet.basis().first())
-        {
+        if let Some(det) = self.multidets.basis().first() {
             for (bao_i, bao) in det.baos().iter().enumerate() {
                 log_bao(bao, Some(bao_i));
             }
         }
 
+        let mut multidets_orbit = MultiDeterminantsSymmetryOrbit::builder()
+            .group(&group)
+            .origin(self.multidets)
+            .integrality_threshold(params.integrality_threshold)
+            .linear_independence_threshold(params.linear_independence_threshold)
+            .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+            .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
+            .build()
+            .map_err(|err| format_err!(err))?;
+        log::debug!("Computing `smats` for multi-determinantal orbit...");
+        multidets_orbit.calc_smats_optimised(Some(&sao), sao_h.as_ref())?;
+        log::debug!("Computing `smats` for multi-determinantal orbit... Done.");
+        let smats = multidets_orbit
+            .smats()
+            .ok_or_else(|| format_err!("No orbit overlap matrices found."))?;
+
         let (multidet_symmetries, multidet_symmetries_thresholds): (Vec<_>, Vec<_>) = self.multidets
             .iter()
+            .zip(smats.axis_iter(Axis(0)))
             .enumerate()
-            .map(|(i, multidet)| {
+            .map(|(i, (multidet_res, smat_i))| {
                 log_micsec_begin(&format!("Multi-determinantal wavefunction {i}"));
                 qsym2_output!("");
-                let res = MultiDeterminantSymmetryOrbit::builder()
-                    .group(&group)
-                    .origin(multidet)
-                    .integrality_threshold(params.integrality_threshold)
-                    .linear_independence_threshold(params.linear_independence_threshold)
-                    .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
-                    .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
-                    .build()
-                    .map_err(|err| format_err!(err))
-                    .and_then(|mut multidet_orbit| {
-                        multidet_orbit
-                            .calc_smat_(Some(&sao), sao_h.as_ref(), params.use_cayley_table)?
-                            .normalise_smat()?
-                            .calc_xmat(false)?;
-                        log_overlap_eigenvalues(
-                            "Overlap eigenvalues",
-                            multidet_orbit.smat_eigvals.as_ref().ok_or(format_err!("Orbit overlap eigenvalues not found."))?,
-                            params.linear_independence_threshold,
-                            &params.eigenvalue_comparison_mode
-                        );
-                        qsym2_output!("");
-                        let multidet_symmetry_thresholds = multidet_orbit
-                            .smat_eigvals
-                            .as_ref()
-                            .map(|eigvals| {
-                                let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
-                                match multidet_orbit.eigenvalue_comparison_mode() {
-                                    EigenvalueComparisonMode::Modulus => {
-                                        eigvals_vec.sort_by(|a, b| {
-                                            a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
-                                        });
+                let res = multidet_res.and_then(|multidet| {
+                    MultiDeterminantSymmetryOrbit::builder()
+                        .group(&group)
+                        .origin(&multidet)
+                        .integrality_threshold(params.integrality_threshold)
+                        .linear_independence_threshold(params.linear_independence_threshold)
+                        .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+                        .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
+                        .build()
+                        .map_err(|err| format_err!(err))
+                        .and_then(|mut multidet_orbit| {
+                            multidet_orbit.set_smat(smat_i.to_owned());
+                            multidet_orbit
+                                .normalise_smat()?
+                                .calc_xmat(false)?;
+                            log_overlap_eigenvalues(
+                                "Overlap eigenvalues",
+                                multidet_orbit.smat_eigvals.as_ref().ok_or(format_err!("Orbit overlap eigenvalues not found."))?,
+                                params.linear_independence_threshold,
+                                &params.eigenvalue_comparison_mode
+                            );
+                            qsym2_output!("");
+                            let multidet_symmetry_thresholds = multidet_orbit
+                                .smat_eigvals
+                                .as_ref()
+                                .map(|eigvals| {
+                                    let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
+                                    match multidet_orbit.eigenvalue_comparison_mode() {
+                                        EigenvalueComparisonMode::Modulus => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
+                                            });
+                                        }
+                                        EigenvalueComparisonMode::Real => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
+                                            });
+                                        }
                                     }
-                                    EigenvalueComparisonMode::Real => {
-                                        eigvals_vec.sort_by(|a, b| {
-                                            a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
-                                        });
-                                    }
-                                }
-                                let eigval_above = match multidet_orbit.eigenvalue_comparison_mode() {
-                                    EigenvalueComparisonMode::Modulus => eigvals_vec
-                                        .iter()
-                                        .find(|val| {
-                                            val.abs() >= multidet_orbit.linear_independence_threshold
-                                        })
-                                        .copied()
-                                        .copied(),
-                                    EigenvalueComparisonMode::Real => eigvals_vec
-                                        .iter()
-                                        .find(|val| {
-                                            val.re() >= multidet_orbit.linear_independence_threshold
-                                        })
-                                        .copied()
-                                        .copied(),
-                                };
-                                eigvals_vec.reverse();
-                                let eigval_below = match multidet_orbit.eigenvalue_comparison_mode() {
-                                    EigenvalueComparisonMode::Modulus => eigvals_vec
-                                        .iter()
-                                        .find(|val| {
-                                            val.abs() < multidet_orbit.linear_independence_threshold
-                                        })
-                                        .copied()
-                                        .copied(),
-                                    EigenvalueComparisonMode::Real => eigvals_vec
-                                        .iter()
-                                        .find(|val| {
-                                            val.re() < multidet_orbit.linear_independence_threshold
-                                        })
-                                        .copied()
-                                        .copied(),
-                                };
-                                (eigval_above, eigval_below)
-                            })
-                            .unwrap_or((None, None));
-                        let multidet_sym = multidet_orbit.analyse_rep().map_err(|err| err.to_string());
-                        { calc_projections_ }
-                        Ok((multidet_sym, multidet_symmetry_thresholds))
+                                    let eigval_above = match multidet_orbit.eigenvalue_comparison_mode() {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() >= multidet_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() >= multidet_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
+                                    eigvals_vec.reverse();
+                                    let eigval_below = match multidet_orbit.eigenvalue_comparison_mode() {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() < multidet_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() < multidet_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
+                                    (eigval_above, eigval_below)
+                                })
+                                .unwrap_or((None, None));
+                            let multidet_sym = multidet_orbit.analyse_rep().map_err(|err| err.to_string());
+                            { calc_projections_ }
+                            Ok((multidet_sym, multidet_symmetry_thresholds))
+                        })
                     })
                     .unwrap_or_else(|err| (Err(err.to_string()), (None, None)));
                 log_micsec_end(&format!("Multi-determinantal wavefunction {i}"));
@@ -941,8 +932,8 @@ impl<'a> MultiDeterminantRepAnalysisDriver<'a, gtype_, dtype_, btype_, sctype_> 
 
         let result = MultiDeterminantRepAnalysisResult::builder()
             .parameters(params)
-            .multidets(self.multidets.clone())
-            .group(group)
+            .multidets(self.multidets)
+            .group(group.clone())
             .multidet_symmetries(multidet_symmetries)
             .multidet_symmetries_thresholds(multidet_symmetries_thresholds)
             .build()?;

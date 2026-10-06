@@ -1,91 +1,30 @@
 //! Implementation of symmetry analysis for collections of multi-determinantal wavefunctions.
 
-use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
-use std::ops::Mul;
 
-use anyhow::{self, Context, ensure, format_err};
-use approx;
+use anyhow::{self, Context, format_err};
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, Array3, Axis, Ix0, Ix2, ShapeBuilder, s};
+use ndarray::{Array2, Array3, Axis, ShapeBuilder, s};
 use ndarray_einsum::*;
-use ndarray_linalg::{
-    UPLO,
-    eig::Eig,
-    eigh::Eigh,
-    types::{Lapack, Scalar},
-};
-use num_complex::{Complex, ComplexFloat};
-use num_traits::{Float, ToPrimitive, Zero};
-use numpy::Ix1;
+use ndarray_linalg::types::{Lapack, Scalar};
+use num_complex::ComplexFloat;
 
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
-use crate::auxiliary::misc::complex_modified_gram_schmidt;
-use crate::chartab::chartab_group::CharacterProperties;
-use crate::chartab::{DecompositionError, SubspaceDecomposable};
-use crate::group::GroupType;
-use crate::io::format::{QSym2Output, log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::backend::solver::check_complex_matrix_symmetry;
-use crate::target::noci::basis::{Basis, FCIBasis, OrbitBasis};
+use crate::target::noci::basis::Basis;
 use crate::target::noci::multideterminant::MultiDeterminant;
-use crate::target::noci::multideterminant::multideterminant_analysis::MultiDeterminantSymmetryOrbit;
 use crate::target::noci::multideterminants::MultiDeterminants;
 use crate::{
-    analysis::{
-        EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap, RepAnalysis, fn_calc_xmat_complex,
-        fn_calc_xmat_real,
-    },
-    target::noci::basis::basis_metric::BasisMetric,
+    analysis::{EigenvalueComparisonMode, Orbit, OrbitIterator},
+    target::noci::basis::basis_metric::BasisSymmetryOrbitMetric,
 };
-
-// // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// // Specific implementations for FCIBasis
-// // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
-// impl<'a, T, SC> MultiDeterminants<'a, T, FCIBasis<'a, T, SC>, SC>
-// where
-//     T: ComplexFloat + Lapack,
-//     SC: 'a + StructureConstraint + Hash + Eq + fmt::Display + Clone,
-//     MultiDeterminant<'a, T, FCIBasis<'a, T, SC>, SC>: SymmetryTransformable,
-// {
-//     /// Converts this multi-determinantal wavefunction collection with an orbit basis into one with
-//     /// the equivalent eager basis.
-//     pub fn generate_multideterminant_symmetry_orbits_optimised<'b, G>(
-//         &'b self,
-//         group: &G,
-//     ) -> Result<
-//         Vec<MultiDeterminantSymmetryOrbit<'b, 'b, G, T, FCIBasis<'a, T, SC>, SC>>,
-//         anyhow::Error,
-//     >
-//     where
-//         'b: 'a,
-//         G: SymmetryGroupProperties,
-//     {
-//         let basis = self.basis;
-//
-//         let multidet_0 = MultiDeterminant::builder()
-//             .complex_conjugated(self.complex_conjugated)
-//             .basis(self.basis.clone())
-//             .coefficients(
-//                 self.coefficients
-//                     .columns()
-//                     .into_iter()
-//                     .next()
-//                     .ok_or(format_err!("Unable to obtain the coefficients of the first multi-determinant in this collection."))?
-//                     .to_owned()
-//             )
-//             ;
-//
-//         todo!()
-//     }
-// }
 
 // ==============================
 // MultiDeterminantsSymmetryOrbit
@@ -113,7 +52,7 @@ where
     origin: &'a MultiDeterminants<'a, T, B, SC>,
 
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
-    pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
+    linear_independence_threshold: <T as ComplexFloat>::Real,
 
     /// The threshold for determining if calculated multiplicities in representation analysis are
     /// integral.
@@ -152,7 +91,11 @@ where
 
     /// Returns the origin of the multi-determinantal wavefunction symmetry orbit.
     pub fn origin(&self) -> &MultiDeterminants<'a, T, B, SC> {
-        self.origin
+        &self.origin
+    }
+
+    pub fn smats(&self) -> Option<&Array3<T>> {
+        self.smats.as_ref()
     }
 
     pub fn norm_preserving_scalar_map(&self, i: usize) -> Result<fn(T) -> T, anyhow::Error> {
@@ -173,54 +116,6 @@ where
     }
 }
 
-// impl<'a, 'g, G, B, SC> MultiDeterminantsSymmetryOrbit<'a, 'g, G, f64, B, SC>
-// where
-//     G: SymmetryGroupProperties,
-//     SC: StructureConstraint + Hash + Eq + fmt::Display,
-//     B: 'a + Basis<SlaterDeterminant<'a, f64, SC>> + Clone,
-//     MultiDeterminants<'a, f64, B, SC>: SymmetryTransformable,
-// {
-//     fn_calc_xmat_real!(
-//         /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix
-//         /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
-//         ///
-//         /// The resulting $`\mathbf{X}`$ is stored in the orbit.
-//         ///
-//         /// # Arguments
-//         ///
-//         /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-//         /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
-//         /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
-//         /// full rank.
-//         pub calc_xmat
-//     );
-// }
-//
-// impl<'a, 'g, G, T, B, SC> MultiDeterminantsSymmetryOrbit<'a, 'g, G, Complex<T>, B, SC>
-// where
-//     G: SymmetryGroupProperties,
-//     T: Float + Scalar<Complex = Complex<T>>,
-//     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-//     SC: StructureConstraint + Hash + Eq + fmt::Display,
-//     B: 'a + Basis<SlaterDeterminant<'a, Complex<T>, SC>> + Clone,
-//     MultiDeterminants<'a, Complex<T>, B, SC>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
-// {
-//     fn_calc_xmat_complex!(
-//         /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap
-//         /// matrix $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
-//         ///
-//         /// The resulting $`\mathbf{X}`$ is stored in the orbit.
-//         ///
-//         /// # Arguments
-//         ///
-//         /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-//         /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
-//         /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
-//         /// full rank.
-//         pub calc_xmat
-//     );
-// }
-
 // ---------------------
 // Trait implementations
 // ---------------------
@@ -234,7 +129,7 @@ impl<'a, 'g, G, T, B, SC> Orbit<G, MultiDeterminants<'a, T, B, SC>>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SC: StructureConstraint + Hash + Eq + fmt::Display,
+    SC: 'a + StructureConstraint + Hash + Eq + fmt::Display,
     B: 'a + Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone,
     MultiDeterminants<'a, T, B, SC>: SymmetryTransformable,
 {
@@ -245,13 +140,13 @@ where
     }
 
     fn origin(&self) -> &MultiDeterminants<'a, T, B, SC> {
-        self.origin
+        &self.origin
     }
 
     fn iter(&self) -> Self::OrbitIter {
         OrbitIterator::new(
             self.group,
-            self.origin,
+            &self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, multidet| {
                     multidet.sym_transform_spatial(op).with_context(|| {
@@ -278,186 +173,19 @@ where
     }
 }
 
-// // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// // Optimised implementation for multi-determinantal wavefunctions constructed from orbits
-// // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
-// impl<'a, 'go, 'g, G, T, SC>
-//     MultiDeterminantsSymmetryOrbit<
-//         'a,
-//         'go,
-//         G,
-//         T,
-//         OrbitBasis<'g, G, SlaterDeterminant<'a, T, SC>>,
-//         SC,
-//     >
-// where
-//     G: SymmetryGroupProperties + Clone,
-//     G::CharTab: SubspaceDecomposable<T>,
-//     T: Lapack
-//         + ComplexFloat<Real = <T as Scalar>::Real>
-//         + fmt::Debug
-//         + Mul<<T as ComplexFloat>::Real, Output = T>,
-//     <T as ComplexFloat>::Real: fmt::Debug
-//         + Zero
-//         + From<u16>
-//         + ToPrimitive
-//         + approx::RelativeEq<<T as ComplexFloat>::Real>
-//         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-//     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-//     MultiDeterminant<'a, T, OrbitBasis<'g, G, SlaterDeterminant<'a, T, SC>>, SC>:
-//         SymmetryTransformable,
-// {
-//     /// Calculates and stores the overlap matrix between multi-determinantal wavefunctions in the
-//     /// orbit, with respect to a metric of the basis in which the constituting Slater determinants
-//     /// are expressed.
-//     ///
-//     /// This function is particularly optimised for multi-determinantal wavefunctions constructed
-//     /// from orbits of origin Slater determinants such that the multi-determinantal wavefunctions
-//     /// are never explicitly transformed by group operations.
-//     ///
-//     /// # Arguments
-//     ///
-//     /// * `metric` - The metric of the basis in which the orbit items are expressed.
-//     /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
-//     ///   expressed. This is required if antiunitary operations are involved.
-//     /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
-//     ///   to speed up the computation of the overlap matrix. If `false`, this will revert back to the
-//     ///   non-optimised overlap matrix calculation.
-//     pub(crate) fn calc_smat_optimised(
-//         &mut self,
-//         metric: Option<&Array2<T>>,
-//         metric_h: Option<&Array2<T>>,
-//         use_cayley_table: bool,
-//     ) -> Result<&mut Self, anyhow::Error> {
-//         ensure!(
-//             self.group.name() == self.origin.basis.group().name(),
-//             "Multi-determinantal wavefunction orbit-generating group does not match symmetry analysis group."
-//         );
-//
-//         if let (Some(ctb), true) = (self.group().cayley_table(), use_cayley_table) {
-//             log::debug!(
-//                 "Cayley table available. Group closure will be used to speed up overlap matrix computation."
-//             );
-//
-//             let order = self.group.order();
-//             let mut smat = Array2::<T>::zeros((order, order));
-//             let multidet_0 = self.origin();
-//             let det_origins = multidet_0.basis.origins();
-//             let n_det_origins = det_origins.len();
-//
-//             let detov_kpwx_vec = multidet_0
-//                 .basis
-//                 .iter()
-//                 .collect::<Result<Vec<_>, _>>()?
-//                 .into_iter()
-//                 .cartesian_product(det_origins.iter())
-//                 .map(|(w, x)| w.overlap(x, metric, metric_h))
-//                 .collect::<Result<Vec<_>, _>>()?;
-//             let detov_kpwx =
-//                 Array3::from_shape_vec((order, n_det_origins, n_det_origins), detov_kpwx_vec)?;
-//             let ovs = (0..order)
-//                 .map(|k| {
-//                     [
-//                         (0..order),
-//                         (0..order),
-//                         (0..n_det_origins),
-//                         (0..n_det_origins),
-//                     ]
-//                     .into_iter()
-//                     .multi_cartesian_product()
-//                     .try_fold(T::zero(), |acc, v| {
-//                         let ip = v[0];
-//                         let jp = v[1];
-//                         let w = v[2];
-//                         let x = v[3];
-//                         let aipw = multidet_0.coefficients[ip * n_det_origins + w];
-//                         let ajpx = multidet_0.coefficients[jp * n_det_origins + x];
-//
-//                         let jpinv = ctb.slice(s![.., jp]).iter().position(|&x| x == 0).ok_or(
-//                             format_err!("Unable to find the inverse of group element `{jp}`."),
-//                         )?;
-//                         let kp = ctb[(jpinv, ctb[(k, ip)])];
-//                         let ukipwjpx = self.norm_preserving_scalar_map(jp)?(detov_kpwx[(kp, w, x)]);
-//
-//                         Ok::<_, anyhow::Error>(
-//                             acc + self.norm_preserving_scalar_map(k)?(aipw.conj())
-//                                 * ukipwjpx
-//                                 * ajpx,
-//                         )
-//                     })
-//                 })
-//                 .collect::<Result<Vec<_>, _>>()?;
-//             for (i, j) in (0..order).cartesian_product(0..order) {
-//                 let jinv = ctb
-//                     .slice(s![.., j])
-//                     .iter()
-//                     .position(|&x| x == 0)
-//                     .ok_or(format_err!(
-//                         "Unable to find the inverse of group element `{j}`."
-//                     ))?;
-//                 let jinv_i = ctb[(jinv, i)];
-//                 smat[(i, j)] = self.norm_preserving_scalar_map(jinv)?(ovs[jinv_i]);
-//             }
-//             if self.origin().complex_symmetric() {
-//                 let _ = check_complex_matrix_symmetry(
-//                     &smat.view(),
-//                     true,
-//                     self.linear_independence_threshold,
-//                     "Orbit overlap",
-//                     "S_orbit",
-//                 );
-//                 self.set_smat(
-//                     (smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
-//                 )
-//             } else {
-//                 let _ = check_complex_matrix_symmetry(
-//                     &smat.view(),
-//                     false,
-//                     self.linear_independence_threshold,
-//                     "Orbit overlap",
-//                     "S_orbit",
-//                 );
-//                 self.set_smat(
-//                     (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
-//                         .mapv(|x| x / (T::one() + T::one())),
-//                 )
-//             }
-//             Ok(self)
-//         } else {
-//             self.calc_smat(metric, metric_h, use_cayley_table)
-//         }
-//     }
-// }
-
 // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // // Optimised implementation for multi-determinantal wavefunctions constructed from FCI bases
 // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 impl<'a, 'go, G, T, B, SC> MultiDeterminantsSymmetryOrbit<'a, 'go, G, T, B, SC>
 where
-    'go: 'a,
+    // 'go: 'a,
     G: SymmetryGroupProperties + Clone,
-    G::CharTab: SubspaceDecomposable<T>,
-    T: Lapack
-        + ComplexFloat<Real = <T as Scalar>::Real>
-        + fmt::Debug
-        + Mul<<T as ComplexFloat>::Real, Output = T>
-        + Sync
-        + Send,
-    <T as ComplexFloat>::Real: fmt::Debug
-        + Zero
-        + From<u16>
-        + ToPrimitive
-        + approx::RelativeEq<<T as ComplexFloat>::Real>
-        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>
-        + Sync
-        + Send,
+    T: Lapack + ComplexFloat<Real = <T as Scalar>::Real>,
     B: 'a
         + Basis<Item = SlaterDeterminant<'a, T, SC>>
-        + BasisMetric<T, Ix2>
-        + SymmetryTransformable
-        + Clone,
-    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync + Send,
+        + BasisSymmetryOrbitMetric<G, T>
+        + SymmetryTransformable,
+    SC: 'a + StructureConstraint + Hash + Eq + Clone + fmt::Display,
     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
     MultiDeterminants<'a, T, B, SC>: SymmetryTransformable,
 {
@@ -470,9 +198,6 @@ where
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
     /// * `metric_h` - The complex-symmetric metric of the basis in which the orbit items are
     ///   expressed. This is required if antiunitary operations are involved.
-    /// * `use_cayley_table` - A boolean indicating if the Cayley table of the group should be used
-    ///   to speed up the computation of the overlap matrix. If `false`, this will revert back to the
-    ///   non-optimised overlap matrix calculation.
     pub(crate) fn calc_smats_optimised(
         &mut self,
         metric: Option<&Array2<T>>,
@@ -489,58 +214,59 @@ where
         let n_states = self.origin.n_states();
         let order = self.group.order();
         // smats[A, i, j]
-        let mut smats = Array3::<T>::zeros((n_states, order, order));
+        #[allow(non_snake_case)]
+        let mut smats_Aij = Array3::<T>::zeros((n_states, order, order));
 
         let multidets_0 = self.origin();
         let basis_0 = multidets_0.basis();
 
+        log::debug!("Computing basis symmetry-orbit metric...");
         // i: group element index
-        // I, J: FCI indices (i.e. excited determinants in the FCI basis)
-        // A: FCI state index
-        // ovss[i][A]
+        // I, J: basis element indices (e.g. excited determinants in the FCI basis)
+        // A: multi-determinantal state index
         #[allow(non_snake_case)]
-        let ovss = self.group().elements().clone().into_iter().enumerate().map(|(i, op)| {
-            let basis_i = match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => basis_0.sym_transform_spatial(&op).with_context(|| {
-                    format!("Unable to apply `{op}` spatially on the origin basis")
-                }),
-                SymmetryTransformationKind::SpatialWithSpinTimeReversal => basis_0.sym_transform_spatial_with_spintimerev(&op).with_context(|| {
-                    format!("Unable to apply `{op}` spatially (with spin-including time reversal) on the origin basis")
-                }),
-                SymmetryTransformationKind::Spin => basis_0.sym_transform_spin(&op).with_context(|| {
-                    format!("Unable to apply `{op}` spin-wise on the origin basis")
-                }),
-                SymmetryTransformationKind::SpinSpatial => basis_0.sym_transform_spin_spatial(&op).with_context(|| {
-                    format!("Unable to apply `{op}` spin-spatially on the origin basis")
-                }),
-            }?;
+        let ov_iI_0J = basis_0.basis_symmetry_orbit_metric(
+            self.group(),
+            &self.symmetry_transformation_kind,
+            metric,
+            metric_h,
+        )?;
+        log::debug!("Computing basis symmetry-orbit metric... Done.");
 
-            let ov_iI_0J = basis_i.basis_metric(Some(basis_0), metric, metric_h)?;
-            let cIA = multidets_0.coefficients().mapv(self.norm_preserving_scalar_map(i)?);
-            let cJA = multidets_0.coefficients();
-            if multidets_0.complex_symmetric() {
-                einsum(
-                    "IJ,IA,JA->A",
-                    &[&ov_iI_0J, &cIA, cJA]
-                )
-                .map_err(|err| format_err!(err))?
-                .into_dimensionality::<Ix1>()
-                .map_err(|err| format_err!(err))
-            } else {
-                einsum(
-                    "IJ,IA,JA->",
-                    &[&ov_iI_0J, &cIA.mapv(ComplexFloat::conj), cJA]
-                )
-                .map_err(|err| format_err!(err))?
-                .into_dimensionality::<Ix1>()
-                .map_err(|err| format_err!(err))
-            }
-        }).collect::<Result<Vec<_>, _>>()?;
-
-        // We transpose ovss so that it is now ovss[(A, i)].
-        let ovss = Array2::from_shape_vec(
+        #[allow(non_snake_case)]
+        let cJA = multidets_0.coefficients();
+        #[allow(non_snake_case)]
+        let ov_Ai_vec = ov_iI_0J
+            .axis_iter(Axis(0))
+            .enumerate()
+            .map(|(i, ov_I_0J)| {
+                let cIA = multidets_0
+                    .coefficients()
+                    .mapv(self.norm_preserving_scalar_map(i)?);
+                if multidets_0.complex_symmetric() {
+                    Ok::<_, anyhow::Error>(
+                        einsum("ij,ia,ja->a", &[&ov_I_0J, &cIA, cJA])
+                            .map_err(|err| format_err!(err))?
+                            .into_iter()
+                            .collect_vec(),
+                    )
+                } else {
+                    Ok::<_, anyhow::Error>(
+                        einsum(
+                            "ij,ia,ja->a",
+                            &[&ov_I_0J, &cIA.mapv(ComplexFloat::conj), cJA],
+                        )
+                        .map_err(|err| format_err!(err))?
+                        .into_iter()
+                        .collect_vec(),
+                    )
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        #[allow(non_snake_case)]
+        let ov_Ai = Array2::from_shape_vec(
             (n_states, order).f(),
-            ovss.into_iter().flatten().collect_vec(),
+            ov_Ai_vec.into_iter().flatten().collect_vec(),
         )?;
 
         #[allow(non_snake_case)]
@@ -553,12 +279,12 @@ where
                     "Unable to find the inverse of group element `{j}`."
                 ))?;
             let jinv_i = ctb[(jinv, i)];
-            let ovss_A_jinv_i = ovss
+            let ov_A_jinv_i = ov_Ai
                 .slice(s![.., jinv_i])
                 .mapv(self.norm_preserving_scalar_map(jinv)?);
-            smats.slice_mut(s![.., i, j]).assign(&ovss_A_jinv_i);
+            smats_Aij.slice_mut(s![.., i, j]).assign(&ov_A_jinv_i);
         }
-        let _ = smats
+        let _ = smats_Aij
             .axis_iter(Axis(0))
             .enumerate()
             .map(|(i, smat)| {
@@ -582,14 +308,65 @@ where
             })
             .collect::<Result<Vec<_>, _>>()?;
         #[allow(non_snake_case)]
-        let mut smats_Aji = smats.clone();
+        let mut smats_Aji = smats_Aij.clone();
         smats_Aji.swap_axes(1, 2);
         if self.origin().complex_symmetric() {
-            self.smats = Some((smats + smats_Aji).mapv(|x| x / (T::one() + T::one())));
+            self.smats = Some((smats_Aij + smats_Aji).mapv(|x| x / (T::one() + T::one())));
         } else {
-            self.smats =
-                Some((smats + smats_Aji.mapv(|x| x.conj())).mapv(|x| x / (T::one() + T::one())));
+            self.smats = Some(
+                (smats_Aij + smats_Aji.mapv(|x| x.conj())).mapv(|x| x / (T::one() + T::one())),
+            );
         }
         Ok(self)
     }
 }
+
+// impl<'a, 'go, G, T, B, SC> MultiDeterminantsSymmetryOrbit<'a, 'go, G, T, B, SC>
+// where
+//     G: SymmetryGroupProperties,
+//     G::CharTab: SubspaceDecomposable<T>,
+//     T: Lapack
+//         + ComplexFloat<Real = <T as Scalar>::Real>
+//         + fmt::Debug
+//         + Mul<<T as ComplexFloat>::Real, Output = T>,
+//     <T as ComplexFloat>::Real: fmt::Debug
+//         + Zero
+//         + From<u16>
+//         + ToPrimitive
+//         + approx::RelativeEq<<T as ComplexFloat>::Real>
+//         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
+//     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+//     B: 'a
+//         + Basis<Item = SlaterDeterminant<'a, T, SC>>
+//         + BasisSymmetryOrbitMetric<G, T>
+//         + Clone
+//         + SymmetryTransformable,
+//     MultiDeterminant<'a, T, B, SC>: SymmetryTransformable,
+//     MultiDeterminants<'a, T, B, SC>: SymmetryTransformable,
+//     MultiDeterminantSymmetryOrbit<'a, 'go, G, T, B, SC>:
+//         RepAnalysis<G, MultiDeterminant<'a, T, B, SC>, T, Ix2>,
+// {
+//     pub(crate) fn populate_multi_determinant_symmetry_orbits_with_smats(
+//         &mut self,
+//         multidet_orbits: &mut [&mut MultiDeterminantSymmetryOrbit<'a, 'go, G, T, B, SC>],
+//     ) -> Result<(), anyhow::Error> {
+//         if let Some(ref smats) = self.smats {
+//             if smats.shape()[0] != multidet_orbits.len() {
+//                 Err(format_err!(
+//                     "Mismatched number of `smat`s in this `MultiDeterminantsSymmetryOrbit` and number of `MultiDeterminantSymmetryOrbit`s supplied."
+//                 ))
+//             } else {
+//                 for (smat, multidet_orbit) in
+//                     smats.axis_iter(Axis(0)).zip(multidet_orbits.iter_mut())
+//                 {
+//                     multidet_orbit.set_smat(smat.to_owned());
+//                 }
+//                 Ok(())
+//             }
+//         } else {
+//             Err(format_err!(
+//                 "No `smats` found in `MultiDeterminantsSymmetryOrbit`."
+//             ))
+//         }
+//     }
+// }

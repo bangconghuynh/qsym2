@@ -208,6 +208,12 @@ where
                 .collect::<Vec<_>>(),
         )
         .map_err(|err| format_err!(err))?;
+        let energies = Array1::from_vec(
+            mtds.iter()
+                .flat_map(|mtd| mtd.energy())
+                .cloned()
+                .collect::<Vec<_>>(),
+        );
 
         let (basis, threshold) = mtds
             .first()
@@ -220,6 +226,7 @@ where
             .basis(basis)
             .coefficients(coefficients)
             .threshold(threshold)
+            .energies(Ok(energies))
             .build()
             .map_err(|err| format_err!(err))
     }

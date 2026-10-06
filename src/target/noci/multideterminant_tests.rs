@@ -761,15 +761,21 @@ fn test_multideterminant_fci_rep_analysis_h3_sto3g() {
         "||E|^(')|",
     ];
 
-    for (i, irrep) in irreps_ref.into_iter().enumerate() {
-        let fci = MultiDeterminant::builder()
-            .basis(fci_basis.clone())
-            .coefficients(ci_coefficients.slice(s![.., i]).to_owned())
-            .threshold(1e-7)
-            .build()
-            .unwrap();
+    let fcis = ci_coefficients
+        .columns()
+        .into_iter()
+        .map(|c| {
+            MultiDeterminant::builder()
+                .basis(fci_basis.clone())
+                .coefficients(c.to_owned())
+                .threshold(1e-7)
+                .build()
+                .unwrap()
+        })
+        .collect_vec();
 
-        let start_optimised = Instant::now();
+    for (irrep, fci) in irreps_ref.into_iter().zip(fcis.iter()) {
+        // let start_optimised = Instant::now();
         let mut orbit_fci_optimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d3h)
             .origin(&fci)
@@ -783,13 +789,13 @@ fn test_multideterminant_fci_rep_analysis_h3_sto3g() {
             .calc_smat_optimised(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_optimised = start_optimised.elapsed();
+        // let duration_optimised = start_optimised.elapsed();
         assert_eq!(
             orbit_fci_optimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
         );
 
-        let start_nonoptimised = Instant::now();
+        // let start_nonoptimised = Instant::now();
         let mut orbit_fci_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d3h)
             .origin(&fci)
@@ -803,7 +809,7 @@ fn test_multideterminant_fci_rep_analysis_h3_sto3g() {
             .calc_smat(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_nonoptimised = start_nonoptimised.elapsed();
+        // let duration_nonoptimised = start_nonoptimised.elapsed();
         assert_eq!(
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
@@ -1033,7 +1039,7 @@ fn test_multideterminant_fci_rep_analysis_h3_631gs() {
             .build()
             .unwrap();
 
-        let start_optimised = Instant::now();
+        // let start_optimised = Instant::now();
         let mut orbit_fci_optimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d3h)
             .origin(&fci)
@@ -1047,13 +1053,13 @@ fn test_multideterminant_fci_rep_analysis_h3_631gs() {
             .calc_smat_optimised(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_optimised = start_optimised.elapsed();
+        // let duration_optimised = start_optimised.elapsed();
         assert_eq!(
             orbit_fci_optimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
         );
 
-        let start_nonoptimised = Instant::now();
+        // let start_nonoptimised = Instant::now();
         let mut orbit_fci_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d3h)
             .origin(&fci)
@@ -1067,7 +1073,7 @@ fn test_multideterminant_fci_rep_analysis_h3_631gs() {
             .calc_smat(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_nonoptimised = start_nonoptimised.elapsed();
+        // let duration_nonoptimised = start_nonoptimised.elapsed();
         assert_eq!(
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
             DecomposedSymbol::<MullikenIrrepSymbol>::new(irrep).unwrap()
@@ -1197,7 +1203,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
             .build()
             .unwrap();
 
-        let start_optimised = Instant::now();
+        // let start_optimised = Instant::now();
         let mut orbit_fci_optimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d4h)
             .origin(&fci)
@@ -1211,9 +1217,9 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
             .calc_smat_optimised(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_optimised = start_optimised.elapsed();
+        // let duration_optimised = start_optimised.elapsed();
 
-        let start_nonoptimised = Instant::now();
+        // let start_nonoptimised = Instant::now();
         let mut orbit_fci_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d4h)
             .origin(&fci)
@@ -1227,7 +1233,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
             .calc_smat(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_nonoptimised = start_nonoptimised.elapsed();
+        // let duration_nonoptimised = start_nonoptimised.elapsed();
         assert_eq!(
             orbit_fci_optimised.analyse_rep().unwrap(),
             orbit_fci_nonoptimised.analyse_rep().unwrap(),
@@ -1360,7 +1366,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
             .build()
             .unwrap();
 
-        let start_optimised = Instant::now();
+        // let start_optimised = Instant::now();
         let mut orbit_fci_optimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d4h)
             .origin(&fci)
@@ -1374,9 +1380,9 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
             .calc_smat_optimised(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_optimised = start_optimised.elapsed();
+        // let duration_optimised = start_optimised.elapsed();
 
-        let start_nonoptimised = Instant::now();
+        // let start_nonoptimised = Instant::now();
         let mut orbit_fci_nonoptimised = MultiDeterminantSymmetryOrbit::builder()
             .group(&group_u_d4h)
             .origin(&fci)
@@ -1390,7 +1396,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
             .calc_smat(Some(&sao_spatial), None, true)
             .unwrap()
             .calc_xmat(false);
-        let duration_nonoptimised = start_nonoptimised.elapsed();
+        // let duration_nonoptimised = start_nonoptimised.elapsed();
         assert_eq!(
             orbit_fci_optimised.analyse_rep().unwrap(),
             orbit_fci_nonoptimised.analyse_rep().unwrap(),

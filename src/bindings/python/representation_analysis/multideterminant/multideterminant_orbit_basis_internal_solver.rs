@@ -426,7 +426,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // Run NOCI
                 let system = (&hamiltonian_ao, &overlap_ao);
-                let multidets = system
+                let multidets_vec = system
                     .solve_symmetry_orbit_noci(
                         &origins_r.iter().collect_vec(),
                         &group,
@@ -436,6 +436,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         thresh_zeroov,
                     )
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                let multidets = MultiDeterminants::from_multideterminant_vec(
+                    &multidets_vec.iter().collect::<Vec<_>>(),
+                )
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                 // Symmetry analysis for NOCI states
                 let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
@@ -446,7 +450,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 >::builder()
                 .parameters(&mda_params)
                 .angular_function_parameters(&afa_params)
-                .multidets(multidets.iter().collect::<Vec<_>>())
+                .multidets(&multidets)
                 .sao(&sao_r)
                 .sao_h(None) // Real SAO.
                 .symmetry_group(&pd_res)
@@ -460,21 +464,16 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // Collect multi-determinantal wavefunctions for returning
                 let basis = multidets
-                    .first()
-                    .and_then(|multidet| {
-                        multidet
-                            .basis()
-                            .iter()
-                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                            .collect::<Result<Vec<_>, _>>()
-                            .ok()
-                    })
-                    .ok_or_else(|| {
+                    .basis()
+                    .iter()
+                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|_| {
                         PyRuntimeError::new_err(
                             "Unable to obtain the basis of Slater determinants.".to_string(),
                         )
                     })?;
-                let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets_vec
                     .iter()
                     .map(|multidet| {
                         let coefficients = multidet.coefficients().iter().cloned().collect_vec();
@@ -493,11 +492,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                 let density_matrices = if calculate_density_matrices {
                     log::debug!("Calculating density matrices...");
-                    let multidets_collection = MultiDeterminants::from_multideterminant_vec(
-                        &multidets.iter().collect_vec(),
-                    )
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    let denmats_opt = multidets_collection
+                    let denmats_opt = multidets
                         .density_matrices(&sao_r.view(), thresh_offdiag, thresh_zeroov, true)
                         .map(|denmats| {
                             denmats
@@ -516,7 +511,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     coefficientss_arr,
                     energies_arr,
                     density_matrices,
-                    multidets[0].threshold(),
+                    multidets.threshold(),
                 )
                 .into_py_any(py)?;
                 Ok(pymultidet)
@@ -550,7 +545,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // Run NOCI
                 let system = (&hamiltonian_ao, &overlap_ao);
-                let multidets = system
+                let multidets_vec = system
                     .solve_symmetry_orbit_noci(
                         &origins_r.iter().collect_vec(),
                         &group,
@@ -560,6 +555,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         thresh_zeroov,
                     )
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                let multidets = MultiDeterminants::from_multideterminant_vec(
+                    &multidets_vec.iter().collect::<Vec<_>>(),
+                )
+                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                 // Symmetry analysis for NOCI states
                 let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
@@ -570,7 +569,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 >::builder()
                 .parameters(&mda_params)
                 .angular_function_parameters(&afa_params)
-                .multidets(multidets.iter().collect::<Vec<_>>())
+                .multidets(&multidets)
                 .sao(&sao_r)
                 .sao_h(None) // Real SAO.
                 .symmetry_group(&pd_res)
@@ -584,21 +583,16 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                 // Collect multi-determinantal wavefunctions for returning
                 let basis = multidets
-                    .first()
-                    .and_then(|multidet| {
-                        multidet
-                            .basis()
-                            .iter()
-                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                            .collect::<Result<Vec<_>, _>>()
-                            .ok()
-                    })
-                    .ok_or_else(|| {
+                    .basis()
+                    .iter()
+                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|_| {
                         PyRuntimeError::new_err(
                             "Unable to obtain the basis of Slater determinants.".to_string(),
                         )
                     })?;
-                let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets_vec
                     .iter()
                     .map(|multidet| {
                         let coefficients = multidet.coefficients().iter().cloned().collect_vec();
@@ -617,11 +611,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                 let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                 let density_matrices = if calculate_density_matrices {
                     log::debug!("Calculating density matrices...");
-                    let multidets_collection = MultiDeterminants::from_multideterminant_vec(
-                        &multidets.iter().collect_vec(),
-                    )
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    let denmats_opt = multidets_collection
+                    let denmats_opt = multidets
                         .density_matrices(&sao_r.view(), thresh_offdiag, thresh_zeroov, true)
                         .map(|denmats| {
                             denmats
@@ -640,7 +630,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                     coefficientss_arr,
                     energies_arr,
                     density_matrices,
-                    multidets[0].threshold(),
+                    multidets.threshold(),
                 )
                 .into_py_any(py)?;
                 Ok(pymultidet)
@@ -744,7 +734,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
-                        let multidets = system
+                        let multidets_vec = system
                             .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
@@ -754,6 +744,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 thresh_zeroov,
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        let multidets = MultiDeterminants::from_multideterminant_vec(
+                            &multidets_vec.iter().collect::<Vec<_>>(),
+                        )
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                         // Symmetry analysis for NOCI states
                         let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
@@ -764,7 +758,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         >::builder()
                         .parameters(&mda_params)
                         .angular_function_parameters(&afa_params)
-                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .multidets(&multidets)
                         .sao(&sao_c)
                         .sao_h(sao_h_c.as_ref())
                         .symmetry_group(&pd_res)
@@ -778,22 +772,17 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .first()
-                            .and_then(|multidet| {
-                                multidet
-                                    .basis()
-                                    .iter()
-                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                                    .collect::<Result<Vec<_>, _>>()
-                                    .ok()
-                            })
-                            .ok_or_else(|| {
+                            .basis()
+                            .iter()
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."
                                         .to_string(),
                                 )
                             })?;
-                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets_vec
                             .iter()
                             .map(|multidet| {
                                 let coefficients =
@@ -813,12 +802,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let multidets_collection =
-                                MultiDeterminants::from_multideterminant_vec(
-                                    &multidets.iter().collect_vec(),
-                                )
-                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            let denmats_opt = multidets_collection
+                            let denmats_opt = multidets
                                 .density_matrices(
                                     &sao_c.view(),
                                     thresh_offdiag,
@@ -842,7 +826,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             coefficientss_arr,
                             energies_arr,
                             density_matrices,
-                            multidets[0].threshold(),
+                            multidets.threshold(),
                         )
                         .into_py_any(py)?;
                         Ok(pymultidet)
@@ -876,7 +860,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
-                        let multidets = system
+                        let multidets_vec = system
                             .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
@@ -886,6 +870,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 thresh_zeroov,
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        let multidets = MultiDeterminants::from_multideterminant_vec(
+                            &multidets_vec.iter().collect::<Vec<_>>(),
+                        )
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                         // Symmetry analysis for NOCI states
                         let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
@@ -896,7 +884,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         >::builder()
                         .parameters(&mda_params)
                         .angular_function_parameters(&afa_params)
-                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .multidets(&multidets)
                         .sao(&sao_c)
                         .sao_h(sao_h_c.as_ref())
                         .symmetry_group(&pd_res)
@@ -910,22 +898,17 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .first()
-                            .and_then(|multidet| {
-                                multidet
-                                    .basis()
-                                    .iter()
-                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                                    .collect::<Result<Vec<_>, _>>()
-                                    .ok()
-                            })
-                            .ok_or_else(|| {
+                            .basis()
+                            .iter()
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."
                                         .to_string(),
                                 )
                             })?;
-                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets_vec
                             .iter()
                             .map(|multidet| {
                                 let coefficients =
@@ -945,12 +928,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let multidets_collection =
-                                MultiDeterminants::from_multideterminant_vec(
-                                    &multidets.iter().collect_vec(),
-                                )
-                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            let denmats_opt = multidets_collection
+                            let denmats_opt = multidets
                                 .density_matrices(
                                     &sao_c.view(),
                                     thresh_offdiag,
@@ -974,7 +952,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             coefficientss_arr,
                             energies_arr,
                             density_matrices,
-                            multidets[0].threshold(),
+                            multidets.threshold(),
                         )
                         .into_py_any(py)?;
                         Ok(pymultidet)
@@ -1033,7 +1011,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
-                        let multidets = system
+                        let multidets_vec = system
                             .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
@@ -1043,6 +1021,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 thresh_zeroov,
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        let multidets = MultiDeterminants::from_multideterminant_vec(
+                            &multidets_vec.iter().collect::<Vec<_>>(),
+                        )
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                         // Symmetry analysis for NOCI states
                         let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
@@ -1053,7 +1035,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         >::builder()
                         .parameters(&mda_params)
                         .angular_function_parameters(&afa_params)
-                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .multidets(&multidets)
                         .sao(&sao_c)
                         .sao_h(sao_h_c.as_ref())
                         .symmetry_group(&pd_res)
@@ -1067,22 +1049,17 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .first()
-                            .and_then(|multidet| {
-                                multidet
-                                    .basis()
-                                    .iter()
-                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                                    .collect::<Result<Vec<_>, _>>()
-                                    .ok()
-                            })
-                            .ok_or_else(|| {
+                            .basis()
+                            .iter()
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."
                                         .to_string(),
                                 )
                             })?;
-                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets_vec
                             .iter()
                             .map(|multidet| {
                                 let coefficients =
@@ -1102,12 +1079,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let multidets_collection =
-                                MultiDeterminants::from_multideterminant_vec(
-                                    &multidets.iter().collect_vec(),
-                                )
-                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            let denmats_opt = multidets_collection
+                            let denmats_opt = multidets
                                 .density_matrices(
                                     &sao_c.view(),
                                     thresh_offdiag,
@@ -1131,7 +1103,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             coefficientss_arr,
                             energies_arr,
                             density_matrices,
-                            multidets[0].threshold(),
+                            multidets.threshold(),
                         )
                         .into_py_any(py)?;
                         Ok(pymultidet)
@@ -1165,7 +1137,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Run NOCI
                         let system = (&hamiltonian_ao, &overlap_ao);
-                        let multidets = system
+                        let multidets_vec = system
                             .solve_symmetry_orbit_noci(
                                 &origins_c.iter().collect_vec(),
                                 &group,
@@ -1175,6 +1147,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                                 thresh_zeroov,
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        let multidets = MultiDeterminants::from_multideterminant_vec(
+                            &multidets_vec.iter().collect::<Vec<_>>()
+                        )
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                         // Symmetry analysis for NOCI states
                         let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
@@ -1185,7 +1161,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         >::builder()
                         .parameters(&mda_params)
                         .angular_function_parameters(&afa_params)
-                        .multidets(multidets.iter().collect::<Vec<_>>())
+                        .multidets(&multidets)
                         .sao(&sao_c)
                         .sao_h(sao_h_c.as_ref())
                         .symmetry_group(&pd_res)
@@ -1199,22 +1175,17 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                            .first()
-                            .and_then(|multidet| {
-                                multidet
                                     .basis()
                                     .iter()
                                     .map(|det_res| det_res.and_then(|det| det.to_python(py)))
                                     .collect::<Result<Vec<_>, _>>()
-                                    .ok()
-                            })
-                            .ok_or_else(|| {
+                            .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."
                                         .to_string(),
                                 )
                             })?;
-                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets
+                        let (coefficientss, energies): (Vec<_>, Vec<_>) = multidets_vec
                             .iter()
                             .map(|multidet| {
                                 let coefficients =
@@ -1234,12 +1205,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                         let energies_arr = Array1::from_vec(energies).to_pyarray(py);
                         let density_matrices = if calculate_density_matrices {
                             log::debug!("Calculating density matrices...");
-                            let multidets_collection =
-                                MultiDeterminants::from_multideterminant_vec(
-                                    &multidets.iter().collect_vec(),
-                                )
-                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                            let denmats_opt = multidets_collection
+                            let denmats_opt = multidets
                                 .density_matrices(
                                     &sao_c.view(),
                                     thresh_offdiag,
@@ -1263,7 +1229,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             coefficientss_arr,
                             energies_arr,
                             density_matrices,
-                            multidets[0].threshold(),
+                            multidets.threshold(),
                         )
                         .into_py_any(py)?;
                         Ok(pymultidet)

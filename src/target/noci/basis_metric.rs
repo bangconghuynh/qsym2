@@ -2,20 +2,20 @@
 
 use std::fmt;
 
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, format_err};
 use itertools::{Itertools, iproduct, izip};
-use ndarray::{Array, Array2, Array3, Array5, Axis, Dimension, Ix5, s};
+use ndarray::{Array2, Array3, Axis, Ix2, s};
 use ndarray_linalg::solve::Determinant;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
-use num_traits::Float;
-use numpy::Ix2;
 use rayon::prelude::*;
 
-use crate::analysis::Overlap;
+use crate::analysis::{Orbit, Overlap};
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
-use crate::group::GroupProperties;
 use crate::symmetry::symmetry_element::SpecialSymmetryTransformation;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
+use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
+use crate::target::noci::basis::basis_orbit::BasisSymmetryOrbit;
 use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
 
 // =====
@@ -26,18 +26,20 @@ use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
 // Trait definitions
 // -----------------
 
-/// Trait defining behaviours of a basis consisting of linear-space items.
-pub trait BasisMetric<T, D>: Basis
+/// Trait defining <g w | x>.
+pub trait BasisSymmetryOrbitMetric<G, T>: Basis
 where
-    D: Dimension,
+    G: SymmetryGroupProperties,
+    Self: SymmetryTransformable,
 {
     /// Computes the metric between this basis and another.
-    fn basis_metric(
+    fn basis_symmetry_orbit_metric(
         &self,
-        other: Option<&Self>,
+        group: &G,
+        symmetry_transformation_kind: &SymmetryTransformationKind,
         metric: Option<&Array2<T>>,
         metric_h: Option<&Array2<T>>,
-    ) -> Result<Array<T, D>, anyhow::Error>;
+    ) -> Result<Array3<T>, anyhow::Error>;
 }
 
 // ---------------------
@@ -48,12 +50,12 @@ where
 // OrbitBasis
 // ~~~~~~~~~~
 
-impl<'g, G, I, T> BasisMetric<T, Ix5> for OrbitBasis<'g, G, I>
+impl<'g, G, I, T> BasisSymmetryOrbitMetric<G, T> for OrbitBasis<'g, G, I>
 where
-    G: GroupProperties + Clone,
-    G::GroupElement: SpecialSymmetryTransformation,
+    G: SymmetryGroupProperties + Clone,
     I: Overlap<T, Ix2> + Clone,
-    T: ComplexFloat + fmt::Debug + Lapack + Sync + Send,
+    T: ComplexFloat + fmt::Debug + Lapack,
+    OrbitBasis<'g, G, I>: SymmetryTransformable,
 {
     /// Computes the metric (*i.e.* the overlap matrix between the basis elements) between this
     /// eager basis and another.
@@ -68,12 +70,14 @@ where
     /// # Returns
     ///
     /// The overmap matrix between the basis elements.
-    fn basis_metric(
+    fn basis_symmetry_orbit_metric(
         &self,
-        _other: Option<&OrbitBasis<'g, G, I>>,
+        _group: &G,
+        _symmetry_transformation_kind: &SymmetryTransformationKind,
         metric: Option<&Array2<T>>,
         metric_h: Option<&Array2<T>>,
-    ) -> Result<Array5<T>, anyhow::Error> {
+    ) -> Result<Array3<T>, anyhow::Error> {
+        log::debug!("Computing basis symmetry-orbit metric for `OrbitBasis`...");
         let order = self.group.order();
         let origins = self.origins();
         let n_origins = origins.len();
@@ -134,8 +138,8 @@ where
                 norm_preserving_scalar_map(jp, detov_kpwx[(kp, w, x)])
             })
             .collect::<Result<Vec<_>, _>>()?;
-            Ok(Array5::from_shape_vec(
-                (order, order, n_origins, order, n_origins),
+            Ok(Array3::from_shape_vec(
+                (order, order * n_origins, order * n_origins),
                 ukipwjpx_vec,
             )?)
         } else {
@@ -149,8 +153,8 @@ where
                 gkgipww.overlap(&gjpwx, metric, metric_h)
             })
             .collect::<Result<Vec<_>, _>>()?;
-            Ok(Array5::from_shape_vec(
-                (order, order, n_origins, order, n_origins),
+            Ok(Array3::from_shape_vec(
+                (order, order * n_origins, order * n_origins),
                 ukipwjpx_vec,
             )?)
         }
@@ -161,10 +165,13 @@ where
 // EagerBasis
 // ~~~~~~~~~~
 
-impl<I, T> BasisMetric<T, Ix2> for EagerBasis<I>
+impl<G, I, T> BasisSymmetryOrbitMetric<G, T> for EagerBasis<I>
 where
+    G: SymmetryGroupProperties + Clone,
     I: Clone + Overlap<T, Ix2> + Sync + Send,
     T: ComplexFloat + fmt::Debug + Lapack + Sync + Send,
+    <T as ComplexFloat>::Real: Sync + Send,
+    EagerBasis<I>: SymmetryTransformable,
 {
     /// Computes the metric (*i.e.* the overlap matrix between the basis elements) between this
     /// eager basis and another.
@@ -179,30 +186,45 @@ where
     /// # Returns
     ///
     /// The overmap matrix between the basis elements.
-    fn basis_metric(
+    fn basis_symmetry_orbit_metric(
         &self,
-        other: Option<&EagerBasis<I>>,
+        group: &G,
+        symmetry_tranformation_kind: &SymmetryTransformationKind,
         metric: Option<&Array2<T>>,
         metric_h: Option<&Array2<T>>,
-    ) -> Result<Array2<T>, anyhow::Error> {
-        let other = if let Some(o) = other { o } else { self };
-        let mut ovs_vec = self
-            .elements
+    ) -> Result<Array3<T>, anyhow::Error> {
+        log::debug!("Computing basis symmetry-orbit metric for `EagerBasis`...");
+        let g_self_orbit = BasisSymmetryOrbit::builder()
+            .group(group)
+            .origin(self)
+            .symmetry_transformation_kind(symmetry_tranformation_kind.clone())
+            .build()?;
+        let ovss_vec = g_self_orbit
             .iter()
-            .cartesian_product(other.elements.iter())
-            .enumerate()
-            .par_bridge()
-            .map(|(i, (s_item, o_item))| {
-                let ov = s_item.overlap(o_item, metric, metric_h)?;
-                Ok((i, ov))
+            .map(|g_basis_res| {
+                g_basis_res.and_then(|g_basis| {
+                    let mut ovs_vec = g_basis
+                        .elements
+                        .iter()
+                        .cartesian_product(self.elements.iter())
+                        .enumerate()
+                        .par_bridge()
+                        .map(|(i, (g_item, item))| {
+                            let ov = g_item.overlap(item, metric, metric_h)?;
+                            Ok((i, ov))
+                        })
+                        .collect::<Result<Vec<_>, anyhow::Error>>()?;
+                    ovs_vec.sort_by_key(|v| v.0);
+                    Ok(ovs_vec.into_iter().map(|v| v.1).collect_vec())
+                })
             })
-            .collect::<Result<Vec<_>, anyhow::Error>>()?;
-        ovs_vec.sort_by_key(|p| p.0);
-        let ovs_vec = ovs_vec.into_iter().map(|(_, ov)| ov).collect_vec();
-
-        Ok(Array2::from_shape_vec(
-            (self.n_items(), other.n_items()),
-            ovs_vec,
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        Ok(Array3::from_shape_vec(
+            (group.order(), self.n_items(), self.n_items()),
+            ovss_vec,
         )?)
     }
 }
@@ -211,11 +233,13 @@ where
 // FCIBasis
 // ~~~~~~~~
 
-impl<'a, T, SC> BasisMetric<T, Ix2> for FCIBasis<'a, T, SC>
+impl<'a, G, T, SC> BasisSymmetryOrbitMetric<G, T> for FCIBasis<'a, T, SC>
 where
+    G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + Lapack + Sync + Send,
     <T as ComplexFloat>::Real: Sync + Send,
     SC: 'a + StructureConstraint + fmt::Display + Clone + PartialEq + Sync + Send,
+    FCIBasis<'a, T, SC>: SymmetryTransformable,
 {
     /// Computes the FCI metric (*i.e.* the overlap matrix between the basis elements) between this
     /// FCI basis and another.
@@ -230,102 +254,102 @@ where
     /// # Returns
     ///
     /// The overmap matrix between the basis elements.
-    fn basis_metric(
+    fn basis_symmetry_orbit_metric(
         &self,
-        other: Option<&FCIBasis<'a, T, SC>>,
+        group: &G,
+        symmetry_tranformation_kind: &SymmetryTransformationKind,
         metric: Option<&Array2<T>>,
         metric_h: Option<&Array2<T>>,
-    ) -> Result<Array2<T>, anyhow::Error> {
-        let other = if let Some(o) = other { o } else { self };
+    ) -> Result<Array3<T>, anyhow::Error> {
+        log::debug!("Computing basis symmetry-orbit metric for `FCIBasis`...");
+        let g_self_orbit = BasisSymmetryOrbit::builder()
+            .group(group)
+            .origin(self)
+            .symmetry_transformation_kind(symmetry_tranformation_kind.clone())
+            .build()?;
         let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
         let sao_h = metric_h.unwrap_or(sao);
 
         let s_ref = self.reference();
-        let o_ref = other.reference();
-        let thresh = Float::sqrt(s_ref.threshold() * o_ref.threshold());
+        let thresh = s_ref.threshold();
 
-        ensure!(
-            s_ref.structure_constraint() == o_ref.structure_constraint(),
-            "Inconsistent structure constraints between the two FCI bases."
-        );
-        ensure!(
-            s_ref.coefficients().len() == o_ref.coefficients().len(),
-            "Inconsistent numbers of coefficient matrices between the references of the two FCI bases."
-        );
-        ensure!(
-            s_ref.baos() == o_ref.baos(),
-            "Inconsistent basis angular order between the two FCI bases."
-        );
-        ensure!(
-            s_ref.complex_symmetric() == s_ref.complex_symmetric(),
-            "Inconsistent `complex_symmetric` between the two FCI bases."
-        );
-
-        let mo_ov_mats = s_ref
-            .coefficients()
+        let ovss_vec = g_self_orbit
             .iter()
-            .zip(o_ref.coefficients().iter())
-            .map(|(cw, cx)| {
-                if s_ref.complex_symmetric() {
-                    match (s_ref.complex_conjugated(), o_ref.complex_conjugated()) {
-                        (false, false) => cw.t().dot(sao_h).dot(cx),
-                        (true, false) => cw.t().dot(sao).dot(cx),
-                        (false, true) => cx.t().dot(sao).dot(cw),
-                        (true, true) => cw.t().dot(&sao_h.t()).dot(cx),
-                    }
-                } else {
-                    match (s_ref.complex_conjugated(), o_ref.complex_conjugated()) {
-                        (false, false) => cw.t().mapv(|x| x.conj()).dot(sao).dot(cx),
-                        (true, false) => cw.t().mapv(|x| x.conj()).dot(sao_h).dot(cx),
-                        (false, true) => cx
-                            .t()
-                            .mapv(|x| x.conj())
-                            .dot(sao_h)
-                            .dot(cw)
-                            .mapv(|x| x.conj()),
-                        (true, true) => cw.t().mapv(|x| x.conj()).dot(&sao.t()).dot(cx),
-                    }
-                }
+            .map(|g_self_res| {
+                g_self_res.and_then(|g_self| {
+                    let g_s_ref = g_self.reference();
+                    let mo_ov_mats = g_s_ref
+                        .coefficients()
+                        .iter()
+                        .zip(s_ref.coefficients().iter())
+                        .map(|(cw, cx)| {
+                            if s_ref.complex_symmetric() {
+                                match (g_s_ref.complex_conjugated(), s_ref.complex_conjugated()) {
+                                    (false, false) => cw.t().dot(sao_h).dot(cx),
+                                    (true, false) => cw.t().dot(sao).dot(cx),
+                                    (false, true) => cx.t().dot(sao).dot(cw),
+                                    (true, true) => cw.t().dot(&sao_h.t()).dot(cx),
+                                }
+                            } else {
+                                match (g_s_ref.complex_conjugated(), s_ref.complex_conjugated()) {
+                                    (false, false) => cw.t().mapv(|x| x.conj()).dot(sao).dot(cx),
+                                    (true, false) => cw.t().mapv(|x| x.conj()).dot(sao_h).dot(cx),
+                                    (false, true) => cx
+                                        .t()
+                                        .mapv(|x| x.conj())
+                                        .dot(sao_h)
+                                        .dot(cw)
+                                        .mapv(|x| x.conj()),
+                                    (true, true) => cw.t().mapv(|x| x.conj()).dot(&sao.t()).dot(cx),
+                                }
+                            }
+                        })
+                        .collect_vec();
+
+                    let mut ovs_vec = g_self
+                        .occupation_patterns
+                        .iter()
+                        .cartesian_product(self.occupation_patterns.iter())
+                        .enumerate()
+                        .par_bridge()
+                        .map(|(i, (g_s_occs, s_occs))| {
+                            let ov = izip!(g_s_occs, s_occs, &mo_ov_mats)
+                                .map(|(g_s_occ, s_occ, mo_ov_mat)| {
+                                    let nonzero_g_s_occ =
+                                        g_s_occ.iter().positions(|&occ| occ > thresh).collect_vec();
+                                    let nonzero_s_occ =
+                                        s_occ.iter().positions(|&occ| occ > thresh).collect_vec();
+                                    let mo_ov_mat_occ = mo_ov_mat
+                                        .select(Axis(0), &nonzero_g_s_occ)
+                                        .select(Axis(1), &nonzero_s_occ);
+                                    mo_ov_mat_occ.det().expect(
+                                    "The determinant of the MO overlap matrix could not be found.",
+                                )
+                                })
+                                .fold(T::one(), |acc, x| acc * x);
+
+                            let implicit_factor = s_ref.structure_constraint().implicit_factor()?;
+                            if implicit_factor > 1 {
+                                let p_i32 = i32::try_from(implicit_factor)?;
+                                Ok((i, ComplexFloat::powi(ov, p_i32)))
+                            } else {
+                                Ok((i, ov))
+                            }
+                        })
+                        .collect::<Result<Vec<_>, anyhow::Error>>()?;
+                    ovs_vec.sort_by_key(|v| v.0);
+                    let ovs_vec = ovs_vec.into_iter().map(|v| v.1).collect_vec();
+                    Ok(ovs_vec)
+                })
             })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
             .collect_vec();
 
-        let mut ovs_vec = self
-            .occupation_patterns
-            .iter()
-            .cartesian_product(other.occupation_patterns.iter())
-            .enumerate()
-            .par_bridge()
-            .map(|(i, (s_occs, o_occs))| {
-                let ov = izip!(s_occs, o_occs, &mo_ov_mats)
-                    .map(|(s_occ, o_occ, mo_ov_mat)| {
-                        let nonzero_s_occ =
-                            s_occ.iter().positions(|&occ| occ > thresh).collect_vec();
-                        let nonzero_o_occ =
-                            o_occ.iter().positions(|&occ| occ > thresh).collect_vec();
-                        let mo_ov_mat_occ = mo_ov_mat
-                            .select(Axis(0), &nonzero_s_occ)
-                            .select(Axis(1), &nonzero_o_occ);
-                        mo_ov_mat_occ
-                            .det()
-                            .expect("The determinant of the MO overlap matrix could not be found.")
-                    })
-                    .fold(T::one(), |acc, x| acc * x);
-
-                let implicit_factor = s_ref.structure_constraint().implicit_factor()?;
-                if implicit_factor > 1 {
-                    let p_i32 = i32::try_from(implicit_factor)?;
-                    Ok((i, ComplexFloat::powi(ov, p_i32)))
-                } else {
-                    Ok((i, ov))
-                }
-            })
-            .collect::<Result<Vec<_>, anyhow::Error>>()?;
-        ovs_vec.sort_by_key(|p| p.0);
-        let ovs_vec = ovs_vec.into_iter().map(|(_, ov)| ov).collect_vec();
-
-        Ok(Array2::from_shape_vec(
-            (self.n_items(), other.n_items()),
-            ovs_vec,
+        Ok(Array3::from_shape_vec(
+            (group.order(), self.n_items(), self.n_items()),
+            ovss_vec,
         )?)
     }
 }

@@ -25,6 +25,7 @@ use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTr
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 #[test]
 fn test_drivers_multideterminant_analysis_bh3() {
@@ -205,6 +206,13 @@ fn test_drivers_multideterminant_analysis_bh3() {
         .build()
         .unwrap();
 
+    let multidets = MultiDeterminants::from_multideterminant_vec(&vec![
+        &a1_multidet,
+        &ex_multidet,
+        &ey_multidet,
+    ])
+    .unwrap();
+
     let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
         UnitaryRepresentedSymmetryGroup,
         f64,
@@ -213,7 +221,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(vec![&a1_multidet, &ex_multidet, &ey_multidet])
+    .multidets(&multidets)
     .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
@@ -379,7 +387,7 @@ fn test_drivers_multideterminant_analysis_fci_basis_h3_sto3g() {
         "||E|^(')|",
     ];
 
-    let multidets = irreps_ref
+    let multidets_vec = irreps_ref
         .iter()
         .enumerate()
         .map(|(i, _)| {
@@ -391,6 +399,9 @@ fn test_drivers_multideterminant_analysis_fci_basis_h3_sto3g() {
                 .unwrap()
         })
         .collect_vec();
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     let mut mda_driver = MultiDeterminantRepAnalysisDriver::<
         UnitaryRepresentedSymmetryGroup,
@@ -400,7 +411,7 @@ fn test_drivers_multideterminant_analysis_fci_basis_h3_sto3g() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao_spatial)
     .symmetry_group(pd_res)
     .build()
