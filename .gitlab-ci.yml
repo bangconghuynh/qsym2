@@ -55,7 +55,7 @@ tarpaulin:
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
+    - cargo tarpaulin -v -t 3600 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
