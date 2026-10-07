@@ -1,4 +1,4 @@
-//! Implementation of symmetry transformations for multi-determinantal wavefunctions.
+//! Implementation of symmetry transformations for multi-determinantal wavefunction collections.
 
 use std::fmt;
 use std::hash::Hash;

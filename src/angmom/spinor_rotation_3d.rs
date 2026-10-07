@@ -165,7 +165,7 @@ pub enum SpinOrbitCoupled {
     /// Variant for $`j`$-adapted basis functions where each shell consists of $`\ket{j, m_j}`$
     /// functions. The associated value specifies the total number of duplications of the
     /// $`j`$-adapted basis (*e.g.* `2` in Dirac--Hartree--Fock). The order of $`m_j`$ in each
-    /// shell should be specified in a [`BasisAngularOrder`] structure elsewhere.
+    /// shell should be specified in a [`crate::basis::ao::BasisAngularOrder`] structure elsewhere.
     JAdapted(u16),
 }
 

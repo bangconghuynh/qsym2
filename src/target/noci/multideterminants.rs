@@ -40,7 +40,7 @@ mod multideterminants_tests;
 // Struct definitions
 // ------------------
 
-/// Structure to manage collections of multi-determinantal wavefunctions that share the same basis
+/// Structure to manage a collection of multi-determinantal wavefunctions that share the same basis
 /// but have different linear combination coefficients.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
@@ -229,7 +229,8 @@ where
             .map_err(|err| format_err!(err))
     }
 
-    /// Returns the structure constraint of the multi-determinantal wavefunctions in the collection.
+    /// Returns the structure constraint of the Slater determinants constituting the
+    /// multi-determinantal wavefunctions in the collection.
     pub fn structure_constraint(&self) -> SC {
         self.basis
             .iter()
@@ -240,7 +241,7 @@ where
             .clone()
     }
 
-    /// Returns an iterator over the multi-determinantal wavefunctions in this collection.
+    /// Returns an iterator over the individual multi-determinantal wavefunctions in this collection.
     pub fn iter(
         &self,
     ) -> impl Iterator<Item = Result<MultiDeterminant<'a, T, B, SC>, anyhow::Error>> + '_ {
