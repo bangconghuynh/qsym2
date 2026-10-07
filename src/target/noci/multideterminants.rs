@@ -255,7 +255,7 @@ where
         self.coefficients
             .columns()
             .into_iter()
-            .zip(energies.into_iter())
+            .zip(energies)
             .map(|(c, e)| {
                 MultiDeterminant::builder()
                     .complex_conjugated(self.complex_conjugated)
