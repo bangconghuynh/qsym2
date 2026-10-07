@@ -3,6 +3,7 @@ use std::str::FromStr;
 // use env_logger;
 use ndarray::{Array2, array, s};
 use num_complex::Complex;
+use serial_test::serial;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
@@ -394,6 +395,7 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
 }
 
 #[test]
+#[serial]
 fn test_orbital_projection_vf6_oct_lex_order() {
     // env_logger::init();
     let emap = ElementMap::new();

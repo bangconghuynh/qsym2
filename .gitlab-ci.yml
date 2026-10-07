@@ -32,10 +32,7 @@ unit_tests:
   tags:
     - archon
   before_script:
-    - |
-      n=$(nproc)
-      export OPENBLAS_NUM_THREADS=$(( n > 1 ? n / 2: 1 ))
-      export OMP_NUM_THREADS=$(( n > 1 ? n / 2: 1 ))
+    - export RUST_TEST_THREADS=8
     - apt-get update
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
@@ -53,10 +50,7 @@ tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   before_script:
     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
-    - |
-      n=$(nproc)
-      export OPENBLAS_NUM_THREADS=$(( n > 1 ? n / 2: 1 ))
-      export OMP_NUM_THREADS=$(( n > 1 ? n / 2: 1 ))
+    - export RUST_TEST_THREADS=8
     - apt-get update
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
   script:
