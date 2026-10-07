@@ -1,4 +1,4 @@
-//! Trait for defining a metric in the bases for configuration interaction of Slater determinants.
+//! Traits for defining metrics in bases.
 
 use std::fmt;
 
@@ -18,21 +18,51 @@ use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTr
 use crate::target::noci::basis::basis_orbit::BasisSymmetryOrbit;
 use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
 
-// =====
-// Basis
-// =====
+// ========================
+// BasisSymmetryOrbitMetric
+// ========================
 
 // -----------------
 // Trait definitions
 // -----------------
 
-/// Trait defining <g w | x>.
+/// Trait specifying the symmetry-orbit metric for bases of Slater determinants.
+///
+/// For a group $`\mathcal{G}`$, this metric is defined as
+///
+/// ```math
+/// \braket{\hat{g} \mathbf{w} | \mathbf{x}}
+/// ```
+///
+/// where $`g \in \mathcal{G}`$, and $`\mathbf{w}`$ and $`\mathbf{x}`$ are members of the basis.
 pub trait BasisSymmetryOrbitMetric<G, T>: Basis
 where
     G: SymmetryGroupProperties,
     Self: SymmetryTransformable,
 {
-    /// Computes the metric between this basis and another.
+    /// Computes the basis symmetry-orbit metric for this basis.
+    ///
+    /// For a group $`\mathcal{G}`$, this metric is defined as
+    ///
+    /// ```math
+    /// \braket{\hat{g} \mathbf{w} | \mathbf{x}}
+    /// ```
+    ///
+    /// where $`g \in \mathcal{G}`$, and $`\mathbf{w}`$ and $`\mathbf{x}`$ are members of the basis.
+    ///
+    /// # Arguments
+    ///
+    /// * `group` - The group $`\mathcal{G}`$.
+    /// * `symmetry_transformation_kind` - Enum specifying how the elements of $`\mathcal{G}`$ act
+    /// on the elements of the basis.
+    /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
+    ///   inner product.
+    /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
+    ///
+    /// # Returns
+    ///
+    /// The basis symmetry-orbit metric as a rank-3 array indexed by $`g`$, $`\mathbf{w}`$, and
+    /// $`\mathbf{x}`$.
     fn basis_symmetry_orbit_metric(
         &self,
         group: &G,
@@ -57,19 +87,29 @@ where
     T: ComplexFloat + fmt::Debug + Lapack,
     OrbitBasis<'g, G, I>: SymmetryTransformable,
 {
-    /// Computes the metric (*i.e.* the overlap matrix between the basis elements) between this
-    /// eager basis and another.
+    /// Computes the basis symmetry-orbit metric for this orbit basis.
+    ///
+    /// Since this orbit basis already contains information about its group and group action,
+    /// `_group` and `_symmetry_transformation_kind` will be ignored.
+    ///
+    /// Given that the associated group of the orbit basis is $`\mathcal{G}`$ and that its origins
+    /// are $`\{ \mathbf{w}_{I} \}`$, the metric is defined as
+    ///
+    /// ```math
+    /// \braket{\hat{g}_k \hat{g}_i \mathbf{w}_I | \hat{g}_j \mathbf{w}_J},
+    /// ```
+    ///
+    /// arranged in a rank-3 array indexed by $`k`$, $`iI`$, and $`jJ`$.
     ///
     /// # Arguments
     ///
-    /// * `other` - Another orbit basis.
     /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
     ///   inner product.
     /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
     ///
     /// # Returns
     ///
-    /// The overmap matrix between the basis elements.
+    /// The basis symmetry-orbit metric as a rank-3 array indexed as described above.
     fn basis_symmetry_orbit_metric(
         &self,
         _group: &G,
@@ -173,19 +213,6 @@ where
     <T as ComplexFloat>::Real: Sync + Send,
     EagerBasis<I>: SymmetryTransformable,
 {
-    /// Computes the metric (*i.e.* the overlap matrix between the basis elements) between this
-    /// eager basis and another.
-    ///
-    /// # Arguments
-    ///
-    /// * `other` - Another FCI basis.
-    /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
-    ///   inner product.
-    /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
-    ///
-    /// # Returns
-    ///
-    /// The overmap matrix between the basis elements.
     fn basis_symmetry_orbit_metric(
         &self,
         group: &G,
@@ -241,19 +268,32 @@ where
     SC: 'a + StructureConstraint + fmt::Display + Clone + PartialEq + Sync + Send,
     FCIBasis<'a, T, SC>: SymmetryTransformable,
 {
-    /// Computes the FCI metric (*i.e.* the overlap matrix between the basis elements) between this
-    /// FCI basis and another.
+    /// Computes the basis symmetry-orbit metric for this configuration-interaction basis.
+    ///
+    /// For a group $`\mathcal{G}`$ and a Slater-determinant reference $`\Psi_0`$, this metric is
+    /// defined as
+    ///
+    /// ```math
+    /// \braket{\hat{g} \Psi_I | \Psi_J}
+    /// ```
+    ///
+    /// where $`g \in \mathcal{G}`$, and $`\Psi_I`$ and $`\Psi_J`$ are replacement Slater
+    /// determinants constructed from $`\Psi_0`$.
+    /// These determinants are specified by the occupation patterns with respect to the set of
+    /// molecular orbitals defined by $`\Psi_0`$.
     ///
     /// # Arguments
     ///
-    /// * `other` - Another FCI basis.
+    /// * `group` - The group $`\mathcal{G}`$.
+    /// * `symmetry_transformation_kind` - Enum specifying how the elements of $`\mathcal{G}`$ act
+    /// on the elements of the basis.
     /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
     ///   inner product.
     /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
     ///
     /// # Returns
     ///
-    /// The overmap matrix between the basis elements.
+    /// The basis symmetry-orbit metric as a rank-3 array indexed by $`g`$, $`I`$, and $`J`$.
     fn basis_symmetry_orbit_metric(
         &self,
         group: &G,
