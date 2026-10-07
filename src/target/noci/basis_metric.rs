@@ -54,7 +54,7 @@ where
     ///
     /// * `group` - The group $`\mathcal{G}`$.
     /// * `symmetry_transformation_kind` - Enum specifying how the elements of $`\mathcal{G}`$ act
-    /// on the elements of the basis.
+    ///   on the elements of the basis.
     /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
     ///   inner product.
     /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
@@ -286,7 +286,7 @@ where
     ///
     /// * `group` - The group $`\mathcal{G}`$.
     /// * `symmetry_transformation_kind` - Enum specifying how the elements of $`\mathcal{G}`$ act
-    /// on the elements of the basis.
+    ///   on the elements of the basis.
     /// * `metric` - The atomic-orbital overlap matrix with respect to the conventional sesquilinear
     ///   inner product.
     /// * `metric_h` - The atomic-orbital overlap matrix with respect to the bilinear inner product.
