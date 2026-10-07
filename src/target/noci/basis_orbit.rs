@@ -4,10 +4,13 @@ use anyhow::Context;
 use derive_builder::Builder;
 
 use crate::{
-    analysis::{Orbit, OrbitIterator}, group::GroupProperties, symmetry::{
+    analysis::{Orbit, OrbitIterator},
+    group::GroupProperties,
+    symmetry::{
         symmetry_group::SymmetryGroupProperties,
         symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind},
-    }, target::noci::basis::Basis,
+    },
+    target::noci::basis::Basis,
 };
 
 // ==================

@@ -64,6 +64,10 @@ pub trait Basis {
 // Lazy basis from orbits
 // ~~~~~~~~~~~~~~~~~~~~~~
 
+/// Basis defined by a set of origins $`\{\mathbf{w}_I\}`$ and a group $`\mathcal{G} = \{g_i\}`$.
+///
+/// Each element in the basis is given by the action of the group on the origins, $`\mathcal{G}
+/// \cdot \{ \mathbf{w}_I \} = \{ \hat{g}_i \mathbf{w}_I \}`$.
 #[derive(Builder, Clone)]
 pub struct OrbitBasis<'g, G, I>
 where
@@ -159,9 +163,9 @@ where
         self.origins.len() * self.group.order()
     }
 
-    /// Iterates over the elements of the [`OrbitBasis`]. Each element is indexed by `iI` where `i`
-    /// enumerates the group elements and `I` enumerates the origins. `I` is the fast index and `i`
-    /// the slow one.
+    /// Iterates over the elements $`\hat{g}_i \mathbf{w}_I`$ of the [`OrbitBasis`]. Each element is
+    /// indexed by `iI` where `i` enumerates the group elements and `I` enumerates the origins. `I`
+    /// is the fast index and `i` the slow one.
     fn iter(&self) -> Self::BasisIter<'_> {
         OrbitBasisIterator::new(
             self.prefactors.clone(),
@@ -286,6 +290,7 @@ where
 // Eager basis
 // ~~~~~~~~~~~
 
+/// Basis defined by specifying all of its elements explicitly.
 #[derive(Builder, Clone)]
 pub struct EagerBasis<I: Clone> {
     /// The elements in the basis.
@@ -328,6 +333,8 @@ impl<I: Clone> Basis for EagerBasis<I> {
 // FCI basis
 // ~~~~~~~~~
 
+/// Basis defined by a reference Slater determinant $`\Psi_0`$ and its replacement determinants
+/// specified by occupation patterns.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct FCIBasis<'a, T, SC>

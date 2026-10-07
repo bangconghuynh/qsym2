@@ -1,4 +1,4 @@
-//! Multi-determinant wavefunctions for non-orthogonal configuration interaction.
+//! Individual multi-determinant wavefunctions for configuration interaction.
 
 use std::collections::HashSet;
 use std::fmt::{self, LowerExp};
@@ -36,7 +36,7 @@ mod multideterminant_tests;
 // Struct definitions
 // ------------------
 
-/// Structure to manage multi-determinantal wavefunctions.
+/// Structure to manage individual multi-determinantal wavefunctions.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct MultiDeterminant<'a, T, B, SC>

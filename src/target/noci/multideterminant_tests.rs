@@ -1,6 +1,6 @@
 // use env_logger;
 use std::fs::File;
-use std::time::Instant;
+// use std::time::Instant;
 
 use anyhow::format_err;
 use csv::ReaderBuilder;

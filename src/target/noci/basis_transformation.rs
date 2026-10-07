@@ -1,5 +1,5 @@
-//! Implementation of symmetry transformations for bases for non-orthogonal configuration
-//! interaction of Slater determinants.
+//! Implementation of symmetry transformations for bases for configuration interaction of Slater
+//! determinants.
 
 use std::collections::{HashSet, VecDeque};
 use std::fmt;

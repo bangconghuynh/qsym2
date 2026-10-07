@@ -1,7 +1,7 @@
 use anyhow::format_err;
 use itertools::Itertools;
 // use log4rs;
-use ndarray::{array, s};
+use ndarray::array;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
