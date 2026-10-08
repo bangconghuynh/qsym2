@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_transformation::{
     TransformationError,
 };
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::{Basis, EagerBasis, OrbitBasis};
+use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 // ---------------------------
@@ -28,7 +28,7 @@ impl<'a, T, B, SC> SpatialUnitaryTransformable for MultiDeterminant<'a, T, B, SC
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + SpatialUnitaryTransformable + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + SpatialUnitaryTransformable + Clone,
 {
     fn transform_spatial_mut(
         &mut self,
@@ -48,7 +48,7 @@ impl<'a, T, B, SC> SpinUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + SpinUnitaryTransformable + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + SpinUnitaryTransformable + Clone,
 {
     fn transform_spin_mut(
         &mut self,
@@ -67,7 +67,7 @@ impl<'a, T, B, SC> ComplexConjugationTransformable for MultiDeterminant<'a, T, B
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + ComplexConjugationTransformable + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + ComplexConjugationTransformable + Clone,
 {
     /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> Result<&mut Self, TransformationError> {
@@ -86,7 +86,7 @@ impl<'a, T, B, SC> DefaultTimeReversalTransformable for MultiDeterminant<'a, T, 
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + DefaultTimeReversalTransformable + Clone,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + DefaultTimeReversalTransformable + Clone,
 {
 }
 
@@ -135,6 +135,26 @@ impl<'a> TimeReversalTransformable
     }
 }
 
+// `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
+// `DefaultTimeReversalTransformable` and so the surrounding `FCIBasis` does not get a blanket
+// implementation of `TimeReversalTransformable`, and neither does the surrounding
+// `MultiDeterminant`.
+impl<'a> TimeReversalTransformable
+    for MultiDeterminant<
+        'a,
+        Complex<f64>,
+        FCIBasis<'a, Complex<f64>, SpinOrbitCoupled>,
+        SpinOrbitCoupled,
+    >
+{
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
+        self.basis.transform_timerev_mut()?;
+        self.coefficients.mapv_inplace(|v| v.conj());
+        self.complex_conjugated = !self.complex_conjugated;
+        Ok(self)
+    }
+}
+
 // ---------------------
 // SymmetryTransformable
 // ---------------------
@@ -142,7 +162,7 @@ impl<'a> TimeReversalTransformable
 impl<'a, T, B, SC> SymmetryTransformable for MultiDeterminant<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
-    B: Basis<SlaterDeterminant<'a, T, SC>> + Clone + SymmetryTransformable,
+    B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone + SymmetryTransformable,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     Self: TimeReversalTransformable,

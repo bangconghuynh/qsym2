@@ -1,7 +1,6 @@
 use approx::{assert_abs_diff_eq, assert_abs_diff_ne};
 use ndarray::Array2;
 // use log4rs;
-use itertools::Itertools;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::ElementMap;
@@ -22,6 +21,7 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 use crate::target::noci::backend::auxiliary::extract_pyscf_scf_data;
 use crate::target::noci::backend::solver::noci::SymmetryOrbitNOCISolvable;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -62,7 +62,7 @@ fn test_solver_noci_energy_ch4p_sto3g() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -72,10 +72,13 @@ fn test_solver_noci_energy_ch4p_sto3g() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 4);
+    assert_eq!(multidets_vec.len(), 4);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     // Degeneracies
-    let energies = multidets
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -107,7 +110,7 @@ fn test_solver_noci_energy_ch4p_sto3g() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()
@@ -167,7 +170,7 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -177,10 +180,13 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 4);
+    assert_eq!(multidets_vec.len(), 4);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     // Degeneracies
-    let energies = multidets
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -212,7 +218,7 @@ fn test_solver_noci_energy_ch4p_631gdstar() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()
@@ -272,7 +278,7 @@ fn test_solver_noci_energy_h6_sto3g() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -282,10 +288,13 @@ fn test_solver_noci_energy_h6_sto3g() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 6);
+    assert_eq!(multidets_vec.len(), 6);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     // Degeneracies
-    let energies = multidets
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -320,7 +329,7 @@ fn test_solver_noci_energy_h6_sto3g() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()
@@ -388,7 +397,7 @@ fn test_solver_noci_energy_h6_631gds() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -398,10 +407,13 @@ fn test_solver_noci_energy_h6_631gds() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 6);
+    assert_eq!(multidets_vec.len(), 6);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     // Degeneracies
-    let energies = multidets
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -435,7 +447,7 @@ fn test_solver_noci_energy_h6_631gds() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()
@@ -503,7 +515,7 @@ fn test_solver_noci_energy_h4_sto3g() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -513,10 +525,13 @@ fn test_solver_noci_energy_h4_sto3g() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 2);
+    assert_eq!(multidets_vec.len(), 2);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     // Degeneracies
-    let energies = multidets
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -545,7 +560,7 @@ fn test_solver_noci_energy_h4_sto3g() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()
@@ -597,7 +612,7 @@ fn test_solver_noci_energy_h4_631gdstar() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -607,10 +622,13 @@ fn test_solver_noci_energy_h4_631gdstar() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 2);
+    assert_eq!(multidets_vec.len(), 2);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
 
     // Degeneracies
-    let energies = multidets
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -639,7 +657,7 @@ fn test_solver_noci_energy_h4_631gdstar() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()
@@ -691,7 +709,7 @@ fn test_solver_noci_energy_c6h6p_sto3g() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let system = (&hamiltonian_ao, &overlap_ao);
-    let multidets = system
+    let multidets_vec = system
         .solve_symmetry_orbit_noci(
             &[&det],
             &group,
@@ -701,8 +719,13 @@ fn test_solver_noci_energy_c6h6p_sto3g() {
             1e-7,
         )
         .unwrap();
-    assert_eq!(multidets.len(), 3);
-    let energies = multidets
+    assert_eq!(multidets_vec.len(), 3);
+    let multidets =
+        MultiDeterminants::from_multideterminant_vec(&multidets_vec.iter().collect::<Vec<_>>())
+            .unwrap();
+
+    // Degeneracies
+    let energies = multidets_vec
         .iter()
         .map(|multidet| multidet.energy())
         .collect::<Result<Vec<_>, _>>()
@@ -733,7 +756,7 @@ fn test_solver_noci_energy_c6h6p_sto3g() {
     >::builder()
     .parameters(&mda_params)
     .angular_function_parameters(&afa_params)
-    .multidets(multidets.iter().collect_vec())
+    .multidets(&multidets)
     .sao(&sao)
     .symmetry_group(pd_res)
     .build()

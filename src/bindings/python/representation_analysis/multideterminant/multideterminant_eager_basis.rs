@@ -34,6 +34,7 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::EagerBasis;
 use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 type C128 = Complex<f64>;
 
@@ -301,7 +302,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
             // Construct the multi-determinantal wavefunctions
-            let multidets = energies_r
+            let multidets_vec = energies_r
                 .iter()
                 .zip(coefficients_r.columns())
                 .map(|(energy, coeffs)| {
@@ -314,6 +315,10 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+            let multidets = MultiDeterminants::from_multideterminant_vec(
+                &multidets_vec.iter().collect::<Vec<_>>()
+            )
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
             // Construct the driver
             match &use_magnetic_group {
@@ -326,7 +331,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
-                    .multidets(multidets.iter().collect::<Vec<_>>())
+                    .multidets(&multidets)
                     .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
@@ -349,7 +354,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     >::builder()
                     .parameters(&mda_params)
                     .angular_function_parameters(&afa_params)
-                    .multidets(multidets.iter().collect::<Vec<_>>())
+                    .multidets(&multidets)
                     .sao(&sao_r)
                     .sao_h(None) // Real SAO.
                     .symmetry_group(&pd_res)
@@ -437,7 +442,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Construct the multi-determinantal wavefunctions
-                    let multidets = energies_c
+                    let multidets_vec = energies_c
                         .iter()
                         .zip(coefficients_c.columns())
                         .map(|(energy, coeffs)| {
@@ -450,6 +455,10 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         })
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    let multidets = MultiDeterminants::from_multideterminant_vec(
+                        &multidets_vec.iter().collect::<Vec<_>>()
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Construct the driver
                     match &use_magnetic_group {
@@ -462,7 +471,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             >::builder()
                             .parameters(&mda_params)
                             .angular_function_parameters(&afa_params)
-                            .multidets(multidets.iter().collect::<Vec<_>>())
+                            .multidets(&multidets)
                             .sao(&sao_c)
                             .sao_h(sao_h_c.as_ref())
                             .symmetry_group(&pd_res)
@@ -485,7 +494,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             >::builder()
                             .parameters(&mda_params)
                             .angular_function_parameters(&afa_params)
-                            .multidets(multidets.iter().collect::<Vec<_>>())
+                            .multidets(&multidets)
                             .sao(&sao_c)
                             .sao_h(sao_h_c.as_ref())
                             .symmetry_group(&pd_res)
@@ -531,7 +540,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Construct the multi-determinantal wavefunctions
-                    let multidets = energies_c
+                    let multidets_vec = energies_c
                         .iter()
                         .zip(coefficients_c.columns())
                         .map(|(energy, coeffs)| {
@@ -544,6 +553,10 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         })
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    let multidets = MultiDeterminants::from_multideterminant_vec(
+                        &multidets_vec.iter().collect::<Vec<_>>()
+                    )
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     // Construct the driver
                     match &use_magnetic_group {
@@ -556,7 +569,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             >::builder()
                             .parameters(&mda_params)
                             .angular_function_parameters(&afa_params)
-                            .multidets(multidets.iter().collect::<Vec<_>>())
+                            .multidets(&multidets)
                             .sao(&sao_c)
                             .sao_h(sao_h_c.as_ref())
                             .symmetry_group(&pd_res)
@@ -579,7 +592,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                             >::builder()
                             .parameters(&mda_params)
                             .angular_function_parameters(&afa_params)
-                            .multidets(multidets.iter().collect::<Vec<_>>())
+                            .multidets(&multidets)
                             .sao(&sao_c)
                             .sao_h(sao_h_c.as_ref())
                             .symmetry_group(&pd_res)

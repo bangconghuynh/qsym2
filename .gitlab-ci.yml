@@ -34,26 +34,19 @@ unit_tests:
   before_script:
     - apt-get update
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
+    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    - cargo binstall cargo-nextest --secure
+    - cargo install cargo-llvm-cov
   script:
-    - cargo test -r --features full,python,sandbox -- --include-ignored
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-tarpaulin:
-  stage: Unit Tests
-  tags:
-    - archon
-  coverage: '/^\d+.\d+% coverage/'
-  before_script:
-    - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
-    - apt-get update
-    - apt-get install gfortran build-essential cmake libhdf5-dev -y
-  script:
-    - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
+    - cargo llvm-cov clean --workspace
+    - cargo llvm-cov nextest -r -j8 --features=full,python,sandbox --run-ignored=all --ignore-filename-regex='src/bindings/python|src/sandbox/bindings'
+    - cargo llvm-cov report -r --cobertura --output-path=target/llvm-cov-target/cobertura.xml
+  coverage: '/TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov-target/cobertura.xml
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/

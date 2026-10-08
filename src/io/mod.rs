@@ -5,7 +5,7 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
 use anyhow::{self, format_err};
-use bincode;
+use bincode_next;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_yaml;
 
@@ -63,7 +63,7 @@ where
     let mut path = name.as_ref().to_path_buf();
     path.set_extension(file_type.ext());
     let mut reader = BufReader::new(File::open(path).map_err(|err| format_err!(err))?);
-    bincode::serde::decode_from_std_read(&mut reader, bincode::config::legacy())
+    bincode_next::serde::decode_from_std_read(&mut reader, bincode_next::config::legacy())
         .map_err(|err| format_err!(err))
 }
 
@@ -88,7 +88,7 @@ where
     let mut path = name.as_ref().to_path_buf();
     path.set_extension(file_type.ext());
     let mut writer = BufWriter::new(File::create(path)?);
-    bincode::serde::encode_into_std_write(value, &mut writer, bincode::config::legacy())
+    bincode_next::serde::encode_into_std_write(value, &mut writer, bincode_next::config::legacy())
         .map_err(|err| format_err!(err))
 }
 

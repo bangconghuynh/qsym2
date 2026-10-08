@@ -293,12 +293,12 @@ where
 
     /// Returns the basis angular order information of the basis sets in which the coefficients are
     /// expressed.
-    pub fn baos(&'_ self) -> &Vec<&'_ BasisAngularOrder<'_>> {
+    pub fn baos(&self) -> &Vec<&'a BasisAngularOrder<'a>> {
         &self.baos
     }
 
     /// Returns the molecule associated with this Slater determinant.
-    pub fn mol(&self) -> &Molecule {
+    pub fn mol(&self) -> &'a Molecule {
         self.mol
     }
 
