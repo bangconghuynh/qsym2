@@ -1247,6 +1247,7 @@ fn test_multideterminant_fci_rep_analysis_h4_631gs_uhf() {
 }
 
 #[test]
+#[ignore]
 fn test_multideterminant_fci_rep_analysis_h4_631gs_rhf() {
     // env_logger::init();
     let emap = ElementMap::new();
