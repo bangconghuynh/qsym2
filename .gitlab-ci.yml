@@ -38,7 +38,8 @@ unit_tests:
     - cargo binstall cargo-nextest --secure
     - cargo install cargo-llvm-cov
   script:
-    - cargo llvm-cov nextest -r -j8 --features=full,python,sandbox --run-ignored=all --cobertura --output-path=target/llvm-cov-target/cobertura.xml
+    - cargo llvm-cov nextest -r -j8 --features=full,python,sandbox --run-ignored=all
+    - cargo llvm-cov report --cobertura --output-path=target/llvm-cov-target/cobertura.xml
   coverage: '/TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/'
   artifacts:
     reports:
