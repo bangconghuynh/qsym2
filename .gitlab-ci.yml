@@ -38,7 +38,7 @@ unit_tests:
     - cargo binstall cargo-nextest --secure
     - cargo install cargo-llvm-cov
   script:
-    - cargo llvm-cov nextest -r -j8 --features=full,python,sandbox --run-ignored=all
+    - cargo llvm-cov nextest -r -j8 --features=full,python,sandbox --run-ignored=all --ignore-filename-regex='src/bindings/python|src/sandbox/bindings'
     - cargo llvm-cov report --cobertura --output-path=target/llvm-cov-target/cobertura.xml
   coverage: '/TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/'
   artifacts:
@@ -51,25 +51,6 @@ unit_tests:
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-# tarpaulin:
-#   stage: Unit Tests
-#   tags:
-#     - archon
-#   coverage: '/^\d+.\d+% coverage/'
-#   before_script:
-#     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
-#     - export RUST_TEST_THREADS=8
-#     - apt-get update
-#     - apt-get install gfortran build-essential cmake libhdf5-dev -y
-#   script:
-#     - cargo install cargo-tarpaulin
-#     - cargo tarpaulin -v -t 3600 --release --workspace --engine llvm --no-dead-code --features full,sandbox --color always
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == "schedule"
-#     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
-#       when: never
-#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 release_job:
   stage: Deploy
