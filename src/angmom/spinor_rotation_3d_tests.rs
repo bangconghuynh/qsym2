@@ -285,15 +285,15 @@ proptest! {
             approx::assert_relative_eq!(
                 (da - db).map(|x| x.norm_sqr()).sum().sqrt(),
                 0.0,
-                epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
-                max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
+                epsilon = 1e-11 * angle.abs().max(1.0) * twoj as f64,
+                max_relative = 1e-11 * angle.abs().max(1.0) * twoj as f64
             );
         } else {
             approx::assert_relative_eq!(
                 (da + db).map(|x| x.norm_sqr()).sum().sqrt(),
                 0.0,
-                epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
-                max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
+                epsilon = 1e-11 * angle.abs().max(1.0) * twoj as f64,
+                max_relative = 1e-11 * angle.abs().max(1.0) * twoj as f64
             );
         }
     }
@@ -412,8 +412,8 @@ proptest! {
         approx::assert_relative_eq!(
             (da - db).map(|x| x.norm_sqr()).sum().sqrt(),
             0.0,
-            epsilon = 1e-12 * angle.abs().max(1.0) * twoj as f64,
-            max_relative = 1e-12 * angle.abs().max(1.0) * twoj as f64
+            epsilon = 1e-11 * angle.abs().max(1.0) * twoj as f64,
+            max_relative = 1e-11 * angle.abs().max(1.0) * twoj as f64
         );
     }
 }

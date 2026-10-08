@@ -89,6 +89,10 @@ where
             self.baos == other.baos,
             "Inconsistent basis angular order between `self` and `other`."
         );
+        ensure!(
+            self.complex_symmetric == other.complex_symmetric,
+            "Inconsistent `complex_symmetric` between `self` and `other`."
+        );
 
         let thresh = Float::sqrt(self.threshold * other.threshold);
         ensure!(

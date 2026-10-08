@@ -15,6 +15,7 @@ bitvec = "1.1"
 byteorder = "1.5"
 clap = { version = "4.6", features = ["cargo", "derive"] }
 counter = "0.7"
+csv = "1.4"
 derive_builder = "0.20"
 divisors = "0.2"
 duplicate = "2.0"
@@ -31,8 +32,8 @@ log4rs = { version = "1.4", features = ["file_appender", "pattern_encoder"] }
 mark-flaky-tests = "1.0"
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 ndarray = { version = "0.17", features = ["rayon", "serde"] }
+ndarray-csv = "0.5"
 ndarray-einsum = "0.9"
-# ndarray-einsum = { git = "https://github.com/bangconghuynh/ndarray-einsum", branch = "bump-ndarray-0.17" }
 ndarray-linalg = { version = "0.18", default-features = false }
 num = "0.4"
 num-complex = "0.4"
@@ -40,8 +41,7 @@ num-modular = "0.6"
 num-ord = "0.1"
 num-traits = "0.2"
 numpy = { version = "0.27", optional = true }
-# numpy = { git = "https://github.com/bangconghuynh/rust-numpy", branch = "bump-ndarray-0.17", optional = true }
-ordered-float = "5.3"
+ordered-float = "5.5"
 periodic_table = "0.5"
 phf = { version = "0.13", features = ["macros"] }
 proptest = "1.11"
@@ -83,6 +83,3 @@ rustdoc-args = [
 
 [lib]
 crate-type = ["cdylib", "lib"]
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

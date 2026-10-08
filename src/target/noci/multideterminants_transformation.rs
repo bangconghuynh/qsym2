@@ -1,4 +1,4 @@
-//! Implementation of symmetry transformations for multi-determinantal wavefunctions.
+//! Implementation of symmetry transformations for multi-determinantal wavefunction collections.
 
 use std::fmt;
 use std::hash::Hash;
@@ -18,13 +18,13 @@ use crate::symmetry::symmetry_transformation::{
 };
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::noci::basis::{Basis, EagerBasis, FCIBasis, OrbitBasis};
-use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
 
-impl<'a, T, B, SC> SpatialUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
+impl<'a, T, B, SC> SpatialUnitaryTransformable for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
@@ -44,7 +44,7 @@ where
 // SpinUnitaryTransformable
 // ------------------------
 
-impl<'a, T, B, SC> SpinUnitaryTransformable for MultiDeterminant<'a, T, B, SC>
+impl<'a, T, B, SC> SpinUnitaryTransformable for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
@@ -63,7 +63,7 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<'a, T, B, SC> ComplexConjugationTransformable for MultiDeterminant<'a, T, B, SC>
+impl<'a, T, B, SC> ComplexConjugationTransformable for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
@@ -82,7 +82,7 @@ where
 // DefaultTimeReversalTransformable
 // --------------------------------
 
-impl<'a, T, B, SC> DefaultTimeReversalTransformable for MultiDeterminant<'a, T, B, SC>
+impl<'a, T, B, SC> DefaultTimeReversalTransformable for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
@@ -96,9 +96,9 @@ where
 // `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
 // `DefaultTimeReversalTransformable` and so the surrounding `OrbitBasis` does not get a blanket
 // implementation of `TimeReversalTransformable`, and neither does the surrounding
-// `MultiDeterminant`.
+// `MultiDeterminants`.
 impl<'a, 'g, G> TimeReversalTransformable
-    for MultiDeterminant<
+    for MultiDeterminants<
         'a,
         Complex<f64>,
         OrbitBasis<'g, G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
@@ -118,9 +118,9 @@ where
 // `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
 // `DefaultTimeReversalTransformable` and so the surrounding `EagerBasis` does not get a blanket
 // implementation of `TimeReversalTransformable`, and neither does the surrounding
-// `MultiDeterminant`.
+// `MultiDeterminants`.
 impl<'a> TimeReversalTransformable
-    for MultiDeterminant<
+    for MultiDeterminants<
         'a,
         Complex<f64>,
         EagerBasis<SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
@@ -138,9 +138,9 @@ impl<'a> TimeReversalTransformable
 // `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
 // `DefaultTimeReversalTransformable` and so the surrounding `FCIBasis` does not get a blanket
 // implementation of `TimeReversalTransformable`, and neither does the surrounding
-// `MultiDeterminant`.
+// `MultiDeterminants`.
 impl<'a> TimeReversalTransformable
-    for MultiDeterminant<
+    for MultiDeterminants<
         'a,
         Complex<f64>,
         FCIBasis<'a, Complex<f64>, SpinOrbitCoupled>,
@@ -159,7 +159,7 @@ impl<'a> TimeReversalTransformable
 // SymmetryTransformable
 // ---------------------
 
-impl<'a, T, B, SC> SymmetryTransformable for MultiDeterminant<'a, T, B, SC>
+impl<'a, T, B, SC> SymmetryTransformable for MultiDeterminants<'a, T, B, SC>
 where
     T: ComplexFloat + Lapack,
     B: Basis<Item = SlaterDeterminant<'a, T, SC>> + Clone + SymmetryTransformable,

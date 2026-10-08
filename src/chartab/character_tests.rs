@@ -99,10 +99,8 @@ fn test_character_partial_ord_advanced() {
     let c2 = Character::new(&[(e8pi[3].clone(), 1usize), (e8pi[5].clone(), 1usize)]);
     assert!(c1 < c2);
 
-    println!("Trivial");
     let c3 = Character::new(&[(e8pi[0].clone(), 1usize)]);
     let c4 = Character::new(&[(e8pi[4].clone(), 1usize)]);
-    println!("End trivial");
     assert!(c3 < c4);
 }
 

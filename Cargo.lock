@@ -2039,6 +2039,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray-csv"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "886598c6242b8742871beab67185dcd482a207132dc51f1911cefddcfc97b561"
+dependencies = [
+ "csv",
+ "either",
+ "ndarray",
+ "serde",
+]
+
+[[package]]
 name = "ndarray-einsum"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2383,9 +2395,9 @@ dependencies = [
 
 [[package]]
 name = "ordered-float"
-version = "5.3.0"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7d950ca161dc355eaf28f82b11345ed76c6e1f6eb1f4f4479e0323b9e2fbd0e"
+checksum = "8c7c9e0d9b23589f26070720bac724174bfec1083e82f7854cdd0267518343c0"
 dependencies = [
  "num-traits",
 ]
@@ -2732,6 +2744,7 @@ dependencies = [
  "cargo-upgrades",
  "clap",
  "counter",
+ "csv",
  "derive_builder",
  "divisors",
  "duplicate",
@@ -2748,6 +2761,7 @@ dependencies = [
  "mark-flaky-tests",
  "nalgebra",
  "ndarray",
+ "ndarray-csv",
  "ndarray-einsum",
  "ndarray-linalg",
  "num 0.4.3",
@@ -2757,7 +2771,7 @@ dependencies = [
  "num-traits",
  "numeric-sort",
  "numpy",
- "ordered-float 5.3.0",
+ "ordered-float 5.5.0",
  "periodic_table",
  "phf",
  "primes",

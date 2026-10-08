@@ -1,14 +1,14 @@
+from collections.abc import Callable, Sequence
+from enum import Enum
+
 import numpy as np
 
-from enum import Enum
-from typing import Callable, Sequence, TypeAlias
-
-Py1DArray_f64: TypeAlias = np.ndarray[tuple[int], np.dtype[np.float64]]
-Py1DArray_c128: TypeAlias = np.ndarray[tuple[int], np.dtype[np.complex128]]
-Py2DArray_f64: TypeAlias = np.ndarray[tuple[int, int], np.dtype[np.float64]]
-Py2DArray_c128: TypeAlias = np.ndarray[tuple[int, int], np.dtype[np.complex128]]
-Py4DArray_f64: TypeAlias = np.ndarray[tuple[int, int, int, int], np.dtype[np.float64]]
-Py4DArray_c128: TypeAlias = np.ndarray[
+type Py1DArray_f64 = np.ndarray[tuple[int], np.dtype[np.float64]]
+type Py1DArray_c128 = np.ndarray[tuple[int], np.dtype[np.complex128]]
+type Py2DArray_f64 = np.ndarray[tuple[int, int], np.dtype[np.float64]]
+type Py2DArray_c128 = np.ndarray[tuple[int, int], np.dtype[np.complex128]]
+type Py4DArray_f64 = np.ndarray[tuple[int, int, int, int], np.dtype[np.float64]]
+type Py4DArray_c128 = np.ndarray[
     tuple[int, int, int, int], np.dtype[np.complex128]
 ]
 
@@ -271,9 +271,9 @@ def symmetrise_molecule(
 # bindings/python/integrals.rs
 # ----------------------------
 
-PyPureSpinorOrder: TypeAlias = tuple[bool, bool] | tuple[list[int], bool]
+type PyPureSpinorOrder = tuple[bool, bool] | tuple[list[int], bool]
 
-PyShellOrder: TypeAlias = PyPureSpinorOrder | list[tuple[int, int, int]] | None
+type PyShellOrder = PyPureSpinorOrder | list[tuple[int, int, int]] | None
 
 class ShellType(Enum):
     r"""
@@ -385,7 +385,7 @@ class PySpinOrbitCoupled(Enum):
     JAdapted4C = 1
     r"""Variant for four-component $`j`$-adapted basis functions."""
 
-PyStructureConstraint: TypeAlias = PySpinConstraint | PySpinOrbitCoupled
+type PyStructureConstraint = PySpinConstraint | PySpinOrbitCoupled
 
 class PyBasisShellContraction:
     r"""
@@ -596,7 +596,7 @@ class PySlaterDeterminantComplex:
     energy: float | None
     r"""The complex determinantal energy, if any."""
 
-PySlaterDeterminant: TypeAlias = PySlaterDeterminantReal | PySlaterDeterminantComplex
+type PySlaterDeterminant = PySlaterDeterminantReal | PySlaterDeterminantComplex
 
 class PySlaterDeterminantRepAnalysisResult:
     r"""
@@ -770,7 +770,7 @@ class PyDensityComplex:
     threshold: float
     r"""The threshold for comparisons."""
 
-PyDensity: TypeAlias = PyDensityReal | PyDensityComplex
+type PyDensity = PyDensityReal | PyDensityComplex
 
 def rep_analyse_densities(
     inp_sym: str,
@@ -898,7 +898,7 @@ class PyVibrationalCoordinateCollectionComplex:
     threshold: float
     r"""The threshold for comparisons."""
 
-PyVibrationalCoordinateCollection: TypeAlias = (
+type PyVibrationalCoordinateCollection = (
     PyVibrationalCoordinateCollectionReal | PyVibrationalCoordinateCollectionComplex
 )
 
@@ -1119,7 +1119,7 @@ class PyMultiDeterminantsComplex:
             A complex Python-exposed multi-determinants structure.
         """
 
-PyMultiDeterminants: TypeAlias = PyMultiDeterminantsReal | PyMultiDeterminantsComplex
+type PyMultiDeterminants = PyMultiDeterminantsReal | PyMultiDeterminantsComplex
 
 # ----------------------------------------------------------------------------------------
 # bindings/python/representation_analysis/multideterminant/multideterminant_eager_basis.rs
@@ -1196,6 +1196,84 @@ def rep_analyse_multideterminants_eager_basis(
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
     """
 
+# --------------------------------------------------------------------------------------
+# bindings/python/representation_analysis/multideterminant/multideterminant_fci_basis.rs
+# --------------------------------------------------------------------------------------
+
+def rep_analyse_multideterminants_fci_basis(
+    inp_sym: str,
+    pydet: PySlaterDeterminant,
+    coefficients: Py2DArray_f64 | Py2DArray_c128,
+    energies: Py1DArray_f64 | Py1DArray_c128,
+    occupation_patterns: Sequence[Sequence[Py1DArray_f64]],
+    pybaos: Sequence[PyBasisAngularOrder],
+    integrality_threshold: float,
+    linear_independence_threshold: float,
+    use_magnetic_group: MagneticSymmetryAnalysisKind | None,
+    use_double_group: bool,
+    use_cayley_table: bool,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao: Py2DArray_f64 | Py2DArray_c128,
+    sao_h: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    write_overlap_eigenvalues: bool = True,
+    write_character_table: bool = True,
+    infinite_order_to_finite: int | None = None,
+    angular_function_integrality_threshold: float = 1e-7,
+    angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_max_angular_momentum: int = 2,
+) -> None:
+    r"""
+    Python-exposed function to perform representation symmetry analysis for real and complex multi-determinantal wavefunctions constructed from a FCI basis based on a reference Slater determinant.
+
+    The result is also logged via the `qsym2-output` logger at the `INFO` level.
+
+    If `symmetry_transformation_kind` includes spin transformation, the provided multi-determinantal wavefunctions will be augmented to generalised spin constraint automatically.
+
+    Parameters:
+        inp_sym: A path to the `QSym2FileType::Sym` file containing the symmetry-group detection result for the system. This will be used to construct abstract groups and character tables for representation analysis.
+
+        pydet: The Python-exposed reference Slater determinants whose coefficients are of type `float64` or `complex128`. This determinant serves as the reference for the for full-configuration-interaction basis and should contain the full set of occupied and virtual molecular orbitals.
+
+        coefficients: The coefficient matrix where each column gives the linear combination coefficients for one multi-determinantal wavefunction. The number of rows must match the number of determinants specified in `pydets`.
+
+        energies: The energies of the multi-determinantal wavefunctions. The number of terms must match the number of columns of `coefficients`.
+
+        occupation_patterns: The occupation patterns of the determinants in the full-configuration-interaction basis. Each element specifies one determinant in the basis.
+
+        pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
+
+        integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
+
+        linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+
+        use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
+
+        use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
+
+        use_cayley_table: A boolean indicating if the Cayley table for the group, if available, should be used to speed up the calculation of orbit overlap matrices.
+
+        symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin determinant to generate the orbit. If this contains spin transformation, the multi-determinant will be augmented to generalised spin constraint automatically.
+
+        eigenvalue_comparison_mode: An enumerated type indicating the mode of comparison of orbit overlap eigenvalues with the specified `linear_independence_threshold`.
+
+        sao: The atomic-orbital overlap matrix.
+
+        sao_h: The optional complex-symmetric atomic-orbital overlap matrix. This is required if antiunitary symmetry operations are involved.
+
+        write_overlap_eigenvalues: A boolean indicating if the eigenvalues of the determinant orbit overlap matrix are to be written to the output.
+
+        write_character_table: A boolean indicating if the character table of the prevailing symmetry group is to be printed out.
+
+        infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup will be used for symmetry analysis.
+
+        angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
+
+        angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
+    """
+
 # --------------------------------------------------------------------------------------------------------
 # bindings/python/representation_analysis/multideterminant/multideterminant_orbit_basis_internal_solver.rs
 # --------------------------------------------------------------------------------------------------------
@@ -1205,7 +1283,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     pyorigins: Sequence[PySlaterDeterminant],
     pybaos: Sequence[PyBasisAngularOrder],
     sao: Py2DArray_f64 | Py2DArray_c128,
-    enuc: float | complex,
+    enuc: complex,
     onee: Py2DArray_f64 | Py2DArray_c128,
     twoe: Py4DArray_f64 | Py4DArray_c128 | None,
     py_get_jk: Callable[

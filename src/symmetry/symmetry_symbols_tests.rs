@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use nalgebra::Vector3;
 
 use crate::auxiliary::molecule::Molecule;
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{CollectionSymbol, DecomposedSymbol, MathematicalSymbol};
 use crate::group::class::ClassProperties;
 use crate::group::UnitaryRepresentedGroup;
@@ -218,7 +217,7 @@ fn test_deduce_mirror_parities_d5h() {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
-    println!("{}", group.character_table());
+    // println!("{}", group.character_table());
 
     let sh = group.get_cc_symbol_of_index(6).unwrap();
     let sv = group.get_cc_symbol_of_index(7).unwrap();

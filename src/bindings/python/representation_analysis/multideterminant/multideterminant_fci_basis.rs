@@ -1,19 +1,16 @@
-//! Python bindings for QSym² symmetry analysis of multi-determinants with eager bases.
+//! Python bindings for QSym² symmetry analysis of multi-determinants with FCI bases.
 
-use std::collections::HashSet;
 use std::path::PathBuf;
 
-use anyhow::bail;
+use itertools::Itertools;
 use num_complex::Complex;
-use numpy::PyArrayMethods;
+use numpy::{PyArray1, PyArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
 use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::{SpinConstraint, SpinOrbitCoupled};
-use crate::bindings::python::integrals::{
-    PyBasisAngularOrder, PyStructureConstraint,
-};
+use crate::bindings::python::integrals::{PyBasisAngularOrder, PyStructureConstraint};
 use crate::bindings::python::representation_analysis::slater_determinant::PySlaterDeterminant;
 use crate::bindings::python::representation_analysis::{PyArray1RC, PyArray2RC};
 use crate::drivers::QSym2Driver;
@@ -32,15 +29,15 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::basis::EagerBasis;
+use crate::target::noci::basis::FCIBasis;
 use crate::target::noci::multideterminant::MultiDeterminant;
 use crate::target::noci::multideterminants::MultiDeterminants;
 
 type C128 = Complex<f64>;
 
 /// Python-exposed function to perform representation symmetry analysis for real and complex
-/// multi-determinantal wavefunctions constructed from an eager basis of Slater determinants and log
-/// the result via the `qsym2-output` logger at the `INFO` level.
+/// multi-determinantal wavefunctions constructed from a FCI basis based on a reference Slater
+/// determinant and log the result via the `qsym2-output` logger at the `INFO` level.
 ///
 /// If `symmetry_transformation_kind` includes spin transformation, the provided
 /// multi-determinantal wavefunctions will be augmented to generalised spin constraint
@@ -51,15 +48,18 @@ type C128 = Complex<f64>;
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
 /// representation analysis.
-/// * `pydets` - A list of Python-exposed Slater determinants whose coefficients are of type
-/// `float64` or `complex128`. These determinants serve as basis states for non-orthogonal
-/// configuration interaction to yield multi-determinantal wavefunctions, the symmetry of which will
-/// be analysed by this function.
+/// * `pydet` - The Python-exposed reference Slater determinants whose coefficients are of type
+/// `float64` or `complex128`. This determinant serves as the reference for the for
+/// full-configuration-interaction basis and should contain the full set of occupied and virtual
+/// molecular orbitals.
 /// * `coefficients` - The coefficient matrix where each column gives the linear combination
 /// coefficients for one multi-determinantal wavefunction. The number of rows must match the number
-/// of determinants specified in `pydets`. The elements are of type `float64` or `complex128`.
+/// of elements in the full-configuration-interaction basis, which is also the number of elements in
+/// `occupation_patterns`. The elements are of type `float64` or `complex128`.
 /// * `energies` - The `float64` or `complex128` energies of the multi-determinantal wavefunctions.
 /// The number of terms must match the number of columns of `coefficients`.
+/// * `occupation_patterns` - The occupation patterns of the determinants in the
+/// full-configuration-interaction basis. Each element specifies one determinant in the basis.
 /// * `pybaos` - Python-exposed structures containing basis angular order information, one for each
 /// explicit component per coefficient matrix.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
@@ -102,9 +102,10 @@ type C128 = Complex<f64>;
 #[pyfunction]
 #[pyo3(signature = (
     inp_sym,
-    pydets,
+    pydet,
     coefficients,
     energies,
+    occupation_patterns,
     pybaos,
     integrality_threshold,
     linear_independence_threshold,
@@ -122,12 +123,13 @@ type C128 = Complex<f64>;
     angular_function_linear_independence_threshold=1e-7,
     angular_function_max_angular_momentum=2
 ))]
-pub fn rep_analyse_multideterminants_eager_basis(
+pub fn rep_analyse_multideterminants_fci_basis(
     py: Python<'_>,
     inp_sym: PathBuf,
-    pydets: Vec<PySlaterDeterminant>,
+    pydet: PySlaterDeterminant,
     coefficients: PyArray2RC,
     energies: PyArray1RC,
+    occupation_patterns: Vec<Vec<Bound<'_, PyArray1<f64>>>>,
     pybaos: Vec<PyBasisAngularOrder>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
@@ -199,26 +201,21 @@ pub fn rep_analyse_multideterminants_eager_basis(
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-    let all_real = pydets
-        .iter()
-        .all(|pydet| matches!(pydet, PySlaterDeterminant::Real(_)));
+    let real = matches!(pydet, PySlaterDeterminant::Real(_));
 
-    let structure_constraints_set = pydets
-        .iter()
-        .map(|pydet| match pydet {
-            PySlaterDeterminant::Real(pydet) => pydet.structure_constraint().clone(),
-            PySlaterDeterminant::Complex(pydet) => pydet.structure_constraint().clone(),
-        })
-        .collect::<HashSet<_>>();
-    if structure_constraints_set.len() != 1 {
-        return Err(PyRuntimeError::new_err(
-            "Inconsistent structure constraints across origin determinants.`",
-        ));
+    let structure_constraint = match pydet {
+        PySlaterDeterminant::Real(ref pd) => pd.structure_constraint().clone(),
+        PySlaterDeterminant::Complex(ref pd) => pd.structure_constraint().clone(),
     };
-    let structure_constraint = structure_constraints_set
-        .iter()
-        .next()
-        .ok_or_else(|| PyRuntimeError::new_err("Unable to retrieve the structure constraint."))?;
+
+    let occupation_patterns = occupation_patterns
+        .into_iter()
+        .map(|occs| {
+            occs.into_iter()
+                .map(|occ| occ.to_owned_array())
+                .collect_vec()
+        })
+        .collect_vec();
 
     // Decision tree:
     // - all real numerical data?
@@ -239,7 +236,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
     //         - use_magnetic_group:
     //           + Some(Corepresentation)
     //           + Some(Representation) | None
-    match (all_real, &coefficients, &energies, &sao) {
+    match (real, &coefficients, &energies, &sao) {
         (
             true,
             PyArray2RC::Real(pycoefficients_r),
@@ -247,7 +244,6 @@ pub fn rep_analyse_multideterminants_eager_basis(
             PyArray2RC::Real(pysao_r),
         ) => {
             // Real numeric data type
-
             if matches!(
                 structure_constraint,
                 PyStructureConstraint::SpinOrbitCoupled(_)
@@ -261,43 +257,40 @@ pub fn rep_analyse_multideterminants_eager_basis(
             let sao_r = pysao_r.to_owned_array();
             let coefficients_r = pycoefficients_r.to_owned_array();
             let energies_r = pyenergies_r.to_owned_array();
-            let dets_r = if augment_to_generalised {
-                pydets
-                    .iter()
-                    .map(|pydet| {
-                        if let PySlaterDeterminant::Real(pydet_r) = pydet {
-                            pydet_r
-                                .to_qsym2(&baos_ref, mol)
-                                .map(|det_r| det_r.to_generalised())
-                        } else {
-                            bail!("Unexpected complex type for a Slater determinant.")
-                        }
-                    })
-                    .collect::<Result<Vec<_>, _>>()
+            let det_r = if augment_to_generalised {
+                if let PySlaterDeterminant::Real(ref pydet_r) = pydet {
+                    pydet_r
+                        .to_qsym2(&baos_ref, mol)
+                        .map(|det_r_inner| det_r_inner.to_generalised())
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                } else {
+                    Err(PyRuntimeError::new_err(
+                        "Unexpected complex type for a Slater determinant.".to_string(),
+                    ))
+                }
             } else {
-                pydets
-                    .iter()
-                    .map(|pydet| {
-                        if let PySlaterDeterminant::Real(pydet_r) = pydet {
-                            pydet_r.to_qsym2(&baos_ref, mol)
-                        } else {
-                            bail!("Unexpected complex type for a Slater determinant.")
-                        }
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            }
-            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                if let PySlaterDeterminant::Real(ref pydet_r) = pydet {
+                    pydet_r
+                        .to_qsym2(&baos_ref, mol)
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                } else {
+                    Err(PyRuntimeError::new_err(
+                        "Unexpected complex type for a Slater determinant.".to_string(),
+                    ))
+                }
+            }?;
 
             let n_energies = energies_r.len();
             if coefficients_r.shape()[1] != n_energies {
                 return Err(PyRuntimeError::new_err(
-                    "Mismatched number of NOCI energies and number of NOCI states.",
+                    "Mismatched number of FCI energies and number of FCI states.",
                 ));
             }
 
-            // Construct the eager basis
-            let eager_basis = EagerBasis::builder()
-                .elements(dets_r)
+            // Construct the FCI basis
+            let fci_basis = FCIBasis::builder()
+                .reference(det_r)
+                .occupation_patterns(occupation_patterns)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -307,7 +300,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                 .zip(coefficients_r.columns())
                 .map(|(energy, coeffs)| {
                     MultiDeterminant::builder()
-                        .basis(eager_basis.clone())
+                        .basis(fci_basis.clone())
                         .coefficients(coeffs.to_owned())
                         .threshold(1e-7)
                         .energy(Ok(*energy))
@@ -396,48 +389,43 @@ pub fn rep_analyse_multideterminants_eager_basis(
 
             match structure_constraint {
                 PyStructureConstraint::SpinConstraint(_) => {
-                    let dets_c = if augment_to_generalised {
-                        pydets
-                            .iter()
-                            .map(|pydet| match pydet {
-                                PySlaterDeterminant::Real(pydet_r) => pydet_r
-                                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
-                                    .map(|det_r| {
-                                        SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
-                                            .to_generalised()
-                                    }),
-                                PySlaterDeterminant::Complex(pydet_c) => pydet_c
-                                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
-                                    .map(|det_c| det_c.to_generalised()),
-                            })
-                            .collect::<Result<Vec<_>, _>>()
+                    let det_c = if augment_to_generalised {
+                        match pydet {
+                            PySlaterDeterminant::Real(ref pydet_r) => pydet_r
+                                .to_qsym2::<SpinConstraint>(&baos_ref, mol)
+                                .map(|det_r| {
+                                    SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
+                                        .to_generalised()
+                                }),
+                            PySlaterDeterminant::Complex(ref pydet_c) => pydet_c
+                                .to_qsym2::<SpinConstraint>(&baos_ref, mol)
+                                .map(|det_c| det_c.to_generalised()),
+                        }
                     } else {
-                        pydets
-                            .iter()
-                            .map(|pydet| match pydet {
-                                PySlaterDeterminant::Real(pydet_r) => pydet_r
-                                    .to_qsym2::<SpinConstraint>(&baos_ref, mol)
-                                    .map(|det_r| {
-                                        SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
-                                    }),
-                                PySlaterDeterminant::Complex(pydet_c) => {
-                                    pydet_c.to_qsym2::<SpinConstraint>(&baos_ref, mol)
-                                }
-                            })
-                            .collect::<Result<Vec<_>, _>>()
+                        match pydet {
+                            PySlaterDeterminant::Real(ref pydet_r) => pydet_r
+                                .to_qsym2::<SpinConstraint>(&baos_ref, mol)
+                                .map(|det_r| {
+                                    SlaterDeterminant::<C128, SpinConstraint>::from(det_r)
+                                }),
+                            PySlaterDeterminant::Complex(ref pydet_c) => {
+                                pydet_c.to_qsym2::<SpinConstraint>(&baos_ref, mol)
+                            }
+                        }
                     }
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     let n_energies = energies_c.len();
                     if coefficients_c.shape()[1] != n_energies {
                         return Err(PyRuntimeError::new_err(
-                            "Mismatched number of NOCI energies and number of NOCI states.",
+                            "Mismatched number of FCI energies and number of FCI states.",
                         ));
                     }
 
-                    // Construct the eager basis
-                    let eager_basis = EagerBasis::builder()
-                        .elements(dets_c)
+                    // Construct the FCI basis
+                    let fci_basis = FCIBasis::builder()
+                        .reference(det_c)
+                        .occupation_patterns(occupation_patterns)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -447,7 +435,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         .zip(coefficients_c.columns())
                         .map(|(energy, coeffs)| {
                             MultiDeterminant::builder()
-                                .basis(eager_basis.clone())
+                                .basis(fci_basis.clone())
                                 .coefficients(coeffs.to_owned())
                                 .threshold(1e-7)
                                 .energy(Ok(*energy))
@@ -511,31 +499,27 @@ pub fn rep_analyse_multideterminants_eager_basis(
                     }
                 }
                 PyStructureConstraint::SpinOrbitCoupled(_) => {
-                    let dets_c = pydets
-                        .iter()
-                        .map(|pydet| match pydet {
-                            PySlaterDeterminant::Real(pydet_r) => pydet_r
-                                .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
-                                .map(|det_r| {
-                                    SlaterDeterminant::<C128, SpinOrbitCoupled>::from(det_r)
-                                }),
-                            PySlaterDeterminant::Complex(pydet_c) => {
-                                pydet_c.to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
-                            }
-                        })
-                        .collect::<Result<Vec<_>, _>>()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    let det_c = match pydet {
+                        PySlaterDeterminant::Real(ref pydet_r) => pydet_r
+                            .to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
+                            .map(SlaterDeterminant::<C128, SpinOrbitCoupled>::from),
+                        PySlaterDeterminant::Complex(ref pydet_c) => {
+                            pydet_c.to_qsym2::<SpinOrbitCoupled>(&baos_ref, mol)
+                        }
+                    }
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
                     let n_energies = energies_c.len();
                     if coefficients_c.shape()[1] != n_energies {
                         return Err(PyRuntimeError::new_err(
-                            "Mismatched number of NOCI energies and number of NOCI states.",
+                            "Mismatched number of FCI energies and number of FCI states.",
                         ));
                     }
 
-                    // Construct the eager basis
-                    let eager_basis = EagerBasis::builder()
-                        .elements(dets_c)
+                    // Construct the FCI basis
+                    let fci_basis = FCIBasis::builder()
+                        .reference(det_c)
+                        .occupation_patterns(occupation_patterns)
                         .build()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -545,7 +529,7 @@ pub fn rep_analyse_multideterminants_eager_basis(
                         .zip(coefficients_c.columns())
                         .map(|(energy, coeffs)| {
                             MultiDeterminant::builder()
-                                .basis(eager_basis.clone())
+                                .basis(fci_basis.clone())
                                 .coefficients(coeffs.to_owned())
                                 .threshold(1e-7)
                                 .energy(Ok(*energy))
