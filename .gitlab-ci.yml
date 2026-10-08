@@ -7,6 +7,7 @@ variables:
 stages:
   - Build
   - Unit Tests
+  - Coverage
   - Deploy
 
 check:
@@ -45,7 +46,7 @@ unit_tests:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 coverage:
-  stage: Unit Tests
+  stage: Coverage
   tags:
     - archon
   before_script:
