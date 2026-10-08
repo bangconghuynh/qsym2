@@ -37,7 +37,7 @@ unit_tests:
     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
     - cargo binstall cargo-nextest --secure
   script:
-    - cargo nextest -r -j8 --run-ignored=all --features=full,python,sandbox
+    - cargo nextest run -r -j8 --run-ignored=all --features=full,python,sandbox
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
