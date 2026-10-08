@@ -7,7 +7,6 @@ variables:
 stages:
   - Build
   - Unit Tests
-  - Coverage
   - Deploy
 
 check:
@@ -37,26 +36,9 @@ unit_tests:
     - apt-get install gfortran build-essential cmake libhdf5-dev -y
     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
     - cargo binstall cargo-nextest --secure
-  script:
-    - cargo nextest run -r -j8 --run-ignored=all --features=full,python,sandbox
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-coverage:
-  stage: Coverage
-  tags:
-    - archon
-  before_script:
-    - apt-get update
-    - apt-get install gfortran build-essential cmake libhdf5-dev -y
-    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall cargo-nextest --secure
     - cargo install cargo-llvm-cov
   script:
-    - cargo llvm-cov nextest -r -j8 --features=full,sandbox --cobertura --output-path=target/llvm-cov-target/cobertura.xml
+    - cargo llvm-cov nextest -r -j8 --features=full,sandbox --run-ignored=all --cobertura --output-path=target/llvm-cov-target/cobertura.xml
   coverage: '/TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/'
   artifacts:
     reports:
