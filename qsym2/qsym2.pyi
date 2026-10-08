@@ -1233,7 +1233,7 @@ def rep_analyse_multideterminants_fci_basis(
     Parameters:
         inp_sym: A path to the `QSym2FileType::Sym` file containing the symmetry-group detection result for the system. This will be used to construct abstract groups and character tables for representation analysis.
 
-        pydet: The Python-exposed reference Slater determinants whose coefficients are of type `float64` or `complex128`. This determinant serves as the reference for the for full-configuration-interaction basis and should contain the full set of occupied and virtual molecular orbitals.
+        pydet: The Python-exposed reference Slater determinants whose coefficients are of type `float64` or `complex128`. This determinant serves as the reference for the full-configuration-interaction basis and should contain the full set of occupied and virtual molecular orbitals.
 
         coefficients: The coefficient matrix where each column gives the linear combination coefficients for one multi-determinantal wavefunction. The number of rows must match the number of determinants specified in `pydets`.
 

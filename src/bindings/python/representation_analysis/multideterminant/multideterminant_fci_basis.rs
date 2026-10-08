@@ -49,7 +49,7 @@ type C128 = Complex<f64>;
 /// result for the system. This will be used to construct abstract groups and character tables for
 /// representation analysis.
 /// * `pydet` - The Python-exposed reference Slater determinants whose coefficients are of type
-/// `float64` or `complex128`. This determinant serves as the reference for the for
+/// `float64` or `complex128`. This determinant serves as the reference for the
 /// full-configuration-interaction basis and should contain the full set of occupied and virtual
 /// molecular orbitals.
 /// * `coefficients` - The coefficient matrix where each column gives the linear combination
