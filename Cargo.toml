@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.13.2"
+version = "0.14.0"
 edition = "2024"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
@@ -21,7 +21,7 @@ divisors = "0.2"
 duplicate = "2.0"
 factorial = "0.4"
 fraction = { version = "0.15", features = ["with-serde-support"] }
-hdf5 = { package = "hdf5-metno", version = "0.14" }
+hdf5 = { package = "hdf5-metno", version = "0.15" }
 hdf5-sys = { package = "hdf5-metno-sys", version = "0.12", features = ["static"] }
 numeric-sort = "0.1"
 itertools = "0.14"
