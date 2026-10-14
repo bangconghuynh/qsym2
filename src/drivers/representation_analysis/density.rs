@@ -67,6 +67,9 @@ pub struct DensityRepAnalysisParams<T: From<f64>> {
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
     pub linear_independence_threshold: T,
 
+    /// Threshold for checking symmetry of the orbit overlap matrix.
+    pub orbit_overlap_symmetry_threshold: f64,
+
     /// Option indicating if the magnetic group is to be used for symmetry analysis, and if so,
     /// whether unitary representations or unitary-antiunitary corepresentations should be used.
     #[builder(default = "None")]
@@ -123,6 +126,7 @@ impl Default for DensityRepAnalysisParams<f64> {
         Self::builder()
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .build()
             .expect("Unable to construct a default `DensityRepAnalysisParams<f64>`.")
     }
@@ -142,6 +146,11 @@ where
             f,
             "Linear independence threshold: {:.3e}",
             self.linear_independence_threshold
+        )?;
+        writeln!(
+            f,
+            "Orbit-overlap symmetry threshold: {:.3e}",
+            self.orbit_overlap_symmetry_threshold
         )?;
         writeln!(
             f,
@@ -638,6 +647,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
                     .origin(den)
                     .integrality_threshold(params.integrality_threshold)
                     .linear_independence_threshold(params.linear_independence_threshold)
+                    .orbit_overlap_symmetry_threshold(params.orbit_overlap_symmetry_threshold)
                     .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
                     .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                     .build()

@@ -68,6 +68,9 @@ pub struct RealSpaceFunctionRepAnalysisParams<T: From<f64>> {
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
     pub linear_independence_threshold: T,
 
+    /// Threshold for checking symmetry of the orbit overlap matrix.
+    pub orbit_overlap_symmetry_threshold: T,
+
     /// Option indicating if the magnetic group is to be used for symmetry analysis, and if so,
     /// whether unitary representations or unitary-antiunitary corepresentations should be used.
     #[builder(default = "None")]
@@ -525,6 +528,7 @@ where
             .group(&group)
             .integrality_threshold(params.integrality_threshold)
             .linear_independence_threshold(params.linear_independence_threshold)
+            .orbit_overlap_symmetry_threshold(params.orbit_overlap_symmetry_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
             .build()?;
