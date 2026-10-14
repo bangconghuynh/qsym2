@@ -162,6 +162,9 @@ where
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
     pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
 
+    /// The threshold for checking symmetry of the orbit overlap matrix.
+    orbit_overlap_symmetry_threshold: <T as ComplexFloat>::Real,
+
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
@@ -224,6 +227,7 @@ where
         eig_comp_mode: EigenvalueComparisonMode,
         integrality_thresh: <T as ComplexFloat>::Real,
         linear_independence_thresh: <T as ComplexFloat>::Real,
+        orbit_overlap_symmetry_threshold: <T as ComplexFloat>::Real,
     ) -> Vec<Vec<Self>> {
         orbitals
             .iter()
@@ -236,6 +240,7 @@ where
                             .origin(orb)
                             .integrality_threshold(integrality_thresh)
                             .linear_independence_threshold(linear_independence_thresh)
+                            .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
                             .symmetry_transformation_kind(sym_kind.clone())
                             .eigenvalue_comparison_mode(eig_comp_mode.clone())
                             .build()
@@ -400,6 +405,10 @@ where
         }
     }
 
+    fn orbit_overlap_symmetry_threshold(&self) -> <T as ComplexFloat>::Real {
+        self.orbit_overlap_symmetry_threshold
+    }
+
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
         self.integrality_threshold
     }
@@ -481,6 +490,8 @@ where
 /// * `integrality_threshold` - The threshold of integrality check of multiplicity coefficients in
 ///   each orbit.
 /// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
+/// * `orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry of each orbit
+///   overlap matrix.
 /// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
 /// * `eigenvalue_comparison_mode` - The mode of comparing the overlap eigenvalues to the specified
 ///   `linear_independence_threshold`.
@@ -502,6 +513,7 @@ pub fn generate_det_mo_orbits<'a, G, T, SC>(
     metric_h: Option<&Array2<T>>,
     integrality_threshold: <T as ComplexFloat>::Real,
     linear_independence_threshold: <T as ComplexFloat>::Real,
+    orbit_overlap_symmetry_threshold: <T as ComplexFloat>::Real,
     symmetry_transformation_kind: SymmetryTransformationKind,
     eigenvalue_comparison_mode: EigenvalueComparisonMode,
     use_cayley_table: bool,
@@ -536,6 +548,7 @@ where
         .origin(det)
         .integrality_threshold(integrality_threshold)
         .linear_independence_threshold(linear_independence_threshold)
+        .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
         .symmetry_transformation_kind(symmetry_transformation_kind.clone())
         .eigenvalue_comparison_mode(eigenvalue_comparison_mode.clone())
         .build()
@@ -547,6 +560,7 @@ where
         eigenvalue_comparison_mode,
         integrality_threshold,
         linear_independence_threshold,
+        orbit_overlap_symmetry_threshold
     );
 
     let mut det_smat = Array2::<T>::zeros((order, order));

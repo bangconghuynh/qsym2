@@ -54,3 +54,4 @@ analysis_targets:
     control:
       integrality_threshold: 1e-7
       linear_independence_threshold: 1e-7
+      orbit_overlap_symmetry_threshold: 1e-7

@@ -157,6 +157,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .origin(&det_d3_cg)
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
+        .orbit_overlap_symmetry_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
@@ -175,6 +176,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         &orbs_d3_cg,
         SymmetryTransformationKind::Spatial,
         EigenvalueComparisonMode::Modulus,
+        1e-14,
         1e-14,
         1e-14,
     )
@@ -208,6 +210,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .origin(&det_d3_cg)
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
+        .orbit_overlap_symmetry_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
@@ -227,6 +230,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         &orbs_d3_cg,
         SymmetryTransformationKind::SpinSpatial,
         EigenvalueComparisonMode::Modulus,
+        1e-13,
         1e-13,
         1e-13,
     )
@@ -373,6 +377,7 @@ fn test_orbital_transformation_bf4_sqpl_jadapted() {
         EigenvalueComparisonMode::Modulus,
         1e-13,
         1e-13,
+        1e-13,
     )
     .into_iter()
     .flatten();
@@ -503,6 +508,7 @@ fn test_orbital_projection_vf6_oct_lex_order() {
         .origin(&mo_dyy)
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
+        .orbit_overlap_symmetry_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
@@ -524,6 +530,7 @@ fn test_orbital_projection_vf6_oct_lex_order() {
             .origin(&dyy_p)
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
@@ -555,6 +562,7 @@ fn test_orbital_projection_vf6_oct_lex_order() {
             .origin(&dyy_p)
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
@@ -577,6 +585,7 @@ fn test_orbital_projection_vf6_oct_lex_order() {
         .origin(&mo_dyy)
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
+        .orbit_overlap_symmetry_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
@@ -598,6 +607,7 @@ fn test_orbital_projection_vf6_oct_lex_order() {
             .origin(&dyy_p)
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
@@ -620,6 +630,7 @@ fn test_orbital_projection_vf6_oct_lex_order() {
             .origin(&dyy_p)
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
@@ -748,6 +759,7 @@ fn test_orbital_projection_bf4_sqpl_jadapted() {
         .origin(&mo)
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
+        .orbit_overlap_symmetry_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
@@ -769,6 +781,7 @@ fn test_orbital_projection_bf4_sqpl_jadapted() {
             .origin(&mo_p)
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
@@ -791,6 +804,7 @@ fn test_orbital_projection_bf4_sqpl_jadapted() {
             .origin(&mo_p)
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()

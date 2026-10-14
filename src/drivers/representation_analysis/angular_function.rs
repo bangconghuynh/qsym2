@@ -45,6 +45,10 @@ pub struct AngularFunctionRepAnalysisParams {
     #[builder(default = "1e-7")]
     pub linear_independence_threshold: f64,
 
+    /// Threshold for checking symmetry of the orbit overlap matrix.
+    #[builder(default = "1e-7")]
+    pub orbit_overlap_symmetry_threshold: f64,
+
     /// The maximum angular momentum degree to be analysed.
     #[builder(default = "2")]
     pub max_angular_momentum: u32,
@@ -151,6 +155,7 @@ where
                             None, // Is this right for complex spherical harmonics?
                             params.integrality_threshold,
                             params.linear_independence_threshold,
+                            params.orbit_overlap_symmetry_threshold,
                             SymmetryTransformationKind::Spatial,
                             EigenvalueComparisonMode::Real,
                             true,
@@ -225,6 +230,7 @@ where
                 .origin(&rv)
                 .integrality_threshold(params.integrality_threshold)
                 .linear_independence_threshold(params.linear_independence_threshold)
+                .orbit_overlap_symmetry_threshold(params.orbit_overlap_symmetry_threshold)
                 .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
                 .eigenvalue_comparison_mode(EigenvalueComparisonMode::Real)
                 .build()
@@ -515,6 +521,7 @@ where
                             None, // Is this right for complex spherical harmonics?
                             params.integrality_threshold,
                             params.linear_independence_threshold,
+                            params.orbit_overlap_symmetry_threshold,
                             SymmetryTransformationKind::SpinSpatial,
                             EigenvalueComparisonMode::Modulus,
                             true,

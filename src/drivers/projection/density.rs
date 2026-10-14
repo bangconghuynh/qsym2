@@ -482,6 +482,7 @@ impl<'a> DensityProjectionDriver<'a, gtype_, dtype_> {
                     .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
                     .integrality_threshold(1e-14)
                     .linear_independence_threshold(1e-14)
+                    .orbit_overlap_symmetry_threshold(1e-14)
                     .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
                     .build()
                     .map_err(|err| format_err!(err))

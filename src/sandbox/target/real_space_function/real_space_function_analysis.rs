@@ -134,6 +134,9 @@ where
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
     pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
 
+    /// The threshold for checking symmetry of the orbit overlap matrix.
+    orbit_overlap_symmetry_threshold: <T as ComplexFloat>::Real,
+
     /// The threshold for determining if calculated multiplicities in representation analysis are
     /// integral.
     integrality_threshold: <T as ComplexFloat>::Real,
@@ -339,6 +342,10 @@ where
         } else {
             Ok(|x| x)
         }
+    }
+
+    fn orbit_overlap_symmetry_threshold(&self) -> <T as ComplexFloat>::Real {
+        self.orbit_overlap_symmetry_threshold
     }
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {

@@ -159,6 +159,7 @@ fn test_drivers_density_analysis_s4_sqpl_pxpy() {
     let da_params = DensityRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
+        .orbit_overlap_symmetry_threshold(1e-10)
         .use_magnetic_group(None)
         .use_double_group(false)
         .use_cayley_table(true)

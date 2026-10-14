@@ -629,6 +629,7 @@ def rep_analyse_slater_determinant(
     pybaos: Sequence[PyBasisAngularOrder],
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -647,6 +648,7 @@ def rep_analyse_slater_determinant(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> PySlaterDeterminantRepAnalysisResult:
     r"""
@@ -667,6 +669,8 @@ def rep_analyse_slater_determinant(
         integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
 
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
@@ -703,6 +707,8 @@ def rep_analyse_slater_determinant(
         angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
 
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
 
@@ -778,6 +784,7 @@ def rep_analyse_densities(
     pybao: PyBasisAngularOrder,
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -789,6 +796,7 @@ def rep_analyse_densities(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> None:
     r"""
@@ -806,6 +814,8 @@ def rep_analyse_densities(
         integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
 
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
@@ -828,6 +838,8 @@ def rep_analyse_densities(
         angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
 
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
     """
@@ -907,6 +919,7 @@ def rep_analyse_vibrational_coordinate_collection(
     pyvibs: PyVibrationalCoordinateCollection,
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -916,6 +929,7 @@ def rep_analyse_vibrational_coordinate_collection(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> None:
     r"""
@@ -931,6 +945,8 @@ def rep_analyse_vibrational_coordinate_collection(
         integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
 
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
@@ -949,6 +965,8 @@ def rep_analyse_vibrational_coordinate_collection(
         angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
 
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
     """
@@ -1133,6 +1151,7 @@ def rep_analyse_multideterminants_eager_basis(
     pybaos: Sequence[PyBasisAngularOrder],
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -1145,6 +1164,7 @@ def rep_analyse_multideterminants_eager_basis(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> None:
     r"""
@@ -1168,6 +1188,8 @@ def rep_analyse_multideterminants_eager_basis(
         integrality_threshold: The threshold for verifying if subspace multiplicities are integral.
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
+
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
 
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
@@ -1193,6 +1215,8 @@ def rep_analyse_multideterminants_eager_basis(
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
 
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
+
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
     """
 
@@ -1209,6 +1233,7 @@ def rep_analyse_multideterminants_fci_basis(
     pybaos: Sequence[PyBasisAngularOrder],
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -1221,6 +1246,7 @@ def rep_analyse_multideterminants_fci_basis(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> None:
     r"""
@@ -1247,6 +1273,8 @@ def rep_analyse_multideterminants_fci_basis(
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
 
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
+
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
         use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
@@ -1270,6 +1298,8 @@ def rep_analyse_multideterminants_fci_basis(
         angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
 
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
     """
@@ -1296,6 +1326,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     calculate_density_matrices: bool,
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -1307,6 +1338,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> PyMultiDeterminants:
     r"""
@@ -1343,6 +1375,8 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
 
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
+
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
         use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
@@ -1364,6 +1398,8 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
         angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
 
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
 
@@ -1387,6 +1423,7 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
     density_matrix_calculation_thresholds: tuple[float, float] | None,
     integrality_threshold: float,
     linear_independence_threshold: float,
+    orbit_overlap_symmetry_threshold: float,
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -1399,6 +1436,7 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
     infinite_order_to_finite: int | None = None,
     angular_function_integrality_threshold: float = 1e-7,
     angular_function_linear_independence_threshold: float = 1e-7,
+    angular_function_orbit_overlap_symmetry_threshold: float = 1e-7,
     angular_function_max_angular_momentum: int = 2,
 ) -> PyMultiDeterminants:
     r"""
@@ -1423,6 +1461,8 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
 
         linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix.
 
+        orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrix.
+
         use_magnetic_group: An option indicating if the magnetic group is to be used for symmetry analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations should be used.
 
         use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
@@ -1446,6 +1486,8 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
         angular_function_integrality_threshold: The threshold for verifying if subspace multiplicities are integral for the symmetry analysis of angular functions.
 
         angular_function_linear_independence_threshold: The threshold for determining the linear independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry analysis of angular functions.
+
+        angular_function_orbit_overlap_symmetry_threshold: The threshold for checking the symmetry of the orbit overlap matrices for the symmetry analysis of angular functions.
 
         angular_function_max_angular_momentum: The maximum angular momentum order to be used in angular function symmetry analysis.
 
