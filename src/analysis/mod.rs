@@ -18,6 +18,7 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::auxiliary::misc::check_complex_matrix_symmetry;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{CharacterTable, DecompositionError, SubspaceDecomposable};
 use crate::group::{GroupProperties, class::ClassProperties};
@@ -190,7 +191,7 @@ impl fmt::Display for EigenvalueComparisonMode {
 pub trait RepAnalysis<G, I, T, D>: Orbit<G, I>
 where
     T: ComplexFloat + Lapack + fmt::Debug,
-    <T as ComplexFloat>::Real: ToPrimitive,
+    <T as ComplexFloat>::Real: ToPrimitive + fmt::LowerExp + fmt::Display,
     G: GroupProperties + ClassProperties + CharacterProperties,
     G::GroupElement: fmt::Display,
     G::CharTab: SubspaceDecomposable<T>,
@@ -257,6 +258,10 @@ where
     /// corepresentation multiplicities.
     #[must_use]
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real;
+
+    /// Returns the threshold for symmetry checks of orbit overlap matrices.
+    #[must_use]
+    fn orbit_overlap_symmetry_threshold(&self) -> <T as ComplexFloat>::Real;
 
     /// Returns the enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
@@ -347,8 +352,22 @@ where
             }
         }
         if self.origin().complex_symmetric() {
+        let _ = check_complex_matrix_symmetry(
+            &smat.view(),
+            true,
+            self.orbit_overlap_symmetry_threshold(),
+            "Orbit overlap",
+            "S_orbit",
+        );
             self.set_smat((smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())))
         } else {
+            let _ = check_complex_matrix_symmetry(
+                &smat.view(),
+                false,
+                self.orbit_overlap_symmetry_threshold(),
+                "Orbit overlap",
+                "S_orbit",
+            );
             self.set_smat(
                 (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
                     .mapv(|x| x / (T::one() + T::one())),
@@ -644,7 +663,7 @@ where
 pub trait ProjectionDecomposition<G, I, T, D>: RepAnalysis<G, I, T, D>
 where
     T: ComplexFloat + Lapack + fmt::Debug,
-    <T as ComplexFloat>::Real: ToPrimitive,
+    <T as ComplexFloat>::Real: ToPrimitive + fmt::LowerExp + fmt::Display,
     G: GroupProperties + ClassProperties + CharacterProperties + Sync + Send,
     <G as CharacterProperties>::RowSymbol: Sync + Send,
     G::GroupElement: fmt::Display,

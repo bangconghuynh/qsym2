@@ -31,7 +31,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::backend::solver::check_complex_matrix_symmetry;
+use crate::auxiliary::misc::check_complex_matrix_symmetry;
 use crate::target::noci::basis::{Basis, FCIBasis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 use crate::{
@@ -150,8 +150,11 @@ where
     /// The origin multi-determinantal wavefunction of the orbit.
     origin: &'o MultiDeterminant<'a, T, B, SC>,
 
-    /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
+    /// The threshold for determining linear independence from orbit overlap matrices.
     pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
+
+    /// The threshold for checking symmetry of the orbit overlap matrix.
+    orbit_overlap_symmetry_threshold: <T as ComplexFloat>::Real,
 
     /// The threshold for determining if calculated multiplicities in representation analysis are
     /// integral.
@@ -363,6 +366,10 @@ where
         } else {
             Ok(|x| x)
         }
+    }
+
+    fn orbit_overlap_symmetry_threshold(&self) -> <T as ComplexFloat>::Real {
+        self.orbit_overlap_symmetry_threshold
     }
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
@@ -594,7 +601,7 @@ where
                 let _ = check_complex_matrix_symmetry(
                     &smat.view(),
                     true,
-                    self.linear_independence_threshold,
+                    self.orbit_overlap_symmetry_threshold,
                     "Orbit overlap",
                     "S_orbit",
                 );
@@ -605,7 +612,7 @@ where
                 let _ = check_complex_matrix_symmetry(
                     &smat.view(),
                     false,
-                    self.linear_independence_threshold,
+                    self.orbit_overlap_symmetry_threshold,
                     "Orbit overlap",
                     "S_orbit",
                 );
@@ -738,7 +745,7 @@ where
                 let _ = check_complex_matrix_symmetry(
                     &smat.view(),
                     true,
-                    self.linear_independence_threshold,
+                    self.orbit_overlap_symmetry_threshold,
                     "Orbit overlap",
                     "S_orbit",
                 );
@@ -749,7 +756,7 @@ where
                 let _ = check_complex_matrix_symmetry(
                     &smat.view(),
                     false,
-                    self.linear_independence_threshold,
+                    self.orbit_overlap_symmetry_threshold,
                     "Orbit overlap",
                     "S_orbit",
                 );

@@ -122,6 +122,8 @@ macro_rules! generate_noci_solver {
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
 /// subspace via the non-zero eigenvalues of the orbit overlap matrix.
+/// * `orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry of the orbit
+/// overlap matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
 /// should be used.
@@ -164,6 +166,7 @@ macro_rules! generate_noci_solver {
     density_matrix_calculation_thresholds,
     integrality_threshold,
     linear_independence_threshold,
+    orbit_overlap_symmetry_threshold,
     use_magnetic_group,
     use_double_group,
     use_cayley_table,
@@ -187,6 +190,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     density_matrix_calculation_thresholds: Option<(f64, f64)>,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
+    orbit_overlap_symmetry_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -240,6 +244,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
     let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(integrality_threshold)
         .linear_independence_threshold(linear_independence_threshold)
+        .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
         .use_magnetic_group(use_magnetic_group.clone())
         .use_double_group(use_double_group)
         .use_cayley_table(use_cayley_table)

@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::noci::backend::solver::check_complex_matrix_symmetry;
+use crate::auxiliary::misc::check_complex_matrix_symmetry;
 use crate::target::noci::basis::Basis;
 use crate::target::noci::multideterminant::MultiDeterminant;
 use crate::target::noci::multideterminants::MultiDeterminants;
@@ -51,8 +51,11 @@ where
     /// The origin multi-determinantal wavefunction collection of the orbit.
     origin: &'a MultiDeterminants<'a, T, B, SC>,
 
+    // /// The threshold for determining linear independence from orbit overlap matrices.
+    // linear_independence_threshold: <T as ComplexFloat>::Real,
+
     /// The threshold for checking the symmetry of orbit overlap matrices.
-    linear_independence_threshold: <T as ComplexFloat>::Real,
+    orbit_overlap_symmetry_threshold: <T as ComplexFloat>::Real,
 
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
@@ -306,7 +309,7 @@ where
                     check_complex_matrix_symmetry(
                         &smat,
                         true,
-                        self.linear_independence_threshold,
+                        self.orbit_overlap_symmetry_threshold,
                         &format!("Orbit overlap (multi-determinantal state {i})"),
                         &format!("S_orbit_{i}"),
                     )
@@ -314,7 +317,7 @@ where
                     check_complex_matrix_symmetry(
                         &smat.view(),
                         false,
-                        self.linear_independence_threshold,
+                        self.orbit_overlap_symmetry_threshold,
                         &format!("Orbit overlap (multi-determinantal state {i})"),
                         &format!("S_orbit_{i}"),
                     )
