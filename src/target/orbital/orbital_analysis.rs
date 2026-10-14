@@ -491,7 +491,7 @@ where
 ///   each orbit.
 /// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
 /// * `orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry of each orbit
-/// overlap matrix.
+///   overlap matrix.
 /// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
 /// * `eigenvalue_comparison_mode` - The mode of comparing the overlap eigenvalues to the specified
 ///   `linear_independence_threshold`.
