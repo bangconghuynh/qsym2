@@ -1082,7 +1082,7 @@ pub trait CanonicalOrthogonalisable {
     ///   orthogonal.
     /// * `thresh_zeroov` - Threshold for determining zero eigenvalues of the input square matrix.
     /// * `eigenvalue_comparison_mode` - Enumerated type indicating the mode of comparing and
-    /// determining zero eigenvalues.
+    ///   determining zero eigenvalues.
     ///
     /// # Returns
     ///
