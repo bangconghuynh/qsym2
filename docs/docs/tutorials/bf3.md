@@ -373,6 +373,7 @@ The required basis set information can therefore be extracted by adding the foll
         # Thresholds
         linear_independence_threshold=1e-7,
         integrality_threshold=1e-7,
+        orbit_overlap_symmetry_threshold=1e-7,
         eigenvalue_comparison_mode=EigenvalueComparisonMode.Real,
         # Analysis options
         use_magnetic_group=None,
@@ -465,6 +466,7 @@ However, we would also like to run a CCSD calculation based on the obtained UHF 
         # Thresholds
         linear_independence_threshold=1e-7,
         integrality_threshold=1e-7,
+        orbit_overlap_symmetry_threshold=1e-7,
         eigenvalue_comparison_mode=EigenvalueComparisonMode.Real,
         # Analysis options
         use_magnetic_group=None,

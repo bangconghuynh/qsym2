@@ -3,7 +3,7 @@ use ndarray::{array, Array1, Array2};
 use ndarray_linalg::assert::close_l2;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::target::noci::backend::nonortho::{calc_lowdin_pairing, CanonicalOrthogonalisable};
+use crate::{analysis::EigenvalueComparisonMode, target::noci::backend::nonortho::{CanonicalOrthogonalisable, calc_lowdin_pairing}};
 
 #[test]
 fn test_calc_lowdin_pairing_trivial() {
@@ -112,7 +112,7 @@ fn test_canonical_orthogonalisation_real_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -130,7 +130,7 @@ fn test_canonical_orthogonalisation_real_symmetric() {
     ];
     let xmat_res_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7);
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus);
     assert!(xmat_res_res.is_err());
 
     // Nullity = 1
@@ -144,7 +144,7 @@ fn test_canonical_orthogonalisation_real_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -163,7 +163,7 @@ fn test_canonical_orthogonalisation_real_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -182,7 +182,7 @@ fn test_canonical_orthogonalisation_real_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -202,7 +202,7 @@ fn test_canonical_orthogonalisation_real_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -223,7 +223,7 @@ fn test_canonical_orthogonalisation_complex_hermitian() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -246,7 +246,7 @@ fn test_canonical_orthogonalisation_complex_hermitian() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -268,7 +268,7 @@ fn test_canonical_orthogonalisation_complex_hermitian() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -290,7 +290,7 @@ fn test_canonical_orthogonalisation_complex_hermitian() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(false, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -315,7 +315,7 @@ fn test_canonical_orthogonalisation_complex_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
@@ -333,7 +333,7 @@ fn test_canonical_orthogonalisation_complex_symmetric() {
     ];
     let xmat_res = smat
         .view()
-        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7)
+        .calc_canonical_orthogonal_matrix(true, false, 1e-7, 1e-7, &EigenvalueComparisonMode::Modulus)
         .unwrap();
     let xmat = xmat_res.xmat();
     let xmat_d = xmat_res.xmat_d();
