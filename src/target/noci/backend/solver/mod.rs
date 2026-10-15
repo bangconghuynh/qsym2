@@ -156,6 +156,7 @@ impl GeneralisedEigenvalueSolvable for (&ArrayView2<'_, dtype_>, &ArrayView2<'_,
             false,
             thresh_offdiag,
             thresh_zeroov,
+            &eigenvalue_comparison_mode
         )?;
 
         let xmat = xmat_res.xmat();
@@ -374,6 +375,7 @@ where
             false,
             thresh_offdiag,
             thresh_zeroov,
+            &eigenvalue_comparison_mode
         )?;
 
         let xmat = xmat_res.xmat();
