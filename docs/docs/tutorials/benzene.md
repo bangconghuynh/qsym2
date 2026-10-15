@@ -99,6 +99,7 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
       control:
         integrality_threshold: 1e-6
         linear_independence_threshold: 1e-6
+        orbit_overlap_symmetry_threshold: 1e-7
         analyse_mo_symmetries: true
         analyse_mo_mirror_parities: false
         analyse_density_symmetries: false

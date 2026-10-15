@@ -82,22 +82,23 @@ The way to do this via the Python API is shown below.
         # Thresholds
         linear_independence_threshold=1e-6, #(11)!
         integrality_threshold=1e-6, #(12)!
-        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(13)!
+        orbit_overlap_symmetry_threshold=1e-7, #(13)!
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(14)!
         # Analysis options
-        use_magnetic_group=None, #(14)!
-        use_double_group=False, #(15)!
-        use_cayley_table=True, #(16)!
-        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(17)!
-        infinite_order_to_finite=None, #(18)!
+        use_magnetic_group=None, #(15)!
+        use_double_group=False, #(16)!
+        use_cayley_table=True, #(17)!
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(18)!
+        infinite_order_to_finite=None, #(19)!
         # Other options
-        write_character_table=True, #(19)!
-        write_overlap_eigenvalues=True, #(20)!
+        write_character_table=True, #(20)!
+        write_overlap_eigenvalues=True, #(21)!
     )
 
-    def complex_function(x, y, z): #(21)!
+    def complex_function(x, y, z): #(22)!
         return z**2 + 3j * x * (z**2 - y**2)
 
-    sandbox.rep_analyse_real_space_function_complex( #(22)!
+    sandbox.rep_analyse_real_space_function_complex( #(23)!
         # Data
         inp_sym="mol",
         function=complex_function,
@@ -106,6 +107,7 @@ The way to do this via the Python API is shown below.
         # Thresholds
         linear_independence_threshold=1e-6,
         integrality_threshold=1e-6,
+        orbit_overlap_symmetry_threshold=1e-7,
         eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus,
         # Analysis options
         use_magnetic_group=None,
@@ -136,37 +138,39 @@ The way to do this via the Python API is shown below.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).
     12. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    13. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+    13. :fontawesome-solid-users: This specifies a floating-point value for the threshold $\epsilon$ for checking the complex or Hermitian symmetry of orbit-overlap matrices.
+    For more information, see [Basics/#Thresholds](basics.md/#thresholds).
+    14. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
     </li>For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    14. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
+    15. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
         - `None`: this specifies choice 1 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
         - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
         - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
     </li>For more information, see [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups).
-    15. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
+    16. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
         - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
     </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
-    16. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
+    17. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    17. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+    18. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
         - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
-    18. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+    19. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
         - `None`: do not restrict infinite-order symmetry elements to finite order,
         - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
-    19. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
+    20. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    20. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the real-space function orbit should be printed out.
+    21. :fontawesome-solid-users: This boolean indicates if the eigenspectrum of the overlap matrix for the real-space function orbit should be printed out.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    21. :fontawesome-solid-users: This is an example complex-valued real-space function: $f(\mathbfit{r}) = z^2 + 3i \times x(z^2 - y^2)$.
-    22. :fontawesome-solid-users: This is the Python driver function for representation analysis of complex-valued real-space functions.
+    22. :fontawesome-solid-users: This is an example complex-valued real-space function: $f(\mathbfit{r}) = z^2 + 3i \times x(z^2 - y^2)$.
+    23. :fontawesome-solid-users: This is the Python driver function for representation analysis of complex-valued real-space functions.
     </br></br>:fontawesome-solid-laptop-code: This is a Python-exposed Rust function, [`rep_analyse_real_space_function_complex`](https://qsym2.dev/api/qsym2/sandbox/bindings/python/representation_analysis/real_space_function/fn.rep_analyse_real_space_function_complex.html). See the API documentation of this function for more details.

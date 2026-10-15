@@ -130,15 +130,16 @@ The way to do this is shown below.
         # Thresholds
         linear_independence_threshold=1e-7, #(17)!
         integrality_threshold=1e-7, #(18)!
-        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(19)!
+        orbit_overlap_symmetry_threshold=1e-7, #(19)!
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(20)!
         # Analysis options
-        use_magnetic_group=None, #(20)!
-        use_double_group=False, #(21)!
-        use_cayley_table=True, #(22)!
-        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(23)!
-        infinite_order_to_finite=None, #(24)!
+        use_magnetic_group=None, #(21)!
+        use_double_group=False, #(22)!
+        use_cayley_table=True, #(23)!
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial, #(24)!
+        infinite_order_to_finite=None, #(25)!
         # Other options
-        write_character_table=True, #(25)!
+        write_character_table=True, #(26)!
     )
     ```
 
@@ -166,32 +167,34 @@ The way to do this is shown below.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).
     18. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
     For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    19. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+    19. :fontawesome-solid-users: This specifies a floating-point value for the threshold $\epsilon$ for checking the complex or Hermitian symmetry of orbit-overlap matrices.
+    For more information, see [Basics/#Thresholds](basics.md/#thresholds).
+    20. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
     </li>For more information, see [Basics/#Thresholds](basics.md/#thresholds).
-    20. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
+    21. :fontawesome-solid-users: This specifies whether magnetic groups, if present, shall be used for symmetry analysis. The possible options are:
         - `None`: this specifies choice 1 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the unitary group $\mathcal{G}$,
         - `MagneticSymmetryAnalysisKind.Representation`: this specifies choice 2 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible representations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available,
         - `MagneticSymmetryAnalysisKind.Corepresentation`: this specifies choice 3 of [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups) &mdash; use the irreducible corepresentations of the magnetic group $\mathcal{M}$, if $\mathcal{M}$ is available.
     </li>For more information, see [Basics/Analysis options/#Magnetic groups](basics.md/#magnetic-groups).
-    21. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
+    22. :fontawesome-solid-users: This is a boolean specifying if double groups shall be used for symmetry analysis. The possible options are:
         - `False`: use only conventional irreducible representations or corepresentations of $\mathcal{G}$,
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
     </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
-    22. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
+    23. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
     </br></br>:material-cog-sync-outline: Default: `True`.
-    23. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
+    24. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,
         - `SymmetryTransformationKind.SpatialWithSpinTimeReversal`: spatial transformation with spin-including time reversal,
         - `SymmetryTransformationKind.Spin`: spin transformation only,
         - `SymmetryTransformationKind.SpinSpatial`: coupled spin and spatial transformations.
     </li>For more information, see [Basics/Analysis options/#Transformation kinds](basics.md/#transformation-kinds).
-    24. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
+    25. :fontawesome-solid-users: This specifies the finite order $n$ to which all infinite-order symmetry elements, if any, are restricted. The possible options are:
         - `None`: do not restrict infinite-order symmetry elements to finite order,
         - a positive integer value: restrict all infinite-order symmetry elements to this finite order (this will be ignored if the system has no infinite-order symmetry elements).
     </li>For more information, see [Basics/Analysis options/#Infinite-order symmetry elements](basics.md/#infinite-order-symmetry-elements).
     </br></br>:material-cog-sync-outline: Default: `None`.
-    25. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
+    26. :fontawesome-solid-users: This boolean indicates if the *symbolic* character table of the prevailing symmetry group is to be printed in the output.
     </br></br>:material-cog-sync-outline: Default: `True`.
