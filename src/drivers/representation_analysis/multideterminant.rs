@@ -738,7 +738,7 @@ where
         duplicate!{
             [
                 [
-                    btype_nested [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                    btype_nested [OrbitBasis<UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
                     calc_smat_nested [calc_smat_optimised]
                 ]
                 [
@@ -786,7 +786,7 @@ where
         duplicate!{
             [
                 [
-                    btype_nested [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
+                    btype_nested [OrbitBasis<MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>]
                     calc_smat_nested [calc_smat_optimised]
                 ]
                 [
@@ -1003,7 +1003,7 @@ where
         duplicate!{
             [
                 btype_nested;
-                [OrbitBasis<'a, UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                [OrbitBasis<UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
                 [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
                 [FCIBasis<'a, dtype_nested, sctype_nested>]
             ]
@@ -1026,7 +1026,7 @@ where
         duplicate!{
             [
                 btype_nested;
-                [OrbitBasis<'a, MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
+                [OrbitBasis<MagneticRepresentedSymmetryGroup, SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
                 [EagerBasis<SlaterDeterminant<'a, dtype_nested, sctype_nested>>];
                 [FCIBasis<'a, dtype_nested, sctype_nested>]
             ]

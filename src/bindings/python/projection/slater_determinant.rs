@@ -225,7 +225,7 @@ pub fn project_slater_determinant(
                     let mut sdp_driver = SlaterDeterminantProjectionDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         f64,
-                        _,
+                        SpinConstraint,
                     >::builder()
                     .parameters(&sdp_params)
                     .determinant(&det_r)
@@ -355,7 +355,7 @@ pub fn project_slater_determinant(
                             let mut sdp_driver = SlaterDeterminantProjectionDriver::<
                                 UnitaryRepresentedSymmetryGroup,
                                 C128,
-                                _,
+                                SpinConstraint,
                             >::builder()
                             .parameters(&sdp_params)
                             .determinant(&det_c)
@@ -473,7 +473,7 @@ pub fn project_slater_determinant(
                             let mut sdp_driver = SlaterDeterminantProjectionDriver::<
                                 UnitaryRepresentedSymmetryGroup,
                                 C128,
-                                _,
+                                SpinOrbitCoupled,
                             >::builder()
                             .parameters(&sdp_params)
                             .determinant(&det_c)

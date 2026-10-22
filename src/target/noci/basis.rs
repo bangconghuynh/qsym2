@@ -69,7 +69,7 @@ pub trait Basis {
 /// Each element in the basis is given by the action of the group on the origins, $`\mathcal{G}
 /// \cdot \{ \mathbf{w}_I \} = \{ \hat{g}_i \mathbf{w}_I \}`$.
 #[derive(Builder, Clone)]
-pub struct OrbitBasis<'g, G, I>
+pub struct OrbitBasis<G, I>
 where
     G: GroupProperties,
 {
@@ -78,7 +78,7 @@ where
 
     /// The group acting on the origins to generate orbits, the concatenation of which forms the
     /// basis.
-    group: &'g G,
+    group: G,
 
     /// Additional operators acting on the entire orbit basis (right-most operator acts first). Each
     /// operator has an associated action that defines how it operates on the elements in the
@@ -96,13 +96,13 @@ where
     action: fn(&G::GroupElement, &I) -> Result<I, anyhow::Error>,
 }
 
-impl<'g, G, I> OrbitBasis<'g, G, I>
+impl<G, I> OrbitBasis<G, I>
 where
     G: GroupProperties + Clone,
     I: Clone,
 {
-    pub fn builder() -> OrbitBasisBuilder<'g, G, I> {
-        OrbitBasisBuilder::<'g, G, I>::default()
+    pub fn builder() -> OrbitBasisBuilder<G, I> {
+        OrbitBasisBuilder::<G, I>::default()
     }
 
     /// The origins from which orbits are generated.
@@ -113,7 +113,7 @@ where
     /// The group acting on the origins to generate orbits, the concatenation of which forms the
     /// basis.
     pub fn group(&self) -> &G {
-        self.group
+        &self.group
     }
 
     /// Additional operators acting on the entire orbit basis (right-most operator acts first). Each
@@ -132,7 +132,7 @@ where
     }
 }
 
-impl<'g, G, I> OrbitBasis<'g, G, I>
+impl<G, I> OrbitBasis<G, I>
 where
     G: GroupProperties,
     I: Clone,
@@ -147,7 +147,7 @@ where
     }
 }
 
-impl<'g, G, I> Basis for OrbitBasis<'g, G, I>
+impl<G, I> Basis for OrbitBasis<G, I>
 where
     G: GroupProperties,
     I: Clone,
@@ -169,7 +169,7 @@ where
     fn iter(&self) -> Self::BasisIter<'_> {
         OrbitBasisIterator::new(
             self.prefactors.clone(),
-            self.group,
+            &self.group,
             self.origins.clone(),
             self.action,
         )

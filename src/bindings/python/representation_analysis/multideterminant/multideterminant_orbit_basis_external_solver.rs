@@ -398,7 +398,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     let orbit_basis = match symmetry_transformation_kind {
                         SymmetryTransformationKind::Spatial => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                 det.sym_transform_spatial(op).with_context(|| {
@@ -409,7 +409,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         }
                         SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                  det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -420,7 +420,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         }
                         SymmetryTransformationKind::Spin => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                  det.sym_transform_spin(op).with_context(|| {
@@ -431,7 +431,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         }
                         SymmetryTransformationKind::SpinSpatial => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                  det.sym_transform_spin_spatial(op).with_context(|| {
@@ -591,7 +591,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                     let orbit_basis = match symmetry_transformation_kind {
                         SymmetryTransformationKind::Spatial => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                 det.sym_transform_spatial(op).with_context(|| {
@@ -602,7 +602,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         }
                         SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                  det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -613,7 +613,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         }
                         SymmetryTransformationKind::Spin => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                  det.sym_transform_spin(op).with_context(|| {
@@ -624,7 +624,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                         }
                         SymmetryTransformationKind::SpinSpatial => {
                             OrbitBasis::builder()
-                            .group(&group)
+                            .group(group)
                             .origins(origins_r)
                             .action(|op, det| {
                                  det.sym_transform_spin_spatial(op).with_context(|| {
@@ -831,7 +831,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             let orbit_basis = match symmetry_transformation_kind {
                                 SymmetryTransformationKind::Spatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                         det.sym_transform_spatial(op).with_context(|| {
@@ -842,7 +842,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -853,7 +853,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::Spin => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin(op).with_context(|| {
@@ -864,7 +864,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpinSpatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin_spatial(op).with_context(|| {
@@ -1026,7 +1026,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             let orbit_basis = match symmetry_transformation_kind {
                                 SymmetryTransformationKind::Spatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                         det.sym_transform_spatial(op).with_context(|| {
@@ -1037,7 +1037,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -1048,7 +1048,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::Spin => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin(op).with_context(|| {
@@ -1059,7 +1059,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpinSpatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin_spatial(op).with_context(|| {
@@ -1236,7 +1236,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             let orbit_basis = match symmetry_transformation_kind {
                                 SymmetryTransformationKind::Spatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                         det.sym_transform_spatial(op).with_context(|| {
@@ -1247,7 +1247,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -1258,7 +1258,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::Spin => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin(op).with_context(|| {
@@ -1269,7 +1269,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpinSpatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin_spatial(op).with_context(|| {
@@ -1431,7 +1431,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                             let orbit_basis = match symmetry_transformation_kind {
                                 SymmetryTransformationKind::Spatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                         det.sym_transform_spatial(op).with_context(|| {
@@ -1442,7 +1442,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpatialWithSpinTimeReversal => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spatial_with_spintimerev(op).with_context(|| {
@@ -1453,7 +1453,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::Spin => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin(op).with_context(|| {
@@ -1464,7 +1464,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_external_solver(
                                 }
                                 SymmetryTransformationKind::SpinSpatial => {
                                     OrbitBasis::builder()
-                                    .group(&group)
+                                    .group(group)
                                     .origins(origins_c)
                                     .action(|op, det| {
                                          det.sym_transform_spin_spatial(op).with_context(|| {

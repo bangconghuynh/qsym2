@@ -75,7 +75,7 @@ where
     fn norm_preserving_scalar_map<'b, G>(
         &self,
         i: usize,
-        orbit_basis: &'b OrbitBasis<'b, G, SlaterDeterminant<'a, T, SC>>,
+        orbit_basis: &'b OrbitBasis<G, SlaterDeterminant<'a, T, SC>>,
     ) -> Result<fn(&Self::MatrixElement) -> Self::MatrixElement, anyhow::Error>
     where
         G: SymmetryGroupProperties + Clone,
@@ -124,7 +124,7 @@ where
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     fn calc_orbit_matrix<'g, G>(
         &self,
-        orbit_basis: &'g OrbitBasis<'g, G, SlaterDeterminant<'a, T, SC>>,
+        orbit_basis: &'g OrbitBasis<G, SlaterDeterminant<'a, T, SC>>,
         use_cayley_table: bool,
         sao: &ArrayView2<T>,
         thresh_offdiag: <T as ComplexFloat>::Real,

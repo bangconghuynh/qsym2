@@ -80,12 +80,12 @@ where
 // OrbitBasis
 // ~~~~~~~~~~
 
-impl<'g, G, I, T> BasisSymmetryOrbitMetric<G, T> for OrbitBasis<'g, G, I>
+impl<G, I, T> BasisSymmetryOrbitMetric<G, T> for OrbitBasis<G, I>
 where
     G: SymmetryGroupProperties + Clone,
     I: Overlap<T, Ix2> + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
-    OrbitBasis<'g, G, I>: SymmetryTransformable,
+    OrbitBasis<G, I>: SymmetryTransformable,
 {
     /// Computes the basis symmetry-orbit metric for this orbit basis.
     ///

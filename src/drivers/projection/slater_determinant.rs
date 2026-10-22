@@ -35,7 +35,7 @@ use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
-use crate::target::noci::basis::{Basis, OrbitBasis};
+use crate::target::noci::basis::OrbitBasis;
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[cfg(test)]
@@ -164,11 +164,12 @@ impl fmt::Display for SlaterDeterminantProjectionParams {
 #[derive(Clone, Builder)]
 pub struct SlaterDeterminantProjectionResult<'a, G, T, SC>
 where
-    G: SymmetryGroupProperties + Clone + 'a,
+    G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display + 'a,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     /// The control parameters used to obtain this set of Slater determinant projection results.
     parameters: &'a SlaterDeterminantProjectionParams,
@@ -184,10 +185,7 @@ where
     #[allow(clippy::type_complexity)]
     projected_determinants: IndexMap<
         G::RowSymbol,
-        Result<
-            MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>,
-            String,
-        >,
+        Result<MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>, String>,
     >,
 
     /// The optional atomic-orbital overlap matrix of the underlying basis set used to describe the
@@ -216,7 +214,8 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     pub fn builder() -> SlaterDeterminantProjectionResultBuilder<'a, G, T, SC> {
         SlaterDeterminantProjectionResultBuilder::default()
@@ -238,10 +237,7 @@ where
         &self,
     ) -> &IndexMap<
         G::RowSymbol,
-        Result<
-            MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>,
-            String,
-        >,
+        Result<MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>, String>,
     > {
         &self.projected_determinants
     }
@@ -253,8 +249,9 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
-    MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry projection summary")?;
@@ -333,8 +330,9 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
-    MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -359,7 +357,8 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     /// The control parameters used to obtain this set of Slater determinant projection results.
     parameters: &'a SlaterDeterminantProjectionParams,
@@ -402,7 +401,8 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     fn validate(&self) -> Result<(), String> {
         let params = self
@@ -455,7 +455,8 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     /// Returns a builder to construct a [`SlaterDeterminantProjectionDriver`] structure.
     pub fn builder() -> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC> {
@@ -536,7 +537,7 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, UnitaryRepresentedSymmetryGroup, T, SC>:
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, UnitaryRepresentedSymmetryGroup, T, SC>:
         Projectable<UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, T, SC>>,
 {
     fn_construct_unitary_group!(
@@ -615,50 +616,21 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
             .and_then(|sd_orbit| {
                 rows.iter()
                     .map(move |row| {
-                        sd_orbit.project_onto(row).and_then(move |temp_projected_sd| {
-                            // let basis_dets = temp_projected_sd
-                            //     .basis()
-                            //     .iter()
-                            //     .map(|det_res| {
-                            //         det_res.and_then(|det| {
-                            //             SlaterDeterminant::builder()
-                            //                 .structure_constraint(
-                            //                     det.structure_constraint().clone(),
-                            //                 )
-                            //                 .baos(baos.clone())
-                            //                 .complex_symmetric(det.complex_symmetric())
-                            //                 .complex_conjugated(det.complex_conjugated())
-                            //                 .mol(original_sd.mol())
-                            //                 .coefficients(&det.coefficients().clone())
-                            //                 .occupations(&det.occupations().clone())
-                            //                 .mo_energies(det.mo_energies().cloned())
-                            //                 .energy(
-                            //                     det.energy()
-                            //                         .cloned()
-                            //                         .map_err(|err| err.to_string()),
-                            //                 )
-                            //                 .threshold(original_sd.threshold())
-                            //                 .build()
-                            //                 .map_err(|err| format_err!(err))
-                            //         })
-                            //     })
-                            //     .collect::<Result<Vec<_>, _>>()?;
-                            // let basis = EagerBasis::builder()
-                            //     .elements(basis_dets)
-                            //     .build()
-                            //     .map_err(|err| format_err!(err))?;
-                            let basis = temp_projected_sd.basis().clone();
-                            Ok((
-                                row.clone(),
-                                MultiDeterminant::builder()
-                                    .basis(basis)
-                                    .complex_conjugated(temp_projected_sd.complex_conjugated())
-                                    .coefficients(temp_projected_sd.coefficients().clone())
-                                    .threshold(temp_projected_sd.threshold())
-                                    .build()
-                                    .map_err(|err| err.to_string()),
-                            ))
-                        })
+                        sd_orbit
+                            .project_onto(row)
+                            .and_then(move |temp_projected_sd| {
+                                let basis = temp_projected_sd.basis().clone();
+                                Ok((
+                                    row.clone(),
+                                    MultiDeterminant::builder()
+                                        .basis(basis)
+                                        .complex_conjugated(temp_projected_sd.complex_conjugated())
+                                        .coefficients(temp_projected_sd.coefficients().clone())
+                                        .threshold(temp_projected_sd.threshold())
+                                        .build()
+                                        .map_err(|err| err.to_string()),
+                                ))
+                            })
                     })
                     .collect::<Result<IndexMap<_, _>, _>>()
             })?;
@@ -692,7 +664,8 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "Slater Determinant Symmetry Projection")?;
@@ -709,7 +682,8 @@ where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
-    SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
+    for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
+        Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")

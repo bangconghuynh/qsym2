@@ -141,7 +141,7 @@ fn test_multideterminant_orbit_rep_analysis_bh3p() {
     // -------------
 
     let orbit_basis = OrbitBasis::builder()
-        .group(&group_u_d3h)
+        .group(group_u_d3h.clone())
         .origins(vec![det.clone()])
         .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
         .build()
@@ -452,7 +452,7 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
     // D2h (u)
     // ~~~~~~~
     let orbit_basis_d2h_u = OrbitBasis::builder()
-        .group(&group_u_d2h)
+        .group(group_u_d2h.clone())
         .origins(vec![det.clone()])
         .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
         .build()
@@ -517,7 +517,7 @@ fn test_multideterminant_orbit_rep_analysis_h2() {
     // D2h' (u/m)
     // ~~~~~~~~~~
     let orbit_basis_d2h_grey_u = OrbitBasis::builder()
-        .group(&group_u_d2h_grey)
+        .group(group_u_d2h_grey.clone())
         .origins(vec![det.clone()])
         .action(|g, det| {
             det.sym_transform_spatial_with_spintimerev(g)

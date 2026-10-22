@@ -143,7 +143,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let orbit_basis = OrbitBasis::builder()
-        .group(&group_u_d3h)
+        .group(group_u_d3h)
         .origins(vec![det.clone()])
         .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
         .build()

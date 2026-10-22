@@ -222,7 +222,7 @@ where
 // Specific implementations for OrbitBasis
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>
+impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>
 where
     T: ComplexFloat + Lapack,
     G: GroupProperties + Clone,
@@ -393,7 +393,7 @@ where
     }
 }
 
-impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<'_, G, SlaterDeterminant<'a, T, SC>>, SC>
+impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + Lapack + ScalarOperand + Send + Sync,

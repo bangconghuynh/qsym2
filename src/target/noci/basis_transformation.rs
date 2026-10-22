@@ -83,7 +83,7 @@ where
 // --------------------------------
 // DefaultTimeReversalTransformable
 // --------------------------------
-impl<'g, G, I> DefaultTimeReversalTransformable for OrbitBasis<'g, G, I>
+impl<G, I> DefaultTimeReversalTransformable for OrbitBasis<G, I>
 where
     G: GroupProperties + Clone,
     I: DefaultTimeReversalTransformable,
@@ -96,8 +96,8 @@ where
 // `SlaterDeterminant<_, _, SpinOrbitCoupled>` does not implement
 // `DefaultTimeReversalTransformable` and so the surrounding `OrbitBasis` does not get a blanket
 // implementation of `TimeReversalTransformable`.
-impl<'a, 'g, G> TimeReversalTransformable
-    for OrbitBasis<'g, G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>
+impl<'a, G> TimeReversalTransformable
+    for OrbitBasis<G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>
 where
     G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
 {
@@ -143,11 +143,11 @@ where
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<'g, G, I> SymmetryTransformable for OrbitBasis<'g, G, I>
+impl<G, I> SymmetryTransformable for OrbitBasis<G, I>
 where
     G: GroupProperties<GroupElement = SymmetryOperation> + Clone,
     I: SymmetryTransformable,
-    OrbitBasis<'g, G, I>: TimeReversalTransformable,
+    OrbitBasis<G, I>: TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,
