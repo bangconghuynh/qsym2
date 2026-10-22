@@ -1158,7 +1158,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                         let multidets = MultiDeterminants::from_multideterminant_vec(
-                            &multidets_vec.iter().collect::<Vec<_>>()
+                            &multidets_vec.iter().collect::<Vec<_>>(),
                         )
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -1185,10 +1185,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                                    .basis()
-                                    .iter()
-                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                                    .collect::<Result<Vec<_>, _>>()
+                            .basis()
+                            .iter()
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                            .collect::<Result<Vec<_>, _>>()
                             .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."
