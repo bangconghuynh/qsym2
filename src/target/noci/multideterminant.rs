@@ -9,14 +9,21 @@ use anyhow::{ensure, format_err};
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, ArrayView2, Axis, ScalarOperand};
+use ndarray::{Array1, Array2, ArrayView2, ArrayView4, Axis, Ix0, Ix2, ScalarOperand};
+use ndarray_einsum::*;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use rayon::prelude::*;
 
+use crate::analysis::Overlap;
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
+use crate::symmetry::symmetry_transformation::SymmetryTransformable;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::noci::backend::matelem::OrbitMatrix;
+use crate::target::noci::backend::matelem::hamiltonian::HamiltonianAO;
+use crate::target::noci::backend::matelem::overlap::OverlapAO;
 use crate::target::noci::backend::nonortho::{calc_lowdin_pairing, calc_transition_density_matrix};
 use crate::target::noci::basis::{EagerBasis, OrbitBasis};
 
@@ -267,6 +274,8 @@ where
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
     ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
+    /// * `normalised_wavefunction` - Boolean indicating whether the computed density matrix needs
+    /// to be normalised by the squared norm of the wavefunction.
     pub fn density_matrix(
         &self,
         sao: &ArrayView2<T>,
@@ -381,6 +390,91 @@ where
                 denmat
             }
         })
+    }
+}
+
+impl<'a, T, G, SC> MultiDeterminant<'a, T, OrbitBasis<'_, G, SlaterDeterminant<'a, T, SC>>, SC>
+where
+    G: SymmetryGroupProperties + Clone,
+    T: ComplexFloat + Lapack + ScalarOperand + Send + Sync,
+    <T as ComplexFloat>::Real: LowerExp + fmt::Display + Sync,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync,
+    SlaterDeterminant<'a, T, SC>: SymmetryTransformable + Send + Sync,
+    for<'b> SlaterDeterminant<'b, T, SC>: Overlap<T, Ix2>,
+{
+    /// Calculates the energy of the multi-determinantal wavefunction in the orbit basis.
+    ///
+    /// # Arguments
+    ///
+    /// * `sao` - The atomic-orbital overlap matrix.
+    /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
+    ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
+    /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
+    pub fn compute_energy<F>(
+        &self,
+        sao: ArrayView2<'a, T>,
+        enuc: T,
+        onee: ArrayView2<'a, T>,
+        twoe: Option<ArrayView4<'a, T>>,
+        get_jk: Option<F>,
+        thresh_offdiag: <T as ComplexFloat>::Real,
+        thresh_zeroov: <T as ComplexFloat>::Real,
+        use_cayley_table: bool,
+    ) -> Result<T, anyhow::Error>
+    where
+        F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
+    {
+        let basis = self.basis();
+        let overlap_ao = OverlapAO::<T, SC>::builder()
+            .sao(sao)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        let hamiltonian_ao = HamiltonianAO::<T, SC, _>::builder()
+            .enuc(enuc)
+            .onee(onee)
+            .twoe(twoe)
+            .get_jk(get_jk)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        let smat = (&overlap_ao).calc_orbit_matrix(
+            basis,
+            use_cayley_table,
+            &sao,
+            thresh_offdiag,
+            thresh_zeroov,
+        )?;
+        let hmat = (&hamiltonian_ao).calc_orbit_matrix(
+            basis,
+            use_cayley_table,
+            &sao,
+            thresh_offdiag,
+            thresh_zeroov,
+        )?;
+        let sq_norm = einsum(
+            "ij,i,j->",
+            &[
+                &smat.view(),
+                &self.coefficients.mapv(ComplexFloat::conj).view(),
+                &self.coefficients.view(),
+            ],
+        )
+        .map_err(|err| format_err!(err))?
+        .into_dimensionality::<Ix0>()
+        .map_err(|err| format_err!(err))?
+        .into_scalar();
+        let psi_h_psi = einsum(
+            "ij,i,j->",
+            &[
+                &hmat.view(),
+                &self.coefficients.mapv(ComplexFloat::conj).view(),
+                &self.coefficients.view(),
+            ],
+        )
+        .map_err(|err| format_err!(err))?
+        .into_dimensionality::<Ix0>()
+        .map_err(|err| format_err!(err))?
+        .into_scalar();
+        Ok(psi_h_psi / sq_norm)
     }
 }
 

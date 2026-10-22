@@ -142,6 +142,7 @@ where
         >,
         anyhow::Error,
     > {
+        log::debug!("Solving the symmetry-orbit NOCI problem...");
         let complex_symmetric_set = origins
             .iter()
             .map(|det| det.complex_symmetric())
@@ -207,6 +208,7 @@ where
                 thresh_zeroov,
                 EigenvalueComparisonMode::Real,
             )?;
+        log::debug!("Solving the symmetry-orbit NOCI problem... Done.");
         noci_res
             .eigenvalues()
             .iter()

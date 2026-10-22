@@ -1170,6 +1170,12 @@ impl CanonicalOrthogonalisable for ArrayView2<'_, dtype_> {
 
         // S is real-symmetric, so U is orthogonal, i.e. U^T = U^(-1).
         let (s_eig, umat) = smat.eigh(UPLO::Lower).map_err(|err| format_err!(err))?;
+        let mut sorted_s_eig = s_eig.iter().collect_vec();
+        sorted_s_eig.sort_by(|a, b| match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => a.abs().total_cmp(&b.abs()),
+            EigenvalueComparisonMode::Real => a.total_cmp(b),
+        });
+        sorted_s_eig.reverse();
         log::debug!("Overlap eigenvalues for canonical orthogonalisation (real-symmetric matrix):");
         for (i, eig) in s_eig.iter().enumerate() {
             log::debug!("  {i}: {eig:+.8e}");
@@ -1244,6 +1250,16 @@ where
         )?;
 
         let (s_eig, umat_nonortho) = smat.eig().map_err(|err| format_err!(err))?;
+        let mut sorted_s_eig = s_eig.iter().collect_vec();
+        sorted_s_eig.sort_by(|a, b| match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => ComplexFloat::abs(**a)
+                .partial_cmp(&ComplexFloat::abs(**b))
+                .expect("Unable to compare the moduli of two complex numbers."),
+            EigenvalueComparisonMode::Real => ComplexFloat::re(**a)
+                .partial_cmp(&ComplexFloat::re(**b))
+                .expect("Unable to compare the real parts of two complex numbers."),
+        });
+        sorted_s_eig.reverse();
         log::debug!(
             "Overlap eigenvalues for canonical orthogonalisation ({} matrix):",
             if complex_symmetric {
@@ -1252,7 +1268,7 @@ where
                 "complex-Hermitian"
             }
         );
-        for (i, eig) in s_eig.iter().enumerate() {
+        for (i, eig) in sorted_s_eig.iter().enumerate() {
             log::debug!("  {i}: {eig:+.8e}");
         }
         log::debug!("");

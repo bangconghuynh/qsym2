@@ -32,7 +32,7 @@ use crate::target::noci::basis::{EagerBasis, FCIBasis, OrbitBasis};
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<'g, G, I> SpatialUnitaryTransformable for OrbitBasis<'g, G, I>
+impl<G, I> SpatialUnitaryTransformable for OrbitBasis<G, I>
 where
     G: GroupProperties + Clone,
     I: SpatialUnitaryTransformable,
@@ -49,7 +49,7 @@ where
 // ------------------------
 // SpinUnitaryTransformable
 // ------------------------
-impl<'g, G, I> SpinUnitaryTransformable for OrbitBasis<'g, G, I>
+impl<G, I> SpinUnitaryTransformable for OrbitBasis<G, I>
 where
     G: GroupProperties + Clone,
     I: SpinUnitaryTransformable,
@@ -66,7 +66,7 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<'g, G, I> ComplexConjugationTransformable for OrbitBasis<'g, G, I>
+impl<G, I> ComplexConjugationTransformable for OrbitBasis<G, I>
 where
     G: GroupProperties + Clone,
     I: ComplexConjugationTransformable,

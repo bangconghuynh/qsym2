@@ -35,7 +35,7 @@ use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
-use crate::target::noci::basis::{Basis, EagerBasis};
+use crate::target::noci::basis::{Basis, OrbitBasis};
 use crate::target::noci::multideterminant::MultiDeterminant;
 
 #[cfg(test)]
@@ -184,7 +184,10 @@ where
     #[allow(clippy::type_complexity)]
     projected_determinants: IndexMap<
         G::RowSymbol,
-        Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, String>,
+        Result<
+            MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>,
+            String,
+        >,
     >,
 
     /// The optional atomic-orbital overlap matrix of the underlying basis set used to describe the
@@ -224,18 +227,21 @@ where
         self.parameters
     }
 
-    /// Returns the Slater determinan being projected.
+    /// Returns the Slater determinant being projected.
     pub fn determinant(&self) -> &SlaterDeterminant<'a, T, SC> {
         self.determinant
     }
 
-    /// Returns the projected densities.
+    /// Returns the projected Slater determinants.
     #[allow(clippy::type_complexity)]
     pub fn projected_determinants(
         &self,
     ) -> &IndexMap<
         G::RowSymbol,
-        Result<MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>, String>,
+        Result<
+            MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>,
+            String,
+        >,
     > {
         &self.projected_determinants
     }
@@ -248,7 +254,7 @@ where
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
-    MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
+    MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry projection summary")?;
@@ -328,7 +334,7 @@ where
     SC: StructureConstraint + Hash + Eq + fmt::Display,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     SlaterDeterminantSymmetryOrbit<'a, G, T, SC>: Projectable<G, SlaterDeterminant<'a, T, SC>>,
-    MultiDeterminant<'a, T, EagerBasis<SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
+    MultiDeterminant<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>: Overlap<T, Ix2>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -608,39 +614,40 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
             .map_err(|err| format_err!(err))
             .and_then(|sd_orbit| {
                 rows.iter()
-                    .map(|row| {
-                        sd_orbit.project_onto(row).and_then(|temp_projected_sd| {
-                            let basis_dets = temp_projected_sd
-                                .basis()
-                                .iter()
-                                .map(|det_res| {
-                                    det_res.and_then(|det| {
-                                        SlaterDeterminant::builder()
-                                            .structure_constraint(
-                                                det.structure_constraint().clone(),
-                                            )
-                                            .baos(baos.clone())
-                                            .complex_symmetric(det.complex_symmetric())
-                                            .complex_conjugated(det.complex_conjugated())
-                                            .mol(original_sd.mol())
-                                            .coefficients(&det.coefficients().clone())
-                                            .occupations(&det.occupations().clone())
-                                            .mo_energies(det.mo_energies().cloned())
-                                            .energy(
-                                                det.energy()
-                                                    .cloned()
-                                                    .map_err(|err| err.to_string()),
-                                            )
-                                            .threshold(original_sd.threshold())
-                                            .build()
-                                            .map_err(|err| format_err!(err))
-                                    })
-                                })
-                                .collect::<Result<Vec<_>, _>>()?;
-                            let basis = EagerBasis::builder()
-                                .elements(basis_dets)
-                                .build()
-                                .map_err(|err| format_err!(err))?;
+                    .map(move |row| {
+                        sd_orbit.project_onto(row).and_then(move |temp_projected_sd| {
+                            // let basis_dets = temp_projected_sd
+                            //     .basis()
+                            //     .iter()
+                            //     .map(|det_res| {
+                            //         det_res.and_then(|det| {
+                            //             SlaterDeterminant::builder()
+                            //                 .structure_constraint(
+                            //                     det.structure_constraint().clone(),
+                            //                 )
+                            //                 .baos(baos.clone())
+                            //                 .complex_symmetric(det.complex_symmetric())
+                            //                 .complex_conjugated(det.complex_conjugated())
+                            //                 .mol(original_sd.mol())
+                            //                 .coefficients(&det.coefficients().clone())
+                            //                 .occupations(&det.occupations().clone())
+                            //                 .mo_energies(det.mo_energies().cloned())
+                            //                 .energy(
+                            //                     det.energy()
+                            //                         .cloned()
+                            //                         .map_err(|err| err.to_string()),
+                            //                 )
+                            //                 .threshold(original_sd.threshold())
+                            //                 .build()
+                            //                 .map_err(|err| format_err!(err))
+                            //         })
+                            //     })
+                            //     .collect::<Result<Vec<_>, _>>()?;
+                            // let basis = EagerBasis::builder()
+                            //     .elements(basis_dets)
+                            //     .build()
+                            //     .map_err(|err| format_err!(err))?;
+                            let basis = temp_projected_sd.basis().clone();
                             Ok((
                                 row.clone(),
                                 MultiDeterminant::builder()
