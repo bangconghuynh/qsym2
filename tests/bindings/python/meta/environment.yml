@@ -1,0 +1,12 @@
+# environment.yml
+name: qsym2-testsuite
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip
+  - python=3.14
+  - pip:
+    - maturin
+    - pyscf
+    - pytest

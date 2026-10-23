@@ -74,6 +74,7 @@ sandbox = []
 
 standard = ["openblas-static", "qchem"]
 full = ["standard", "integrals"]
+testing = ["full", "python", "sandbox"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [
