@@ -13,6 +13,8 @@ use ndarray::{Array2, Axis, s};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
+use num_traits::ToPrimitive;
+use num_traits::real::Real;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::{
@@ -327,17 +329,26 @@ where
             .max()
             .unwrap_or(0)
             .max(8);
+        let energy_precision = 7 + Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
+            self.parameters.linear_independence_threshold,
+        )))
+        .to_usize()
+        .expect("Unable to convert the linear independence threshold exponent to `usize`.");
         let multidet_energy_length = self
             .multidets
-            .energies()
-            .map(|energies| {
-                energies
-                    .iter()
-                    .map(|v| format!("{v:+.7}").chars().count())
-                    .max()
-                    .unwrap_or(6)
+            .iter()
+            .map(|det_res| {
+                det_res
+                    .map_err(|err| err.to_string())
+                    .and_then(|det| {
+                        Ok(det
+                            .energy()
+                            .map(|v| format!("{v:+.energy_precision$}").chars().count())?)
+                    })
+                    .unwrap_or_else(|err| err.to_string().chars().count())
             })
-            .unwrap_or(2)
+            .max()
+            .unwrap_or(6)
             .max(6);
 
         let multidet_eig_above_length: usize = self
@@ -396,18 +407,18 @@ where
 
         let multidet_energy_strs = self
             .multidets
-            .energies()
-            .map(|energies| {
-                energies
-                    .iter()
-                    .map(|e| format!("{e:>+multidet_energy_length$.7}"))
-                    .collect_vec()
+            .iter()
+            .map(|det_res| {
+                det_res
+                    .map_err(|err| err.to_string())
+                    .and_then(|det| {
+                        Ok(det
+                            .energy()
+                            .map(|e| format!("{e:>+multidet_energy_length$.energy_precision$}"))?)
+                    })
+                    .unwrap_or_else(|err| err.to_string())
             })
-            .unwrap_or(
-                (0..self.multidets.n_states())
-                    .map(|_| "--".to_string())
-                    .collect_vec(),
-            );
+            .collect_vec();
         for (multidet_i, multidet_energy_str) in multidet_energy_strs.into_iter().enumerate() {
             let multidet_sym_str = self
                 .multidet_symmetries

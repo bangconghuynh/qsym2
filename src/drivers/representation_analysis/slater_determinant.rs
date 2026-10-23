@@ -576,7 +576,7 @@ where
                 })
                 .unwrap_or(10);
 
-            let precision = Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
+            let precision = 7 + Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
                 self.parameters.linear_independence_threshold,
             )))
             .to_usize()

@@ -9,10 +9,12 @@ use anyhow::{bail, ensure, format_err};
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use indexmap::IndexMap;
-use ndarray::{Array2, Ix2, s};
+use ndarray::{Array1, Array2, Array4, Ix2, s};
 use ndarray_linalg::Lapack;
 use num::Complex;
 use num_complex::ComplexFloat;
+use num_traits::ToPrimitive;
+use num_traits::real::Real;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::analysis::{EigenvalueComparisonMode, Overlap};
@@ -37,6 +39,7 @@ use crate::target::determinant::SlaterDeterminant;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::noci::basis::OrbitBasis;
 use crate::target::noci::multideterminant::MultiDeterminant;
+use crate::target::noci::multideterminants::MultiDeterminants;
 
 #[cfg(test)]
 #[path = "slater_determinant_tests.rs"]
@@ -267,7 +270,13 @@ where
         )?;
         writeln!(f)?;
 
-        let (rows, sq_norms): (Vec<_>, Vec<_>) = self
+        let energy_precision = 7 + Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
+            self.determinant.threshold(),
+        )))
+        .to_usize()
+        .expect("Unable to convert the linear independence threshold exponent to `usize`.");
+
+        let (rows, (sq_norms, energies)): (Vec<_>, (Vec<_>, Vec<_>)) = self
             .projected_determinants
             .iter()
             .map(|(row, psd_res)| {
@@ -280,7 +289,16 @@ where
                             .map_err(|err| err.to_string())
                     })
                     .unwrap_or_else(|err| err);
-                (row.to_string(), sq_norm)
+                let energy = psd_res
+                    .as_ref()
+                    .map_err(|err| err.to_string())
+                    .and_then(|psd| {
+                        psd.energy()
+                            .map(|energy| format!("{energy:+.energy_precision$}"))
+                            .map_err(|err| err.to_string())
+                    })
+                    .unwrap_or_else(|err| err);
+                (row.to_string(), (sq_norm, energy))
             })
             .unzip();
 
@@ -310,12 +328,26 @@ where
             .max()
             .unwrap_or(12)
             .max(12);
-        let table_width = 4 + row_length + sq_norm_length;
+        let energy_length = energies
+            .iter()
+            .map(|energy| energy.chars().count())
+            .max()
+            .unwrap_or(6)
+            .max(6);
+        let table_width = 6 + row_length + sq_norm_length + energy_length;
         writeln!(f, "{}", "┈".repeat(table_width))?;
-        writeln!(f, " {:<row_length$}  Squared norm", "Subspace",)?;
+        writeln!(
+            f,
+            " {:<row_length$}  {:<sq_norm_length$}  Energy",
+            "Subspace", "Squared norm"
+        )?;
         writeln!(f, "{}", "┈".repeat(table_width))?;
-        for (row, sq_norm) in rows.iter().zip(sq_norms) {
-            writeln!(f, " {:<row_length$}  {:<}", row, sq_norm)?;
+        for (row, (sq_norm, energy)) in rows.iter().zip(sq_norms.iter().zip(energies)) {
+            writeln!(
+                f,
+                " {:<row_length$}  {:<sq_norm_length$}  {:<}",
+                row, sq_norm, energy
+            )?;
         }
         writeln!(f, "{}", "┈".repeat(table_width))?;
 
@@ -350,12 +382,13 @@ where
 /// Driver structure for performing projection on Slater determinants.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct SlaterDeterminantProjectionDriver<'a, G, T, SC>
+pub struct SlaterDeterminantProjectionDriver<'a, G, T, SC, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::RowSymbol: Serialize + DeserializeOwned,
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
         Projectable<G, SlaterDeterminant<'a, T, SC>>,
@@ -392,14 +425,48 @@ where
     /// and only used to compute the norm of the resulting multi-determinants.
     #[builder(default = "None")]
     sao_h: Option<&'a Array2<T>>,
+
+    /// The optional nuclear repulsion energy. This is required for the computation of the energies
+    /// of the resulting multi-determinantal wavefunctions.
+    #[builder(default = "None")]
+    enuc: Option<T>,
+
+    /// The optional one-electron integral matrix. This is required for the computation of the
+    /// energies of the resulting multi-determinantal wavefunctions.
+    #[builder(default = "None")]
+    onee: Option<&'a Array2<T>>,
+
+    /// The optional two-electron integral tensor. Either this or `get_jk` is required for the
+    /// computation of the energies of the resulting multi-determinantal wavefunctions.
+    #[builder(default = "None")]
+    twoe: Option<&'a Array4<T>>,
+
+    /// The optional function callable on a density matrix $`\mathbf{D}`$ to calculate the
+    /// corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate
+    /// two-electron integrals calculated on-the-fly. Either this or `twoe` is required for the
+    /// computation of the energies of the resulting multi-determinantal wavefunctions.
+    #[builder(default = "None")]
+    get_jk: Option<F>,
+
+    /// The optional threshold for identifying non-zero off-diagonal elements in Löwdin pairing.
+    /// This is required for the computation of the energies of the resulting multi-determinantal
+    /// wavefunctions.
+    #[builder(default = "None")]
+    thresh_offdiag: Option<<T as ComplexFloat>::Real>,
+
+    /// The optional threshold for identifying non-zero overlaps in Löwdin pairing. This is required
+    /// for the computation of the energies of the resulting multi-determinantal wavefunctions.
+    #[builder(default = "None")]
+    thresh_zeroov: Option<<T as ComplexFloat>::Real>,
 }
 
-impl<'a, G, T, SC> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC>
+impl<'a, G, T, SC, F> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::RowSymbol: Serialize + DeserializeOwned,
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
         Projectable<G, SlaterDeterminant<'a, T, SC>>,
@@ -448,18 +515,19 @@ where
 // Generic for all symmetry groups G and density numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T, SC> SlaterDeterminantProjectionDriver<'a, G, T, SC>
+impl<'a, G, T, SC, F> SlaterDeterminantProjectionDriver<'a, G, T, SC, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::RowSymbol: Serialize + DeserializeOwned,
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
         Projectable<G, SlaterDeterminant<'a, T, SC>>,
 {
     /// Returns a builder to construct a [`SlaterDeterminantProjectionDriver`] structure.
-    pub fn builder() -> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC> {
+    pub fn builder() -> SlaterDeterminantProjectionDriverBuilder<'a, G, T, SC, F> {
         SlaterDeterminantProjectionDriverBuilder::default()
     }
 
@@ -532,10 +600,11 @@ where
 // Specific for unitary-represented symmetry groups, but generic for density numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, T, SC> SlaterDeterminantProjectionDriver<'a, UnitaryRepresentedSymmetryGroup, T, SC>
+impl<'a, T, SC, F> SlaterDeterminantProjectionDriver<'a, UnitaryRepresentedSymmetryGroup, T, SC, F>
 where
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, UnitaryRepresentedSymmetryGroup, T, SC>:
         Projectable<UnitaryRepresentedSymmetryGroup, SlaterDeterminant<'a, T, SC>>,
@@ -568,7 +637,12 @@ where
         ]
     }
 )]
-impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
+impl<'a, F> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_, F>
+where
+    F: Fn(&Array2<dtype_>) -> Result<(Array2<dtype_>, Array2<dtype_>), anyhow::Error>
+        + Clone
+        + Sync,
+{
     #[doc = doc_sub_]
     fn projection_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
@@ -603,7 +677,7 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
             )
             .collect::<Result<Vec<_>, _>>()?;
 
-        let projected_determinants = SlaterDeterminantSymmetryOrbit::builder()
+        let mut projected_determinants = SlaterDeterminantSymmetryOrbit::builder()
             .group(&group)
             .origin(original_sd)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
@@ -635,6 +709,45 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
                     .collect::<Result<IndexMap<_, _>, _>>()
             })?;
 
+        let multidets_vec = projected_determinants
+            .values()
+            .cloned()
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| format_err!(err))?;
+        let multidets = MultiDeterminants::from_multideterminant_vec(
+            &multidets_vec.iter().collect::<Vec<_>>(),
+        )?;
+
+        let energies = match (
+            self.enuc,
+            self.onee,
+            self.thresh_offdiag,
+            self.thresh_zeroov,
+            self.sao,
+        ) {
+            (Some(enuc), Some(onee), Some(thresh_offdiag), Some(thresh_zeroov), Some(sao)) => {
+                multidets.compute_energies(
+                    sao.into(),
+                    enuc,
+                    onee.into(),
+                    self.twoe.map(|twoe| twoe.into()),
+                    self.get_jk.as_ref(),
+                    thresh_offdiag,
+                    thresh_zeroov,
+                    true,
+                )?
+            }
+            _ => (0..multidets.n_states())
+                .map(|_| Err("No multi-determinantal energies calculated.".to_string()))
+                .collect::<Array1<_>>(),
+        };
+        projected_determinants
+            .values_mut()
+            .zip(energies.into_iter())
+            .for_each(|(det_res, energy)| {
+                let _ = det_res.as_mut().map(|det| det.set_energy(energy));
+            });
+
         let (sao_opt, sao_h_opt) = self.construct_sao()?;
         let result = SlaterDeterminantProjectionResult::builder()
             .parameters(params)
@@ -657,12 +770,13 @@ impl<'a> SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
 // Generic for all symmetry groups G and density numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a, G, T, SC> fmt::Display for SlaterDeterminantProjectionDriver<'a, G, T, SC>
+impl<'a, G, T, SC, F> fmt::Display for SlaterDeterminantProjectionDriver<'a, G, T, SC, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::RowSymbol: Serialize + DeserializeOwned,
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
         Projectable<G, SlaterDeterminant<'a, T, SC>>,
@@ -675,12 +789,13 @@ where
     }
 }
 
-impl<'a, G, T, SC> fmt::Debug for SlaterDeterminantProjectionDriver<'a, G, T, SC>
+impl<'a, G, T, SC, F> fmt::Debug for SlaterDeterminantProjectionDriver<'a, G, T, SC, F>
 where
     G: SymmetryGroupProperties + Clone,
     G::RowSymbol: Serialize + DeserializeOwned,
     T: ComplexFloat + Lapack,
     SC: StructureConstraint + Hash + Eq + fmt::Display,
+    F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     SlaterDeterminant<'a, T, SC>: SymmetryTransformable,
     for<'g> SlaterDeterminantSymmetryOrbit<'g, 'a, G, T, SC>:
         Projectable<G, SlaterDeterminant<'a, T, SC>>,
@@ -711,7 +826,12 @@ where
         ]
     }
 )]
-impl<'a> QSym2Driver for SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_> {
+impl<'a, F> QSym2Driver for SlaterDeterminantProjectionDriver<'a, gtype_, dtype_, sctype_, F>
+where
+    F: Fn(&Array2<dtype_>) -> Result<(Array2<dtype_>, Array2<dtype_>), anyhow::Error>
+        + Clone
+        + Sync,
+{
     type Params = SlaterDeterminantProjectionParams;
 
     type Outcome = SlaterDeterminantProjectionResult<'a, gtype_, dtype_, sctype_>;

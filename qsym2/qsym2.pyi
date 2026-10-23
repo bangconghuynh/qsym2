@@ -1503,7 +1503,8 @@ def project_slater_determinant(
     inp_sym: str,
     pydet: PySlaterDeterminant,
     projection_targets: Sequence[str | int],
-    density_matrix_calculation_thresholds: tuple[float, float] | None,
+    calculate_energies: bool,
+    calculate_density_matrices: bool,
     pybaos: Sequence[PyBasisAngularOrder],
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
@@ -1512,6 +1513,16 @@ def project_slater_determinant(
     infinite_order_to_finite: int | None = None,
     sao: Py2DArray_f64 | Py2DArray_c128 | None = None,
     sao_h: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    enuc: complex | None = None,
+    onee: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    twoe: Py4DArray_f64 | Py4DArray_c128 | None = None,
+    py_get_jk: Callable[
+        [Py2DArray_f64 | Py2DArray_c128],
+        tuple[Py2DArray_f64, Py2DArray_f64] | tuple[Py2DArray_c128, Py2DArray_c128],
+    ]
+    | None = None,
+    thresh_offdiag: float | None = None,
+    thresh_zeroov: float | None = None,
 ) -> tuple[list[str], PyMultiDeterminants]:
     r"""
     Python-exposed function to perform symmetry projection for real and complex Slater determinants.
@@ -1523,7 +1534,11 @@ def project_slater_determinant(
 
         projection_targets: A sequence of subspace labels for projection. Each label is either a symbolic string or a numerical index for the subspace in the character table of the prevailing group.
 
-        density_matrix_calculation_thresholds: An optional pair of thresholds for Löwdin pairing, one for checking zero off-diagonal values, one for checking zero overlaps, when computing multi-determinantal density matrices. If `None`, no density matrices will be computed.
+        calculate_energies: A boolean indicating if the energies of the projected wavefunctions (which are multi-determinantal wavefunctions specified in an orbit basis) are to be calculated.
+            If `true`, then `thresh_offdiag`, `thresh_zeroov`, `enuc`, `onee`, and either `twoe` or `py_get_jk` must also be specified for Löwdin pairing and Hamiltonian matrix element computation.
+
+        calculate_density_matrices: A boolean indicating if the density matrices for the projected wavefunctions (which are multi-determinantal wavefunctions) are to be calculated.
+            If `true`, then `thresh_offdiag` and `thresh_zeroov` must also be specified for Löwdin pairing.
 
         pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
 
@@ -1540,6 +1555,21 @@ def project_slater_determinant(
         sao: The optional atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`. If this is not present, no squared norms of the resulting multi-determinants will be computed.
 
         sao_h: The optional complex-symmetric atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are involved.
+
+        enuc: The optional nuclear repulsion energy, which is only required for `calculate_energies`.
+
+        onee: The optional one-electron integral matrix whose elements are of type `float64` or `complex128`, which is only required for `calculate_energies`.
+
+        twoe: The optional two-electron integral tensor whose elements are of type `float64` or `complex128`, which is only required for `calculate_energies`.
+            Either this or `py_get_jk` must be specified, but not both.
+
+        py_get_jk: An optional Python function callable on a density matrix $`\mathbf{D}`$ to calculate the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate two-electron integrals calculated on-the-fly, which is only required for
+        `calculate_energies`.
+            Either this or `twoe` must be specified, but not both.
+
+        thresh_offdiag: The optional threshold for identifying non-zero off-diagonal elements in Löwdin pairing, which is required for `calculate_energies` and `calculate_density_matrices`.
+
+        thresh_zeroov: The optional threshold for identifying non-zero overlaps in Löwdin pairing, which is required for `calculate_energies` and `calculate_density_matrices`.
 
     Returns:
         The result will be returned as a tuple where the first item is a list of the labels of the subspaces used for projection, and the second item is an object containing the Slater determinant basis and the linear combination coefficients as a two-dimensional array with each column corresponding to one projected state.

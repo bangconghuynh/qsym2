@@ -87,10 +87,8 @@ where
     coefficients: Array2<T>,
 
     /// The energies of the multi-determinantal wavefunctions in this collection.
-    #[builder(
-        default = "Err(\"Multi-determinantal wavefunction energies not yet set.\".to_string())"
-    )]
-    energies: Result<Array1<T>, String>,
+    #[builder(default = "self.default_energies()?")]
+    energies: Array1<Result<T, String>>,
 
     /// The threshold for comparing wavefunctions.
     threshold: <T as ComplexFloat>::Real,
@@ -165,6 +163,19 @@ where
             Err("Inconsistent complex-symmetric flag across basis determinants.".to_string())
         }
     }
+
+    /// Sets default energies.
+    fn default_energies(&self) -> Result<Array1<Result<T, String>>, String> {
+        let n_states = self
+            .coefficients
+            .as_ref()
+            .ok_or("No coefficients found.".to_string())?
+            .ncols();
+        let default_energies = (0..n_states)
+            .map(|_| Err("Multi-determinantal wavefunction energy not yet set.".to_string()))
+            .collect::<Array1<_>>();
+        Ok(default_energies)
+    }
 }
 
 impl<'a, T, B, SC> MultiDeterminants<'a, T, B, SC>
@@ -220,7 +231,7 @@ where
         let energies = mtds
             .iter()
             .map(|mtd| mtd.energy().cloned().map_err(|err| err.to_owned()))
-            .collect::<Result<Array1<_>, _>>();
+            .collect::<Array1<_>>();
 
         let (basis, threshold) = mtds
             .first()
@@ -254,24 +265,16 @@ where
     pub fn iter(
         &self,
     ) -> impl Iterator<Item = Result<MultiDeterminant<'a, T, B, SC>, anyhow::Error>> + '_ {
-        let energies = self
-            .energies
-            .as_ref()
-            .map(|energies| energies.mapv(|v| Ok(v)))
-            .unwrap_or(Array1::from_elem(
-                (self.coefficients.ncols(),),
-                Err("Multi-determinantal energy not available.".to_string()),
-            ));
         self.coefficients
             .columns()
             .into_iter()
-            .zip(energies)
+            .zip(self.energies.iter())
             .map(|(c, e)| {
                 MultiDeterminant::builder()
                     .complex_conjugated(self.complex_conjugated)
                     .basis(self.basis().clone())
                     .coefficients(c.to_owned())
-                    .energy(e)
+                    .energy(e.clone())
                     .threshold(self.threshold)
                     .build()
                     .map_err(|err| format_err!(err))
@@ -310,8 +313,8 @@ where
     }
 
     /// Returns the energies of the multi-determinantal wavefunctions in this collection.
-    pub fn energies(&self) -> Result<&Array1<T>, &String> {
-        self.energies.as_ref()
+    pub fn energies(&self) -> &Array1<Result<T, String>> {
+        &self.energies
     }
 
     /// Returns the threshold with which multi-determinantal wavefunctions are compared.
@@ -544,7 +547,7 @@ where
         thresh_offdiag: <T as ComplexFloat>::Real,
         thresh_zeroov: <T as ComplexFloat>::Real,
         use_cayley_table: bool,
-    ) -> Result<Array1<T>, anyhow::Error>
+    ) -> Result<Array1<Result<T, String>>, anyhow::Error>
     where
         F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
     {
@@ -586,7 +589,7 @@ where
         .into_dimensionality::<Ix1>()
         .map_err(|err| format_err!(err))?;
         let psi_h_psis = einsum(
-            "ij,im,jm->",
+            "ij,im,jm->m",
             &[
                 &hmat.view(),
                 &self.coefficients.mapv(ComplexFloat::conj).view(),
@@ -596,7 +599,18 @@ where
         .map_err(|err| format_err!(err))?
         .into_dimensionality::<Ix1>()
         .map_err(|err| format_err!(err))?;
-        Ok(psi_h_psis / sq_norms)
+
+        let energies = psi_h_psis.into_iter().zip(sq_norms.into_iter()).map(|(psi_h_psi, sq_norm)| {
+             if ComplexFloat::abs(sq_norm) >= thresh_zeroov {
+                Ok(psi_h_psi / sq_norm)
+            } else {
+                Err(format!(
+                    "The multi-determinantal wavefunction has near-zero squared norm: |{sq_norm:+.3e}| < {thresh_zeroov:.3e}."
+                ))
+            }
+        }).collect::<Array1<_>>();
+
+        Ok(energies)
     }
 }
 

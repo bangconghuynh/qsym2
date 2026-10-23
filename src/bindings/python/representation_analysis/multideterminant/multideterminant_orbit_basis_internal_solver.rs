@@ -46,6 +46,7 @@ use crate::target::noci::multideterminants::MultiDeterminants;
 // ~~~~~~~~~~~~~
 // Macro helpers
 // ~~~~~~~~~~~~~
+#[macro_export]
 macro_rules! generate_get_jk {
     ($get_jk_name:ident, $py_get_jk_func:ident, $t:ty) => {
         let $get_jk_name = move |dm: &Array2<$t>| {

@@ -216,6 +216,11 @@ where
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
     }
+
+    /// Sets the energy of this multi-determinantal wavefunction.
+    pub(crate) fn set_energy(&mut self, energy: Result<T, String>) {
+        self.energy = energy;
+    }
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -474,7 +479,13 @@ where
         .into_dimensionality::<Ix0>()
         .map_err(|err| format_err!(err))?
         .into_scalar();
-        Ok(psi_h_psi / sq_norm)
+        if ComplexFloat::abs(sq_norm) >= thresh_zeroov {
+            Ok(psi_h_psi / sq_norm)
+        } else {
+            Err(format_err!(
+                "The multi-determinantal wavefunction has near-zero squared norm: |{sq_norm:+.3e}| < {thresh_zeroov:.3e}."
+            ))
+        }
     }
 }
 

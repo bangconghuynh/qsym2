@@ -4,7 +4,7 @@ use approx::{assert_abs_diff_eq, assert_abs_diff_ne};
 use itertools::Itertools;
 // use log4rs;
 use nalgebra::ComplexField;
-use ndarray::array;
+use ndarray::{Array2, array};
 use ndarray_linalg::{Norm, Trace};
 use num_complex::Complex;
 
@@ -153,6 +153,7 @@ fn test_drivers_slater_determinant_projection_vf6() {
         UnitaryRepresentedSymmetryGroup,
         C128,
         SpinConstraint,
+        fn(&Array2<C128>) -> Result<(Array2<C128>, Array2<C128>), anyhow::Error>,
     >::builder()
     .parameters(&sdp_params)
     .determinant(&det_d3_cg)
@@ -245,6 +246,7 @@ fn test_drivers_slater_determinant_projection_vf6() {
         UnitaryRepresentedSymmetryGroup,
         C128,
         SpinConstraint,
+        fn(&Array2<C128>) -> Result<(Array2<C128>, Array2<C128>), anyhow::Error>,
     >::builder()
     .parameters(&sdp_params)
     .determinant(&det_d3_cg)
@@ -311,6 +313,7 @@ fn test_drivers_slater_determinant_projection_vf6() {
         UnitaryRepresentedSymmetryGroup,
         C128,
         SpinConstraint,
+        fn(&Array2<C128>) -> Result<(Array2<C128>, Array2<C128>), anyhow::Error>,
     >::builder()
     .parameters(&sdp_params)
     .determinant(&det_d3_cg)
