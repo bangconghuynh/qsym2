@@ -534,9 +534,23 @@ where
     /// # Arguments
     ///
     /// * `sao` - The atomic-orbital overlap matrix.
+    /// * `enuc` - The nuclear repulsion energy.
+    /// * `onee` - The one-electron integral matrix.
+    /// * `twoe` - The optional two-electron integral tensor. Either this or `get_jk` is required
+    ///   for the energy computation.
+    /// * `get_jk` - The optional function callable on a density matrix $`\mathbf{D}`$ to calculate
+    ///   the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
+    ///   appropriate two-electron integrals calculated on-the-fly. Either this or `twoe` is
+    ///   required for the energy computation.
     /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
     ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
+    /// * `use_cayley_table` - Boolean indicating whether group closure is used in the computation
+    ///   the Hamiltonian and overlap matrices between the elements in the orbit basis.
+    ///
+    /// # Returns
+    ///
+    /// The computed energies for the multi-determinantal wavefunctions in the collection.
     pub fn compute_energies<F>(
         &self,
         sao: ArrayView2<'a, T>,
