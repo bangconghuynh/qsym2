@@ -7,7 +7,6 @@ use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::{self, format_err};
-use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
 use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;

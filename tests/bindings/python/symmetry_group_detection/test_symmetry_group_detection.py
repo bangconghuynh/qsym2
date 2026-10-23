@@ -1,6 +1,6 @@
 from pyscf import gto
 
-from qsym2 import PyMolecule, detect_symmetry_group, PySymmetryElementKind
+from qsym2 import PyMolecule, PySymmetryElementKind, detect_symmetry_group
 
 
 def test_symmetry_group_detection():

@@ -275,25 +275,41 @@ pub fn project_slater_determinant(
                     ));
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                    let mut sdp_driver = SlaterDeterminantProjectionDriver::<
-                        UnitaryRepresentedSymmetryGroup,
-                        f64,
-                        SpinConstraint,
-                        _,
-                    >::builder()
-                    .parameters(&sdp_params)
-                    .determinant(&det_r)
-                    .symmetry_group(&pd_res)
-                    .sao(sao_opt.as_ref())
-                    .sao_h(sao_h_opt.as_ref())
-                    .enuc(enuc_opt)
-                    .onee(onee_opt.as_ref())
-                    .twoe(twoe_opt.as_ref())
-                    .get_jk(get_jk_opt)
-                    .thresh_offdiag(thresh_offdiag)
-                    .thresh_zeroov(thresh_zeroov)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    let mut sdp_driver = if calculate_energies {
+                        SlaterDeterminantProjectionDriver::<
+                            UnitaryRepresentedSymmetryGroup,
+                            f64,
+                            SpinConstraint,
+                            _,
+                        >::builder()
+                        .parameters(&sdp_params)
+                        .determinant(&det_r)
+                        .symmetry_group(&pd_res)
+                        .sao(sao_opt.as_ref())
+                        .sao_h(sao_h_opt.as_ref())
+                        .enuc(enuc_opt)
+                        .onee(onee_opt.as_ref())
+                        .twoe(twoe_opt.as_ref())
+                        .get_jk(get_jk_opt)
+                        .thresh_offdiag(thresh_offdiag)
+                        .thresh_zeroov(thresh_zeroov)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    } else {
+                        SlaterDeterminantProjectionDriver::<
+                            UnitaryRepresentedSymmetryGroup,
+                            f64,
+                            SpinConstraint,
+                            _,
+                        >::builder()
+                        .parameters(&sdp_params)
+                        .determinant(&det_r)
+                        .symmetry_group(&pd_res)
+                        .sao(sao_opt.as_ref())
+                        .sao_h(sao_h_opt.as_ref())
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    };
                     py.detach(|| {
                         sdp_driver
                             .run()
@@ -435,25 +451,41 @@ pub fn project_slater_determinant(
                             ));
                         }
                         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                            let mut sdp_driver = SlaterDeterminantProjectionDriver::<
-                                UnitaryRepresentedSymmetryGroup,
-                                C128,
-                                SpinConstraint,
-                                _,
-                            >::builder()
-                            .parameters(&sdp_params)
-                            .determinant(&det_c)
-                            .symmetry_group(&pd_res)
-                            .sao(sao_opt.as_ref())
-                            .sao_h(sao_h_opt.as_ref())
-                            .enuc(enuc_opt)
-                            .onee(onee_opt.as_ref())
-                            .twoe(twoe_opt.as_ref())
-                            .get_jk(get_jk_opt)
-                            .thresh_offdiag(thresh_offdiag)
-                            .thresh_zeroov(thresh_zeroov)
-                            .build()
-                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                            let mut sdp_driver = if calculate_energies {
+                                SlaterDeterminantProjectionDriver::<
+                                    UnitaryRepresentedSymmetryGroup,
+                                    C128,
+                                    SpinConstraint,
+                                    _,
+                                >::builder()
+                                .parameters(&sdp_params)
+                                .determinant(&det_c)
+                                .symmetry_group(&pd_res)
+                                .sao(sao_opt.as_ref())
+                                .sao_h(sao_h_opt.as_ref())
+                                .enuc(enuc_opt)
+                                .onee(onee_opt.as_ref())
+                                .twoe(twoe_opt.as_ref())
+                                .get_jk(get_jk_opt)
+                                .thresh_offdiag(thresh_offdiag)
+                                .thresh_zeroov(thresh_zeroov)
+                                .build()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            } else {
+                                SlaterDeterminantProjectionDriver::<
+                                    UnitaryRepresentedSymmetryGroup,
+                                    C128,
+                                    SpinConstraint,
+                                    _,
+                                >::builder()
+                                .parameters(&sdp_params)
+                                .determinant(&det_c)
+                                .symmetry_group(&pd_res)
+                                .sao(sao_opt.as_ref())
+                                .sao_h(sao_h_opt.as_ref())
+                                .build()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            };
                             py.detach(|| {
                                 sdp_driver
                                     .run()
@@ -565,25 +597,41 @@ pub fn project_slater_determinant(
                             ));
                         }
                         Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                            let mut sdp_driver = SlaterDeterminantProjectionDriver::<
-                                UnitaryRepresentedSymmetryGroup,
-                                C128,
-                                SpinOrbitCoupled,
-                                _,
-                            >::builder()
-                            .parameters(&sdp_params)
-                            .determinant(&det_c)
-                            .symmetry_group(&pd_res)
-                            .sao(sao_opt.as_ref())
-                            .sao_h(sao_h_opt.as_ref())
-                            .enuc(enuc_opt)
-                            .onee(onee_opt.as_ref())
-                            .twoe(twoe_opt.as_ref())
-                            .get_jk(get_jk_opt)
-                            .thresh_offdiag(thresh_offdiag)
-                            .thresh_zeroov(thresh_zeroov)
-                            .build()
-                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                            let mut sdp_driver = if calculate_energies {
+                                SlaterDeterminantProjectionDriver::<
+                                    UnitaryRepresentedSymmetryGroup,
+                                    C128,
+                                    SpinOrbitCoupled,
+                                    _,
+                                >::builder()
+                                .parameters(&sdp_params)
+                                .determinant(&det_c)
+                                .symmetry_group(&pd_res)
+                                .sao(sao_opt.as_ref())
+                                .sao_h(sao_h_opt.as_ref())
+                                .enuc(enuc_opt)
+                                .onee(onee_opt.as_ref())
+                                .twoe(twoe_opt.as_ref())
+                                .get_jk(get_jk_opt)
+                                .thresh_offdiag(thresh_offdiag)
+                                .thresh_zeroov(thresh_zeroov)
+                                .build()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            } else {
+                                SlaterDeterminantProjectionDriver::<
+                                    UnitaryRepresentedSymmetryGroup,
+                                    C128,
+                                    SpinOrbitCoupled,
+                                    _,
+                                >::builder()
+                                .parameters(&sdp_params)
+                                .determinant(&det_c)
+                                .symmetry_group(&pd_res)
+                                .sao(sao_opt.as_ref())
+                                .sao_h(sao_h_opt.as_ref())
+                                .build()
+                                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                            };
                             py.detach(|| {
                                 sdp_driver
                                     .run()
@@ -651,7 +699,7 @@ pub fn project_slater_determinant(
                         .to_pyarray(py);
 
                     let density_matrices = match (
-                        calculate_energies,
+                        calculate_density_matrices,
                         thresh_offdiag,
                         thresh_zeroov,
                         sao_opt.as_ref(),

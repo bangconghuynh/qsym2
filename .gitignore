@@ -13,3 +13,6 @@ __pycache__/
 # mkdocs
 **/site/
 **/.cache/
+
+#QSym2
+*.sym
