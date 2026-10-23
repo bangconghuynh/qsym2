@@ -287,8 +287,8 @@ pub fn project_slater_determinant(
                     .sao(sao_opt.as_ref())
                     .sao_h(sao_h_opt.as_ref())
                     .enuc(enuc_opt)
-                    .onee(onee_opt.as_ref().map(|onee| onee.into()))
-                    .twoe(twoe_opt.as_ref().map(|twoe| twoe.into()))
+                    .onee(onee_opt.as_ref())
+                    .twoe(twoe_opt.as_ref())
                     .get_jk(get_jk_opt)
                     .thresh_offdiag(thresh_offdiag)
                     .thresh_zeroov(thresh_zeroov)
@@ -398,17 +398,17 @@ pub fn project_slater_determinant(
                 PyArray2RC::Real(pysao_h_r) => pysao_h_r.to_owned_array().mapv(Complex::from),
                 PyArray2RC::Complex(pysao_h_c) => pysao_h_c.to_owned_array(),
             });
-            let enuc_opt = enuc.and_then(|pyenuc| match pyenuc {
-                PyScalarRC::Real(pyenuc_r) => Some(Complex::from(pyenuc_r)),
-                PyScalarRC::Complex(pyenuc_c) => Some(pyenuc_c),
+            let enuc_opt = enuc.map(|pyenuc| match pyenuc {
+                PyScalarRC::Real(pyenuc_r) => Complex::from(pyenuc_r),
+                PyScalarRC::Complex(pyenuc_c) => pyenuc_c,
             });
-            let onee_opt = onee.and_then(|pyonee| match pyonee {
-                PyArray2RC::Real(pyonee_r) => Some(pyonee_r.to_owned_array().mapv(Complex::from)),
-                PyArray2RC::Complex(pyonee_c) => Some(pyonee_c.to_owned_array()),
+            let onee_opt = onee.map(|pyonee| match pyonee {
+                PyArray2RC::Real(pyonee_r) => pyonee_r.to_owned_array().mapv(Complex::from),
+                PyArray2RC::Complex(pyonee_c) => pyonee_c.to_owned_array(),
             });
-            let twoe_opt = twoe.and_then(|pytwoe| match pytwoe {
-                PyArray4RC::Real(pytwoe_r) => Some(pytwoe_r.to_owned_array().mapv(Complex::from)),
-                PyArray4RC::Complex(pytwoe_c) => Some(pytwoe_c.to_owned_array()),
+            let twoe_opt = twoe.map(|pytwoe| match pytwoe {
+                PyArray4RC::Real(pytwoe_r) => pytwoe_r.to_owned_array().mapv(Complex::from),
+                PyArray4RC::Complex(pytwoe_c) => pytwoe_c.to_owned_array(),
             });
             let get_jk_opt = py_get_jk.map(|py_get_jk_inner| {
                 crate::generate_get_jk!(get_jk_c, py_get_jk_inner, Complex<f64>);
@@ -447,8 +447,8 @@ pub fn project_slater_determinant(
                             .sao(sao_opt.as_ref())
                             .sao_h(sao_h_opt.as_ref())
                             .enuc(enuc_opt)
-                            .onee(onee_opt.as_ref().map(|onee| onee.into()))
-                            .twoe(twoe_opt.as_ref().map(|twoe| twoe.into()))
+                            .onee(onee_opt.as_ref())
+                            .twoe(twoe_opt.as_ref())
                             .get_jk(get_jk_opt)
                             .thresh_offdiag(thresh_offdiag)
                             .thresh_zeroov(thresh_zeroov)
@@ -577,8 +577,8 @@ pub fn project_slater_determinant(
                             .sao(sao_opt.as_ref())
                             .sao_h(sao_h_opt.as_ref())
                             .enuc(enuc_opt)
-                            .onee(onee_opt.as_ref().map(|onee| onee.into()))
-                            .twoe(twoe_opt.as_ref().map(|twoe| twoe.into()))
+                            .onee(onee_opt.as_ref())
+                            .twoe(twoe_opt.as_ref())
                             .get_jk(get_jk_opt)
                             .thresh_offdiag(thresh_offdiag)
                             .thresh_zeroov(thresh_zeroov)

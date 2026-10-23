@@ -690,21 +690,19 @@ where
             .and_then(|sd_orbit| {
                 rows.iter()
                     .map(move |row| {
-                        sd_orbit
-                            .project_onto(row)
-                            .and_then(move |temp_projected_sd| {
-                                let basis = temp_projected_sd.basis().clone();
-                                Ok((
-                                    row.clone(),
-                                    MultiDeterminant::builder()
-                                        .basis(basis)
-                                        .complex_conjugated(temp_projected_sd.complex_conjugated())
-                                        .coefficients(temp_projected_sd.coefficients().clone())
-                                        .threshold(temp_projected_sd.threshold())
-                                        .build()
-                                        .map_err(|err| err.to_string()),
-                                ))
-                            })
+                        sd_orbit.project_onto(row).map(move |temp_projected_sd| {
+                            let basis = temp_projected_sd.basis().clone();
+                            (
+                                row.clone(),
+                                MultiDeterminant::builder()
+                                    .basis(basis)
+                                    .complex_conjugated(temp_projected_sd.complex_conjugated())
+                                    .coefficients(temp_projected_sd.coefficients().clone())
+                                    .threshold(temp_projected_sd.threshold())
+                                    .build()
+                                    .map_err(|err| err.to_string()),
+                            )
+                        })
                     })
                     .collect::<Result<IndexMap<_, _>, _>>()
             })?;
@@ -743,7 +741,7 @@ where
         };
         projected_determinants
             .values_mut()
-            .zip(energies.into_iter())
+            .zip(energies)
             .for_each(|(det_res, energy)| {
                 let _ = det_res.as_mut().map(|det| det.set_energy(energy));
             });

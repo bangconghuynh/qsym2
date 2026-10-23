@@ -280,7 +280,7 @@ where
     ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
     /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
     /// * `normalised_wavefunction` - Boolean indicating whether the computed density matrix needs
-    /// to be normalised by the squared norm of the wavefunction.
+    ///   to be normalised by the squared norm of the wavefunction.
     pub fn density_matrix(
         &self,
         sao: &ArrayView2<T>,
@@ -429,6 +429,7 @@ where
     /// # Returns
     ///
     /// The computed energy.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_energy<F>(
         &self,
         sao: ArrayView2<'a, T>,
@@ -455,14 +456,14 @@ where
             .get_jk(get_jk)
             .build()
             .map_err(|err| format_err!(err))?;
-        let smat = (&overlap_ao).calc_orbit_matrix(
+        let smat = overlap_ao.calc_orbit_matrix(
             basis,
             use_cayley_table,
             &sao,
             thresh_offdiag,
             thresh_zeroov,
         )?;
-        let hmat = (&hamiltonian_ao).calc_orbit_matrix(
+        let hmat = hamiltonian_ao.calc_orbit_matrix(
             basis,
             use_cayley_table,
             &sao,

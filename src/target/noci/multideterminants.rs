@@ -551,6 +551,7 @@ where
     /// # Returns
     ///
     /// The computed energies for the multi-determinantal wavefunctions in the collection.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_energies<F>(
         &self,
         sao: ArrayView2<'a, T>,
@@ -577,14 +578,14 @@ where
             .get_jk(get_jk)
             .build()
             .map_err(|err| format_err!(err))?;
-        let smat = (&overlap_ao).calc_orbit_matrix(
+        let smat = overlap_ao.calc_orbit_matrix(
             basis,
             use_cayley_table,
             &sao,
             thresh_offdiag,
             thresh_zeroov,
         )?;
-        let hmat = (&hamiltonian_ao).calc_orbit_matrix(
+        let hmat = hamiltonian_ao.calc_orbit_matrix(
             basis,
             use_cayley_table,
             &sao,
@@ -614,7 +615,7 @@ where
         .into_dimensionality::<Ix1>()
         .map_err(|err| format_err!(err))?;
 
-        let energies = psi_h_psis.into_iter().zip(sq_norms.into_iter()).map(|(psi_h_psi, sq_norm)| {
+        let energies = psi_h_psis.into_iter().zip(sq_norms).map(|(psi_h_psi, sq_norm)| {
              if ComplexFloat::abs(sq_norm) >= thresh_zeroov {
                 Ok(psi_h_psi / sq_norm)
             } else {
