@@ -200,7 +200,7 @@ impl PySymmetry {
                 .any(|kind_generators| kind_generators.contains_key(&-1))
     }
 
-    /// Returns symmetry elements of all *finite* orders of a given kind.
+    /// Returns symmetry elements of all *finite* and *infinite* orders of a given kind.
     ///
     /// # Arguments
     ///
@@ -229,7 +229,7 @@ impl PySymmetry {
             .ok_or_else(|| PyRuntimeError::new_err(format!("Elements of kind `{kind}` not found.")))
     }
 
-    /// Returns symmetry generators of *finite*  and *infinite* orders of a given kind.
+    /// Returns symmetry generators of *finite* and *infinite* orders of a given kind.
     ///
     /// # Arguments
     ///

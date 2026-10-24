@@ -118,7 +118,7 @@ pub struct PyBasisAngularOrder {
     ///       functions where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents,
     ///       respectively;
     ///       * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
-    ///       `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+    ///       `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
     ///       `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
     ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
     ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether
@@ -141,7 +141,8 @@ impl PyBasisAngularOrder {
     ///     * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
     ///     which depends on the shell type,
     ///     * `shelltype` is an enumerated type with possible variants `ShellType.Pure`,
-    ///     `ShellType.Cartesian`, `ShellType.Spinor`, and `ShellType.SpinorKineticBalance`
+    ///     `ShellType.Cartesian`, `ShellType.SpinorFermion`, `ShellType.SpinorFermionKineticBalance`,
+    ///     `ShellType.SpinorAntifermion`, and `ShellType.SpinorAntifermionKineticBalance`
     ///     indicating the type of the shell, and
     ///     * `order` specifies how the functions in the shell are ordered:
     ///       * if `shelltype` is `Cartesian`, `order` can be `None` for lexicographic order, or a
@@ -561,7 +562,7 @@ pub struct PyBasisShellContraction {
     ///       functions where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents,
     ///       respectively;
     ///       * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
-    ///       `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+    ///       `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
     ///       `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
     ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
     ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether
@@ -599,7 +600,7 @@ impl PyBasisShellContraction {
     ///       functions where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents,
     ///       respectively;
     ///       * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
-    ///       `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+    ///       `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
     ///       `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
     ///       first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
     ///       a list of $`m`$ values for custom order, and the second is a boolean indicating whether

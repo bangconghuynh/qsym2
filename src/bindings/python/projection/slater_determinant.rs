@@ -67,15 +67,15 @@ type C128 = Complex<f64>;
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
 /// group is to be used for representation analysis instead.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin electron density to generate the orbit.
+/// transformations to be performed on the origin Slater determinant to generate the orbit.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
 /// symmetry group is to be printed out.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
 /// will be used for symmetry analysis.
 /// * `sao` - The optional atomic-orbital overlap matrix whose elements are of type `float64` or
-/// `complex128`. If this is not present, no squared norms of the resulting multi-determinants will
-/// be computed.
+/// `complex128`. If this is not present, no squared norms, energies, or density matrices of the
+/// resulting multi-determinants will be computed.
 /// * `sao_h` - The optional complex-symmetric atomic-orbital overlap matrix whose elements
 /// are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are
 /// involved.
@@ -98,9 +98,12 @@ type C128 = Complex<f64>;
 /// # Returns
 ///
 /// The result will be returned as a tuple where the first item is a list of the labels of the
-/// subspaces used for projection, and the second item is an object containing the Slater
-/// determinant basis and the linear combination coefficients as a two-dimensional array with each
-/// column corresponding to one projected state.
+/// subspaces used for projection, and the second item is an object containing
+///   * the Slater determinant basis,
+///   * the linear combination coefficients as a two-dimensional array with each column corresponding
+///   to one projected state,
+///   * the energies of the projected states if requested, or `NaN` if not, and
+///   * the density matrices of the projected states if requested, or `None` if not.
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (
