@@ -67,7 +67,7 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant
+      - !RealSlaterDeterminant
         source: !Binaries #(1)!
           ...
           baos: #(2)!
@@ -170,7 +170,7 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
                 (2, ShellType.Cartesian, [ #(10)!
                     (2, 0, 0),
                     (0, 2, 0),
-                    (0, 0, 2)
+                    (0, 0, 2),
                     (1, 1, 0),
                     (1, 0, 1),
                     (0, 1, 1),
@@ -180,9 +180,9 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
         (
             "H",
             [
-                (1, ShellType.Spinor, (False, True)), #(11)!
-                (3, ShellType.Spinor, (True, False)), #(12)!
-                (5, ShellType.Spinor, ([1, -1, 3, -3, 5, -5], True)), #(13)!
+                (1, ShellType.SpinorFermion, (False, True)), #(11)!
+                (3, ShellType.SpinorFermion, (True, False)), #(12)!
+                (5, ShellType.SpinorFermion, ([1, -1, 3, -3, 5, -5], True)), #(13)!
             ]
         ),
     ])
@@ -198,7 +198,10 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
         - `shell_type` is an enum indicating the type of the shell where the possible options are
             - `ShellType.Pure`: pure shell type,
             - `ShellType.Cartesian`: Cartesian shell type,
-            - `ShellType.Spinor`: spinor shell type,
+            - `ShellType.SpinorFermion`: spinor shell type for fermions,
+            - `ShellType.SpinorFermionKineticBalance`: spinor shell type for fermions with kinetic balance,
+            - `ShellType.SpinorAntifermion`: spinor shell type for antifermions,
+            - `ShellType.SpinorAntifermionKineticBalance`: spinor shell type for antifermions with kinetic balance,
         - `order` specifies how the functions in the shell are ordered:
             - for a Cartesian shell, `order` can be `None` for lexicographic order, or a list of
             tuples `(n_x, n_y, n_z)` specifying a custom order for the Cartesian functions where
@@ -290,7 +293,7 @@ The above thresholds can be specified as follows.
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -367,7 +370,7 @@ The above choices can be specified as follows.
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -413,7 +416,7 @@ Whether projective representations or corepresentations are required can be spec
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -488,7 +491,7 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -550,7 +553,7 @@ The value $n$ can be specified as follows.
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...

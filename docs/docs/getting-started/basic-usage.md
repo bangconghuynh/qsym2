@@ -75,16 +75,21 @@ Examples of symmetry analysis performed by QSym² for several Q-Chem calculation
 
 ### Scope
 
-This method is currently able to perform symmetry analysis of:
+This method is currently able to perform symmetry representation and composition analysis of:
 
 - Slater determinants,
 - Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals,
 - multi-determinantal wavefunctions obtained via non-orthogonal configuration interaction,
-- real-space functions defined on a grid,
+- real-space functions defined on a grid (`sandbox` feature required),
 - vibrational coordinates, and
 - one-electron densities
 
 that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly.
+
+This method is also able to perform symmetry projection for:
+
+- Slater determinants, giving multi-determinantal wavefunctions, and
+- one-electron densities, giving other one-electron densities.
 
 ### Instructions
 

@@ -79,14 +79,22 @@ When an input parameter has a default value, the default value will be specified
         ```
 
         1. :fontawesome-solid-laptop-code: Under the hood, the `!Parameters` syntax indicates that the variant `Parameters` of the [`SymmetryGroupDetectionInputKind`](https://qsym2.dev/api/qsym2/interfaces/input/enum.SymmetryGroupDetectionInputKind.html#variant.Parameters) enum is being specified, which wraps around the [`SymmetryGroupDetectionParams`](https://qsym2.dev/api/qsym2/drivers/symmetry_group_detection/struct.SymmetryGroupDetectionParams.html) struct.
-        2. :fontawesome-solid-users: Each element in this list is a threshold for moment-of-inertia comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.</br></br>:material-cog-sync-outline: Default: `[1e-4, 1e-5, 1e-6]`.
-        3. :fontawesome-solid-users: Each element in this list is a threshold for distance and geometry comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.</br></br>:material-cog-sync-outline: Default: `[1e-4, 1e-5, 1e-6]`.
-        4. :fontawesome-solid-users: This boolean indicates if time reversal is to be taken into account.</br></br>:material-cog-sync-outline: Default: `false`.
-        5. :fontawesome-solid-users: Each element in this optional list is a tuple consisting of an origin $\mathbf{O}$ and a vector $\mathbf{v}$, for which a `magnetic(+)` special atom will be added at $\mathbf{O} + \mathbf{v}$, and a `magnetic(-)` special atom will be added at $\mathbf{O} - \mathbf{v}$. The fields described by these fictitious special atoms are not present in the system but added here only for symmetry analysis.</br></br>:material-cog-sync-outline: Default: `null`.
-        6. :fontawesome-solid-users: Each element in this optional list is a tuple consisting of an origin $\mathbf{O}$ and a vector $\mathbf{v}$, for which an `electric(+)` special atom will be added at $\mathbf{O} + \mathbf{v}$. The fields described by these fictitious special atoms are not present in the system but added here only for symmetry analysis.</br></br>:material-cog-sync-outline: Default: `null`.
-        7. :fontawesome-solid-users: This boolean indicates if the origins specified in `fictitious_magnetic_fields` and `fictitious_electric_fields` are to be taken relative to the molecule's centre of mass rather than to the space-fixed origin.</br></br>:material-cog-sync-outline: Default: `false`.
-        8. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file.</br></br>:material-cog-sync-outline: Default: `false`.
-        9. :fontawesome-solid-users: This optional string specifies a name for saving the result as a binary file of extension `.qsym2.sym`. If none is given, the result will not be saved.</br></br>:material-cog-sync-outline: Default: `null`.
+        2. :fontawesome-solid-users: Each element in this list is a threshold for moment-of-inertia comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.
+            </br></br>:material-cog-sync-outline: Default: `[1e-4, 1e-5, 1e-6]`.
+        3. :fontawesome-solid-users: Each element in this list is a threshold for distance and geometry comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.
+            </br></br>:material-cog-sync-outline: Default: `[1e-4, 1e-5, 1e-6]`.
+        4. :fontawesome-solid-users: This boolean indicates if time reversal is to be taken into account.
+            </br></br>:material-cog-sync-outline: Default: `false`.
+        5. :fontawesome-solid-users: Each element in this optional list is a tuple consisting of an origin $\mathbf{O}$ and a vector $\mathbf{v}$, for which a `magnetic(+)` special atom will be added at $\mathbf{O} + \mathbf{v}$, and a `magnetic(-)` special atom will be added at $\mathbf{O} - \mathbf{v}$. The fields described by these fictitious special atoms are not present in the system but added here only for symmetry analysis.
+            </br></br>:material-cog-sync-outline: Default: `null`.
+        6. :fontawesome-solid-users: Each element in this optional list is a tuple consisting of an origin $\mathbf{O}$ and a vector $\mathbf{v}$, for which an `electric(+)` special atom will be added at $\mathbf{O} + \mathbf{v}$. The fields described by these fictitious special atoms are not present in the system but added here only for symmetry analysis.
+            </br></br>:material-cog-sync-outline: Default: `null`.
+        7. :fontawesome-solid-users: This boolean indicates if the origins specified in `fictitious_magnetic_fields` and `fictitious_electric_fields` are to be taken relative to the molecule's centre of mass rather than to the space-fixed origin.
+            </br></br>:material-cog-sync-outline: Default: `false`.
+        8. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file.
+            </br></br>:material-cog-sync-outline: Default: `false`.
+        9. :fontawesome-solid-users: This optional string specifies a name for saving the result as a binary file of extension `.qsym2.sym`. If none is given, the result will not be saved.
+            </br></br>:material-cog-sync-outline: Default: `null`.
         10. :fontawesome-solid-laptop-code: Under the hood, the specification of the target for symmetry-group detection in a YAML configuration file is handled by the `MolecularSymmetry` variant of the [`AnalysisTarget`](https://qsym2.dev/api/qsym2/interfaces/input/analysis/enum.AnalysisTarget.html) enum.
         11. :fontawesome-solid-users: This specifies a path to an XYZ file containing the input molecular structure for symmetry-group detection.
 
@@ -128,22 +136,27 @@ When an input parameter has a default value, the default value will be specified
     ```
 
     1. :fontawesome-solid-laptop-code: :fontawesome-solid-users: This specifies the molecular system for symmetry-group detection. The [`PyMolecule`](../python/symmetry-group-detection.md/#qsym2.PyMolecule) class, constructible in Python, contains geometry information that can be interpreted by QSym² on the Rust side.
-    <br></br> :fontawesome-solid-laptop-code: The [Rust API documentation](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) and [Python API documentation](../python/symmetry-group-detection.md/#qsym2.PyMolecule) for this class can be consulted for further information.
+    </br></br> :fontawesome-solid-laptop-code: The [Rust API documentation](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) and [Python API documentation](../python/symmetry-group-detection.md/#qsym2.PyMolecule) for this class can be consulted for further information.
     2. :fontawesome-solid-users: The coordinates of the atoms specified in this list can be in any units. QSym² does not care what the actual units are &mdash; symmetry properties are invariant to any change in length scale. The only exception is when QSym² evaluates molecular integrals: here, atomic units will be assumed.
     3. :fontawesome-solid-users: This specifies the threshold for comparing molecules. Note that this threshold is not the same as those specified in `detect_symmetry_group` below.
-    4. :fontawesome-solid-users: This list gives the components of an optional uniform external magnetic field that is present in the system.</br></br> :material-cog-sync-outline: Default: `None`.
-    5. :fontawesome-solid-users: This list gives the components of an optional uniform external electric field that is present in the system.</br></br> :material-cog-sync-outline: Default: `None`.
+    4. :fontawesome-solid-users: This list gives the components of an optional uniform external magnetic field that is present in the system.
+        </br></br> :material-cog-sync-outline: Default: `None`.
+    5. :fontawesome-solid-users: This list gives the components of an optional uniform external electric field that is present in the system.
+        </br></br> :material-cog-sync-outline: Default: `None`.
     6. :fontawesome-solid-users: The [`detect_symmetry_group`](../python/symmetry-group-detection.md#qsym2.detect_symmetry_group) function performs symmetry-group detection and logs the result via the `qsym2-output` logger at the `INFO` level.
-    <br></br> :fontawesome-solid-laptop-code: The [Rust API documentation](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) and [Python API documentation](../python/symmetry-group-detection.md#qsym2.detect_symmetry_group) for this function can be consulted for further information.
+    </br></br> :fontawesome-solid-laptop-code: The [Rust API documentation](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) and [Python API documentation](../python/symmetry-group-detection.md#qsym2.detect_symmetry_group) for this function can be consulted for further information.
     7. :fontawesome-solid-users: This specifies a path to an XYZ file containing the geometry of the molecule whose symmetry group is to be determined. One and only one of `inp_xyz` or `inp_mol` must be specified, and the other must be `None`.
     8. :fontawesome-solid-users: This specifies a [`PyMolecule`](../python/symmetry-group-detection.md/#qsym2.PyMolecule) object containing the molecular system whose symmetry group is to be determined. One and only one of `inp_xyz` or `inp_mol` must be specified, and the other must be `None`.
     9. :fontawesome-solid-users: This specifies an optional name for the `.qsym2.sym` file to be saved that contains the serialised results of the symmetry-group detection. This name does not need to contain the `.qsym2.sym` extension.
     10. :fontawesome-solid-users: Each element in this list is a threshold for moment-of-inertia comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.
     11. :fontawesome-solid-users: Each element in this list is a threshold for distance and geometry comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.
     12. :fontawesome-solid-users: This boolean indicates if time reversal is to be taken into account.
-    13. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external magnetic field. This field is not present in the system but is added here only for symmetry analysis.</br></br> :material-cog-sync-outline: Default: `None`.
-    14. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external electric field. This field is not present in the system but is added here only for symmetry analysis.</br></br> :material-cog-sync-outline: Default: `None`.
-    15. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file. </br></br> :material-cog-sync-outline: Default: `True`.
+    13. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external magnetic field. This field is not present in the system but is added here only for symmetry analysis.
+        </br></br> :material-cog-sync-outline: Default: `None`.
+    14. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external electric field. This field is not present in the system but is added here only for symmetry analysis.
+        </br></br> :material-cog-sync-outline: Default: `None`.
+    15. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file.
+        </br></br> :material-cog-sync-outline: Default: `True`.
     16. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`detect_symmetry_group`](../python/symmetry-group-detection.md#qsym2.detect_symmetry_group) function returns a tuple of two objects:
         - `unisym`: a [`PySymmetry`](../python/symmetry-group-detection.md#qsym2.PySymmetry) object containing the unitary symmetry elements, and
         - `magsym`: an optional [`PySymmetry`](../python/symmetry-group-detection.md/#qsym2.PySymmetry) object containing the magnetic symmetry elements, if requested by the `time_reversal` parameter.

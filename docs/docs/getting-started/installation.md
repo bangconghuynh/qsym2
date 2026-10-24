@@ -67,9 +67,9 @@ The following instructions assume that the `full` feature is to be installed on 
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
-    cargo install --features full --path . --root custom/install/path/for/qsym2
+    cargo install --features full --path . --root /custom/install/path/for/qsym2
     ```
-    instead. The custom path `/custom/install/path/for/qsym2` must then be added to the `$PATH` environment variable to make `qsym2` discoverable by the operating system.
+    instead. The custom binary path `/custom/install/path/for/qsym2/bin` must then be added to the `$PATH` environment variable to make the `qsym2` binary discoverable by the operating system.
 
 ## Python-library compilation
 

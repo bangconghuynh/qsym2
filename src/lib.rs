@@ -65,7 +65,8 @@
 //! and then using the corresponding `*-system` backends.
 //!
 //! ### Interfaces
-//! - `qchem`: Enables Q-Chem's HDF5 archive files to be read in and analysed
+//! - `qchem`: Enables Q-Chem's HDF5 archive files to be read in and analysed (`integrals` feature
+//! required and will be enabled automatically)
 //! - `python`: Enables the Python bindings for several core functionalities
 //!
 //! ### Integrals
@@ -73,8 +74,8 @@
 //!   overlap integral derivatives within QSym²
 //!
 //! ### Composite
-//! - `standard`: Enables the `openblas-static` and `qchem` features
-//! - `full`: Enables the `standard` and `integrals` features
+//! - `full`: Enables the `openblas-static`, `qchem`, and `integrals` features
+//! - `testing`: Enables the `full`, `python`, and `sandbox` (see below) features
 //!
 //! ### Developmental
 //! - `sandbox`: Enables experimental features that are still being actively developed
@@ -96,7 +97,7 @@
 //! | `netlib-system`    | <ul><li>`liblapack-dev` (Debian/Ubuntu)</li> <li>`lapack-devel` (Rocky/Fedora/RHEL)</li></ul>     | Finds and links existing LAPACK in the system (see  [ndarray-linalg documentation](https://github.com/rust-ndarray/ndarray-linalg))                                                          |
 //! | `intel-mkl-static` | <ul><li> `pkg-config` (Debian/Ubuntu)</li> <li>`pkgconfig` (Rocky/Fedora/RHEL)</li></ul>          | Finds and links existing static Intel MKL in the system, or downloads and links statically if not found (see  [ndarray-linalg documentation](https://github.com/rust-ndarray/ndarray-linalg))|
 //! | `intel-mkl-system` | <ul><li> `pkg-config` (Debian/Ubuntu)</li> <li>`pkgconfig` (Rocky/Fedora/RHEL)</li></ul>          | Finds and links existing shared Intel MKL in the system (see  [ndarray-linalg documentation](https://github.com/rust-ndarray/ndarray-linalg))                                                |
-//! | `qchem`            | `cmake`, `gcc`                                                                                    | Builds the HDF5 C library and links statically                                                                                                                                               |
+//! | `qchem`            | `cmake`, `gcc`, and dependencies of the `integrals` feature                                       | Builds the HDF5 C library and links statically                                                                                                                                               |
 //! | `integrals`        | <ul><li> `libssl-dev` (Debian/Ubuntu)</li> <li>`openssl-devel` (Rocky/Fedora/RHEL)</li></ul>      | Installs the TLS framework required for [reqwest](https://github.com/seanmonstar/reqwest)                                                                                                    |
 //! | `python`           | Python, which is best managed via Anaconda                                                        | Installs the Python bindings for core functionalities of QSym²                                                                                                                               |
 //!
