@@ -1,3 +1,5 @@
+import os
+
 from pyscf import gto
 
 from qsym2 import PyMolecule, PySymmetryElementKind, detect_symmetry_group
@@ -51,3 +53,5 @@ def test_symmetry_group_detection():
 
     assert magsym is not None
     assert magsym.group_name == "Td + θ·Td"
+
+    os.remove("mol.qsym2.sym")

@@ -1,4 +1,5 @@
 import itertools
+import os
 import re
 
 import numpy as np
@@ -150,3 +151,5 @@ def test_rep_analyse_slater_determinant_h62p():
 
     assert res.group == "Oh"
     assert res.determinant_symmetry == "|A|_(1g) ⊕ |T|_(2g)"
+
+    os.remove("mol.qsym2.sym")

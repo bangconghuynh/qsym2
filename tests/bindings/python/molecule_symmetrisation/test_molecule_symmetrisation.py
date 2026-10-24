@@ -1,3 +1,5 @@
+import os
+
 from qsym2 import PyMolecule, detect_symmetry_group, symmetrise_molecule
 
 
@@ -59,3 +61,5 @@ def test_symmetrisation_vf6_by():
     assert unisym.group_name == "C4h"
     assert magsym is not None
     assert magsym.group_name == "D4h"
+
+    os.remove("mol.qsym2.sym")
