@@ -381,6 +381,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
                 let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
                     .integrality_threshold(integrality_threshold)
                     .linear_independence_threshold(linear_independence_threshold)
+                    .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
                     .use_magnetic_group(use_magnetic_group.clone())
                     .use_double_group(use_double_group)
                     .use_cayley_table(use_cayley_table)
