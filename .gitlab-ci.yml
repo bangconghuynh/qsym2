@@ -72,15 +72,11 @@ mkdocs:
   stage: Deploy
   image: python:latest
   script:
-    - pip install "mkdocs-material[imaging]"
-    - pip install mkdocs-git-revision-date-localized-plugin
-    - pip install "mkdocstrings[python]"
-    - pip install ruff
-    - pip install markdown-katex
+    - pip install zensical mkdocstrings-python markdown-katex ruff
     - cd docs
-    - mkdocs build --site-dir public
+    - zensical build --strict
     - cd ..
-    - mv docs/public .
+    - mv docs/site public
   artifacts:
     paths:
       - public
