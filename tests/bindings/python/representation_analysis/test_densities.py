@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 import re
 
@@ -19,8 +20,14 @@ from qsym2 import (
 )
 from qsym2.qsym2 import PyDensityComplex, calc_overlap_4c_complex
 
+FLOAT_RE = r"([+-]?\d+(\.\d+)?(e[+-]?\d+)?)"
 
-def test_rep_analyse_densities_h62p():
+
+# pyo3-log caches logger levels on first use, so this must be set before any QSym² call.
+logging.getLogger("qsym2-output").setLevel(logging.INFO)
+
+
+def test_rep_analyse_densities_h62p(caplog):
     try:
         mol = gto.M(
             atom=r"""
@@ -62,12 +69,24 @@ def test_rep_analyse_densities_h62p():
         rhf.conv_tol = 1e-13
         rhf.conv_check = False
         rhf.run()
+        rhf_stable_i = False
+        while not rhf_stable_i:
+            mo1, _, rhf_stable_i, _ = rhf.stability(return_status=True)
+            mo1 = rhf.stability()[0]
+            dm1 = rhf.make_rdm1(mo1, rhf.mo_occ)
+            rhf = rhf.run(dm1)
         dm_rhf = rhf.make_rdm1()
 
         uhf = scf.UHF(mol)
         uhf.conv_tol = 1e-13
         uhf.conv_check = False
         uhf.run()
+        uhf_stable_i = False
+        while not uhf_stable_i:
+            mo1, _, uhf_stable_i, _ = uhf.stability(return_status=True)
+            mo1 = uhf.stability()[0]
+            dm1 = uhf.make_rdm1(mo1, uhf.mo_occ)
+            uhf = uhf.run(dm1)
         dm_uhf = uhf.make_rdm1()
 
         pydens_real = [
@@ -171,6 +190,7 @@ def test_rep_analyse_densities_h62p():
         sao_spatial_4c_real = calc_overlap_4c_real(basis_set)
         sao_spatial_4c_complex = calc_overlap_4c_complex(basis_set, complex_symmetric=False)
 
+        caplog.clear()
         rep_analyse_densities(
             # Data
             inp_sym="mol",
@@ -192,7 +212,29 @@ def test_rep_analyse_densities_h62p():
             # Other options
             write_character_table=True,
         )
+        output = "\n".join(
+            record.getMessage()
+            for record in caplog.records
+            if record.name == "qsym2-output"
+        )
 
+        lines = output.splitlines()
+        start = next(
+            i for i, line in enumerate(lines) if "> Density results" in line
+        )
+        symmetries = {}
+        for line in lines[start + 1 :]:
+            m = re.match(rf"^\s*\d+\s+(\S+)\s+(\|.*)\s+{FLOAT_RE}\s+{FLOAT_RE}", line)
+            if m is not None:
+                symmetries[m.group(1)] = m.group(2).strip()
+            elif len(symmetries) > 0:
+                break
+
+        assert symmetries["rhf_density_real"] == "|A|_(1g) ⊕ |T|_(2g)"
+        assert symmetries["uhf_density_total_real"] == "|A|_(1g) ⊕ |E|_(g)"
+        assert symmetries["uhf_density_spin_real"] == "|E|_(g)"
+
+        caplog.clear()
         rep_analyse_densities(
             # Data
             inp_sym="mol",
@@ -214,8 +256,27 @@ def test_rep_analyse_densities_h62p():
             # Other options
             write_character_table=True,
         )
+        output = "\n".join(
+            record.getMessage()
+            for record in caplog.records
+            if record.name == "qsym2-output"
+        )
 
-        assert True
+        lines = output.splitlines()
+        start = next(
+            i for i, line in enumerate(lines) if "> Density results" in line
+        )
+        symmetries = {}
+        for line in lines[start + 1 :]:
+            m = re.match(rf"^\s*\d+\s+(\S+)\s+(\|.*)\s+{FLOAT_RE}{FLOAT_RE}i\s+{FLOAT_RE}{FLOAT_RE}i", line)
+            if m is not None:
+                symmetries[m.group(1)] = m.group(2).strip()
+            elif len(symmetries) > 0:
+                break
+
+        assert symmetries["rhf_density_complex"] == "|A|_(1g) ⊕ |T|_(2g)"
+        assert symmetries["uhf_density_total_complex"] == "|A|_(1g) ⊕ |E|_(g)"
+        assert symmetries["uhf_density_spin_complex"] == "|E|_(g)"
 
     finally:
         os.remove("mol.qsym2.sym")
