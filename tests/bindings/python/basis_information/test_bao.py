@@ -131,8 +131,8 @@ def test_bao_from_pyscf_spinorbitcoupled():
 
 
 def test_bao_from_qchem_archive():
-    ROOT = pathlib.Path(os.getcwd()).parents[2]
-    qchem_archive = f"{ROOT}/tests/qchem/benzene_631gstar.qarchive.h5"
+    ROOT = pathlib.Path(__file__).resolve().parents[3]
+    qchem_archive = f"{ROOT}/qchem/benzene_631gstar.qarchive.h5"
     _ = PyBasisAngularOrder.from_qchem_archive(qchem_archive)
 
     assert True
