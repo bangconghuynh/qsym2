@@ -15,12 +15,10 @@ from qsym2 import (
     ShellType,
     SymmetryTransformationKind,
     detect_symmetry_group,
-    rep_analyse_multideterminants_orbit_basis_internal_solver,
-    rep_analyse_slater_determinant,
-)
-from qsym2.qsym2 import (
     rep_analyse_multideterminants_eager_basis,
     rep_analyse_multideterminants_fci_basis,
+    rep_analyse_multideterminants_orbit_basis_internal_solver,
+    rep_analyse_slater_determinant,
 )
 
 FLOAT_RE = r"([+-]?\d+(\.\d+)?(e[+-]?\d+)?)"
