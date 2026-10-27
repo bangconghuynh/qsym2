@@ -10,15 +10,16 @@ from qsym2 import (
     EigenvalueComparisonMode,
     PyBasisAngularOrder,
     PyBasisShellContraction,
+    PyDensityComplex,
     PyDensityReal,
     PyMolecule,
     ShellType,
     SymmetryTransformationKind,
+    calc_overlap_4c_complex,
     calc_overlap_4c_real,
     detect_symmetry_group,
     rep_analyse_densities,
 )
-from qsym2.qsym2 import PyDensityComplex, calc_overlap_4c_complex
 
 FLOAT_RE = r"([+-]?\d+(\.\d+)?(e[+-]?\d+)?)"
 
