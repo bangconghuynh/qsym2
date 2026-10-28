@@ -25,7 +25,8 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
     ```bash
     conda create -n qsym2-python -c conda-forge \
         python=3.14 pip pkg-config openssl make cmake \
-        c-compiler cxx-compiler fortran-compiler rust
+        c-compiler cxx-compiler fortran-compiler rust \
+        binutils
     ```
     and then activate this environment:
     ```bash
