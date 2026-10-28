@@ -26,12 +26,25 @@ class MyFilter:
         return logRecord.levelno == self.__level
 
 
-# -------------------
-# Editable parameters
-# -------------------
+# ---------
+# ORCA data
+# ---------
 
-# ORCA tag
-tag = "scf"
+# Make sure that the following two commands have been run:
+# ```
+# orca_2json tag.gbw
+# orca_2json tag -property
+# ```
+# with the following configuration file `tag.json.conf`:
+# ```
+# {
+#     "Basisset": true,
+#     "MOCoefficients": true,
+#     "1elIntegrals": ["S"]
+# }
+# ```
+# This will generate two json files: `tag.json` and `tag.property.json`.
+tag = "h6"
 
 # -------
 # Logging
