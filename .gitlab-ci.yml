@@ -61,9 +61,8 @@ python_tests:
   before_script:
     - conda env create -f tests/bindings/python/meta/environment.yml -n qsym2-testsuite
     - source activate qsym2-testsuite
-    - conda install -c conda-forge binutils
     - export SSL_CERT_FILE="$CONDA_PREFIX/ssl/cacert.pem"
-    - pip install -vvv .
+    - MATURIN_PEP517_ARGS="--features openblas-static,integrals,python,qchem" pip install -vvv .
   script:
     - cd tests/bindings/python
     - pytest .

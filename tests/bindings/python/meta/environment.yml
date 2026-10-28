@@ -2,8 +2,8 @@
 name: qsym2-testsuite
 channels:
   - conda-forge
-  - defaults
 dependencies:
+  - binutils
   - cmake
   - c-compiler
   - cxx-compiler
