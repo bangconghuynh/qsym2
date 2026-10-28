@@ -60,6 +60,7 @@ python_tests:
     - archon
   before_script:
     - conda env create -f tests/bindings/python/meta/environment.yml -n qsym2-testsuite
+    - conda init
     - conda activate qsym2-testsuite
     - pip install -vvv .
   script:
