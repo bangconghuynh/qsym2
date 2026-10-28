@@ -15,7 +15,9 @@ use ndarray_linalg::{Determinant, Eig, Eigh, SVD, Scalar, UPLO};
 use num::{Complex, Float};
 use num_complex::ComplexFloat;
 
+use crate::analysis::EigenvalueComparisonMode;
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
+use crate::auxiliary::misc::{check_complex_matrix_symmetry, check_real_matrix_symmetry};
 
 use super::denmat::{calc_unweighted_codensity_matrix, calc_weighted_codensity_matrix};
 
@@ -411,10 +413,10 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `o1` - The one-particle operator in the atomic-orbital basis.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `o1` - The one-particle operator in the atomic-orbital basis.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -502,10 +504,14 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `o2_opt` - The two-particle operator in the atomic-orbital basis.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `o2_opt` - The two-particle operator in the atomic-orbital basis in physicists' ordering.
+/// * `get_jk_opt` - The optional function callable on a density matrix $`\mathbf{D}`$ to calculate
+///   the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
+///   appropriate two-electron integrals calculated on-the-fly. Either this or `o2_opt` must be
+///   specified, but not both.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -611,7 +617,7 @@ where
                     Ok(j_term - k_term)
                 }
                 _ => Err(format_err!(
-                    "One and only one of `o2` or `get_jk` should be provided."
+                    "One and only one of `o2_opt` or `get_jk_opt` should be provided."
                 )),
             }
         } else if nzeros == 1 {
@@ -899,7 +905,7 @@ where
                         / (T::one() + T::one()))
                 }
                 _ => Err(format_err!(
-                    "One and only one of `o2` or `get_jk` should be provided."
+                    "One and only one of `o2_opt` or `get_jk_opt` should be provided."
                 )),
             }
         }
@@ -910,9 +916,9 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -1079,6 +1085,8 @@ pub trait CanonicalOrthogonalisable {
     /// * `thresh_offdiag` - Threshold for verifying that the orthogonalised matrix is indeed
     ///   orthogonal.
     /// * `thresh_zeroov` - Threshold for determining zero eigenvalues of the input square matrix.
+    /// * `eigenvalue_comparison_mode` - Enumerated type indicating the mode of comparing and
+    ///   determining zero eigenvalues.
     ///
     /// # Returns
     ///
@@ -1089,6 +1097,7 @@ pub trait CanonicalOrthogonalisable {
         preserves_full_rank: bool,
         thresh_offdiag: Self::RealType,
         thresh_zeroov: Self::RealType,
+        eigenvalue_comparion_mode: &EigenvalueComparisonMode,
     ) -> Result<CanonicalOrthogonalisationResult<Self::NumType>, anyhow::Error>;
 }
 
@@ -1144,25 +1153,56 @@ impl CanonicalOrthogonalisable for ArrayView2<'_, dtype_> {
         preserves_full_rank: bool,
         thresh_offdiag: dtype_,
         thresh_zeroov: dtype_,
+        eigenvalue_comparison_mode: &EigenvalueComparisonMode,
     ) -> Result<CanonicalOrthogonalisationResult<Self::NumType>, anyhow::Error> {
         let smat = self;
 
         // Real, symmetric S
-        let max_offdiag_s = *(smat.to_owned() - smat.t()).map(|v| v.abs()).iter()
-                .max_by(|a, b| a.total_cmp(b))
-                .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap symmetric deviation matrix."))?;
-        ensure!(
-            max_offdiag_s <= thresh_offdiag,
-            "Overlap matrix is not real-symmetric: ||S - S^T||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
-        );
+        // let max_offdiag_s = *(smat.to_owned() - smat.t()).map(|v| v.abs()).iter()
+        //         .max_by(|a, b| a.total_cmp(b))
+        //         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap symmetric deviation matrix."))?;
+        // ensure!(
+        //     max_offdiag_s <= thresh_offdiag,
+        //     "Overlap matrix is not real-symmetric: ||S - S^T||_∞ = {max_offdiag_s:.3e} > {thresh_offdiag:.3e}."
+        // );
+        check_real_matrix_symmetry(
+            &smat.view(),
+            thresh_offdiag,
+            "Real-valued overlap matrix",
+            "S(ℝ)",
+        )?;
 
         // S is real-symmetric, so U is orthogonal, i.e. U^T = U^(-1).
         let (s_eig, umat) = smat.eigh(UPLO::Lower).map_err(|err| format_err!(err))?;
-        // Real eigenvalues, so both comparison modes are the same.
+        let mut sorted_s_eig = s_eig.iter().collect_vec();
+        sorted_s_eig.sort_by(|a, b| match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => a.abs().total_cmp(&b.abs()),
+            EigenvalueComparisonMode::Real => a.total_cmp(b),
+        });
+        sorted_s_eig.reverse();
+        log::debug!("Overlap eigenvalues for canonical orthogonalisation (real-symmetric matrix):");
+        for (i, eig) in s_eig.iter().enumerate() {
+            log::debug!("  {i}: {eig:+.8e}");
+        }
+        log::debug!("");
+
+        // Real eigenvalues, but the two comparison modes still differ, because `Real` gives signed
+        // comparison while `Modulus` does not.
         let nonzero_s_indices = s_eig
             .iter()
-            .positions(|x| x.abs() > thresh_zeroov)
+            .positions(|x| match eigenvalue_comparison_mode {
+                EigenvalueComparisonMode::Modulus => x.abs() > thresh_zeroov,
+                EigenvalueComparisonMode::Real => *x > thresh_zeroov,
+            })
             .collect_vec();
+        log::debug!(
+            "Non-zero overlap indices w.r.t. threshold {thresh_zeroov:.8e} ({eigenvalue_comparison_mode}):"
+        );
+        log::debug!(
+            "  {}",
+            nonzero_s_indices.iter().map(|i| i.to_string()).join(", ")
+        );
+
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
         if nonzero_s_eig.iter().any(|v| *v < 0.0) {
             return Err(format_err!(
@@ -1201,50 +1241,58 @@ where
         preserves_full_rank: bool,
         thresh_offdiag: T,
         thresh_zeroov: T,
+        eigenvalue_comparison_mode: &EigenvalueComparisonMode,
     ) -> Result<CanonicalOrthogonalisationResult<Self::NumType>, anyhow::Error> {
         let smat = self;
 
-        if complex_symmetric {
-            // Complex-symmetric S
-            let max_offdiag = *(smat.to_owned() - smat.t())
-                    .mapv(ComplexFloat::abs)
-                    .iter()
-                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
-                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
-            ensure!(
-                max_offdiag <= thresh_offdiag,
-                "Overlap matrix is not complex-symmetric."
-            );
-        } else {
-            // Complex-Hermitian S
-            let max_offdiag = *(smat.to_owned() - smat.map(|v| v.conj()).t())
-                    .mapv(ComplexFloat::abs)
-                    .iter()
-                    .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| panic!("Unable to compare {a} and {b}.")))
-                    .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the overlap complex-symmetric deviation matrix."))?;
-            ensure!(
-                max_offdiag <= thresh_offdiag,
-                "Overlap matrix is not complex-Hermitian."
-            );
-        }
+        check_complex_matrix_symmetry(
+            &smat.view(),
+            complex_symmetric,
+            thresh_offdiag,
+            "Complex-valued overlap matrix",
+            "S(ℂ)",
+        )?;
 
         let (s_eig, umat_nonortho) = smat.eig().map_err(|err| format_err!(err))?;
-        log::debug!("Overlap eigenvalues for canonical orthogonalisation:");
-        for (i, eig) in s_eig.iter().enumerate() {
+        let mut sorted_s_eig = s_eig.iter().collect_vec();
+        sorted_s_eig.sort_by(|a, b| match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => ComplexFloat::abs(**a)
+                .partial_cmp(&ComplexFloat::abs(**b))
+                .expect("Unable to compare the moduli of two complex numbers."),
+            EigenvalueComparisonMode::Real => ComplexFloat::re(**a)
+                .partial_cmp(&ComplexFloat::re(**b))
+                .expect("Unable to compare the real parts of two complex numbers."),
+        });
+        sorted_s_eig.reverse();
+        log::debug!(
+            "Overlap eigenvalues for canonical orthogonalisation ({} matrix):",
+            if complex_symmetric {
+                "complex-symmetric"
+            } else {
+                "complex-Hermitian"
+            }
+        );
+        for (i, eig) in sorted_s_eig.iter().enumerate() {
             log::debug!("  {i}: {eig:+.8e}");
         }
         log::debug!("");
 
         let nonzero_s_indices = s_eig
             .iter()
-            .positions(|x| ComplexFloat::abs(*x) > thresh_zeroov)
+            .positions(|x| match eigenvalue_comparison_mode {
+                EigenvalueComparisonMode::Modulus => ComplexFloat::abs(*x) > thresh_zeroov,
+                EigenvalueComparisonMode::Real => ComplexFloat::re(*x) > thresh_zeroov,
+            })
             .collect_vec();
-        log::debug!("Non-zero overlap indices w.r.t. threshold {thresh_zeroov:.8e}:");
+        log::debug!(
+            "Non-zero overlap indices w.r.t. threshold {thresh_zeroov:.8e} ({eigenvalue_comparison_mode}):"
+        );
         log::debug!(
             "  {}",
             nonzero_s_indices.iter().map(|i| i.to_string()).join(", ")
         );
         log::debug!("");
+
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
         let nonzero_umat_nonortho = umat_nonortho.select(Axis(1), &nonzero_s_indices);
 

@@ -46,6 +46,7 @@ use crate::target::noci::multideterminants::MultiDeterminants;
 // ~~~~~~~~~~~~~
 // Macro helpers
 // ~~~~~~~~~~~~~
+#[macro_export]
 macro_rules! generate_get_jk {
     ($get_jk_name:ident, $py_get_jk_func:ident, $t:ty) => {
         let $get_jk_name = move |dm: &Array2<$t>| {
@@ -110,8 +111,8 @@ macro_rules! generate_get_jk {
 /// * `enuc` - The nuclear repulsion energy.
 /// * `onee` - The one-electron integral matrix whose elements are of type `float64` or
 /// `complex128`.
-/// * `twoe` - The two-electron integral tensor whose elements are of type `float64` or
-/// `complex128`. Either this or `py_get_jk` must be specified, but not both.
+/// * `twoe` - The two-electron integral tensor in physicists' ordering whose elements are of type
+/// `float64` or `complex128`. Either this or `py_get_jk` must be specified, but not both.
 /// * `py_get_jk` - A Python function callable on a density matrix $`\mathbf{D}`$ to calculate the
 /// corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate
 /// two-electron integrals calculated on-the-fly. Either this or `twoe` must be specified, but not
@@ -126,6 +127,8 @@ macro_rules! generate_get_jk {
 /// integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
 /// subspace via the non-zero eigenvalues of the orbit overlap matrix.
+/// * `orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry of the orbit
+/// overlap matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
 /// should be used.
@@ -154,6 +157,8 @@ macro_rules! generate_get_jk {
 /// * `angular_function_linear_independence_threshold` - The threshold for determining the linear
 /// independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry
 /// analysis of angular functions.
+/// * `angular_function_orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry
+/// of the orbit overlap matrices for the symmetry analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis.
 ///
@@ -178,6 +183,7 @@ macro_rules! generate_get_jk {
     calculate_density_matrices,
     integrality_threshold,
     linear_independence_threshold,
+    orbit_overlap_symmetry_threshold,
     use_magnetic_group,
     use_double_group,
     use_cayley_table,
@@ -189,6 +195,7 @@ macro_rules! generate_get_jk {
     infinite_order_to_finite=None,
     angular_function_integrality_threshold=1e-7,
     angular_function_linear_independence_threshold=1e-7,
+    angular_function_orbit_overlap_symmetry_threshold=1e-7,
     angular_function_max_angular_momentum=2
 ))]
 pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
@@ -206,6 +213,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     calculate_density_matrices: bool,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
+    orbit_overlap_symmetry_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -217,6 +225,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     infinite_order_to_finite: Option<u32>,
     angular_function_integrality_threshold: f64,
     angular_function_linear_independence_threshold: f64,
+    angular_function_orbit_overlap_symmetry_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<Py<PyAny>> {
     // Read in point-group detection results
@@ -252,12 +261,14 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
     let afa_params = AngularFunctionRepAnalysisParams::builder()
         .integrality_threshold(angular_function_integrality_threshold)
         .linear_independence_threshold(angular_function_linear_independence_threshold)
+        .orbit_overlap_symmetry_threshold(angular_function_orbit_overlap_symmetry_threshold)
         .max_angular_momentum(angular_function_max_angular_momentum)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(integrality_threshold)
         .linear_independence_threshold(linear_independence_threshold)
+        .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
         .use_magnetic_group(use_magnetic_group.clone())
         .use_double_group(use_double_group)
         .use_cayley_table(use_cayley_table)
@@ -1148,7 +1159,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                         let multidets = MultiDeterminants::from_multideterminant_vec(
-                            &multidets_vec.iter().collect::<Vec<_>>()
+                            &multidets_vec.iter().collect::<Vec<_>>(),
                         )
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -1175,10 +1186,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                                    .basis()
-                                    .iter()
-                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                                    .collect::<Result<Vec<_>, _>>()
+                            .basis()
+                            .iter()
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                            .collect::<Result<Vec<_>, _>>()
                             .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."

@@ -19,13 +19,12 @@ $$
 The mathematical details of this method are described in [Section 2.4 of the QSym² paper](../../about/authorship.md#publications).
 Here, it suffices to summarise the key ingredients and considerations that are required for this method to work.
 
-
 ## Requirements
 
 ### Basis overlap matrix
 
 Let $\mathcal{B}_V$ be a basis for the linear space $V$, and let us also endow $V$ with an inner product $\braket{\cdot | \cdot}$.
-For any chosen $\mathcal{B}_V = \{ \mathbfit{v}_{\mu} \ :\ 1 \le \mu \le \dim V \}$, QSym² requires the *overlap matrix* $\mathbfit{S}_V$ as part of the representation analysis procedure:
+For any chosen $\mathcal{B}_V = \{ \mathbfit{v}_{\mu} \ :\ 1 \le \mu \le \dim V \}$, QSym² requires the _overlap matrix_ $\mathbfit{S}_V$ as part of the representation analysis procedure:
 
 $$
     S_{V, \mu \nu} = \braket{\mathbfit{v}_{\mu} | \mathbfit{v}_{\nu}}.
@@ -62,13 +61,13 @@ This is equivalent to knowing the following for any shell of atomic orbitals:
 - whether the angular parts of the atomic orbitals in the shell (which are real solid harmonic functions) are expressed in Cartesian coordinates or in spherical polar coordinates, and
 - the ordering of the functions in the shell.
 
-These pieces of information are collectively referred to in QSym² as the *basis angular order* information which must be specified for any representation analysis performed on quantities expressed in terms of atomic orbitals.
+These pieces of information are collectively referred to in QSym² as the _basis angular order_ information which must be specified for any representation analysis performed on quantities expressed in terms of atomic orbitals.
 Whenever possible, QSym² will attempt to construct this from available data, but if this cannot be done, then there are several ways to specify this manually, as shown below.
 
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant
+      - !RealSlaterDeterminant
         source: !Binaries #(1)!
           ...
           baos: #(2)!
@@ -171,7 +170,7 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
                 (2, ShellType.Cartesian, [ #(10)!
                     (2, 0, 0),
                     (0, 2, 0),
-                    (0, 0, 2)
+                    (0, 0, 2),
                     (1, 1, 0),
                     (1, 0, 1),
                     (0, 1, 1),
@@ -181,9 +180,9 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
         (
             "H",
             [
-                (1, ShellType.Spinor, (False, True)), #(11)!
-                (3, ShellType.Spinor, (True, False)), #(12)!
-                (5, ShellType.Spinor, ([1, -1, 3, -3, 5, -5], True)), #(13)!
+                (1, ShellType.SpinorFermion, (False, True)), #(11)!
+                (3, ShellType.SpinorFermion, (True, False)), #(12)!
+                (5, ShellType.SpinorFermion, ([1, -1, 3, -3, 5, -5], True)), #(13)!
             ]
         ),
     ])
@@ -199,7 +198,10 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
         - `shell_type` is an enum indicating the type of the shell where the possible options are
             - `ShellType.Pure`: pure shell type,
             - `ShellType.Cartesian`: Cartesian shell type,
-            - `ShellType.Spinor`: spinor shell type,
+            - `ShellType.SpinorFermion`: spinor shell type for fermions,
+            - `ShellType.SpinorFermionKineticBalance`: spinor shell type for fermions with kinetic balance,
+            - `ShellType.SpinorAntifermion`: spinor shell type for antifermions,
+            - `ShellType.SpinorAntifermionKineticBalance`: spinor shell type for antifermions with kinetic balance,
         - `order` specifies how the functions in the shell are ordered:
             - for a Cartesian shell, `order` can be `None` for lexicographic order, or a list of
             tuples `(n_x, n_y, n_z)` specifying a custom order for the Cartesian functions where
@@ -222,17 +224,16 @@ Whenever possible, QSym² will attempt to construct this from available data, bu
     12. :fontawesome-solid-users: This example specifies a spinor *ungerade* shell with $j = 3/2$ in which functions are arranged in increasing-$m_j$ order.
     13. :fontawesome-solid-users: This example specifies a spherical *gerade* shell with $j = 5/2$ in which functions are arranged in a custom $2m_j$ order: $+1, -1, +3, -3, +5, -5$.
 
-
 ## Thresholds
 
 ### Linear independence threshold
 
 As explained in [Section 3.2.1 of the QSym² paper](../../about/authorship.md#publications), for every quantity $\mathbfit{w}$ that is to be symmetry-analysed via the orbit $\mathcal{G} \cdot \mathbfit{w}$, the overlap matrix $\mathbfit{S}$ between the elements in $\mathcal{G} \cdot \mathbfit{w}$ needs to be computed, and a threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ needs to be chosen to determine which of the eigenvalues of $\mathbfit{S}$ are non-zero.
 This is so that linearly dependent elements in $\mathcal{G} \cdot \mathbfit{w}$ can be projected out and the space $W$ can be correctly identified.
-The choice of the *linear independence threshold* $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ is therefore vital for a numerically stable and meaningful symmetry analysis from QSym².
+The choice of the _linear independence threshold_ $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ is therefore vital for a numerically stable and meaningful symmetry analysis from QSym².
 
 How does one pick a sensible value for this threshold?
-The answer to this question depends on the eigenspectrum of $\mathbfit{S}$, and unfortunately, there is no *a priori* way to determine the best possible value of $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ without examining this eigenspectrum first.
+The answer to this question depends on the eigenspectrum of $\mathbfit{S}$, and unfortunately, there is no _a priori_ way to determine the best possible value of $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ without examining this eigenspectrum first.
 Fortunately, in all cases, QSym² can help with this by printing out the eigenvalue of $\mathbfit{S}$ immediately above the chosen threshold, $\lambda^{>}_{\mathbfit{S}}$, and also the eigenvalue of $\mathbfit{S}$ immediately below the chosen threshold, $\lambda^{<}_{\mathbfit{S}}$.
 
 The author recommends that a good threshold choice is one for which
@@ -241,7 +242,7 @@ $$
     \log_{10}\lambda^{>}_{\mathbfit{S}} - \log_{10}\lambda^{<}_{\mathbfit{S}} \ge 3,
 $$
 
-*i.e.* the threshold cuts through a gap of at least three orders of magnitude in the eigenspectrum of $\mathbfit{S}$.
+_i.e._ the threshold cuts through a gap of at least three orders of magnitude in the eigenspectrum of $\mathbfit{S}$.
 If such a gap does not exist, then $\mathcal{G} \cdot \mathbfit{w}$ contains all linearly independent elements, in which case:
 
 - if $\mathbfit{w}$ has been tightly converged and is of a high numerical quality (relative to $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$), then it can be confidently concluded that $\mathbfit{w}$ transforms as the regular representation of $\mathcal{G}$;
@@ -251,8 +252,8 @@ If such a gap does not exist, then $\mathcal{G} \cdot \mathbfit{w}$ contains all
 
 QSym² offers two modes of comparing the eigenvalues of $\mathbfit{S}$ with the threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$:
 
-- *real* mode: the real parts of the eigenvalues are compared against the threshold,
-- *modulus* mode: the absolute values of the eigenvalues are compared against the threshold.
+- _real_ mode: the real parts of the eigenvalues are compared against the threshold,
+- _modulus_ mode: the absolute values of the eigenvalues are compared against the threshold.
 
 If the overlap matrix $\mathbfit{S}$ has negative or complex eigenvalues, the two comparison modes may give rise to different $W$ spaces and hence different symmetry assignments.
 Care must therefore be taken in choosing the appropriate comparison mode for the system being studied.
@@ -262,7 +263,7 @@ Care must therefore be taken in choosing the appropriate comparison mode for the
 The crux of the symmetry analysis of $\mathbfit{w}$ with respect to a group $\mathcal{G}$ is the decomposition of the space $W \subseteq V$ spanned by the orbit $\mathcal{G} \cdot \mathbfit{w}$ into known irreducible representation spaces of $\mathcal{G}$ on $V$:
 
 $$
-    W = \bigoplus_{i} \Gamma_i^{\otimes k_i},
+    W = \bigoplus_{i} \Gamma_i^{\oplus k_i},
 $$
 
 where $\Gamma_i$ is an irreducible representation space of $\mathcal{G}$, $k_i$ its multiplicity in the decomposition of $W$, and the direct sum runs over all irreducible representation spaces of $\mathcal{G}$.
@@ -274,6 +275,17 @@ In most cases, if $\mathbfit{w}$ is of a decent numerical quality and if the lin
 However, if QSym² complains about significant non-integrality in the obtained values of $k_i$, then, this is most likely symptomatic of a poorly chosen linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ which leads to an ill-formed $W$ space that admits an ill-defined decomposition into irreducible representation spaces of $\mathcal{G}$.
 In this situation, rather than trying to unreasonably relax the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$, it is recommended that either the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$ should be revised or the quality of $\mathbfit{w}$ should be improved.
 
+### Orbit-overlap symmetry threshold
+
+The orbit-overlap matrix $\mathbfit{S}$ in the basis of $\mathcal{G} \cdot \mathbfit{w}$ is expected to be real-symmetric, complex-symmetric, or complex-Hermitian, depending on the nature of the underlying number field and the inner product $\braket{\cdot | \cdot}$ with which $\mathbfit{S}$ is defined.
+A threshold $\epsilon$ is therefore required to check that the corresponding symmetry condition,
+
+$$
+    \lVert \mathbfit{S} - \mathbfit{S}^{\blacklozenge} \rVert_{\infty} \le \epsilon,
+$$
+
+where $\mathbfit{S}^{\blacklozenge}$ is the appropriate conjugate of $\mathbfit{S}$ depending on the symmetry of concern, is satisfied.
+
 ### Threshold specification
 
 The above thresholds can be specified as follows.
@@ -281,19 +293,21 @@ The above thresholds can be specified as follows.
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
           linear_independence_threshold: 1e-7 #(2)!
           integrality_threshold: 1e-7 #(3)!
-          eigenvalue_comparison_mode: Modulus #(4)!
+          orbit_overlap_symmetry_threshold: 1e-7 #(4)!
+          eigenvalue_comparison_mode: Modulus #(5)!
     ```
 
     1. :fontawesome-solid-users: This is just an example analysis target. The specification of thresholds can be specified in any analysis target.
     2. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
     3. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
-    4. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+    4. :fontawesome-solid-users: This specifies a floating-point value for the threshold $\epsilon$ for checking the complex or Hermitian symmetry of orbit-overlap matrices.
+    5. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
 
@@ -308,7 +322,8 @@ The above thresholds can be specified as follows.
         ...,
         linear_independence_threshold=1e-7, #(3)!
         integrality_threshold=1e-7, #(4)!
-        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(5)!
+        orbit_overlap_symmetry_threshold=1e-7, #(5)!
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus, #(6)!
     )
     ```
 
@@ -316,7 +331,8 @@ The above thresholds can be specified as follows.
     2. :fontawesome-solid-users: This is just an example analysis driver function in Python. The specification of thresholds can be specified in any analysis driver function.
     3. :fontawesome-solid-users: This specifies a floating-point value for the linear independence threshold $\lambda^{\mathrm{thresh}}_{\mathbfit{S}}$.
     4. :fontawesome-solid-users: This specifies a floating-point value for the integrality threshold $\lambda^{\mathrm{thresh}}_{\mathrm{int}}$.
-    5. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
+    5. :fontawesome-solid-users: This specifies a floating-point value for the threshold $\epsilon$ for checking the complex or Hermitian symmetry of orbit-overlap matrices.
+    6. :fontawesome-solid-users: This specifies the threshold comparison mode for the eigenvalues of the orbit overlap matrix $\mathbfit{S}$. The possible options are:
         - `EigenvalueComparisonMode.Real`: this specifies the *real* comparison mode where the real parts of the eigenvalues are compared against the threshold,
         - `EigenvalueComparisonMode.Modulus`: this specifies the *modulus* comparison mode where the absolute values of the eigenvalues are compared against the threshold.
 
@@ -342,11 +358,11 @@ Choice 3 makes use of [Wigner's corepresentation theory](../../methodologies/mag
 Choice 3 is technically the proper way to handle antiunitary symmetry, but the information it gives can be rather limited since this choice honours the fact that characters of antiunitary operations do not remain invariant under a change of basis, and thus avoids explicitly characterising the symmetry of $\symbfit{w}$ under the antiunitary operations in $\mathcal{M}$.
 
 However, there are times when it is desirable to characterise the symmetry of $\symbfit{w}$ under the antiunitary operations in $\mathcal{M}$, despite the above caveat of non-invariant antiunitary characters.
-Choice 2 thus offers the possibility of treating the antiunitary elements in $\mathcal{M}$ *as though they were unitary* so that conventional representation theory can be used.
-This is equivalent to considering a *unitary* group $\mathcal{M}'$ isomorphic to $\mathcal{M}$ that also contains $\mathcal{G}$ as its halving subgroup and characterising the space $W$ spanned by the orbit $\mathcal{M} \cdot \mathbfit{w}$ using the irreducible representations of $\mathcal{M}'$.
+Choice 2 thus offers the possibility of treating the antiunitary elements in $\mathcal{M}$ _as though they were unitary_ so that conventional representation theory can be used.
+This is equivalent to considering a _unitary_ group $\mathcal{M}'$ isomorphic to $\mathcal{M}$ that also contains $\mathcal{G}$ as its halving subgroup and characterising the space $W$ spanned by the orbit $\mathcal{M} \cdot \mathbfit{w}$ using the irreducible representations of $\mathcal{M}'$.
 How meaningful this is depends on the nature of $\mathbfit{w}$:
 
-- if $\mathbfit{w}$ is real-valued or can be made real-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ are identical (*i.e.* the antiunitary elements in $\mathcal{M}$ act on $\mathbfit{w}$ linearly), and the irreducible representations of $\mathcal{M}'$ are perfectly suitable for the symmetry characterisation of $\mathbfit{w}$;
+- if $\mathbfit{w}$ is real-valued or can be made real-valued, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ are identical (_i.e._ the antiunitary elements in $\mathcal{M}$ act on $\mathbfit{w}$ linearly), and the irreducible representations of $\mathcal{M}'$ are perfectly suitable for the symmetry characterisation of $\mathbfit{w}$;
 - but if $\mathbfit{w}$ is complex-valued and cannot be made real, then the orbits $\mathcal{M} \cdot \mathbfit{w}$ and $\mathcal{M}' \cdot \mathbfit{w}$ differ, and although $W$ might still be decomposable in terms of the irreducible representations of $\mathcal{M}'$, it is in general unclear how the decomposition should be interpreted.
 
 The above choices can be specified as follows.
@@ -354,7 +370,7 @@ The above choices can be specified as follows.
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -400,7 +416,7 @@ Whether projective representations or corepresentations are required can be spec
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -436,46 +452,46 @@ These traits are described below.
 
 1. [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html)
 
-    This trait determines how the target behaves under spatial unitary transformations.
-    If a target $\mathbfit{w}$ has a dependence on a spatial configuration-space vector $\mathbfit{r} \in \mathbb{R}^3$ such that one can write $\mathbfit{w} \equiv \mathbfit{w}(\mathbfit{r})$, and if a unitary operation $\hat{g}$ maps $\mathbfit{r}$ to $\hat{g}\mathbfit{r}$ on $\mathbb{R}^3$, then this trait allows one to obtain $\hat{g}\mathbfit{w}(\mathbfit{r}) = \mathbfit{w}(\hat{g}^{-1} \mathbfit{r})$.
+   This trait determines how the target behaves under spatial unitary transformations.
+   If a target $\mathbfit{w}$ has a dependence on a spatial configuration-space vector $\mathbfit{r} \in \mathbb{R}^3$ such that one can write $\mathbfit{w} \equiv \mathbfit{w}(\mathbfit{r})$, and if a unitary operation $\hat{g}$ maps $\mathbfit{r}$ to $\hat{g}\mathbfit{r}$ on $\mathbb{R}^3$, then this trait allows one to obtain $\hat{g}\mathbfit{w}(\mathbfit{r}) = \mathbfit{w}(\hat{g}^{-1} \mathbfit{r})$.
 
 2. [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html)
 
-    This trait determines how the target behaves under spin unitary transformations.
-    If a target $\mathbfit{w}$ has a dependence on a spin configuration-space coordinate $s \in S$ such that one can write $\mathbfit{w} \equiv \mathbfit{w}(s)$, and if a unitary operation $\hat{g}$ maps $s$ to $\hat{g}s$ on $S$, then this trait allows one to obtain $\hat{g}\mathbfit{w}(s) = \mathbfit{w}(\hat{g}^{-1} s)$.
+   This trait determines how the target behaves under spin unitary transformations.
+   If a target $\mathbfit{w}$ has a dependence on a spin configuration-space coordinate $s \in S$ such that one can write $\mathbfit{w} \equiv \mathbfit{w}(s)$, and if a unitary operation $\hat{g}$ maps $s$ to $\hat{g}s$ on $S$, then this trait allows one to obtain $\hat{g}\mathbfit{w}(s) = \mathbfit{w}(\hat{g}^{-1} s)$.
 
-    Note that the exact structure of $S$ is often left unspecified because it is common for only the spin-transformation behaviours of $\mathbfit{w}(s)$ to be specified, but not its explicit form in terms of the spin coordinate $s$.
+   Note that the exact structure of $S$ is often left unspecified because it is common for only the spin-transformation behaviours of $\mathbfit{w}(s)$ to be specified, but not its explicit form in terms of the spin coordinate $s$.
 
 3. [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html)
 
-    This trait determines how the target behaves under complex conjugation.
-    If a target $\mathbfit{w}$ is a function of a particular configuration-space coordinate $\mathbfit{x}$ such that one can write $\mathbfit{w}: \mathbfit{x} \mapsto \mathbfit{w}(\mathbfit{x}) \in \mathbb{C}$, then this trait allows one to obtain the complex conjugate $\mathbfit{w}^*(\mathbfit{x})$.
+   This trait determines how the target behaves under complex conjugation.
+   If a target $\mathbfit{w}$ is a function of a particular configuration-space coordinate $\mathbfit{x}$ such that one can write $\mathbfit{w}: \mathbfit{x} \mapsto \mathbfit{w}(\mathbfit{x}) \in \mathbb{C}$, then this trait allows one to obtain the complex conjugate $\mathbfit{w}^*(\mathbfit{x})$.
 
 4. [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html)
 
-    This trait determines how the target behaves under the antiunitary action of time reversal and is bound by the [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) trait to enforce the antiunitarity.
+   This trait determines how the target behaves under the antiunitary action of time reversal and is bound by the [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) trait to enforce the antiunitarity.
 
-    If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation.
+   If a target implements the [`SpinUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpinUnitaryTransformable.html) and [`ComplexConjugationTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.ComplexConjugationTransformable.html) traits as well as the [`DefaultTimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.DefaultTimeReversalTransformable.html) marker trait, then it also receives a default blanket implementation of the [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) trait which is a spin rotation by $\pi$ about the space-fixed $y$-axis followed by a complex conjugation.
 
 5. [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html)
 
-    This trait offers multiple ways in which a target can be acted on by a [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html).
-    This trait requires the [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html) and [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) traits to have been implemented.
-    The possible types of transformations defined by this trait are:
+   This trait offers multiple ways in which a target can be acted on by a [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html).
+   This trait requires the [`SpatialUnitaryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SpatialUnitaryTransformable.html) and [`TimeReversalTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.TimeReversalTransformable.html) traits to have been implemented.
+   The possible types of transformations defined by this trait are:
 
-    - spatial only,
-    - spatial only but with spin-including time reversal,
-    - spin only,
-    - both spin and spatial.
+   - spatial only,
+   - spatial only but with spin-including time reversal,
+   - spin only,
+   - both spin and spatial.
 
-    Note that when transformations act only spatially, any time reversal will manifest as complex conjugation.
+   Note that when transformations act only spatially, any time reversal will manifest as complex conjugation.
 
 Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api/qsym2/symmetry/symmetry_element/symmetry_operation/struct.SymmetryOperation.html) elements act on a target $\mathbfit{w}$ based on the [`SymmetryTransformable`](https://qsym2.dev/api/qsym2/symmetry/symmetry_transformation/trait.SymmetryTransformable.html) trait to generate the orbit $\mathcal{G} \cdot \mathbfit{w}$ for symmetry analysis can be specified as follows.
 
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...
@@ -515,12 +531,12 @@ Given a group $\mathcal{G}$, how its [`SymmetryOperation`](https://qsym2.dev/api
 If the group $\mathcal{G}$ contains operations generated by one or more infinite-order symmetry elements, then the orbit $\mathcal{G} \cdot \mathbfit{w}$ is of infinite cardinality, and the numerical methods in QSym² are unable to directly characterise the space $W$ spanned by this orbit.
 However, QSym² provides an option to consider a suitable subgroup $\mathcal{G}_n$ of $\mathcal{G}$ in which each infinite-order generating symmetry element is restricted to having a finite order $n$.
 
-If $\mathcal{G}$ is an infinite linear group (*e.g.* $\mathcal{D}_{\infty h}$ or $\mathcal{C}_{\infty v}$), then there is only one infinite-order generating symmetry element (the $C_{\infty}$ axis).
-Any positive choice of the finite integer order $n$ is permitted and results in a finite axial group $\mathcal{G}_n$ (*e.g.* $\mathcal{D}_{nh}$ or $\mathcal{C}_{nv}$) in which the $C_{\infty}$ axis has been replaced by the $C_{n}$ axis.
+If $\mathcal{G}$ is an infinite linear group (_e.g._ $\mathcal{D}_{\infty h}$ or $\mathcal{C}_{\infty v}$), then there is only one infinite-order generating symmetry element (the $C_{\infty}$ axis).
+Any positive choice of the finite integer order $n$ is permitted and results in a finite axial group $\mathcal{G}_n$ (_e.g._ $\mathcal{D}_{nh}$ or $\mathcal{C}_{nv}$) in which the $C_{\infty}$ axis has been replaced by the $C_{n}$ axis.
 
 However, if $\mathcal{G}$ is the full rotation group $\mathsf{SO}(3)$ or the full roto-inversion group $\mathsf{O}(3)$, then there are in principle infinitely many $C_{\infty}$ axes.
-In such a case, QSym² nominally chooses three orthogonal axes that are aligned with the three space-fixed Cartesian axes, *i.e.* $C_{\infty}^x$, $C_{\infty}^y$, and $C_{\infty}^z$, as the infinite-order generating elements for $\mathcal{G}$.
-Then, choosing a value for $n$ restricts the order of *all three* generating elements simultaneously, giving $C_{n}^x$, $C_{n}^y$, and $C_{n}^z$.
+In such a case, QSym² nominally chooses three orthogonal axes that are aligned with the three space-fixed Cartesian axes, _i.e._ $C_{\infty}^x$, $C_{\infty}^y$, and $C_{\infty}^z$, as the infinite-order generating elements for $\mathcal{G}$.
+Then, choosing a value for $n$ restricts the order of _all three_ generating elements simultaneously, giving $C_{n}^x$, $C_{n}^y$, and $C_{n}^z$.
 This means that only two values of $n$ are possible:
 
 - $n = 2$: $\mathsf{SO}(3) > \mathcal{D}_2$ and $\mathsf{O}(3) > \mathcal{D}_{2h}$,
@@ -537,7 +553,7 @@ The value $n$ can be specified as follows.
 === "Command-line interface"
     ```yaml
     analysis_targets:
-      - !SlaterDeterminant #(1)!
+      - !RealSlaterDeterminant #(1)!
         source: ...
         control:
           ...: ...

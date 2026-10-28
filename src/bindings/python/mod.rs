@@ -105,6 +105,7 @@ pub fn qsym2(_py: Python<'_>, m: Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<representation_analysis::multideterminant::PyMultiDeterminantsComplex>()?;
     m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantReal>()?;
     m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantComplex>()?;
+    m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantRepAnalysisResult>()?;
     m.add_class::<representation_analysis::vibrational_coordinate::PyVibrationalCoordinateCollectionReal>()?;
     m.add_class::<representation_analysis::vibrational_coordinate::PyVibrationalCoordinateCollectionComplex>()?;
     m.add_class::<EigenvalueComparisonMode>()?;

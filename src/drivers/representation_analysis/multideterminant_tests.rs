@@ -130,6 +130,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
     let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-6)
         .linear_independence_threshold(1e-6)
+        .orbit_overlap_symmetry_threshold(1e-6)
         .use_magnetic_group(None)
         .use_double_group(false)
         .use_cayley_table(false)
@@ -142,7 +143,7 @@ fn test_drivers_multideterminant_analysis_bh3() {
         UnitaryRepresentedGroup::from_molecular_symmetry(&pd_res.unitary_symmetry, None).unwrap();
 
     let orbit_basis = OrbitBasis::builder()
-        .group(&group_u_d3h)
+        .group(group_u_d3h)
         .origins(vec![det.clone()])
         .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
         .build()
@@ -348,6 +349,7 @@ fn test_drivers_multideterminant_analysis_fci_basis_h3_sto3g() {
     let mda_params = MultiDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-6)
         .linear_independence_threshold(1e-6)
+        .orbit_overlap_symmetry_threshold(1e-6)
         .use_magnetic_group(None)
         .use_double_group(false)
         .use_cayley_table(false)

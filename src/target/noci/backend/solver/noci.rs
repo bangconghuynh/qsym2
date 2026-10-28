@@ -88,11 +88,7 @@ where
             MultiDeterminant<
                 'a,
                 Self::NumType,
-                OrbitBasis<
-                    'a,
-                    G,
-                    SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>,
-                >,
+                OrbitBasis<G, SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>>,
                 Self::StructureConstraintType,
             >,
         >,
@@ -132,16 +128,13 @@ where
             MultiDeterminant<
                 'a,
                 Self::NumType,
-                OrbitBasis<
-                    'a,
-                    G,
-                    SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>,
-                >,
+                OrbitBasis<G, SlaterDeterminant<'a, Self::NumType, Self::StructureConstraintType>>,
                 Self::StructureConstraintType,
             >,
         >,
         anyhow::Error,
     > {
+        log::debug!("Solving the symmetry-orbit NOCI problem...");
         let complex_symmetric_set = origins
             .iter()
             .map(|det| det.complex_symmetric())
@@ -159,12 +152,12 @@ where
         let orbit_basis = match symmetry_transform_kind {
             SymmetryTransformationKind::Spatial => OrbitBasis::builder()
                 .origins(origins_cloned)
-                .group(group)
+                .group(group.clone())
                 .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
                 .build()?,
             SymmetryTransformationKind::SpatialWithSpinTimeReversal => OrbitBasis::builder()
                 .origins(origins_cloned)
-                .group(group)
+                .group(group.clone())
                 .action(|g, det| {
                     det.sym_transform_spatial_with_spintimerev(g)
                         .map_err(|err| format_err!(err))
@@ -172,12 +165,12 @@ where
                 .build()?,
             SymmetryTransformationKind::Spin => OrbitBasis::builder()
                 .origins(origins_cloned)
-                .group(group)
+                .group(group.clone())
                 .action(|g, det| det.sym_transform_spin(g).map_err(|err| format_err!(err)))
                 .build()?,
             SymmetryTransformationKind::SpinSpatial => OrbitBasis::builder()
                 .origins(origins_cloned)
-                .group(group)
+                .group(group.clone())
                 .action(|g, det| {
                     det.sym_transform_spin_spatial(g)
                         .map_err(|err| format_err!(err))
@@ -207,6 +200,7 @@ where
                 thresh_zeroov,
                 EigenvalueComparisonMode::Real,
             )?;
+        log::debug!("Solving the symmetry-orbit NOCI problem... Done.");
         noci_res
             .eigenvalues()
             .iter()

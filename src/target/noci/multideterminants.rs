@@ -9,15 +9,24 @@ use anyhow::{ensure, format_err};
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, Array3, ArrayView2, Axis, Ix1, Ix3, ScalarOperand, ShapeBuilder};
+use ndarray::{
+    Array1, Array2, Array3, ArrayView2, ArrayView4, Axis, Ix1, Ix2, Ix3, ScalarOperand,
+    ShapeBuilder,
+};
 use ndarray_einsum::einsum;
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use rayon::prelude::*;
 
+use crate::analysis::Overlap;
 use crate::angmom::spinor_rotation_3d::StructureConstraint;
 use crate::group::GroupProperties;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
+use crate::symmetry::symmetry_transformation::SymmetryTransformable;
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::noci::backend::matelem::OrbitMatrix;
+use crate::target::noci::backend::matelem::hamiltonian::HamiltonianAO;
+use crate::target::noci::backend::matelem::overlap::OverlapAO;
 use crate::target::noci::backend::nonortho::{
     calc_lowdin_pairing, calc_o0_matrix_element, calc_transition_density_matrix,
 };
@@ -78,10 +87,8 @@ where
     coefficients: Array2<T>,
 
     /// The energies of the multi-determinantal wavefunctions in this collection.
-    #[builder(
-        default = "Err(\"Multi-determinantal wavefunction energies not yet set.\".to_string())"
-    )]
-    energies: Result<Array1<T>, String>,
+    #[builder(default = "self.default_energies()?")]
+    energies: Array1<Result<T, String>>,
 
     /// The threshold for comparing wavefunctions.
     threshold: <T as ComplexFloat>::Real,
@@ -156,6 +163,19 @@ where
             Err("Inconsistent complex-symmetric flag across basis determinants.".to_string())
         }
     }
+
+    /// Sets default energies.
+    fn default_energies(&self) -> Result<Array1<Result<T, String>>, String> {
+        let n_states = self
+            .coefficients
+            .as_ref()
+            .ok_or("No coefficients found.".to_string())?
+            .ncols();
+        let default_energies = (0..n_states)
+            .map(|_| Err("Multi-determinantal wavefunction energy not yet set.".to_string()))
+            .collect::<Array1<_>>();
+        Ok(default_energies)
+    }
 }
 
 impl<'a, T, B, SC> MultiDeterminants<'a, T, B, SC>
@@ -211,7 +231,7 @@ where
         let energies = mtds
             .iter()
             .map(|mtd| mtd.energy().cloned().map_err(|err| err.to_owned()))
-            .collect::<Result<Array1<_>, _>>();
+            .collect::<Array1<_>>();
 
         let (basis, threshold) = mtds
             .first()
@@ -245,24 +265,16 @@ where
     pub fn iter(
         &self,
     ) -> impl Iterator<Item = Result<MultiDeterminant<'a, T, B, SC>, anyhow::Error>> + '_ {
-        let energies = self
-            .energies
-            .as_ref()
-            .map(|energies| energies.mapv(|v| Ok(v)))
-            .unwrap_or(Array1::from_elem(
-                (self.coefficients.ncols(),),
-                Err("Multi-determinantal energy not available.".to_string()),
-            ));
         self.coefficients
             .columns()
             .into_iter()
-            .zip(energies)
+            .zip(self.energies.iter())
             .map(|(c, e)| {
                 MultiDeterminant::builder()
                     .complex_conjugated(self.complex_conjugated)
                     .basis(self.basis().clone())
                     .coefficients(c.to_owned())
-                    .energy(e)
+                    .energy(e.clone())
                     .threshold(self.threshold)
                     .build()
                     .map_err(|err| format_err!(err))
@@ -301,8 +313,8 @@ where
     }
 
     /// Returns the energies of the multi-determinantal wavefunctions in this collection.
-    pub fn energies(&self) -> Result<&Array1<T>, &String> {
-        self.energies.as_ref()
+    pub fn energies(&self) -> &Array1<Result<T, String>> {
+        &self.energies
     }
 
     /// Returns the threshold with which multi-determinantal wavefunctions are compared.
@@ -320,7 +332,7 @@ where
 // Specific implementations for OrbitBasis
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-impl<'a, T, G, SC> MultiDeterminants<'a, T, OrbitBasis<'a, G, SlaterDeterminant<'a, T, SC>>, SC>
+impl<'a, T, G, SC> MultiDeterminants<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>
 where
     T: ComplexFloat + Lapack,
     G: GroupProperties + Clone,
@@ -505,6 +517,115 @@ where
                 Ok(denmats)
             }
         })
+    }
+}
+
+impl<'a, T, G, SC> MultiDeterminants<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>
+where
+    G: SymmetryGroupProperties + Clone,
+    T: ComplexFloat + Lapack + ScalarOperand + Send + Sync,
+    <T as ComplexFloat>::Real: LowerExp + fmt::Display + Sync,
+    SC: StructureConstraint + Hash + Eq + Clone + fmt::Display + Sync,
+    SlaterDeterminant<'a, T, SC>: SymmetryTransformable + Send + Sync,
+    for<'b> SlaterDeterminant<'b, T, SC>: Overlap<T, Ix2>,
+{
+    /// Calculates the energies of the multi-determinantal wavefunctions in the collection.
+    ///
+    /// # Arguments
+    ///
+    /// * `sao` - The atomic-orbital overlap matrix.
+    /// * `enuc` - The nuclear repulsion energy.
+    /// * `onee` - The one-electron integral matrix.
+    /// * `twoe` - The optional two-electron integral tensor in physicists' ordering. Either this or
+    ///   `get_jk` is required for the energy computation.
+    /// * `get_jk` - The optional function callable on a density matrix $`\mathbf{D}`$ to calculate
+    ///   the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
+    ///   appropriate two-electron integrals calculated on-the-fly. Either this or `twoe` is
+    ///   required for the energy computation.
+    /// * `thresh_offdiag` - Threshold for determining non-zero off-diagonal elements in the
+    ///   orbital overlap matrix two Slater determinants during Löwdin pairing.
+    /// * `thresh_zeroov` - Threshold for identifying zero Löwdin overlaps.
+    /// * `use_cayley_table` - Boolean indicating whether group closure is used in the computation
+    ///   the Hamiltonian and overlap matrices between the elements in the orbit basis.
+    ///
+    /// # Returns
+    ///
+    /// The computed energies for the multi-determinantal wavefunctions in the collection.
+    #[allow(clippy::too_many_arguments)]
+    pub fn compute_energies<F>(
+        &self,
+        sao: ArrayView2<'a, T>,
+        enuc: T,
+        onee: ArrayView2<'a, T>,
+        twoe: Option<ArrayView4<'a, T>>,
+        get_jk: Option<F>,
+        thresh_offdiag: <T as ComplexFloat>::Real,
+        thresh_zeroov: <T as ComplexFloat>::Real,
+        use_cayley_table: bool,
+    ) -> Result<Array1<Result<T, String>>, anyhow::Error>
+    where
+        F: Fn(&Array2<T>) -> Result<(Array2<T>, Array2<T>), anyhow::Error> + Clone + Sync,
+    {
+        let basis = self.basis();
+        let overlap_ao = OverlapAO::<T, SC>::builder()
+            .sao(sao)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        let hamiltonian_ao = HamiltonianAO::<T, SC, _>::builder()
+            .enuc(enuc)
+            .onee(onee)
+            .twoe(twoe)
+            .get_jk(get_jk)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        let smat = overlap_ao.calc_orbit_matrix(
+            basis,
+            use_cayley_table,
+            &sao,
+            thresh_offdiag,
+            thresh_zeroov,
+        )?;
+        let hmat = hamiltonian_ao.calc_orbit_matrix(
+            basis,
+            use_cayley_table,
+            &sao,
+            thresh_offdiag,
+            thresh_zeroov,
+        )?;
+        let sq_norms = einsum(
+            "ij,im,jm->m",
+            &[
+                &smat.view(),
+                &self.coefficients.mapv(ComplexFloat::conj).view(),
+                &self.coefficients.view(),
+            ],
+        )
+        .map_err(|err| format_err!(err))?
+        .into_dimensionality::<Ix1>()
+        .map_err(|err| format_err!(err))?;
+        let psi_h_psis = einsum(
+            "ij,im,jm->m",
+            &[
+                &hmat.view(),
+                &self.coefficients.mapv(ComplexFloat::conj).view(),
+                &self.coefficients.view(),
+            ],
+        )
+        .map_err(|err| format_err!(err))?
+        .into_dimensionality::<Ix1>()
+        .map_err(|err| format_err!(err))?;
+
+        let energies = psi_h_psis.into_iter().zip(sq_norms).map(|(psi_h_psi, sq_norm)| {
+             if ComplexFloat::abs(sq_norm) >= thresh_zeroov {
+                Ok(psi_h_psi / sq_norm)
+            } else {
+                Err(format!(
+                    "The multi-determinantal wavefunction has near-zero squared norm: |{sq_norm:+.3e}| < {thresh_zeroov:.3e}."
+                ))
+            }
+        }).collect::<Array1<_>>();
+
+        Ok(energies)
     }
 }
 

@@ -1,0 +1,20 @@
+# environment.yml
+name: qsym2-testsuite
+channels:
+  - conda-forge
+dependencies:
+  - binutils
+  - cmake
+  - c-compiler
+  - cxx-compiler
+  - fortran-compiler
+  - make
+  - openssl
+  - pkg-config
+  - pip
+  - python=3.14
+  - rust
+  - pip:
+    - maturin
+    - pyscf
+    - pytest

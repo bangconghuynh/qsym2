@@ -231,6 +231,8 @@ pub enum PyVibrationalCoordinateCollection {
 /// integral.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
 /// subspace via the non-zero eigenvalues of the orbit overlap matrix.
+/// * `orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry of the orbit
+/// overlap matrix.
 /// * `use_magnetic_group` - An option indicating if the magnetic group is to be used for symmetry
 /// analysis, and if so, whether unitary representations or unitary-antiunitary corepresentations
 /// should be used.
@@ -252,6 +254,8 @@ pub enum PyVibrationalCoordinateCollection {
 /// * `angular_function_linear_independence_threshold` - The threshold for determining the linear
 /// independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry
 /// analysis of angular functions.
+/// * `angular_function_orbit_overlap_symmetry_threshold` - The threshold for checking the symmetry
+/// of the orbit overlap matrices for the symmetry analysis of angular functions.
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis.
 #[allow(clippy::too_many_arguments)]
@@ -261,6 +265,7 @@ pub enum PyVibrationalCoordinateCollection {
     pyvibs,
     integrality_threshold,
     linear_independence_threshold,
+    orbit_overlap_symmetry_threshold,
     use_magnetic_group,
     use_double_group,
     use_cayley_table,
@@ -270,6 +275,7 @@ pub enum PyVibrationalCoordinateCollection {
     infinite_order_to_finite=None,
     angular_function_integrality_threshold=1e-7,
     angular_function_linear_independence_threshold=1e-7,
+    angular_function_orbit_overlap_symmetry_threshold=1e-7,
     angular_function_max_angular_momentum=2
 ))]
 pub fn rep_analyse_vibrational_coordinate_collection(
@@ -278,6 +284,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
     pyvibs: PyVibrationalCoordinateCollection,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
+    orbit_overlap_symmetry_threshold: f64,
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
     use_cayley_table: bool,
@@ -287,6 +294,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
     infinite_order_to_finite: Option<u32>,
     angular_function_integrality_threshold: f64,
     angular_function_linear_independence_threshold: f64,
+    angular_function_orbit_overlap_symmetry_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
     py.detach(|| {
@@ -307,6 +315,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
         let afa_params = AngularFunctionRepAnalysisParams::builder()
             .integrality_threshold(angular_function_integrality_threshold)
             .linear_independence_threshold(angular_function_linear_independence_threshold)
+            .orbit_overlap_symmetry_threshold(angular_function_orbit_overlap_symmetry_threshold)
             .max_angular_momentum(angular_function_max_angular_momentum)
             .build()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -318,6 +327,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
                 let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
                     .integrality_threshold(integrality_threshold)
                     .linear_independence_threshold(linear_independence_threshold)
+                    .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
                     .use_magnetic_group(use_magnetic_group.clone())
                     .use_double_group(use_double_group)
                     .use_cayley_table(use_cayley_table)
@@ -371,6 +381,7 @@ pub fn rep_analyse_vibrational_coordinate_collection(
                 let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
                     .integrality_threshold(integrality_threshold)
                     .linear_independence_threshold(linear_independence_threshold)
+                    .orbit_overlap_symmetry_threshold(orbit_overlap_symmetry_threshold)
                     .use_magnetic_group(use_magnetic_group.clone())
                     .use_double_group(use_double_group)
                     .use_cayley_table(use_cayley_table)

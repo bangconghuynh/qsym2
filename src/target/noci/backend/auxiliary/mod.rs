@@ -37,7 +37,7 @@ where
     /// The one-electron integral matrix in the AO basis.
     pub(crate) integrals_onee_h: Array2<T>,
 
-    /// The two-electron integral tensor in the AO basis.
+    /// The two-electron integral tensor in the AO basis (stored in physicists' ordering).
     pub(crate) integrals_twoe_h: Array4<T>,
 
     /// The overlap matrix in the AO basis.

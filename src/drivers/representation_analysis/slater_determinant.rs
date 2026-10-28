@@ -84,6 +84,9 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
     pub linear_independence_threshold: T,
 
+    /// Threshold for checking symmetry of the orbit overlap matrix.
+    pub orbit_overlap_symmetry_threshold: f64,
+
     /// Boolean indicating if molecular orbital symmetries are to be analysed alongside the overall
     /// determinantal symmetry.
     #[builder(default = "true")]
@@ -168,6 +171,7 @@ impl Default for SlaterDeterminantRepAnalysisParams<f64> {
         Self::builder()
             .integrality_threshold(1e-7)
             .linear_independence_threshold(1e-7)
+            .orbit_overlap_symmetry_threshold(1e-7)
             .build()
             .expect("Unable to construct a default `SlaterDeterminantRepAnalysisParams<f64>`.")
     }
@@ -187,6 +191,11 @@ where
             f,
             "Linear independence threshold: {:.3e}",
             self.linear_independence_threshold
+        )?;
+        writeln!(
+            f,
+            "Orbit-overlap symmetry threshold: {:.3e}",
+            self.orbit_overlap_symmetry_threshold
         )?;
         writeln!(
             f,
@@ -567,7 +576,7 @@ where
                 })
                 .unwrap_or(10);
 
-            let precision = Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
+            let precision = 7 + Real::ceil(ComplexFloat::abs(ComplexFloat::log10(
                 self.parameters.linear_independence_threshold,
             )))
             .to_usize()
@@ -1346,6 +1355,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                 sao_h.as_ref(),
                 params.integrality_threshold,
                 params.linear_independence_threshold,
+                params.orbit_overlap_symmetry_threshold,
                 params.symmetry_transformation_kind.clone(),
                 params.eigenvalue_comparison_mode.clone(),
                 params.use_cayley_table,
@@ -1484,6 +1494,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                 .origin(self.determinant)
                 .integrality_threshold(params.integrality_threshold)
                 .linear_independence_threshold(params.linear_independence_threshold)
+                .orbit_overlap_symmetry_threshold(params.orbit_overlap_symmetry_threshold)
                 .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
                 .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                 .build()?;
@@ -1527,6 +1538,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                                 .origin(den)
                                 .integrality_threshold(params.integrality_threshold)
                                 .linear_independence_threshold(params.linear_independence_threshold)
+                                .orbit_overlap_symmetry_threshold(
+                                    params.orbit_overlap_symmetry_threshold,
+                                )
                                 .symmetry_transformation_kind(
                                     params.symmetry_transformation_kind.clone(),
                                 )
@@ -1561,6 +1575,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                                 .origin(den)
                                 .integrality_threshold(params.integrality_threshold)
                                 .linear_independence_threshold(params.linear_independence_threshold)
+                                .orbit_overlap_symmetry_threshold(
+                                    params.orbit_overlap_symmetry_threshold,
+                                )
                                 .symmetry_transformation_kind(
                                     params.symmetry_transformation_kind.clone(),
                                 )
@@ -1599,6 +1616,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_, sctype_> {
                                     .integrality_threshold(params.integrality_threshold)
                                     .linear_independence_threshold(
                                         params.linear_independence_threshold,
+                                    )
+                                    .orbit_overlap_symmetry_threshold(
+                                        params.orbit_overlap_symmetry_threshold,
                                     )
                                     .symmetry_transformation_kind(
                                         params.symmetry_transformation_kind.clone(),

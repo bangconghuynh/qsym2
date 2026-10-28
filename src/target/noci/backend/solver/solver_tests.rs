@@ -168,7 +168,7 @@ fn test_solver_generalised_eigenvalue_problem_real_hermitian_3x3_full_rank_nonpo
             true,
             1e-7,
             1e-7,
-            EigenvalueComparisonMode::Real,
+            EigenvalueComparisonMode::Modulus,
         );
     // smat not positive-definite and not canonical-orthogonalisable over the reals
     assert!(res_canortho.is_err());
@@ -177,7 +177,7 @@ fn test_solver_generalised_eigenvalue_problem_real_hermitian_3x3_full_rank_nonpo
         true,
         1e-7,
         1e-7,
-        EigenvalueComparisonMode::Real,
+        EigenvalueComparisonMode::Modulus,
     );
     // Negative squared norms, not normalisable over the reals
     assert!(res_ggev.is_err());
@@ -191,12 +191,12 @@ fn test_solver_generalised_eigenvalue_problem_real_hermitian_3x3_full_rank_nonpo
             true,
             1e-7,
             1e-7,
-            EigenvalueComparisonMode::Real,
+            EigenvalueComparisonMode::Modulus,
         )
         .unwrap();
     close_l2(
         &res_cs_canortho.eigenvalues,
-        &array![-1.721769774, 1.402759736, 11.33939047].map(Complex::from),
+        &array![1.402759736, -1.721769774, 11.33939047].map(Complex::from),
         1e-7,
     );
     #[rustfmt::skip]
@@ -213,12 +213,12 @@ fn test_solver_generalised_eigenvalue_problem_real_hermitian_3x3_full_rank_nonpo
             true,
             1e-7,
             1e-7,
-            EigenvalueComparisonMode::Real,
+            EigenvalueComparisonMode::Modulus,
         )
         .unwrap();
     close_l2(
         &res_cs_ggev.eigenvalues,
-        &array![-1.721769774, 1.402759736, 11.33939047].map(Complex::from),
+        &array![1.402759736, -1.721769774, 11.33939047].map(Complex::from),
         1e-7,
     );
     #[rustfmt::skip]
@@ -236,12 +236,12 @@ fn test_solver_generalised_eigenvalue_problem_real_hermitian_3x3_full_rank_nonpo
             false,
             1e-7,
             1e-7,
-            EigenvalueComparisonMode::Real,
+            EigenvalueComparisonMode::Modulus,
         )
         .unwrap();
     close_l2(
         &res_ch_canortho.eigenvalues,
-        &array![-1.721769774, 1.402759736, 11.33939047].map(Complex::from),
+        &array![1.402759736, -1.721769774, 11.33939047].map(Complex::from),
         1e-7,
     );
     #[rustfmt::skip]
@@ -258,12 +258,12 @@ fn test_solver_generalised_eigenvalue_problem_real_hermitian_3x3_full_rank_nonpo
             false,
             1e-7,
             1e-7,
-            EigenvalueComparisonMode::Real,
+            EigenvalueComparisonMode::Modulus,
         )
         .unwrap();
     close_l2(
         &res_ch_ggev.eigenvalues,
-        &array![-1.721769774, 1.402759736, 11.33939047].map(Complex::from),
+        &array![1.402759736, -1.721769774, 11.33939047].map(Complex::from),
         1e-7,
     );
     #[rustfmt::skip]
@@ -525,7 +525,7 @@ fn test_solver_generalised_eigenvalue_problem_complex_hermitian_3x3_nullity_1_on
             false,
             1e-7,
             1e-7,
-            EigenvalueComparisonMode::Real,
+            EigenvalueComparisonMode::Modulus,
         )
         .unwrap();
     // The finite eigenvalues for (H, S) is -0.08018188065 and 7.444862113 (from Mathematica). But

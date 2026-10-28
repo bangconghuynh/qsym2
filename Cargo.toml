@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2024"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
@@ -44,7 +44,7 @@ numpy = { version = "0.27", optional = true }
 ordered-float = "5.5"
 periodic_table = "0.5"
 phf = { version = "0.13", features = ["macros"] }
-proptest = "1.11"
+proptest = "1.12"
 primes = "0.4"
 pyo3 = { version = "0.27", features = ["extension-module", "indexmap", "num-complex", "hashbrown", "py-clone"], optional = true }
 pyo3-log = { version = "0.13", optional = true }
@@ -69,11 +69,11 @@ openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 python = ["dep:numpy", "dep:pyo3", "dep:pyo3-log"]
 integrals = ["dep:reqwest"]
-qchem = []
+qchem = ["integrals"]
 sandbox = []
 
-standard = ["openblas-static", "qchem"]
-full = ["standard", "integrals"]
+full = ["openblas-static", "qchem", "integrals"]
+testing = ["full", "python", "sandbox"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [

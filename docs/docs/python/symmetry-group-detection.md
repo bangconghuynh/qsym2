@@ -8,4 +8,5 @@ description: Python bindings for symmetry-group detection in QSym²
       members:
         - PyMolecule
         - PySymmetry
+        - PySymmetryElementKind
         - detect_symmetry_group
