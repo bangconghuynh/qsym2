@@ -32,13 +32,18 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
     conda activate qsym2-python
     ```
 
-3. Obtain the latest compressed tarball release of QSym² from [here](https://gitlab.com/bangconghuynh/qsym2/-/releases), either by downloading the `tar.gz` file through a browser or by using `wget`:
+3. (Optional) If your system does not have system CA certificates, execute the following command to use SSL certificates that come with the conda environment:
+    ```bash
+    export SSL_CERT_FILE="$CONDA_PREFIX/ssl/cacert.pem"
+    ```
+
+4. Obtain the latest compressed tarball release of QSym² from [here](https://gitlab.com/bangconghuynh/qsym2/-/releases), either by downloading the `tar.gz` file through a browser or by using `wget`:
     ```bash
     wget https://gitlab.com/bangconghuynh/qsym2/-/archive/vX.Y.Z/qsym2-vX.Y.Z.tar.gz
     ```
     where `vX.Y.Z` is the desired version.
 
-4. Execute
+5. Execute
     ```bash
     pip install qsym2-vX.Y.Z.tar.gz
     ```
