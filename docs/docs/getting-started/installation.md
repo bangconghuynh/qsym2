@@ -50,7 +50,7 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
     ```
     where `vX.Y.Z` is the desired version.
 
-    It is also possible to bypass step 3 and run `pip install` directly on the `tar.gz` link:
+    It is also possible to bypass step 4 and run `pip install` directly on the `tar.gz` link:
     ```bash
     pip install https://gitlab.com/bangconghuynh/qsym2/-/archive/vX.Y.Z/qsym2-vX.Y.Z.tar.gz
     ```
