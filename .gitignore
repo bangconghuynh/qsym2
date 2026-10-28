@@ -16,3 +16,4 @@ __pycache__/
 
 #QSym2
 *.sym
+*.so
