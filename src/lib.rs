@@ -66,7 +66,7 @@
 //!
 //! ### Interfaces
 //! - `qchem`: Enables Q-Chem's HDF5 archive files to be read in and analysed (`integrals` feature
-//! required and will be enabled automatically)
+//!   required and will be enabled automatically)
 //! - `python`: Enables the Python bindings for several core functionalities
 //!
 //! ### Integrals

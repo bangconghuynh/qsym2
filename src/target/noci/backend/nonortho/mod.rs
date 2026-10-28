@@ -413,10 +413,10 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `o1` - The one-particle operator in the atomic-orbital basis.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `o1` - The one-particle operator in the atomic-orbital basis.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -504,10 +504,14 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `o2_opt` - The two-particle operator in the atomic-orbital basis.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `o2_opt` - The two-particle operator in the atomic-orbital basis in physicists' ordering.
+/// * `get_jk_opt` - The optional function callable on a density matrix $`\mathbf{D}`$ to calculate
+///   the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
+///   appropriate two-electron integrals calculated on-the-fly. Either this or `o2_opt` must be
+///   specified, but not both.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -613,7 +617,7 @@ where
                     Ok(j_term - k_term)
                 }
                 _ => Err(format_err!(
-                    "One and only one of `o2` or `get_jk` should be provided."
+                    "One and only one of `o2_opt` or `get_jk_opt` should be provided."
                 )),
             }
         } else if nzeros == 1 {
@@ -901,7 +905,7 @@ where
                         / (T::one() + T::one()))
                 }
                 _ => Err(format_err!(
-                    "One and only one of `o2` or `get_jk` should be provided."
+                    "One and only one of `o2_opt` or `get_jk_opt` should be provided."
                 )),
             }
         }
@@ -912,9 +916,9 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///

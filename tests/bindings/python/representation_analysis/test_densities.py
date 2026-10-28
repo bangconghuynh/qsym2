@@ -69,7 +69,6 @@ def test_rep_analyse_densities_h62p(caplog):
     rhf_stable_i = False
     while not rhf_stable_i:
         mo1, _, rhf_stable_i, _ = rhf.stability(return_status=True)
-        mo1 = rhf.stability()[0]
         dm1 = rhf.make_rdm1(mo1, rhf.mo_occ)
         rhf = rhf.run(dm1)
     dm_rhf = rhf.make_rdm1()
@@ -81,7 +80,6 @@ def test_rep_analyse_densities_h62p(caplog):
     uhf_stable_i = False
     while not uhf_stable_i:
         mo1, _, uhf_stable_i, _ = uhf.stability(return_status=True)
-        mo1 = uhf.stability()[0]
         dm1 = uhf.make_rdm1(mo1, uhf.mo_occ)
         uhf = uhf.run(dm1)
     dm_uhf = uhf.make_rdm1()

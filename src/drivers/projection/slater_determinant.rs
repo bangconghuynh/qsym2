@@ -436,8 +436,9 @@ where
     #[builder(default = "None")]
     onee: Option<&'a Array2<T>>,
 
-    /// The optional two-electron integral tensor. Either this or `get_jk` is required for the
-    /// computation of the energies of the resulting multi-determinantal wavefunctions.
+    /// The optional two-electron integral tensor in physicists' ordering. Either this or `get_jk`
+    /// is required for the computation of the energies of the resulting multi-determinantal
+    /// wavefunctions.
     #[builder(default = "None")]
     twoe: Option<&'a Array4<T>>,
 

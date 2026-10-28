@@ -1,5 +1,4 @@
 import itertools
-import os
 import pathlib
 import re
 

@@ -3,6 +3,7 @@ import logging
 import re
 
 import numpy as np
+import pytest
 from pyscf import fci, gto, scf
 
 from qsym2 import (
@@ -71,7 +72,6 @@ def test_rep_analyse_multideterminants_orbit_basis_internal_solver_h62p(caplog):
     stable_i = False
     while not stable_i:
         mo1, _, stable_i, _ = rhf.stability(return_status=True)
-        mo1 = rhf.stability()[0]
         dm1 = rhf.make_rdm1(mo1, rhf.mo_occ)
         rhf = rhf.run(dm1)
 
@@ -132,6 +132,7 @@ def test_rep_analyse_multideterminants_orbit_basis_internal_solver_h62p(caplog):
     # ----
     # NOCI
     # ----
+    # Using py_get_jk
     caplog.clear()
     _ = rep_analyse_multideterminants_orbit_basis_internal_solver(
         inp_sym="mol",
@@ -190,6 +191,197 @@ def test_rep_analyse_multideterminants_orbit_basis_internal_solver_h62p(caplog):
 
     assert symmetries[3][1] == "|A|_(1g)"
     assert np.abs(symmetries[3][0] - (-1.61158103)) < 1e-7
+
+    # Using twoe
+    caplog.clear()
+    _ = rep_analyse_multideterminants_orbit_basis_internal_solver(
+        inp_sym="mol",
+        pyorigins=[pydet],
+        pybaos=[pybao],
+        sao=sao,
+        enuc=rhf.energy_nuc(),
+        onee=rhf.get_hcore(),
+        twoe=np.transpose(mol.intor("int2e", aosym=1), (0, 2, 1, 3)),
+        py_get_jk=None,
+        thresh_offdiag=1e-6,
+        thresh_zeroov=1e-6,
+        calculate_density_matrices=True,
+        integrality_threshold=1e-7,
+        linear_independence_threshold=1e-7,
+        orbit_overlap_symmetry_threshold=1e-7,
+        use_magnetic_group=None,
+        use_double_group=False,
+        use_cayley_table=True,
+        symmetry_transformation_kind=SymmetryTransformationKind.Spatial,
+        eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus,
+        sao_h=None,
+        write_overlap_eigenvalues=True,
+        write_character_table=True,
+        infinite_order_to_finite=None,
+        angular_function_integrality_threshold=1e-7,
+        angular_function_linear_independence_threshold=1e-7,
+        angular_function_max_angular_momentum=2,
+    )
+    output = "\n".join(
+        record.getMessage()
+        for record in caplog.records
+        if record.name == "qsym2-output"
+    )
+
+    lines = output.splitlines()
+    start = next(
+        i for i, line in enumerate(lines) if "> Multi-determinantal results" in line
+    )
+    symmetries = []
+    for line in lines[start + 1 :]:
+        m = re.match(rf"^\s*\d+\s+{FLOAT_RE}\s+(\|.*)\s+{FLOAT_RE}\s+{FLOAT_RE}", line)
+        if m is not None:
+            symmetries.append((float(m.group(1)), m.group(4).strip()))
+        elif len(symmetries) > 0:
+            break
+
+    assert symmetries[0][1] == "|T|_(2g)"
+    assert np.abs(symmetries[0][0] - (-1.75428981)) < 1e-7
+
+    assert symmetries[1][1] == "|T|_(2g)"
+    assert np.abs(symmetries[1][0] - (-1.75428981)) < 1e-7
+
+    assert symmetries[2][1] == "|T|_(2g)"
+    assert np.abs(symmetries[2][0] - (-1.75428981)) < 1e-7
+
+    assert symmetries[3][1] == "|A|_(1g)"
+    assert np.abs(symmetries[3][0] - (-1.61158103)) < 1e-7
+
+
+def test_rep_analyse_multideterminants_orbit_basis_internal_solver_h62p_err():
+    mol = gto.M(
+        atom=r"""
+        H         0.00000        0.00000        0.90000
+        H         0.00000        0.00000       -0.90000
+        H         0.00000        0.90000        0.00000
+        H         0.00000       -0.90000        0.00000
+        H         0.90000        0.00000        0.00000
+        H        -0.90000        0.00000        0.00000
+        """,
+        unit="Angstrom",
+        basis="6-31G",
+        charge=2,
+        spin=0,
+        cart=False,
+        verbose=0,
+    )
+
+    pymol = PyMolecule(
+        atoms=mol._atom,
+        threshold=1e-7,
+        magnetic_field=None,
+        electric_field=None,
+    )
+
+    _unisym, _magsym = detect_symmetry_group(
+        inp_xyz=None,
+        inp_mol=pymol,
+        out_sym="mol",
+        moi_thresholds=[1e-6],
+        distance_thresholds=[1e-6],
+        time_reversal=False,
+        write_symmetry_elements=False,
+        fictitious_magnetic_field=None,
+        fictitious_electric_field=None,
+    )
+
+    rhf = scf.RHF(mol)
+    rhf.conv_tol = 1e-13
+    rhf.conv_check = False
+    rhf.run()
+
+    assert rhf.mo_coeff is not None
+    ca = rhf.mo_coeff
+
+    assert rhf.mo_occ is not None
+    occa = rhf.mo_occ
+
+    assert rhf.mo_energy is not None
+    ea: np.ndarray[tuple[int], np.dtype[np.float64]] = rhf.mo_energy
+
+    pybao, _ = extract_basis_information(mol)
+
+    sao: np.ndarray[tuple[int, int], np.dtype[np.float64]] = mol.intor("int1e_ovlp")
+
+    pydet = PySlaterDeterminantReal(
+        structure_constraint=PySpinConstraint.Restricted,
+        complex_symmetric=False,
+        coefficients=[ca],
+        occupations=[occa],
+        threshold=1e-7,
+        mo_energies=[ea],
+        energy=rhf.e_tot,
+    )
+
+    # ----
+    # NOCI
+    # ----
+    with pytest.raises(RuntimeError):
+        # Both get_jk and twoe given
+        _ = rep_analyse_multideterminants_orbit_basis_internal_solver(
+            inp_sym="mol",
+            pyorigins=[pydet],
+            pybaos=[pybao],
+            sao=sao,
+            enuc=rhf.energy_nuc(),
+            onee=rhf.get_hcore(),
+            twoe=mol.intor("int2e", aosym=1),
+            py_get_jk=lambda dm: rhf.get_jk(dm=dm, hermi=0),
+            thresh_offdiag=1e-6,
+            thresh_zeroov=1e-6,
+            calculate_density_matrices=True,
+            integrality_threshold=1e-7,
+            linear_independence_threshold=1e-7,
+            orbit_overlap_symmetry_threshold=1e-7,
+            use_magnetic_group=None,
+            use_double_group=False,
+            use_cayley_table=True,
+            symmetry_transformation_kind=SymmetryTransformationKind.Spatial,
+            eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus,
+            sao_h=None,
+            write_overlap_eigenvalues=True,
+            write_character_table=True,
+            infinite_order_to_finite=None,
+            angular_function_integrality_threshold=1e-7,
+            angular_function_linear_independence_threshold=1e-7,
+            angular_function_max_angular_momentum=2,
+        )
+
+    with pytest.raises(RuntimeError):
+        # Neither get_jk nor twoe given
+        _ = rep_analyse_multideterminants_orbit_basis_internal_solver(
+            inp_sym="mol",
+            pyorigins=[pydet],
+            pybaos=[pybao],
+            sao=sao,
+            enuc=rhf.energy_nuc(),
+            onee=rhf.get_hcore(),
+            twoe=None,
+            py_get_jk=None,
+            thresh_offdiag=1e-6,
+            thresh_zeroov=1e-6,
+            calculate_density_matrices=True,
+            integrality_threshold=1e-7,
+            linear_independence_threshold=1e-7,
+            orbit_overlap_symmetry_threshold=1e-7,
+            use_magnetic_group=None,
+            use_double_group=False,
+            use_cayley_table=True,
+            symmetry_transformation_kind=SymmetryTransformationKind.Spatial,
+            eigenvalue_comparison_mode=EigenvalueComparisonMode.Modulus,
+            sao_h=None,
+            write_overlap_eigenvalues=True,
+            write_character_table=True,
+            infinite_order_to_finite=None,
+            angular_function_integrality_threshold=1e-7,
+            angular_function_linear_independence_threshold=1e-7,
+            angular_function_max_angular_momentum=2,
+        )
 
 
 def test_rep_analyse_multideterminants_fci_basis_h4(caplog):

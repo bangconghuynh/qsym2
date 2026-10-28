@@ -536,8 +536,8 @@ where
     /// * `sao` - The atomic-orbital overlap matrix.
     /// * `enuc` - The nuclear repulsion energy.
     /// * `onee` - The one-electron integral matrix.
-    /// * `twoe` - The optional two-electron integral tensor. Either this or `get_jk` is required
-    ///   for the energy computation.
+    /// * `twoe` - The optional two-electron integral tensor in physicists' ordering. Either this or
+    ///   `get_jk` is required for the energy computation.
     /// * `get_jk` - The optional function callable on a density matrix $`\mathbf{D}`$ to calculate
     ///   the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
     ///   appropriate two-electron integrals calculated on-the-fly. Either this or `twoe` is

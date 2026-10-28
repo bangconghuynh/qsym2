@@ -111,8 +111,8 @@ macro_rules! generate_get_jk {
 /// * `enuc` - The nuclear repulsion energy.
 /// * `onee` - The one-electron integral matrix whose elements are of type `float64` or
 /// `complex128`.
-/// * `twoe` - The two-electron integral tensor whose elements are of type `float64` or
-/// `complex128`. Either this or `py_get_jk` must be specified, but not both.
+/// * `twoe` - The two-electron integral tensor in physicists' ordering whose elements are of type
+/// `float64` or `complex128`. Either this or `py_get_jk` must be specified, but not both.
 /// * `py_get_jk` - A Python function callable on a density matrix $`\mathbf{D}`$ to calculate the
 /// corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate
 /// two-electron integrals calculated on-the-fly. Either this or `twoe` must be specified, but not

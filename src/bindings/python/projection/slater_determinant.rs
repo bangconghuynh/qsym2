@@ -82,9 +82,9 @@ type C128 = Complex<f64>;
 /// * `enuc` - The optional nuclear repulsion energy, which is only required for `calculate_energies`.
 /// * `onee` - The optional one-electron integral matrix whose elements are of type `float64` or
 /// `complex128`, which is only required for `calculate_energies`.
-/// * `twoe` - The optional two-electron integral tensor whose elements are of type `float64` or
-/// `complex128`, which is only required for `calculate_energies`. Either this or `py_get_jk`
-/// must be specified, but not both.
+/// * `twoe` - The optional two-electron integral tensor in physicists' ordering whose elements are
+/// of type `float64` or `complex128`, which is only required for `calculate_energies`. Either this
+/// or `py_get_jk` must be specified, but not both.
 /// * `py_get_jk` - An optional Python function callable on a density matrix $`\mathbf{D}`$ to
 /// calculate the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
 /// appropriate two-electron integrals calculated on-the-fly, which is only required for

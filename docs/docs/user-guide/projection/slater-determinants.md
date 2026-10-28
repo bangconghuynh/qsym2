@@ -95,7 +95,7 @@ More methods might become possible in the future. The parameter specifications f
     # Integrals (only required for energy calculations)
     enuc = ...
     onee = ...
-    twoe = ...
+    twoe = ...  # e.g. from PySCF: np.transpose(mol.intor("int2e", aosym=1), (0, 2, 1, 3))
 
     # JK function (alternative to twoe)
     def py_get_jk(
@@ -155,7 +155,7 @@ More methods might become possible in the future. The parameter specifications f
     </br></br>:material-cog-sync-outline: Default: `None`.
     17. :fontawesome-solid-users: This specifies the optional one-electron integral matrix as a two-dimensional `numpy` array, which is only required if `calculate_energies` is `True`.
     </br></br>:material-cog-sync-outline: Default: `None`.
-    18. :fontawesome-solid-users: This specifies the optional two-electron integral rank-4 tensor in physicists' notation as a four-dimensional `numpy` array, which is only required if `calculate_energies` is `True`. Either this or `py_get_jk` must be specified, but not both.
+    18. :fontawesome-solid-users: This specifies the optional two-electron integral rank-4 tensor in physicists' ordering as a four-dimensional `numpy` array, which is only required if `calculate_energies` is `True`. Either this or `py_get_jk` must be specified, but not both.
     </br></br>:material-cog-sync-outline: Default: `None`.
     19. :fontawesome-solid-users: This specifies an optional Python function callable on a density matrix $\mathbf{D}$ to calculate the corresponding $\mathbf{J}$ and $\mathbf{K}$ matrices by contracting with appropriate two-electron integrals calculated on-the-fly. This is only required if `calculate_energies` is `True`, and is useful when the full two-electron integral tensor is too large to be stored. Either this or `twoe` must be specified, but not both.
     </br></br>Python type: `Callable[[Py2DArray_f64 | Py2DArray_c128], tuple[Py2DArray_f64, Py2DArray_f64] | tuple[Py2DArray_c128, Py2DArray_c128]] | None`.

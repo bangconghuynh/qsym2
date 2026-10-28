@@ -332,7 +332,7 @@ More methods might become possible in the future. The parameter specifications f
         # Integrals
         enuc = ...
         onee = ...
-        twoe = ...
+        twoe = ...  # e.g. from PySCF: np.transpose(mol.intor("int2e", aosym=1), (0, 2, 1, 3))
 
         # JK function
         def py_get_jk( #(17)!
@@ -408,7 +408,7 @@ More methods might become possible in the future. The parameter specifications f
         23. :fontawesome-solid-users: This specifies the optional complex-symmetric two-centre atomic-orbital overlap matrix as a two-dimensional `numpy` array. The dimensions of this matrix must be $n_{\mathrm{comps}}N_{\mathrm{bas}} \times n_{\mathrm{comps}}N_{\mathrm{bas}}$, where $N_{\mathrm{bas}}$ is the number of basis functions specified in the basis angular order information, and $n_{\mathrm{comps}}$ is either $1$ or the total number of explicit components per coefficient matrix. This is only required if antiunitary operations are present.
         24. :fontawesome-solid-users: This specifies the nuclear repulsion energy.
         25. :fontawesome-solid-users: This specifies the one-electron integral matrix.
-        26. :fontawesome-solid-users: This specifies the two-electron integral rank-4 tensor in physicists' notation.
+        26. :fontawesome-solid-users: This specifies the two-electron integral rank-4 tensor in physicists' ordering.
             Either this or `py_get_jk` must be specified, but not both.
         27. :fontawesome-solid-users: A Python function callable on a density matrix $\mathbf{D}$ to calculate the corresponding $\mathbf{J}$ and $\mathbf{K}$ matrices by contracting with appropriate two-electron integrals calculated on-the-fly.
             Either this or `twoe` must be specified, but not both.
