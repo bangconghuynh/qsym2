@@ -13,6 +13,7 @@ dependencies:
   - pkg-config
   - pip
   - python=3.14
+  - rust
   - pip:
     - maturin
     - pyscf
