@@ -55,7 +55,7 @@ unit_tests:
 
 python_tests:
   stage: Unit Tests
-  image: continuumio/miniconda3:latest
+  image: anaconda/miniconda:latest
   tags:
     - archon
   before_script:
