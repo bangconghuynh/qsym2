@@ -61,17 +61,17 @@ use super::determinant_analysis::SlaterDeterminantSymmetryOrbit;
         ]
     ]
 )]
-impl<'a, G> Projectable<G, SlaterDeterminant<'a, dtype_, sctype_>>
-    for SlaterDeterminantSymmetryOrbit<'a, G, dtype_, sctype_>
+impl<'g, 'a, G> Projectable<G, SlaterDeterminant<'a, dtype_, sctype_>>
+    for SlaterDeterminantSymmetryOrbit<'g, 'a, G, dtype_, sctype_>
 where
     G: SymmetryGroupProperties + Clone,
 {
     type Projected<'p>
         = Result<
         MultiDeterminant<
-            'p,
+            'a,
             dtype_,
-            OrbitBasis<'p, G, SlaterDeterminant<'p, dtype_, sctype_>>,
+            OrbitBasis<G, SlaterDeterminant<'a, dtype_, sctype_>>,
             sctype_,
         >,
         anyhow::Error,
@@ -92,7 +92,7 @@ where
 
         let orbit_basis = OrbitBasis::builder()
             .origins(vec![self.origin().clone()])
-            .group(self.group())
+            .group(self.group().clone())
             .action(self.action())
             .prefactors(None)
             .build()

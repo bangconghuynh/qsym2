@@ -69,11 +69,11 @@ openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 python = ["dep:numpy", "dep:pyo3", "dep:pyo3-log"]
 integrals = ["dep:reqwest"]
-qchem = []
+qchem = ["integrals"]
 sandbox = []
 
-standard = ["openblas-static", "qchem"]
-full = ["standard", "integrals"]
+full = ["openblas-static", "qchem", "integrals"]
+testing = ["full", "python", "sandbox"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [

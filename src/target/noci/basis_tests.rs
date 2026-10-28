@@ -81,7 +81,7 @@ fn test_orbit_basis_transformation_h2o_cs() {
 
     // Cs
     let orbit_basis_u_cs = OrbitBasis::builder()
-        .group(&group_u_cs)
+        .group(group_u_cs.clone())
         .origins(vec![det.clone()])
         .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
         .build()
@@ -102,7 +102,7 @@ fn test_orbit_basis_transformation_h2o_cs() {
 
     // Cs'
     let orbit_basis_u_cs_grey = OrbitBasis::builder()
-        .group(&group_u_cs_grey)
+        .group(group_u_cs_grey.clone())
         .origins(vec![det.clone()])
         .action(|g, det| {
             det.sym_transform_spatial_with_spintimerev(g)

@@ -11,7 +11,6 @@ use crate::drivers::representation_analysis::slater_determinant::SlaterDetermina
 use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
 use crate::drivers::QSym2Driver;
-#[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::symmetry::symmetry_group::{

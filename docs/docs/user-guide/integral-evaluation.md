@@ -121,7 +121,7 @@ The basis set specification in the Python API is shown below by way of an exampl
                 k=None,
             ),
             PyBasisShellContraction(
-                basis_shell=(1, ShellType.Pure, True), #(10)!
+                basis_shell=(1, ShellType.Pure, (True, False)), #(10)!
                 primitives=[
                     (0.5425220000e+01, 0.2379720162e+00),
                     (0.1149150000e+01, 0.8589530586e+00),
@@ -138,7 +138,7 @@ The basis set specification in the Python API is shown below by way of an exampl
                 k=None,
             ),
             PyBasisShellContraction(
-                basis_shell=(1, ShellType.Pure, [0, +1, -1]), #(11)!
+                basis_shell=(1, ShellType.Pure, ([0, +1, -1], False)), #(11)!
                 primitives=[
                     (0.2832050000e+00, 1.0000000000e+00),
                 ],
@@ -159,16 +159,17 @@ The basis set specification in the Python API is shown below by way of an exampl
         * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
         which depends on the shell type,
         * `shelltype` is an enumerated type with possible variants `ShellType.Pure`,
-        `ShellType.Cartesian`, `ShellType.Spinor`, and `ShellType.SpinorKineticBalance`
+        `ShellType.Cartesian`, `ShellType.SpinorFermion`, `ShellType.SpinorFermionKineticBalance`,
+        `ShellType.SpinorAntifermion`, and `ShellType.SpinorAntifermionKineticBalance`
         indicating the type of the shell, and
         * `order` specifies how the functions in the shell are ordered:
             * if `shelltype` is `ShellType.Cartesian`, `order` can be `None` for lexicographic order, or a
             list of tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions
             where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
             * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
-            `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+            `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
             `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
-            first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
+            first can be `True` for increasing-$`m`$ order, `False` for decreasing-$`m`$ order, or
             a list of $`m`$ values for custom order, and the second is a boolean indicating whether
             the spatial parts of the functions in the shell are even with respect to spatial inversion.
         </li>:fontawesome-solid-laptop-code: Under the hood, this is handled by [`PyShellOrder`](../python/basis.md/#qsym2.PyShellOrder) which is a Python-exposed enumerated type to manage shell order information.
@@ -177,6 +178,7 @@ The basis set specification in the Python API is shown below by way of an exampl
     Each item in this list is a tuple `(exponent, coefficient)` specifying the exponent and coefficient of a Gaussian primitive in the contraction.
     6. :fontawesome-solid-users: This specifies the Cartesian origin $\mathbfit{R}$ of the shell *in Bohr radii*.
     7. :fontawesome-solid-users: This optional fixed-size list of length 3 specifies the Cartesian components of the $\mathbfit{k}$ vector of this shell that appears in the complex phase factor $\exp[i\mathbfit{k} \cdot (\mathbfit{r} - \mathbfit{R})]$.
+        </br></br> :material-cog-sync-outline: Default: `None`.
     8. :fontawesome-solid-users: This example specifies a Cartesian $P$-shell in which functions are arranged in lexicographic order.
     9. :fontawesome-solid-users: This example specifies a Cartesian $P$-shell in which functions are arranged in a custom order: $z, y, x$.
     10. :fontawesome-solid-users: This example specifies a spherical $P$-shell in which functions are arranged in increasing-$m_l$ order.

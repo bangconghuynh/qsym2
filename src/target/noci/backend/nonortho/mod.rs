@@ -413,10 +413,10 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `o1` - The one-particle operator in the atomic-orbital basis.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `o1` - The one-particle operator in the atomic-orbital basis.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -504,10 +504,14 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `o2_opt` - The two-particle operator in the atomic-orbital basis.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `o2_opt` - The two-particle operator in the atomic-orbital basis in physicists' ordering.
+/// * `get_jk_opt` - The optional function callable on a density matrix $`\mathbf{D}`$ to calculate
+///   the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with
+///   appropriate two-electron integrals calculated on-the-fly. Either this or `o2_opt` must be
+///   specified, but not both.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -613,7 +617,7 @@ where
                     Ok(j_term - k_term)
                 }
                 _ => Err(format_err!(
-                    "One and only one of `o2` or `get_jk` should be provided."
+                    "One and only one of `o2_opt` or `get_jk_opt` should be provided."
                 )),
             }
         } else if nzeros == 1 {
@@ -901,7 +905,7 @@ where
                         / (T::one() + T::one()))
                 }
                 _ => Err(format_err!(
-                    "One and only one of `o2` or `get_jk` should be provided."
+                    "One and only one of `o2_opt` or `get_jk_opt` should be provided."
                 )),
             }
         }
@@ -912,9 +916,9 @@ where
 ///
 /// # Arguments
 ///
-/// `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
-/// subspace determined by the specified structure constraint.
-/// `structure_constraint` - The structure constraint governing the coefficients.
+/// * `lowdin_paired_coefficientss` - A sequence of pairs of Löwdin-paired coefficients, one for each
+///   subspace determined by the specified structure constraint.
+/// * `structure_constraint` - The structure constraint governing the coefficients.
 ///
 /// # Returns
 ///
@@ -1170,6 +1174,12 @@ impl CanonicalOrthogonalisable for ArrayView2<'_, dtype_> {
 
         // S is real-symmetric, so U is orthogonal, i.e. U^T = U^(-1).
         let (s_eig, umat) = smat.eigh(UPLO::Lower).map_err(|err| format_err!(err))?;
+        let mut sorted_s_eig = s_eig.iter().collect_vec();
+        sorted_s_eig.sort_by(|a, b| match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => a.abs().total_cmp(&b.abs()),
+            EigenvalueComparisonMode::Real => a.total_cmp(b),
+        });
+        sorted_s_eig.reverse();
         log::debug!("Overlap eigenvalues for canonical orthogonalisation (real-symmetric matrix):");
         for (i, eig) in s_eig.iter().enumerate() {
             log::debug!("  {i}: {eig:+.8e}");
@@ -1244,6 +1254,16 @@ where
         )?;
 
         let (s_eig, umat_nonortho) = smat.eig().map_err(|err| format_err!(err))?;
+        let mut sorted_s_eig = s_eig.iter().collect_vec();
+        sorted_s_eig.sort_by(|a, b| match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => ComplexFloat::abs(**a)
+                .partial_cmp(&ComplexFloat::abs(**b))
+                .expect("Unable to compare the moduli of two complex numbers."),
+            EigenvalueComparisonMode::Real => ComplexFloat::re(**a)
+                .partial_cmp(&ComplexFloat::re(**b))
+                .expect("Unable to compare the real parts of two complex numbers."),
+        });
+        sorted_s_eig.reverse();
         log::debug!(
             "Overlap eigenvalues for canonical orthogonalisation ({} matrix):",
             if complex_symmetric {
@@ -1252,7 +1272,7 @@ where
                 "complex-Hermitian"
             }
         );
-        for (i, eig) in s_eig.iter().enumerate() {
+        for (i, eig) in sorted_s_eig.iter().enumerate() {
             log::debug!("  {i}: {eig:+.8e}");
         }
         log::debug!("");

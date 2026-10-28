@@ -208,7 +208,6 @@ More methods might become possible in the future. The parameter specifications f
         - `True`: use projective irreducible representations or corepresentations of $\mathcal{G}$ obtainable via its double cover $\mathcal{G}^*$.
     </li>For more information, see [Basics/Analysis options/#Double groups](basics.md/#double-groups).
     17. :fontawesome-solid-users: This is a boolean specifying if the Cayley table for the group, if available, should be used to speed up the computation of orbit overlap matrices.
-    </br></br>:material-cog-sync-outline: Default: `True`.
     18. :fontawesome-solid-users: This specifies the kind of symmetry transformations to be applied to generate the orbit for symmetry analysis.
     The possible options are:
         - `SymmetryTransformationKind.Spatial`: spatial transformation only,

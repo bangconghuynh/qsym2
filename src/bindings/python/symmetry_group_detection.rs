@@ -5,10 +5,8 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use anyhow::{self, format_err};
-use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
 use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
@@ -170,7 +168,7 @@ impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
 
 /// Python-exposed structure to marshall symmetry information one-way from Rust to Python.
 #[pyclass]
-#[derive(Clone, Builder)]
+#[derive(Clone)]
 pub struct PySymmetry {
     /// The name of the symmetry group.
     #[pyo3(get)]
@@ -180,19 +178,13 @@ pub struct PySymmetry {
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
     #[allow(clippy::type_complexity)]
-    elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Arc<Py<PyArray1<f64>>>>>>,
+    elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
 
     /// The symmetry generators.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
     #[allow(clippy::type_complexity)]
-    generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Arc<Py<PyArray1<f64>>>>>>,
-}
-
-impl PySymmetry {
-    pub fn builder() -> PySymmetryBuilder {
-        PySymmetryBuilder::default()
-    }
+    generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
 }
 
 #[pymethods]
@@ -208,7 +200,7 @@ impl PySymmetry {
                 .any(|kind_generators| kind_generators.contains_key(&-1))
     }
 
-    /// Returns symmetry elements of all *finite* orders of a given kind.
+    /// Returns symmetry elements of all *finite* and *infinite* orders of a given kind.
     ///
     /// # Arguments
     ///
@@ -221,29 +213,23 @@ impl PySymmetry {
     /// If the order value is `-1`, then the associated elements have infinite order.
     pub fn get_elements_of_kind(
         &self,
+        py: Python<'_>,
         kind: &PySymmetryElementKind,
     ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
         self.elements
             .get(kind)
-            .cloned()
-            .and_then(|elements| {
+            .map(|elements| {
                 elements
                     .iter()
-                    .map(|(order, axes_arc)| {
-                        let axes_opt = axes_arc
-                            .iter()
-                            .map(|axis_arc| Arc::into_inner(axis_arc.clone()))
-                            .collect::<Option<Vec<_>>>();
-                        axes_opt.map(|axes| (*order, axes))
+                    .map(|(order, axes)| {
+                        (*order, axes.iter().map(|axis| axis.clone_ref(py)).collect())
                     })
-                    .collect::<Option<HashMap<_, _>>>()
+                    .collect()
             })
-            .ok_or(PyRuntimeError::new_err(format!(
-                "Elements of kind `{kind}` not found."
-            )))
+            .ok_or_else(|| PyRuntimeError::new_err(format!("Elements of kind `{kind}` not found.")))
     }
 
-    /// Returns symmetry generators of *finite*  and *infinite* orders of a given kind.
+    /// Returns symmetry generators of *finite* and *infinite* orders of a given kind.
     ///
     /// # Arguments
     ///
@@ -256,26 +242,20 @@ impl PySymmetry {
     /// If the order value is `-1`, then the associated generators have infinite order.
     pub fn get_generators_of_kind(
         &self,
+        py: Python<'_>,
         kind: &PySymmetryElementKind,
     ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
         self.generators
             .get(kind)
-            .cloned()
-            .and_then(|generators| {
+            .map(|generators| {
                 generators
                     .iter()
-                    .map(|(order, axes_arc)| {
-                        let axes_opt = axes_arc
-                            .iter()
-                            .map(|axis_arc| Arc::into_inner(axis_arc.clone()))
-                            .collect::<Option<Vec<_>>>();
-                        axes_opt.map(|axes| (*order, axes))
+                    .map(|(order, axes)| {
+                        (*order, axes.iter().map(|axis| axis.clone_ref(py)).collect())
                     })
-                    .collect::<Option<HashMap<_, _>>>()
+                    .collect()
             })
-            .ok_or(PyRuntimeError::new_err(format!(
-                "Elements of kind `{kind}` not found."
-            )))
+            .ok_or_else(|| PyRuntimeError::new_err(format!("Elements of kind `{kind}` not found.")))
     }
 }
 
@@ -287,76 +267,73 @@ impl TryFrom<&Symmetry> for PySymmetry {
             .group_name
             .clone()
             .ok_or(format_err!("Symmetry group name not found."))?;
-        let elements = sym
-            .elements
-            .iter()
-            .map(|(symkind, kind_elements)| {
-                let pysymkind = PySymmetryElementKind::try_from(symkind)?;
-                let pykind_elements = kind_elements
-                    .iter()
-                    .map(|(order, order_elements)| {
-                        let order_i32 = match order {
-                            ElementOrder::Int(ord) => i32::try_from(*ord)?,
-                            ElementOrder::Inf => -1,
-                        };
-                        let pyorder_elements = order_elements
-                            .iter()
-                            .map(|ele| {
-                                Arc::new(Python::attach(|py| {
+        let elements = Python::attach(|py| {
+            sym.elements
+                .iter()
+                .map(|(symkind, kind_elements)| {
+                    let pysymkind = PySymmetryElementKind::try_from(symkind)?;
+                    let pykind_elements = kind_elements
+                        .iter()
+                        .map(|(order, order_elements)| {
+                            let order_i32 = match order {
+                                ElementOrder::Int(ord) => i32::try_from(*ord)?,
+                                ElementOrder::Inf => -1,
+                            };
+                            let pyorder_elements = order_elements
+                                .iter()
+                                .map(|ele| {
                                     ele.raw_axis()
                                         .iter()
                                         .cloned()
                                         .collect::<Vec<_>>()
                                         .to_pyarray(py)
                                         .unbind()
-                                }))
-                            })
-                            .collect::<Vec<_>>();
-                        Ok::<_, Self::Error>((order_i32, pyorder_elements))
-                    })
-                    .collect::<Result<HashMap<i32, Vec<_>>, _>>()?;
-                Ok::<_, Self::Error>((pysymkind, pykind_elements))
-            })
-            .collect::<Result<HashMap<_, _>, _>>()?;
+                                })
+                                .collect::<Vec<_>>();
+                            Ok::<_, Self::Error>((order_i32, pyorder_elements))
+                        })
+                        .collect::<Result<HashMap<i32, Vec<_>>, _>>()?;
+                    Ok::<_, Self::Error>((pysymkind, pykind_elements))
+                })
+                .collect::<Result<HashMap<_, _>, _>>()
+        })?;
 
-        let generators = sym
-            .generators
-            .iter()
-            .map(|(symkind, kind_generators)| {
-                let pysymkind = PySymmetryElementKind::try_from(symkind)?;
-                let pykind_generators = kind_generators
-                    .iter()
-                    .map(|(order, order_generators)| {
-                        let order_i32 = match order {
-                            ElementOrder::Int(ord) => i32::try_from(*ord)?,
-                            ElementOrder::Inf => -1,
-                        };
-                        let pyorder_generators = order_generators
-                            .iter()
-                            .map(|ele| {
-                                Arc::new(Python::attach(|py| {
+        let generators = Python::attach(|py| {
+            sym.generators
+                .iter()
+                .map(|(symkind, kind_generators)| {
+                    let pysymkind = PySymmetryElementKind::try_from(symkind)?;
+                    let pykind_generators = kind_generators
+                        .iter()
+                        .map(|(order, order_generators)| {
+                            let order_i32 = match order {
+                                ElementOrder::Int(ord) => i32::try_from(*ord)?,
+                                ElementOrder::Inf => -1,
+                            };
+                            let pyorder_generators = order_generators
+                                .iter()
+                                .map(|ele| {
                                     ele.raw_axis()
                                         .iter()
                                         .cloned()
                                         .collect::<Vec<_>>()
                                         .to_pyarray(py)
                                         .unbind()
-                                }))
-                            })
-                            .collect::<Vec<_>>();
-                        Ok::<_, Self::Error>((order_i32, pyorder_generators))
-                    })
-                    .collect::<Result<HashMap<i32, Vec<_>>, _>>()?;
-                Ok::<_, Self::Error>((pysymkind, pykind_generators))
-            })
-            .collect::<Result<HashMap<_, _>, _>>()?;
+                                })
+                                .collect::<Vec<_>>();
+                            Ok::<_, Self::Error>((order_i32, pyorder_generators))
+                        })
+                        .collect::<Result<HashMap<i32, Vec<_>>, _>>()?;
+                    Ok::<_, Self::Error>((pysymkind, pykind_generators))
+                })
+                .collect::<Result<HashMap<_, _>, _>>()
+        })?;
 
-        PySymmetry::builder()
-            .group_name(group_name)
-            .elements(elements)
-            .generators(generators)
-            .build()
-            .map_err(|err| format_err!(err))
+        Ok(PySymmetry {
+            group_name,
+            elements,
+            generators,
+        })
     }
 }
 
@@ -419,7 +396,7 @@ pub fn detect_symmetry_group(
     fictitious_magnetic_field: Option<[f64; 3]>,
     fictitious_electric_field: Option<[f64; 3]>,
 ) -> PyResult<(PySymmetry, Option<PySymmetry>)> {
-    py.detach(|| {
+    let (unitary_symmetry, magnetic_symmetry_opt) = py.detach(|| {
         let params = SymmetryGroupDetectionParams::builder()
             .distance_thresholds(&distance_thresholds)
             .moi_thresholds(&moi_thresholds)
@@ -447,23 +424,23 @@ pub fn detect_symmetry_group(
         pd_driver
             .run()
             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-        let pyunitary_symmetry: PySymmetry = (&pd_driver
+        let result = pd_driver
             .result()
-            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            .unitary_symmetry)
-            .try_into()
-            .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))?;
-        let pymagnetic_symmetry: Option<PySymmetry> = pd_driver
-            .result()
-            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            .magnetic_symmetry
-            .as_ref()
-            .map(|magsym| {
-                magsym
-                    .try_into()
-                    .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))
-            })
-            .transpose()?;
-        Ok((pyunitary_symmetry, pymagnetic_symmetry))
-    })
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        Ok::<_, PyErr>((
+            result.unitary_symmetry.clone(),
+            result.magnetic_symmetry.clone(),
+        ))
+    })?;
+    let pyunitary_symmetry: PySymmetry = (&unitary_symmetry)
+        .try_into()
+        .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))?;
+    let pymagnetic_symmetry: Option<PySymmetry> = magnetic_symmetry_opt
+        .map(|ref magsym| {
+            magsym
+                .try_into()
+                .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))
+        })
+        .transpose()?;
+    Ok((pyunitary_symmetry, pymagnetic_symmetry))
 }

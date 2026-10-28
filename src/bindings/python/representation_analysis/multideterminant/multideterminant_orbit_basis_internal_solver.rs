@@ -46,6 +46,7 @@ use crate::target::noci::multideterminants::MultiDeterminants;
 // ~~~~~~~~~~~~~
 // Macro helpers
 // ~~~~~~~~~~~~~
+#[macro_export]
 macro_rules! generate_get_jk {
     ($get_jk_name:ident, $py_get_jk_func:ident, $t:ty) => {
         let $get_jk_name = move |dm: &Array2<$t>| {
@@ -110,8 +111,8 @@ macro_rules! generate_get_jk {
 /// * `enuc` - The nuclear repulsion energy.
 /// * `onee` - The one-electron integral matrix whose elements are of type `float64` or
 /// `complex128`.
-/// * `twoe` - The two-electron integral tensor whose elements are of type `float64` or
-/// `complex128`. Either this or `py_get_jk` must be specified, but not both.
+/// * `twoe` - The two-electron integral tensor in physicists' ordering whose elements are of type
+/// `float64` or `complex128`. Either this or `py_get_jk` must be specified, but not both.
 /// * `py_get_jk` - A Python function callable on a density matrix $`\mathbf{D}`$ to calculate the
 /// corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate
 /// two-electron integrals calculated on-the-fly. Either this or `twoe` must be specified, but not
@@ -1158,7 +1159,7 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
                             )
                             .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
                         let multidets = MultiDeterminants::from_multideterminant_vec(
-                            &multidets_vec.iter().collect::<Vec<_>>()
+                            &multidets_vec.iter().collect::<Vec<_>>(),
                         )
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -1185,10 +1186,10 @@ pub fn rep_analyse_multideterminants_orbit_basis_internal_solver(
 
                         // Collect multi-determinantal wavefunctions for returning
                         let basis = multidets
-                                    .basis()
-                                    .iter()
-                                    .map(|det_res| det_res.and_then(|det| det.to_python(py)))
-                                    .collect::<Result<Vec<_>, _>>()
+                            .basis()
+                            .iter()
+                            .map(|det_res| det_res.and_then(|det| det.to_python(py)))
+                            .collect::<Result<Vec<_>, _>>()
                             .map_err(|_| {
                                 PyRuntimeError::new_err(
                                     "Unable to obtain the basis of Slater determinants."

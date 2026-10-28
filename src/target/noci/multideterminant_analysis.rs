@@ -479,13 +479,13 @@ where
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Optimised implementation for multi-determinantal wavefunctions constructed from orbits
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-impl<'a, 'o, 'g, G, T, SC>
+impl<'a, 'o, G, T, SC>
     MultiDeterminantSymmetryOrbit<
         'a,
         'o,
         G,
         T,
-        OrbitBasis<'g, G, SlaterDeterminant<'a, T, SC>>,
+        OrbitBasis<G, SlaterDeterminant<'a, T, SC>>,
         SC,
     >
 where
@@ -502,7 +502,7 @@ where
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
     SC: StructureConstraint + Hash + Eq + Clone + fmt::Display,
-    MultiDeterminant<'a, T, OrbitBasis<'g, G, SlaterDeterminant<'a, T, SC>>, SC>:
+    MultiDeterminant<'a, T, OrbitBasis<G, SlaterDeterminant<'a, T, SC>>, SC>:
         SymmetryTransformable,
 {
     /// Calculates and stores the overlap matrix between multi-determinantal wavefunctions in the

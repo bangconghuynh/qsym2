@@ -1,3 +1,4 @@
+import os
 from collections.abc import Callable, Sequence
 from enum import Enum
 
@@ -141,36 +142,35 @@ class PySymmetry:
         self, kind: PySymmetryElementKind
     ) -> dict[int, list[Py1DArray_f64]]:
         r"""
-        Returns symmetry elements of all *finite* orders of a given kind.
+        Returns symmetry elements of all *finite* and *infinite* orders of a given kind.
 
         Parameters:
             kind: The symmetry element kind.
 
         Returns:
-            A dictionary where the keys are integers indicating the orders of the elements and the values are vectors of one-dimensional arrays, each of which gives the axis of a symmetry element. If the order value is `-1`, then the associated elements have infinite order.
+            A dictionary where the keys are integers indicating the orders of the elements and the values are lists of one-dimensional arrays, each of which gives the axis of a symmetry element. If the order value is `-1`, then the associated elements have infinite order.
         """
 
     def get_generators_of_kind(
         self, kind: PySymmetryElementKind
     ) -> dict[int, list[Py1DArray_f64]]:
         r"""
-        Returns symmetry generators of *finite*  and *infinite* orders of a
-        given kind.
+        Returns symmetry generators of *finite* and *infinite* orders of a given kind.
 
         Parameters:
             kind: The symmetry generator kind.
 
         Returns:
-            A dictionary where the keys are integers indicating the orders of the generators and the values are vectors of one-dimensional arrays, each of which gives the axis of a symmetry generator. If the order value is `-1`, then the associated generators have infinite order.
+            A dictionary where the keys are integers indicating the orders of the generators and the values are lists of one-dimensional arrays, each of which gives the axis of a symmetry generator. If the order value is `-1`, then the associated generators have infinite order.
         """
 
     group_name: str
     r"""The name of the symmetry group."""
 
 def detect_symmetry_group(
-    inp_xyz: str | None,
+    inp_xyz: str | os.PathLike[str] | None,
     inp_mol: PyMolecule | None,
-    out_sym: str | None,
+    out_sym: str | os.PathLike[str] | None,
     moi_thresholds: Sequence[float],
     distance_thresholds: Sequence[float],
     time_reversal: bool,
@@ -214,9 +214,9 @@ def detect_symmetry_group(
 # ------------------------------------------
 
 def symmetrise_molecule(
-    inp_xyz: str | None,
+    inp_xyz: str | os.PathLike[str] | None,
     inp_mol: PyMolecule | None,
-    out_target_sym: str | None = None,
+    out_target_sym: str | os.PathLike[str] | None = None,
     loose_moi_threshold: float = 1e-2,
     loose_distance_threshold: float = 1e-2,
     target_moi_threshold: float = 1e-7,
@@ -321,24 +321,26 @@ class PyBasisAngularOrder:
                     * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
                     which depends on the shell type,
                     * `shelltype` is an enumerated type with possible variants `ShellType.Pure`,
-                    `ShellType.Cartesian`, `ShellType.Spinor`, and `ShellType.SpinorKineticBalance`
-                    indicating the type of the shell, and
+                    `ShellType.Cartesian`, `ShellType.SpinorFermion`, `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, and
+                    `ShellType.SpinorAntifermionKineticBalance` indicating the type of the shell, and
                     * `order` specifies how the functions in the shell are ordered:
                         * if `shelltype` is `ShellType.Cartesian`, `order` can be `None` for lexicographic order, or a
                         list of tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions
                         where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
                         * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
-                        `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+                        `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
                         `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
-                        first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
+                        first can be `True` for increasing-$`m`$ order, `False` for decreasing-$`m`$ order, or
                         a list of $`m`$ values for custom order, and the second is a boolean indicating whether
                         the spatial parts of the functions in the shell are even with respect to spatial inversion.
         """
 
     @classmethod
-    def from_qchem_archive(cls, filename: str) -> list[PyBasisAngularOrder]:
+    def from_qchem_archive(cls, filename: str | os.PathLike[str]) -> list[PyBasisAngularOrder]:
         r"""
         Extracts basis angular order information from a Q-Chem HDF5 archive file.
+
+        This is only available with the `qchem` feature.
 
         A summary showing how the `PyBasisAngularOrder` objects map onto the Q-Chem calculations in
         the HDF5 archive file is also logged at the `INFO` level.
@@ -397,10 +399,10 @@ class PyBasisShellContraction:
         basis_shell: tuple[int, ShellType, PyShellOrder],
         primitives: Sequence[tuple[float, float]],
         cart_origin: tuple[float, float, float],
-        k: tuple[float, float, float] | None,
+        k: tuple[float, float, float] | None = None,
     ) -> None:
         r"""
-        Constructs a new `PyBasisAngularOrder` structure.
+        Constructs a new `PyBasisShellContraction` structure.
 
         Parameters:
             basis_shell: A tuple which provides information for one basis shell on the atom in the form `(angmom, shelltype, order)`. Here:
@@ -408,17 +410,18 @@ class PyBasisShellContraction:
                 * `angmom` is an integer specifying the angular momentum of the shell, the meaning of
                 which depends on the shell type,
                 * `shelltype` is an enumerated type with possible variants `ShellType.Pure`,
-                `ShellType.Cartesian`, `ShellType.Spinor`, and `ShellType.SpinorKineticBalance`
-                indicating the type of the shell, and
+                `ShellType.Cartesian`, `ShellType.SpinorFermion`, `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, and
+                `ShellType.SpinorAntifermionKineticBalance` indicating the type of the shell, and
                 * `order` specifies how the functions in the shell are ordered:
                     * if `shelltype` is `ShellType.Cartesian`, `order` can be `None` for lexicographic order, or a
                     list of tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions
                     where `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents, respectively;
                     * if `shelltype` is `ShellType.Pure`, `ShellType.SpinorFermion`,
-                    `SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
+                    `ShellType.SpinorFermionKineticBalance`, `ShellType.SpinorAntifermion`, or
                     `ShellType.SpinorAntifermionKineticBalance`, `order` is a tuple of two values: the
-                    first can be `true` for increasing-$`m`$ order, `false` for decreasing-$`m`$ order, or
+                    first can be `True` for increasing-$`m`$ order, `False` for decreasing-$`m`$ order, or
                     a list of $`m`$ values for custom order, and the second is a boolean indicating whether
+                    the spatial parts of the functions in the shell are even with respect to spatial inversion.
 
             primitives: A list of tuples, each of which contains the exponent and the contraction coefficient of a Gaussian primitive in this shell.
 
@@ -468,7 +471,7 @@ def calc_overlap_4c_real(
         basis_set: A list of lists of `PyBasisShellContraction`. Each inner list contains shells on one atom.
 
     Returns:
-        A four-dimensional array containing the real two-centre overlap values.
+        A four-dimensional array containing the real four-centre overlap values.
 
     Raises:
         RuntimeError: If any shell contains a finite $`\mathbf{k}`$ vector.
@@ -560,7 +563,7 @@ class PySlaterDeterminantComplex:
         energy: complex | None = None,
     ) -> None:
         r"""
-        Constructs a real Python-exposed Slater determinant.
+        Constructs a complex Python-exposed Slater determinant.
 
         Parameters:
             structure_constraint: The structure constraint applied to the coefficients of the determinant.
@@ -593,7 +596,7 @@ class PySlaterDeterminantComplex:
     mo_energies: list[Py1DArray_c128] | None
     r"""The complex molecular orbital energy arrays, if any, each of which is a one-dimensional array for each spin space."""
 
-    energy: float | None
+    energy: complex | None
     r"""The complex determinantal energy, if any."""
 
 type PySlaterDeterminant = PySlaterDeterminantReal | PySlaterDeterminantComplex
@@ -624,7 +627,7 @@ class PySlaterDeterminantRepAnalysisResult:
     """
 
 def rep_analyse_slater_determinant(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pydet: PySlaterDeterminant,
     pybaos: Sequence[PyBasisAngularOrder],
     integrality_threshold: float,
@@ -779,7 +782,7 @@ class PyDensityComplex:
 type PyDensity = PyDensityReal | PyDensityComplex
 
 def rep_analyse_densities(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pydens: Sequence[tuple[str, PyDensity]],
     pybao: PyBasisAngularOrder,
     integrality_threshold: float,
@@ -800,7 +803,7 @@ def rep_analyse_densities(
     angular_function_max_angular_momentum: int = 2,
 ) -> None:
     r"""
-    Python-exposed function to perform representation symmetry analysis for real and complex electron densities,
+    Python-exposed function to perform representation symmetry analysis for real and complex electron densities.
 
     The result is also logged via the `qsym2-output` logger at the `INFO` level.
 
@@ -915,7 +918,7 @@ type PyVibrationalCoordinateCollection = (
 )
 
 def rep_analyse_vibrational_coordinate_collection(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pyvibs: PyVibrationalCoordinateCollection,
     integrality_threshold: float,
     linear_independence_threshold: float,
@@ -1033,7 +1036,7 @@ class PyMultiDeterminantsReal:
     def state_density_matrix(self, state_index: int) -> Py2DArray_f64:
         r"""Returns the density matrix for a particular state."""
 
-    def to_qsym2_binary(self, name: str) -> int:
+    def to_qsym2_binary(self, name: str | os.PathLike[str]) -> int:
         r"""
         Saves the real Python-exposed multi-determinants as a binary file with `.qsym2.pymdet` extension.
        
@@ -1045,7 +1048,7 @@ class PyMultiDeterminantsReal:
         """
 
     @staticmethod
-    def from_qsym2_binary(name: str) -> PyMultiDeterminantsReal:
+    def from_qsym2_binary(name: str | os.PathLike[str]) -> PyMultiDeterminantsReal:
         r"""
         Reads the real Python-exposed multi-determinants from a binary file with `.qsym2.pymdet` extension.
        
@@ -1108,13 +1111,13 @@ class PyMultiDeterminantsComplex:
     def state_coefficients(self, state_index: int) -> Py1DArray_c128:
         r"""Returns the coefficients for a particular state."""
 
-    def state_energy(self, state_index: int) -> float:
+    def state_energy(self, state_index: int) -> complex:
         r"""Returns the energy for a particular state."""
 
     def state_density_matrix(self, state_index: int) -> Py2DArray_c128:
         r"""Returns the density matrix for a particular state."""
 
-    def to_qsym2_binary(self, name: str) -> int:
+    def to_qsym2_binary(self, name: str | os.PathLike[str]) -> int:
         r"""
         Saves the complex Python-exposed multi-determinants as a binary file with `.qsym2.pymdet` extension.
        
@@ -1126,7 +1129,7 @@ class PyMultiDeterminantsComplex:
         """
 
     @staticmethod
-    def from_qsym2_binary(name: str) -> PyMultiDeterminantsComplex:
+    def from_qsym2_binary(name: str | os.PathLike[str]) -> PyMultiDeterminantsComplex:
         r"""
         Reads the complex Python-exposed multi-determinants from a binary file with `.qsym2.pymdet` extension.
        
@@ -1144,7 +1147,7 @@ type PyMultiDeterminants = PyMultiDeterminantsReal | PyMultiDeterminantsComplex
 # ----------------------------------------------------------------------------------------
 
 def rep_analyse_multideterminants_eager_basis(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pydets: Sequence[PySlaterDeterminant],
     coefficients: Py2DArray_f64 | Py2DArray_c128,
     energies: Py1DArray_f64 | Py1DArray_c128,
@@ -1225,7 +1228,7 @@ def rep_analyse_multideterminants_eager_basis(
 # --------------------------------------------------------------------------------------
 
 def rep_analyse_multideterminants_fci_basis(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pydet: PySlaterDeterminant,
     coefficients: Py2DArray_f64 | Py2DArray_c128,
     energies: Py1DArray_f64 | Py1DArray_c128,
@@ -1309,7 +1312,7 @@ def rep_analyse_multideterminants_fci_basis(
 # --------------------------------------------------------------------------------------------------------
 
 def rep_analyse_multideterminants_orbit_basis_internal_solver(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pyorigins: Sequence[PySlaterDeterminant],
     pybaos: Sequence[PyBasisAngularOrder],
     sao: Py2DArray_f64 | Py2DArray_c128,
@@ -1361,7 +1364,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
 
         onee: The one-electron integral matrix whose elements are of type `float64` or `complex128`.
 
-        twoe: The two-electron integral tensor whose elements are of type `float64` or `complex128`. Either this or `py_get_jk` must be specified, but not both.
+        twoe: The two-electron integral tensor in physicists' ordering whose elements are of type `float64` or `complex128`. Either this or `py_get_jk` must be specified, but not both.
 
         py_get_jk: A Python function callable on a density matrix $`\mathbf{D}`$ to calculate the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate two-electron integrals calculated on-the-fly. Either this or `twoe` must be specified, but not both.
 
@@ -1412,7 +1415,7 @@ def rep_analyse_multideterminants_orbit_basis_internal_solver(
 # --------------------------------------------------------------------------------------------------------
 
 def rep_analyse_multideterminants_orbit_basis_external_solver(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pyorigins: Sequence[PySlaterDeterminant],
     py_noci_solver: Callable[
         [Sequence[PySlaterDeterminantReal | PySlaterDeterminantComplex]],
@@ -1500,10 +1503,11 @@ def rep_analyse_multideterminants_orbit_basis_external_solver(
 # ------------------------------------------------
 
 def project_slater_determinant(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pydet: PySlaterDeterminant,
     projection_targets: Sequence[str | int],
-    density_matrix_calculation_thresholds: tuple[float, float] | None,
+    calculate_energies: bool,
+    calculate_density_matrices: bool,
     pybaos: Sequence[PyBasisAngularOrder],
     use_magnetic_group: MagneticSymmetryAnalysisKind | None,
     use_double_group: bool,
@@ -1512,6 +1516,16 @@ def project_slater_determinant(
     infinite_order_to_finite: int | None = None,
     sao: Py2DArray_f64 | Py2DArray_c128 | None = None,
     sao_h: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    enuc: complex | None = None,
+    onee: Py2DArray_f64 | Py2DArray_c128 | None = None,
+    twoe: Py4DArray_f64 | Py4DArray_c128 | None = None,
+    py_get_jk: Callable[
+        [Py2DArray_f64 | Py2DArray_c128],
+        tuple[Py2DArray_f64, Py2DArray_f64] | tuple[Py2DArray_c128, Py2DArray_c128],
+    ]
+    | None = None,
+    thresh_offdiag: float | None = None,
+    thresh_zeroov: float | None = None,
 ) -> tuple[list[str], PyMultiDeterminants]:
     r"""
     Python-exposed function to perform symmetry projection for real and complex Slater determinants.
@@ -1523,7 +1537,11 @@ def project_slater_determinant(
 
         projection_targets: A sequence of subspace labels for projection. Each label is either a symbolic string or a numerical index for the subspace in the character table of the prevailing group.
 
-        density_matrix_calculation_thresholds: An optional pair of thresholds for Löwdin pairing, one for checking zero off-diagonal values, one for checking zero overlaps, when computing multi-determinantal density matrices. If `None`, no density matrices will be computed.
+        calculate_energies: A boolean indicating if the energies of the projected wavefunctions (which are multi-determinantal wavefunctions specified in an orbit basis) are to be calculated.
+            If `True`, then `thresh_offdiag`, `thresh_zeroov`, `enuc`, `onee`, and either `twoe` or `py_get_jk` must also be specified for Löwdin pairing and Hamiltonian matrix element computation.
+
+        calculate_density_matrices: A boolean indicating if the density matrices for the projected wavefunctions (which are multi-determinantal wavefunctions) are to be calculated.
+            If `True`, then `thresh_offdiag` and `thresh_zeroov` must also be specified for Löwdin pairing.
 
         pybaos: Python-exposed structures containing basis angular order information, one for each explicit component per coefficient matrix.
 
@@ -1531,18 +1549,37 @@ def project_slater_determinant(
 
         use_double_group: A boolean indicating if the double group of the prevailing symmetry group is to be used for representation analysis instead.
 
-        symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin electron density to generate the orbit.
+        symmetry_transformation_kind: An enumerated type indicating the type of symmetry transformations to be performed on the origin Slater determinant to generate the orbit.
 
         write_character_table: A boolean indicating if the character table of the prevailing symmetry group is to be printed out.
 
         infinite_order_to_finite: The finite order with which infinite-order generators are to be interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup will be used for symmetry analysis.
 
-        sao: The optional atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`. If this is not present, no squared norms of the resulting multi-determinants will be computed.
+        sao: The optional atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`. If this is not present, no squared norms, energies, or density matrices of the resulting multi-determinants will be computed.
 
         sao_h: The optional complex-symmetric atomic-orbital overlap matrix whose elements are of type `float64` or `complex128`. This is required if antiunitary symmetry operations are involved.
 
+        enuc: The optional nuclear repulsion energy, which is only required for `calculate_energies`.
+
+        onee: The optional one-electron integral matrix whose elements are of type `float64` or `complex128`, which is only required for `calculate_energies`.
+
+        twoe: The optional two-electron integral tensor in physicists' ordering whose elements are of type `float64` or `complex128`, which is only required for `calculate_energies`.
+            Either this or `py_get_jk` must be specified, but not both.
+
+        py_get_jk: An optional Python function callable on a density matrix $`\mathbf{D}`$ to calculate the corresponding $`\mathbf{J}`$ and $`\mathbf{K}`$ matrices by contracting with appropriate two-electron integrals calculated on-the-fly, which is only required for `calculate_energies`.
+            Either this or `twoe` must be specified, but not both.
+
+        thresh_offdiag: The optional threshold for identifying non-zero off-diagonal elements in Löwdin pairing, which is required for `calculate_energies` and `calculate_density_matrices`.
+
+        thresh_zeroov: The optional threshold for identifying non-zero overlaps in Löwdin pairing, which is required for `calculate_energies` and `calculate_density_matrices`.
+
     Returns:
-        The result will be returned as a tuple where the first item is a list of the labels of the subspaces used for projection, and the second item is an object containing the Slater determinant basis and the linear combination coefficients as a two-dimensional array with each column corresponding to one projected state.
+        The result will be returned as a tuple where the first item is a list of the labels of the subspaces used for projection, and the second item is an object containing:
+
+            * the Slater determinant basis,
+            * the linear combination coefficients as a two-dimensional array with each column corresponding to one projected state,
+            * the energies of the projected states if requested, or `NaN` if not, and
+            * the density matrices of the projected states if requested, or `None` if not.
     """
 
 # -------------------------------------
@@ -1550,7 +1587,7 @@ def project_slater_determinant(
 # -------------------------------------
 
 def project_densities(
-    inp_sym: str,
+    inp_sym: str | os.PathLike[str],
     pydens: Sequence[tuple[str, PyDensity]],
     projection_targets: Sequence[str | int],
     pybao: PyBasisAngularOrder,

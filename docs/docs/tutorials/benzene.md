@@ -93,7 +93,7 @@ In summary, we need to run a Q-Chem calculation on neutral benzene and save the 
       write_symmetry_elements: false
       result_save_name: null
     analysis_targets:
-    - !SlaterDeterminant #(2)!
+    - !RealSlaterDeterminant #(2)!
       source: !QChemArchive
         path: benzene_scratch/qarchive.h5
       control:

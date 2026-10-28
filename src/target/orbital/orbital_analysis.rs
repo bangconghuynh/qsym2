@@ -519,7 +519,7 @@ pub fn generate_det_mo_orbits<'a, G, T, SC>(
     use_cayley_table: bool,
 ) -> Result<
     (
-        SlaterDeterminantSymmetryOrbit<'a, G, T, SC>,
+        SlaterDeterminantSymmetryOrbit<'a, 'a, G, T, SC>,
         Vec<Vec<MolecularOrbitalSymmetryOrbit<'a, G, T, SC>>>,
     ),
     anyhow::Error,

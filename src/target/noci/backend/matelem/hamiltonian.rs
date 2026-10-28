@@ -38,7 +38,7 @@ where
     onee: ArrayView2<'a, T>,
 
     /// The two-electron integrals in an atomic-orbital basis (with respect to the specified
-    /// structure constraint).
+    /// structure constraint) in physicists' ordering.
     #[builder(default = "None")]
     twoe: Option<ArrayView4<'a, T>>,
 
@@ -73,7 +73,7 @@ where
     }
 
     /// Returns the two-electron integrals in an atomic-orbital basis (with respect to the specified
-    /// structure constraint).
+    /// structure constraint) in physicists' ordering.
     pub fn twoe(&self) -> Option<&ArrayView4<'a, T>> {
         self.twoe.as_ref()
     }

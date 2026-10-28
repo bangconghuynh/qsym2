@@ -97,11 +97,11 @@ where
 // `DefaultTimeReversalTransformable` and so the surrounding `OrbitBasis` does not get a blanket
 // implementation of `TimeReversalTransformable`, and neither does the surrounding
 // `MultiDeterminant`.
-impl<'a, 'g, G> TimeReversalTransformable
+impl<'a, G> TimeReversalTransformable
     for MultiDeterminant<
         'a,
         Complex<f64>,
-        OrbitBasis<'g, G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
+        OrbitBasis<G, SlaterDeterminant<'a, Complex<f64>, SpinOrbitCoupled>>,
         SpinOrbitCoupled,
     >
 where

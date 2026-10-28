@@ -114,7 +114,7 @@ fn test_multideterminants_density_matrices_bh3p() {
     // -----------
 
     let orbit_basis = OrbitBasis::builder()
-        .group(&group_u_d3h)
+        .group(group_u_d3h)
         .origins(vec![det.clone()])
         .action(|g, det| det.sym_transform_spatial(g).map_err(|err| format_err!(err)))
         .build()

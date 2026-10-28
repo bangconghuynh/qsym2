@@ -36,7 +36,6 @@ use crate::drivers::representation_analysis::slater_determinant::{
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
 };
-#[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::io::format::{
@@ -1013,7 +1012,6 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
             };
             log::debug!("Extracting AO basis information for representation analysis... Done.");
 
-            #[cfg(feature = "integrals")]
             let sao_4c: Option<Array4<f64>> = basis_set_opt.map(|basis_set| {
                 log::debug!(
                     "Computing four-centre overlap integrals for density symmetry analysis..."
@@ -1033,9 +1031,6 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
                 );
                 sao_4c
             });
-
-            #[cfg(not(feature = "integrals"))]
-            let sao_4c: Option<Array4<f64>> = None;
 
             log::debug!(
                 "Extracting canonical determinant information for representation analysis..."
