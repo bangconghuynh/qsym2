@@ -6,6 +6,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
+*.so
 
 # mim
 *.swp
@@ -16,4 +17,4 @@ __pycache__/
 
 #QSym2
 *.sym
-*.so
+*.log
