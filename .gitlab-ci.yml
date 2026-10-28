@@ -53,6 +53,23 @@ unit_tests:
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
+python_tests:
+  stage: Unit Tests
+  tags:
+    - archon
+  before_script:
+    - conda env create -f tests/bindings/python/meta/environment.yml -n qsym2-testsuite
+    - conda activate qsym2-testsuite
+    - pip install -vvv .
+  script:
+    - cd tests/bindings/python
+    - pytest .
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /\/doc-/
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
 release_job:
   stage: Deploy
   tags:
@@ -68,7 +85,7 @@ release_job:
   rules:
     - if: $CI_COMMIT_TAG
 
-mkdocs:
+zensical:
   stage: Deploy
   image: python:latest
   script:
@@ -98,7 +115,7 @@ pages:
     - mv target/doc public/api
     - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/api/index.html
   needs:
-    - job: mkdocs
+    - job: zensical
       artifacts: true
   artifacts:
     paths:
