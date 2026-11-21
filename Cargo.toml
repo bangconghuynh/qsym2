@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2024"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
@@ -55,7 +55,7 @@ serde_yaml = "0.9"
 
 [dev-dependencies]
 env_logger = "0.11"
-proptest = "1.11"
+proptest = "1.12"
 serial_test = "3.5"
 
 [features]

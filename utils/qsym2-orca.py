@@ -1,35 +1,29 @@
 #!/usr/bin/env python3
 
 import argparse
-import cclib
 import logging
-import mendeleev
-import numpy as np
-import sys
 import textwrap
 
+import cclib
+import mendeleev
+import numpy as np
+
 from qsym2 import (
-    calc_overlap_4c_real,
-    calc_overlap_4c_complex,
+    EigenvalueComparisonMode,
+    PyBasisAngularOrder,
+    PyMolecule,
+    PySlaterDeterminantReal,
+    PySpinConstraint,
+    ShellType,
+    SymmetryTransformationKind,
     detect_symmetry_group,
-    rep_analyse_slater_determinant,
-    symmetrise_molecule,
     qsym2_output_contributors,
     qsym2_output_heading,
-    EigenvalueComparisonMode,
-    MagneticSymmetryAnalysisKind,
-    PyMolecule,
-    PyBasisShellContraction,
-    PyBasisAngularOrder,
-    PySpinConstraint,
-    PySlaterDeterminantReal,
-    PySlaterDeterminantComplex,
-    SymmetryTransformationKind,
-    ShellType,
+    rep_analyse_slater_determinant,
 )
 
 
-class MyFilter(object):
+class MyFilter:
     def __init__(self, level):
         self.__level = level
 
@@ -49,9 +43,10 @@ EV_TO_HARTREE = 0.03674930495120813
 
 def orca_rep_analyse_slater_determinant(
     filename: str,
-    moi_thresholds: list[float] = [1e-2, 1e-4, 1e-6],
-    distance_thresholds: list[float] = [1e-2, 1e-4, 1e-6],
+    moi_thresholds: list[float] | None = None,
+    distance_thresholds: list[float] | None = None,
     linear_independence_threshold: float = 1e-6,
+    orbit_overlap_symmetry_threshold: float = 1e-6,
     integrality_threshold: float = 1e-7,
 ):
     r"""Performs representation analysis for a Slater determinant and its
@@ -73,9 +68,10 @@ def orca_rep_analyse_slater_determinant(
         Threshold for determining whether a subspace multiplicity is an integer.
     """
     data = cclib.io.ccread(filename)
+
     pymol = PyMolecule(
         atoms=[
-            (mendeleev.element(int(atomic_number)).symbol, list(coords))
+            (mendeleev.element(int(atomic_number)).symbol, tuple(coords))
             for atomic_number, coords in zip(
                 data.atomnos, data.converged_geometries[-1]
             )
@@ -83,7 +79,12 @@ def orca_rep_analyse_slater_determinant(
         threshold=1e-7,
     )
 
-    unisym, magsym = detect_symmetry_group(
+    if moi_thresholds is None:
+        moi_thresholds = [1e-2, 1e-4, 1e-6]
+    if distance_thresholds is None:
+        distance_thresholds = [1e-2, 1e-4, 1e-6]
+
+    _unisym, _magsym = detect_symmetry_group(
         inp_xyz=None,
         inp_mol=pymol,
         out_sym="mol",
@@ -155,13 +156,14 @@ def orca_rep_analyse_slater_determinant(
     pydet_r = PySlaterDeterminantReal(spincons, False, cs, os, 1e-13, es, scf_energies)
 
     rep_analyse_slater_determinant(
-        inp_sym=f"mol",
+        inp_sym="mol",
         pydet=pydet_r,
-        pybao=pybao,
-        sao_spatial=sao_spatial,
-        sao_spatial_4c=None,
+        pybaos=[pybao],
+        sao=sao_spatial,
+        sao_h=None,
         integrality_threshold=integrality_threshold,
         linear_independence_threshold=linear_independence_threshold,
+        orbit_overlap_symmetry_threshold=orbit_overlap_symmetry_threshold,
         eigenvalue_comparison_mode=EigenvalueComparisonMode.Real,
         use_magnetic_group=None,
         use_double_group=False,
@@ -169,6 +171,7 @@ def orca_rep_analyse_slater_determinant(
         analyse_mo_symmetries=True,
         analyse_mo_mirror_parities=True,
         analyse_density_symmetries=False,
+        use_cayley_table=True,
         write_overlap_eigenvalues=True,
         write_character_table=True,
     )

@@ -102,7 +102,7 @@ The following instructions assume that the `full` feature is to be installed on 
     ```
     or by downloading a compressed tarball release from [here](https://gitlab.com/bangconghuynh/qsym2/-/releases) and extracting it:
     ```bash
-    wget https://gitlab.com/bangconghuynh/qsym2/-/archive/v0.14.0/qsym2-vX.Y.Z.tar.gz
+    wget https://gitlab.com/bangconghuynh/qsym2/-/archive/vX.Y.Z/qsym2-vX.Y.Z.tar.gz
     tar -xvf qsym2-vX.Y.Z.tar.gz
     cd qsym2-vX.Y.Z
     ```
