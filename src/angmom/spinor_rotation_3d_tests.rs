@@ -1,6 +1,6 @@
 use approx;
 use nalgebra::{ComplexField, Vector3};
-use ndarray::{array, Array2};
+use ndarray::{Array2, array};
 use num::{Complex, Zero};
 use proptest::prelude::*;
 
@@ -453,6 +453,57 @@ proptest! {
                 0.0,
                 epsilon = 1e-11 * angle.abs().max(1.0) * (2 * l) as f64,
                 max_relative = 1e-11 * angle.abs().max(1.0) * (2 * l) as f64
+            );
+        }
+    }
+}
+
+/// Returns the $`j = 1/2`$ matrix of the $`\mathsf{SU}(2)`$ element
+/// $`U(\phi\hat{\mathbf{n}}) = \cos\frac{\phi}{2} - i\sin\frac{\phi}{2}\,\hat{\mathbf{n}}\cdot\boldsymbol{\sigma}`$
+/// in increasing-$`m`$ order, without any normalisation of $`\phi`$.
+fn su2_closed_form(angle: f64, axis: Vector3<f64>) -> Array2<C128> {
+    let n = axis.normalize();
+    let i = C128::i();
+    let (s, c) = (0.5 * angle).sin_cos();
+    array![
+        [c + i * n.z * s, (n.y - i * n.x) * s],
+        [-(n.y + i * n.x) * s, c - i * n.z * s],
+    ]
+}
+
+/// Returns the Frobenius distance between two matrices.
+fn frobenius_distance(a: &Array2<C128>, b: &Array2<C128>) -> f64 {
+    (a - b).map(|x| x.norm_sqr()).sum().sqrt()
+}
+
+#[test]
+fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_c2_icosahedral_axis() {
+    // Regression test: the spin-1/2 matrix of a binary rotation used to have a sign decided by
+    // rounding, because the homotopy class was chosen from the sign of a scalar part that is
+    // exactly zero for binary rotations. This is a two-fold rotation axis of the icosahedral group
+    // in the Point Group Atlas (https://valbert4.github.io/point-group-atlas) frame, together with
+    // two axes moved by 1e-15.
+    let phi = (1.0 + 5f64.sqrt()) / 2.0;
+    // C2 (element 47) of https://valbert4.github.io/point-group-atlas/rotation/I/elements/.
+    let n = Vector3::new(-0.5, 0.5 / phi, 0.5 * phi);
+    for d in [
+        Vector3::zeros(),
+        Vector3::new(0.0, 1e-15, 0.0),
+        Vector3::new(0.0, 0.0, 1e-15),
+    ] {
+        for angle in [
+            std::f64::consts::PI,
+            2.0 * std::f64::consts::PI / 5.0,
+            4.0 * std::f64::consts::PI / 5.0,
+            2.0 * std::f64::consts::PI / 3.0,
+        ] {
+            let d_half = dmat_angleaxis_gen_single(1, angle, n + d, true);
+            let u = su2_closed_form(angle, n + d);
+            approx::assert_relative_eq!(
+                frobenius_distance(&d_half, &u),
+                0.0,
+                epsilon = 1e-13,
+                max_relative = 1e-13
             );
         }
     }
