@@ -754,37 +754,49 @@ pub fn dmat_angleaxis_gen_single(
     dmat_euler_gen(twoj, euler_angles, increasingm)
 }
 
-/// Converts an angle and axis of rotation to Euler angles using the equations in Section
-/// (**3**-4) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
-/// Publications, Inc., 2005) such that
+/// Converts an angle and axis of rotation to Euler angles that correspond to the $`\mathsf{SU}(2)`$
+/// rotation $`U(\phi\hat{\mathbf{n}})`$ of homotopy class 0.
+///
+/// The angle $`\phi`$ is first normalised to $`(-\pi, \pi]`$. The quaternion of
+/// $`U(\phi\hat{\mathbf{n}}) = \lambda - i\boldsymbol{\Lambda}\cdot\boldsymbol{\sigma}`$ is then
+/// given by
 ///
 /// ```math
-/// -\pi \le \alpha \le \pi, \quad
-/// 0 \le \beta \le \pi, \quad
-/// -\pi \le \gamma \le \pi.
+/// \begin{aligned}
+///     \lambda &= \cos \frac{\phi}{2} \ge 0,\\
+///     \boldsymbol{\Lambda} &= \sin\frac{\phi}{2}\,\hat{\mathbf{n}},
+/// \end{aligned}
 /// ```
+///
+/// and, in the Whitaker convention [see Equations **12**-11-(4)–(7) in Altmann, S. L. _Rotations, Quaternions, and
+/// Double Groups_. (Dover Publications, Inc., 2005)],
+///
+/// ```math
+/// \begin{aligned}
+///     \lambda &= \cos\frac{\beta}{2} \cos\frac{\alpha + \gamma}{2},\\
+///     \Lambda_x &= -\sin\frac{\beta}{2} \sin\frac{\alpha - \gamma}{2},\\
+///     \Lambda_y &= \sin\frac{\beta}{2} \cos\frac{\alpha - \gamma}{2},\\
+///     \Lambda_z &= \cos\frac{\beta}{2} \sin\frac{\alpha + \gamma}{2}.
+/// \end{aligned}
+/// ```
+///
+/// The Euler angles are read off these four relations directly with two-argument arctangents, so
+/// the homotopy class of the resulting $`\mathsf{SU}(2)`$ rotation is fixed by $`\lambda`$ and
+/// $`\boldsymbol{\Lambda}`$ themselves. In particular, a binary rotation ($`\lambda = 0`$) about
+/// $`\hat{\mathbf{n}}`$ always gives $`-i\hat{\mathbf{n}}\cdot\boldsymbol{\sigma}`$, and never its
+/// negative, which is the binary rotation about $`-\hat{\mathbf{n}}`$. The resulting ranges are
+///
+/// ```math
+/// -\tfrac{3}{2}\pi < \alpha \le \tfrac{3}{2}\pi, \quad
+/// 0 \le \beta \le \pi, \quad
+/// -\tfrac{3}{2}\pi \le \gamma < \tfrac{3}{2}\pi,
+/// ```
+///
+/// which [`dmat_euler_gen_element`] handles correctly for half-odd-integer $`j`$.
 ///
 /// When $`\beta = 0`$, only the sum $`\alpha+\gamma`$ is determined. Likewise, when
-/// $`\beta = \pi`$, only the difference $`\alpha-\gamma`$ is determined. We thus set
-/// $`\alpha = 0`$ in these cases and solve for $`\gamma`$ without changing the nature of the
-/// results.
-///
-/// However, it is sometimes necessary to modify the above ranges such that the Euler angles
-/// correspond to an $`\mathsf{SU}(2)`$ rotation of homotopy class 0. This is achieved by ensuring
-/// the scalar part of the corresponding quaternion,
-///
-/// ```math
-/// \lambda = \cos\frac{\beta}{2} \sin\frac{\alpha + \gamma}{2},
-/// ```math
-///
-/// is non-negative by adding or subtracting $`2\pi`$ from $`\alpha`$ as necessary, so that the
-/// modified ranges are
-///
-/// ```math
-/// -2\pi \le \alpha \le 2\pi, \quad
-/// 0 \le \beta \le \pi, \quad
-/// -\pi \le \gamma \le \pi.
-/// ```
+/// $`\beta = \pi`$, only the difference $`\alpha-\gamma`$ is determined. We set $`\alpha = 0`$ in
+/// these cases and solve for $`\gamma`$.
 ///
 /// # Arguments
 ///
@@ -792,6 +804,8 @@ pub fn dmat_angleaxis_gen_single(
 ///   anticlockwise rotation when looking down `axis`.
 /// * `axis` - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
 ///   vector will be normalised.
+/// * `thresh` - Threshold for normalising the angle and for detecting $`\beta = 0`$ or
+///   $`\beta = \pi`$.
 ///
 /// # Returns
 ///
@@ -799,106 +813,35 @@ pub fn dmat_angleaxis_gen_single(
 /// Whitaker convention.
 fn angleaxis_to_euler_single(angle: f64, axis: Vector3<f64>, thresh: f64) -> (f64, f64, f64) {
     let normalised_axis = axis.normalize();
-    let nx = normalised_axis.x;
-    let ny = normalised_axis.y;
-    let nz = normalised_axis.z;
-
     let (normalised_angle, _) = normalise_rotation_angle(angle, thresh);
 
-    let cosbeta = 1.0 - 2.0 * (nx.powi(2) + ny.powi(2)) * (normalised_angle / 2.0).sin().powi(2);
-    let cosbeta = if cosbeta.abs() > 1.0 {
-        // Numerical errors can cause cosbeta to be outside [-1, 1].
-        approx::assert_relative_eq!(cosbeta.abs(), 1.0, epsilon = thresh, max_relative = thresh);
-        cosbeta.round()
+    // Quaternion of the homotopy-class-0 SU(2) rotation. Since -π < φ ≤ π (up to `thresh`),
+    // λ = cos(φ/2) ≥ 0.
+    let (sin_half_angle, lambda) = (0.5 * normalised_angle).sin_cos();
+    let big_lambda = normalised_axis * sin_half_angle;
+
+    // From the four quaternion-component equations, we see that
+    // cos²(β/2) = λ² + Λz² and sin²(β/2) = Λx² + Λy².
+    // If we now take cos(β/2) = +√(λ² + Λz²) ≥ 0 and sin(β/2) = +√(Λx² + Λy²) ≥ 0, then we force
+    // 0 ≤ β/2 ≤ π/2, and so 0 ≤ β ≤ π. We can then solve for β by atan2 which respects the correct
+    // quadrant of β/2.
+    let cos_half_beta = lambda.hypot(big_lambda.z);
+    let sin_half_beta = big_lambda.x.hypot(big_lambda.y);
+    let beta = 2.0 * sin_half_beta.atan2(cos_half_beta);
+
+    let (alpha, gamma) = if sin_half_beta <= thresh {
+        // β = 0 ⇔ sin(β/2) = 0 and cos(β/2) = 1, and so only α + γ is defined:
+        // We set α = 0 and get Λz / λ = tan(γ/2).
+        (0.0, 2.0 * big_lambda.z.atan2(lambda))
+    } else if cos_half_beta <= thresh {
+        // β = π ⇔ cos(β/2) = 0 and sin(β/2) = 1, and so only α - γ is defined:
+        // We set α = 0 and get Λx / Λy = -tan(-γ/2) = tan(γ/2).
+        (0.0, 2.0 * big_lambda.x.atan2(big_lambda.y))
     } else {
-        cosbeta
+        let half_sum = big_lambda.z.atan2(lambda);
+        let half_diff = (-big_lambda.x).atan2(big_lambda.y);
+        (half_sum + half_diff, half_sum - half_diff)
     };
-
-    // 0 <= beta <= pi.
-    let beta = cosbeta.acos();
-
-    let (alpha, gamma) =
-        if approx::relative_ne!(cosbeta.abs(), 1.0, epsilon = thresh, max_relative = thresh) {
-            // cosbeta != 1 or -1, beta != 0 or pi, sin(beta) != 0
-            // alpha and gamma are given by Equations (**3**-5.4) to (**3**-5.10)
-            // in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover Publications,
-            // Inc., 2005).
-            let sgn = beta.sin().signum();
-            let num_alpha = -nx * normalised_angle.sin()
-                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            let den_alpha = ny * normalised_angle.sin()
-                + 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            // -pi <= alpha <= pi
-            let alpha = num_alpha.atan2(den_alpha);
-
-            let num_gamma = nx * normalised_angle.sin()
-                + 2.0 * ny * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            let den_gamma = ny * normalised_angle.sin()
-                - 2.0 * nx * nz * (normalised_angle / 2.0).sin().powi(2) * sgn;
-            // -pi <= gamma <= pi
-            let gamma = num_gamma.atan2(den_gamma);
-
-            // We shall next determine the scalar part of the quaternion corresponding to the deduced
-            // Euler angles. We need this to ensure that the Euler angles correspond to rotations of
-            // homotopy class 0.
-            // See Eqn. 12-11.4 in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
-            // Publications, Inc., 2005).
-            let lambda = (beta * 0.5).cos() * ((alpha + gamma) * 0.5).cos();
-            if lambda < 0.0 {
-                if approx::relative_eq!(
-                    gamma.abs(),
-                    std::f64::consts::PI,
-                    epsilon = thresh,
-                    max_relative = thresh
-                ) {
-                    (alpha, gamma - gamma.signum() * 2.0 * std::f64::consts::PI)
-                } else if approx::relative_eq!(
-                    alpha.abs(),
-                    std::f64::consts::PI,
-                    epsilon = thresh,
-                    max_relative = thresh
-                ) {
-                    (alpha - alpha.signum() * 2.0 * std::f64::consts::PI, gamma)
-                } else {
-                    // Even though this is identical to the case above, we repeat it here for
-                    // clarity.
-                    (alpha - alpha.signum() * 2.0 * std::f64::consts::PI, gamma)
-                }
-            } else {
-                (alpha, gamma)
-            }
-        } else if approx::relative_eq!(cosbeta, 1.0, epsilon = thresh, max_relative = thresh) {
-            // cosbeta == 1, beta == 0
-            // => cos(0.5(alpha+gamma)) = cos(0.5phi)
-            // => alpha + gamma = ±phi
-            // There are two possibilities:
-            //   1. phi == 0, in which case we simply set both alpha and gamma to zero
-            //   2. nx^2 + ny^2 = 0, which means nx = ny = 0, which means we are at either the
-            //      North pole or the South pole. In either case, we set alpha == 0 by convention.
-            //      We then set gamma = phi at the North pole or -phi at the South pole.
-            // In both cases, lambda = cos(±phi/2), and since -π ≤ phi ≤ π, lambda ≥ 0.
-            if approx::relative_eq!(
-                normalised_angle,
-                0.0,
-                epsilon = thresh,
-                max_relative = thresh
-            ) || nz > 0.0 {
-                (0.0, normalised_angle)
-            } else {
-                (0.0, -normalised_angle)
-            }
-        } else {
-            // cosbeta == -1, beta == pi
-            // sin(0.5phi) must be non-zero, otherwise cosbeta == 1, a contradiction.
-            // sin(0.5(alpha-gamma)) = -nx*sin(0.5phi)
-            // cos(0.5(alpha-gamma)) = +ny*sin(0.5phi)
-            // We set alpha == 0 by convention.
-            // gamma then lies in [-pi, pi].
-            // lambda = 0 since beta = pi.
-            let gamma = 2.0 * nx.atan2(ny);
-
-            (0.0, gamma)
-        };
 
     (alpha, beta, gamma)
 }
