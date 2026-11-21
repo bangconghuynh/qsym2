@@ -1,2 +1,8 @@
 [profile.default]
 slow-timeout = { period = "60s", terminate-after = 20, on-timeout = "pass" }
+
+# Configure a per-test override for tests with `_flaky` in the name.
+[[profile.default.overrides]]
+filter = 'test(_flaky)'
+retries = { backoff = "fixed", count = 2, delay = "3s", jitter = true }
+flaky-result = "pass"

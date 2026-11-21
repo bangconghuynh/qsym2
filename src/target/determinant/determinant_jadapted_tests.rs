@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 // use log4rs;
-use mark_flaky_tests::flaky;
 use nalgebra::Vector3;
 use ndarray::{Array2, array};
 use ndarray_linalg::assert::close_l2;
@@ -903,9 +902,8 @@ fn test_determinant_transformation_bf4_sqpl_jadapted() {
 }
 
 #[test]
-#[flaky]
 #[serial]
-fn test_determinant_transformation_h_jadapted_4c_sto3g() {
+fn test_determinant_transformation_h_jadapted_4c_sto3g_flaky() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ~~~~~~~~~
     // Integrals
@@ -1058,9 +1056,8 @@ fn test_determinant_transformation_h_jadapted_4c_sto3g() {
 }
 
 #[test]
-#[flaky]
 #[serial]
-fn test_determinant_transformation_h_jadapted_4c_sto3g_antifermion() {
+fn test_determinant_transformation_h_jadapted_4c_sto3g_antifermion_flaky() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     // ~~~~~~~~~
     // Integrals
@@ -1213,9 +1210,8 @@ fn test_determinant_transformation_h_jadapted_4c_sto3g_antifermion() {
 }
 
 #[test]
-#[flaky]
 #[serial]
-fn test_determinant_transformation_h_jadapted_4c_631gds() {
+fn test_determinant_transformation_h_jadapted_4c_631gds_flaky() {
     // ~~~~~~~~~
     // Integrals
     // ~~~~~~~~~
@@ -1749,9 +1745,8 @@ fn test_determinant_transformation_h_jadapted_4c_631gds() {
 }
 
 #[test]
-#[flaky]
 #[serial]
-fn test_determinant_orbit_rep_analysis_h_jadapted_small() {
+fn test_determinant_orbit_rep_analysis_h_jadapted_small_flaky() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
@@ -1974,9 +1969,8 @@ fn test_determinant_orbit_rep_analysis_h_jadapted_small() {
 }
 
 #[test]
-#[flaky]
 #[serial]
-fn test_determinant_orbit_rep_analysis_h_jadapted_large() {
+fn test_determinant_orbit_rep_analysis_h_jadapted_large_flaky() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
