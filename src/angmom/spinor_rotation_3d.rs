@@ -789,7 +789,7 @@ pub fn dmat_angleaxis_gen_single(
 /// ```math
 /// -\tfrac{3}{2}\pi < \alpha \le \tfrac{3}{2}\pi, \quad
 /// 0 \le \beta \le \pi, \quad
-/// -\tfrac{3}{2}\pi \le \gamma < \tfrac{3}{2}\pi,
+/// -2\pi \le \gamma \le 2\pi,
 /// ```
 ///
 /// which [`dmat_euler_gen_element`] handles correctly for half-odd-integer $`j`$.
