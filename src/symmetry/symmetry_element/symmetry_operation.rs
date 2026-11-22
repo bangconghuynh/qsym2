@@ -1640,54 +1640,135 @@ where
 ///
 /// * `operations` - A mutable reference to a vector of symmetry operations.
 pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
-    operations.sort_by_key(|op| {
-        let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
-        let c_op = if op.is_proper()
-            || op.generating_element.kind == SIG
-            || op.generating_element.kind == TRSIG
-        {
-            op.clone()
-        } else if op.contains_time_reversal() {
-            op.convert_to_improper_kind(&TRSIG)
-        } else {
-            op.convert_to_improper_kind(&SIG)
-        };
+    operations.sort_by_key(operation_sort_key);
+}
 
-        let total_proper_fraction = c_op
-            .total_proper_fraction
-            .expect("No total proper fractions found.");
-        let denom = i64::from(
-            *total_proper_fraction
-                .denom()
-                .expect("The denominator of the total proper fraction cannot be extracted."),
+/// Sorts the operations of a double group in-place given the order of the operations of the parent
+/// single group.
+///
+/// This function assumes that that the operation at position `i` is a lift of the operation at
+/// position `i % parent_operations.len()` of the parent group, and that `parent_operations` are in
+/// the order of the parent single group (as obtained from [`sort_operations`]).
+///
+/// Each double-group operation is sorted by the key that [`sort_operations`] gives its parent
+/// operation, with the homotopy class of the double-group operation itself in $`\mathsf{SU}'(2)`$
+/// in place of the last criterion, and then by its input position. When the double group has the
+/// same positive hemisphere as the parent group, this is the same order as [`sort_operations`] gives.
+/// When the positive hemisphere has been changed to accommodate classes of an odd number of binary
+/// rotations or reflections, the rotation senses are still evaluated with respect to the positive
+/// hemisphere of the parent group, so that the conjugacy classes of the double group are
+/// encountered in the same order as those of the parent group. Sorting by the lifts' own keys
+/// instead can swap classes that share the same symbol (*e.g.* $`4C_3`$ and $`4C_3'`$ in
+/// $`\mathcal{T}`$) relative to the parent group, and with them the labels of the vector
+/// irreducible representations.
+///
+/// # Arguments
+///
+/// * `operations` - A mutable reference to a vector of lifted symmetry operations whose length is
+///   twice that of `parent_operations`.
+/// * `parent_operations` - The operations of the parent group, in the parent group's order.
+///
+/// # Panics
+///
+/// Panics if `operations` is not twice as long as `parent_operations`.
+pub(crate) fn sort_double_group_operations(
+    operations: &mut Vec<SymmetryOperation>,
+    parent_operations: &[SymmetryOperation],
+) {
+    let n_parent = parent_operations.len();
+    assert_eq!(
+        operations.len(),
+        2 * n_parent,
+        "Each parent operation must have exactly two lifts in the double group."
+    );
+    let parent_keys = parent_operations
+        .iter()
+        .map(operation_sort_key)
+        .collect::<Vec<_>>();
+    let mut keyed_operations = operations
+        .drain(..)
+        .enumerate()
+        .map(|(i, op)| {
+            let mut key = parent_keys[i % n_parent];
+            key.9 = op.is_su2_class_1();
+            (key, i, op)
+        })
+        .collect::<Vec<_>>();
+    keyed_operations.sort_by_key(|(key, i, _)| (*key, *i));
+    operations.extend(keyed_operations.into_iter().map(|(_, _, op)| op));
+}
+
+/// Returns the key by which [`sort_operations`] sorts symmetry operations. These are:
+///
+/// * whether the operation is unitary or antiunitary,
+/// * whether the operation is proper or improper,
+/// * whether the operation is the identity or inversion,
+/// * whether the operation is a spatial binary rotation or spatial reflection,
+/// * the order of the operation,
+/// * the power of the operation,
+/// * the closeness of the element to Cartesian axes,
+/// * the axes of closest inclination, and
+/// * whether the operation is of homotopy class 1 in $`\mathsf{SU}'(2)`$.
+fn operation_sort_key(
+    op: &SymmetryOperation,
+) -> (
+    bool,
+    bool,
+    bool,
+    bool,
+    i64,
+    bool,
+    i64,
+    OrderedFloat<f64>,
+    usize,
+    bool,
+) {
+    let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
+    let c_op = if op.is_proper()
+        || op.generating_element.kind == SIG
+        || op.generating_element.kind == TRSIG
+    {
+        op.clone()
+    } else if op.contains_time_reversal() {
+        op.convert_to_improper_kind(&TRSIG)
+    } else {
+        op.convert_to_improper_kind(&SIG)
+    };
+
+    let total_proper_fraction = c_op
+        .total_proper_fraction
+        .expect("No total proper fractions found.");
+    let denom = i64::from(
+        *total_proper_fraction
+            .denom()
+            .expect("The denominator of the total proper fraction cannot be extracted."),
+    );
+    let numer = i64::from(
+        *total_proper_fraction
+            .numer()
+            .expect("The numerator of the total proper fraction cannot be extracted."),
+    );
+
+    let negative_rotation = !c_op
+        .positive_hemisphere
+        .as_ref()
+        .cloned()
+        .unwrap_or_default()
+        .check_positive_pole(
+            &c_op.calc_proper_rotation_pole().coords,
+            c_op.generating_element.threshold(),
         );
-        let numer = i64::from(
-            *total_proper_fraction
-                .numer()
-                .expect("The numerator of the total proper fraction cannot be extracted."),
-        );
 
-        let negative_rotation = !c_op
-            .positive_hemisphere
-            .as_ref()
-            .cloned()
-            .unwrap_or_default()
-            .check_positive_pole(
-                &c_op.calc_proper_rotation_pole().coords,
-                c_op.generating_element.threshold(),
-            );
-
-        (
-            c_op.contains_time_reversal(),
-            !c_op.is_proper(),
-            !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
-            c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),
-            -denom,
-            negative_rotation,
-            if negative_rotation { -numer } else { numer },
-            OrderedFloat(axis_closeness),
-            closest_axis,
-            c_op.is_su2_class_1(),
-        )
-    });
+    (
+        c_op.contains_time_reversal(),
+        !c_op.is_proper(),
+        !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
+        c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),
+        -denom,
+        negative_rotation,
+        if negative_rotation { -numer } else { numer },
+        OrderedFloat(axis_closeness),
+        closest_axis,
+        c_op.is_su2_class_1(),
+    )
 }

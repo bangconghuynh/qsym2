@@ -19,12 +19,12 @@ use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    sort_operations, SpecialSymmetryTransformation,
+    SpecialSymmetryTransformation, sort_double_group_operations,
 };
-use crate::symmetry::symmetry_element::{SymmetryOperation, SIG};
+use crate::symmetry::symmetry_element::{SIG, SymmetryOperation};
 use crate::symmetry::symmetry_symbols::{
-    deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
-    MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_C3_PRINCIPAL_GROUPS,
+    FORCED_C3_PRINCIPAL_GROUPS, MullikenIrcorepSymbol, MullikenIrrepSymbol, SymmetryClassSymbol,
+    deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps,
 };
 
 #[cfg(test)]
@@ -208,7 +208,9 @@ pub trait SymmetryGroupProperties:
                 (96, true) => "Oh*".to_string(),
                 (96, false) => "Oh + θ·Oh".to_string(),
                 (192, true) => "(Oh + θ·Oh)*".to_string(),
-                _ => panic!("Unsupported number of group elements ({full_order}) for a finite group of {full_name}."),
+                _ => panic!(
+                    "Unsupported number of group elements ({full_order}) for a finite group of {full_name}."
+                ),
             }
         } else {
             // This is already a finite group.
@@ -583,7 +585,13 @@ impl SymmetryGroupProperties
             })
             .collect_vec();
         su2_operations.extend(su2_1_operations);
-        sort_operations(&mut su2_operations);
+        // The lifts are sorted with the keys of their parent operations, so that the classes of
+        // the double group follow those of the parent group (see
+        // `sort_double_group_operations`).
+        sort_double_group_operations(
+            &mut su2_operations,
+            &self.elements().clone().into_iter().collect_vec(),
+        );
 
         let group_name = if self.name().contains('+') {
             format!("({})*", self.name())
@@ -892,7 +900,13 @@ impl SymmetryGroupProperties
             })
             .collect_vec();
         su2_operations.extend(su2_1_operations);
-        sort_operations(&mut su2_operations);
+        // The lifts are sorted with the keys of their parent operations, so that the classes of
+        // the double group follow those of the parent group (see
+        // `sort_double_group_operations`).
+        sort_double_group_operations(
+            &mut su2_operations,
+            &self.elements().clone().into_iter().collect_vec(),
+        );
 
         let group_name = if self.name().contains('+') {
             format!("({})*", self.name())
