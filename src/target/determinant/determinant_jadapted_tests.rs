@@ -4038,3 +4038,134 @@ fn test_determinant_projection_bh3_jadapted() {
         );
     }
 }
+
+/// Checks that every spinor function $`\ket{j, m_j}`$ with $`j \le 5/2`$ on an atom at the centre of
+/// the molecule spans a single irrep of the double group, as it must for the icosahedral double
+/// groups, whose spinor irreps have dimensions 2, 2, 4 and 6. This mirrors the spinor-function
+/// table printed at the start of a representation analysis.
+fn verify_spinor_functions_span_single_irreps(
+    mol: &Molecule,
+    thresh: f64,
+    analysis_thresh: f64,
+    name: &str,
+) {
+    use crate::chartab::chartab_symbols::ReducibleLinearSpaceSymbol;
+    use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
+    assert_eq!(group.name(), name);
+
+    let emap = ElementMap::new();
+    let atom_mol = Molecule::from_atoms(
+        &[Atom::new_ordinary(
+            "H",
+            nalgebra::Point3::origin(),
+            &emap,
+            thresh,
+        )],
+        thresh,
+    );
+    for two_j in [1u32, 3, 5] {
+        for even_first in [true, false] {
+            let bao = BasisAngularOrder::new(&[BasisAtom::new(
+                &atom_mol.atoms[0],
+                &[BasisShell::new(
+                    two_j,
+                    ShellOrder::Spinor(SpinorOrder::increasingm(
+                        two_j,
+                        even_first,
+                        SpinorParticleType::Fermion(None),
+                    )),
+                )],
+            )]);
+            let nbas = bao.n_funcs();
+            let cs = vec![Array2::<C128>::eye(nbas)];
+            let occs = vec![ndarray::Array1::<f64>::ones(nbas)];
+            let sao = Array2::<C128>::eye(nbas);
+            let det = SlaterDeterminant::<C128, SpinOrbitCoupled>::builder()
+                .structure_constraint(SpinOrbitCoupled::JAdapted(1))
+                .baos(vec![&bao])
+                .complex_symmetric(false)
+                .mol(&atom_mol)
+                .coefficients(&cs)
+                .occupations(&occs)
+                .threshold(analysis_thresh)
+                .build()
+                .unwrap();
+            let mos = det.to_orbitals();
+            let (_, mut mo_orbitss) = generate_det_mo_orbits(
+                &det,
+                &mos,
+                &group,
+                &sao,
+                None,
+                analysis_thresh,
+                analysis_thresh,
+                analysis_thresh,
+                SymmetryTransformationKind::SpinSpatial,
+                EigenvalueComparisonMode::Modulus,
+                true,
+            )
+            .unwrap();
+            for mo_orbit in mo_orbitss[0].iter_mut() {
+                mo_orbit.calc_xmat(false).unwrap();
+                let rep = mo_orbit.analyse_rep().unwrap();
+                let subspaces = rep.subspaces();
+                assert!(
+                    subspaces.len() == 1 && *subspaces[0].1 == 1,
+                    "A spinor function with 2j = {two_j} spans {rep} in {name}, not a single irrep."
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_determinant_spinor_functions_single_irreps_c60_ih_double() {
+    // Regression test for the spin-1/2 matrices of binary rotations, whose sign used to be decided
+    // by rounding, so that e.g. s_1/2 was reported as 2E~_1g ⊕ 2E~_2g ⊕ 4F~_g ⊕ 6I~_g in Ih*.
+    let path: String = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_spinor_functions_span_single_irreps(&mol, thresh, 1e-4, "Ih*");
+}
+
+/// An icosahedron with exact vertices (0, ±1, ±φ) and their cyclic permutations, turned to a
+/// general orientation.
+fn exact_icosahedron() -> Molecule {
+    use crate::auxiliary::geometry::Transform;
+    let emap = ElementMap::new();
+    let phi = (1.0 + 5f64.sqrt()) / 2.0;
+    let mut atoms = vec![];
+    for (s1, s2) in [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)] {
+        for [x, y, z] in [
+            [0.0, s1, s2 * phi],
+            [s1, s2 * phi, 0.0],
+            [s2 * phi, 0.0, s1],
+        ] {
+            atoms.push(Atom::new_ordinary(
+                "B",
+                nalgebra::Point3::new(x, y, z),
+                &emap,
+                1e-7,
+            ));
+        }
+    }
+    Molecule::from_atoms(&atoms, 1e-7).rotate(1.2345, &Vector3::new(0.3, -0.7, 0.4))
+}
+
+#[test]
+fn test_determinant_spinor_functions_single_irreps_exact_icosahedron_ih_double() {
+    let mol = exact_icosahedron();
+    verify_spinor_functions_span_single_irreps(&mol, 1e-7, 1e-7, "Ih*");
+}
