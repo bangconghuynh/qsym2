@@ -6,8 +6,11 @@ use itertools::Itertools;
 use nalgebra::Vector3;
 use num_traits::Pow;
 
+use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::auxiliary::template_molecules;
+use crate::chartab::CharacterTable;
+use crate::chartab::chartab_group::CharacterProperties;
 use crate::group::class::ClassProperties;
 use crate::group::{
     BWGRP, BWGRP2, EagerGroup, GRGRP, GRGRP2, GroupProperties, GroupType, ORGRP, ORGRP2,
@@ -10151,4 +10154,286 @@ fn test_ur_group_asymmetric_butan1ol_grey_c1_double_class_order() {
         thresh,
         &["|E(Σ)|", "|E(QΣ)|", "|θ(Σ)|", "|θ(QΣ)|"],
     );
+}
+
+// ===========================================================================
+// Spin-1/2 Wigner matrices of double groups: consistency with quaternions and
+// with the group multiplication table.
+// ===========================================================================
+
+fn verify_double_group_wigner_matrices(mol: &Molecule, thresh: f64, name: &str) {
+    use ndarray::{Array2, array};
+    use num_complex::Complex;
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
+    assert_eq!(group.name(), name);
+
+    // The symmetry elements of a molecule given to finite precision are only accurate to about
+    // `thresh`, so products are compared at that level. A wrong homotopy class gives a difference
+    // of order one.
+    let tol = 1e-2;
+    let i = Complex::<f64>::i();
+    let order = group.order();
+    let ops = (0..order)
+        .map(|k| group.get_index(k).unwrap())
+        .collect_vec();
+    for two_j in [1u32, 3] {
+        let ws: Vec<Array2<Complex<f64>>> = ops
+            .iter()
+            .map(|op| op.get_wigner_matrix(two_j, true).unwrap())
+            .collect();
+
+        if two_j == 1 {
+            // W = a - i b·σ for the signed quaternion (a, b) of each element, in increasing-m
+            // order and in the Pauli gauge for improper elements.
+            for (op, w) in ops.iter().zip(ws.iter()) {
+                let (a, b) = op.calc_quaternion();
+                let u = array![
+                    [a + i * b.z, b.y - i * b.x],
+                    [-(b.y + i * b.x), a - i * b.z],
+                ];
+                let diff = (w - &u).map(|x| x.norm_sqr()).sum().sqrt();
+                assert!(
+                    diff < 1e-12,
+                    "Spin-1/2 matrix of {op} does not match its quaternion {:?}.",
+                    (a, b)
+                );
+            }
+        }
+
+        // W(g) W(h) = W(gh) for every pair.
+        let ctb = group.cayley_table().unwrap();
+        for gi in 0..order {
+            for hi in 0..order {
+                let ghi = ctb[(gi, hi)];
+                let diff = (ws[gi].dot(&ws[hi]) - &ws[ghi])
+                    .map(|x| x.norm_sqr())
+                    .sum()
+                    .sqrt();
+                assert!(
+                    diff < tol,
+                    "D^({two_j}/2) is not a homomorphism: W({}) W({}) != W({}) (||W({}) W({}) - W({})|| = {diff:.3e}).",
+                    ops[gi],
+                    ops[hi],
+                    ops[ghi],
+                    ops[gi],
+                    ops[hi],
+                    ops[ghi],
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_ur_double_group_wigner_matrices_c60_ih() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_double_group_wigner_matrices(&mol, thresh, "Ih*");
+}
+
+#[test]
+fn test_ur_double_group_wigner_matrices_benzene_d6h_rotated() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-6;
+    let mol = &Molecule::from_xyz(&path, thresh).rotate(1.2122, &Vector3::new(0.3, -0.7, 0.5));
+    verify_double_group_wigner_matrices(&mol, thresh, "D6h*");
+}
+
+#[test]
+fn test_ur_double_group_wigner_matrices_h6_oct_oh_rotated() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h6_oct.xyz");
+    let thresh = 1e-6;
+    let mol = &Molecule::from_xyz(&path, thresh).rotate(1.2122, &Vector3::new(0.3, -0.7, 0.5));
+    verify_double_group_wigner_matrices(&mol, thresh, "Oh*");
+}
+
+// ============================================================================
+// Class and irrep labels that must not depend on orientation or on whether the
+// group is a double group.
+// ============================================================================
+
+/// Checks that every vector irrep of G* carries the label of the irrep of G with the same
+/// characters, and that every class of G* has as many dashes as its image class in G.
+fn verify_double_group_vector_irrep_labels(mol: &Molecule, thresh: f64, name: &str) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let double_group = group.to_double_group().unwrap();
+
+    assert_eq!(group.name(), name);
+
+    let group_mats = (0..group.order())
+        .map(|k| group.get_index(k).unwrap().get_3d_spatial_matrix())
+        .collect_vec();
+
+    // For every class K* in the double group, `image_classes` contains the index of the
+    // corresponding class K in the single group over which the double-group class lies. In other
+    // words, under the projection G* -> G, K* -> K which forgets the SU(2) sign.
+    // Using just one element per class in the check below is enough. The projection G* -> G is a
+    // surjective homomorphism, so it maps each conjugacy class of G* onto exactly one whole conjugacy
+    // class of G. The K* -> K map is many-to-one, since multiple K*'s can be mapped onto one K.
+    let image_classes = (0..double_group.class_number())
+        .map(|kk| {
+            let j = *double_group
+                .get_cc_index(kk)
+                .unwrap()
+                .iter()
+                .next()
+                .unwrap();
+            let mat = double_group.get_index(j).unwrap().get_3d_spatial_matrix();
+            let gi = group_mats
+                .iter()
+                .position(|gmat| (gmat - &mat).iter().map(|x| x.abs()).sum::<f64>() < 1e-5)
+                .unwrap();
+            group.get_cc_of_element_index(gi).unwrap()
+        })
+        .collect_vec();
+
+    let chartab = group.character_table();
+    let double_chartab = double_group.character_table();
+    let cols = chartab.get_all_cols();
+    let double_cols = double_chartab.get_all_cols();
+    let e_bar = double_cols.get_index(1).unwrap();
+    for double_irrep in double_chartab.get_all_rows() {
+        if double_chartab
+            .get_character(&double_irrep, e_bar)
+            .complex_value()
+            .re
+            < 0.0
+        {
+            // Projective irrep.
+            continue;
+        }
+        let matching_irreps = chartab
+            .get_all_rows()
+            .into_iter()
+            .filter(|irrep| {
+                (0..double_group.class_number()).all(|kk| {
+                    let a = double_chartab
+                        .get_character(&double_irrep, double_cols.get_index(kk).unwrap())
+                        .complex_value();
+                    let b = chartab
+                        .get_character(irrep, cols.get_index(image_classes[kk]).unwrap())
+                        .complex_value();
+                    (a - b).norm() < 1e-8
+                })
+            })
+            .collect_vec();
+        assert_eq!(matching_irreps.len(), 1);
+        assert_eq!(
+            matching_irreps[0].to_string(),
+            double_irrep.to_string(),
+            "Inconsistency found: {} in {} is labelled {} in {}.",
+            matching_irreps[0],
+            group.name(),
+            double_irrep,
+            double_group.name()
+        );
+    }
+    for kk in 0..double_group.class_number() {
+        let double_class = double_cols.get_index(kk).unwrap().to_string();
+        let class = cols.get_index(image_classes[kk]).unwrap().to_string();
+        assert_eq!(
+            double_class.matches('\'').count(),
+            class.matches('\'').count(),
+            "Inconsistency found: class {double_class} in {} lies over class {class} in {}.",
+            double_group.name(),
+            group.name()
+        );
+    }
+}
+
+/// A molecule of T symmetry: two orbits of generic points under T.
+fn t_molecule() -> Molecule {
+    use crate::auxiliary::atom::{Atom, ElementMap};
+    use nalgebra::Point3;
+
+    let emap = ElementMap::new();
+    let thresh = 1e-7;
+    let mut atoms = vec![];
+    for (element, [a, b, c]) in [("H", [0.61, 0.23, 1.37]), ("He", [1.9, -0.4, 0.33])] {
+        for [x, y, z] in [[a, b, c], [b, c, a], [c, a, b]] {
+            for [sx, sy, sz] in [
+                [1.0, 1.0, 1.0],
+                [1.0, -1.0, -1.0],
+                [-1.0, 1.0, -1.0],
+                [-1.0, -1.0, 1.0],
+            ] {
+                atoms.push(Atom::new_ordinary(
+                    element,
+                    Point3::new(sx * x, sy * y, sz * z),
+                    &emap,
+                    thresh,
+                ));
+            }
+        }
+    }
+    Molecule::from_atoms(&atoms, thresh)
+}
+
+fn test_orientations() -> Vec<(f64, Vector3<f64>)> {
+    vec![
+        (0.0, Vector3::z()),
+        (1.2345, Vector3::new(0.3, -0.7, 0.4)),
+        (2.718, Vector3::new(-0.2, 0.5, 0.9)),
+        (0.577, Vector3::new(1.0, 2.0, 3.0)),
+        (std::f64::consts::FRAC_PI_4, Vector3::z()),
+        (0.3, Vector3::x()),
+    ]
+}
+
+#[test]
+fn test_ur_double_group_vector_irrep_labels_t() {
+    use crate::auxiliary::geometry::Transform;
+    let mol = t_molecule();
+    for (angle, axis) in test_orientations() {
+        verify_double_group_vector_irrep_labels(&mol.rotate(angle, &axis), 1e-7, "T");
+    }
+}
+
+#[test]
+fn test_ur_double_group_vector_irrep_labels_vh2o6_th() {
+    use crate::auxiliary::geometry::Transform;
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for (angle, axis) in test_orientations() {
+        verify_double_group_vector_irrep_labels(&mol.rotate(angle, &axis), thresh, "Th");
+    }
+}
+
+#[test]
+fn test_ur_double_group_vector_irrep_labels_assorted() {
+    use crate::auxiliary::geometry::Transform;
+    let thresh = 1e-5;
+    for (file, name) in [
+        ("benzene.xyz", "D6h"),
+        ("ch4.xyz", "Td"),
+        ("h6_oct.xyz", "Oh"),
+        ("bf3.xyz", "D3h"),
+        ("eclipsed_ferrocene.xyz", "D5h"),
+    ] {
+        let path: String = format!("{}/tests/xyz/{}", ROOT, file);
+        let mol = Molecule::from_xyz(&path, thresh);
+        for (angle, axis) in test_orientations().into_iter().take(3) {
+            verify_double_group_vector_irrep_labels(&mol.rotate(angle, &axis), thresh, name);
+        }
+    }
 }
