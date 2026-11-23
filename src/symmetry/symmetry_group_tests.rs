@@ -11,6 +11,7 @@ use crate::auxiliary::molecule::Molecule;
 use crate::auxiliary::template_molecules;
 use crate::chartab::CharacterTable;
 use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::group::class::ClassProperties;
 use crate::group::{
     BWGRP, BWGRP2, EagerGroup, GRGRP, GRGRP2, GroupProperties, GroupType, ORGRP, ORGRP2,
@@ -4384,8 +4385,8 @@ fn test_ur_group_symmetric_benzene_magnetic_field_bw_d6h_c6h_class_order() {
             "|σh|",
             "3|θ·C2|",
             "3|θ·C2|^(')",
-            "3|θ·σv|",
             "3|θ·σv|^(')",
+            "3|θ·σv|",
         ],
     );
 }
@@ -4742,8 +4743,8 @@ fn test_ur_group_symmetric_benzene_magnetic_field_bw_d6h_c6h_double_class_order(
             "|σh(Σ), σh(QΣ)|",
             "3|θ·C2(Σ), θ·C2(QΣ)|",
             "3|θ·C2(Σ), θ·C2(QΣ)|^(')",
-            "3|θ·σv(Σ), θ·σv(QΣ)|",
             "3|θ·σv(Σ), θ·σv(QΣ)|^(')",
+            "3|θ·σv(Σ), θ·σv(QΣ)|",
         ],
     );
 }
@@ -5528,14 +5529,14 @@ fn test_ur_group_symmetric_benzene_d6h_class_order() {
             "|E|",
             "2|C6|",
             "2|C3|",
-            "3|C2|",
             "3|C2|^(')",
-            "|C2|^('')",
+            "3|C2|^('')",
+            "|C2|",
             "|i|",
             "2|S6|",
             "2|S3|",
-            "3|σv|",
             "3|σv|^(')",
+            "3|σv|",
             "|σh|",
         ],
     );
@@ -5564,26 +5565,26 @@ fn test_ur_group_symmetric_benzene_grey_d6h_class_order() {
             "|E|",
             "2|C6|",
             "2|C3|",
-            "3|C2|",
             "3|C2|^(')",
-            "|C2|^('')",
+            "3|C2|^('')",
+            "|C2|",
             "|i|",
             "2|S6|",
             "2|S3|",
-            "3|σv|",
             "3|σv|^(')",
+            "3|σv|",
             "|σh|",
             "|θ|",
             "2|θ·C6|",
             "2|θ·C3|",
-            "3|θ·C2|",
             "3|θ·C2|^(')",
-            "|θ·C2|^('')",
+            "3|θ·C2|^('')",
+            "|θ·C2|",
             "|θ·i|",
             "2|θ·S6|",
             "2|θ·S3|",
-            "3|θ·σv|",
             "3|θ·σv|^(')",
+            "3|θ·σv|",
             "|θ·σh|",
         ],
     );
@@ -5916,17 +5917,17 @@ fn test_ur_group_symmetric_benzene_d6h_double_class_order() {
             "2|C6(QΣ)|",
             "2|C3(Σ)|",
             "2|C3(QΣ)|",
-            "3|C2(Σ), C2(QΣ)|",
             "3|C2(Σ), C2(QΣ)|^(')",
-            "|C2(Σ), C2(QΣ)|^('')",
+            "3|C2(Σ), C2(QΣ)|^('')",
+            "|C2(Σ), C2(QΣ)|",
             "|i(Σ)|",
             "|i(QΣ)|",
             "2|S6(Σ)|",
             "2|S6(QΣ)|",
             "2|S3(Σ)|",
             "2|S3(QΣ)|",
-            "3|σv(Σ), σv(QΣ)|",
             "3|σv(Σ), σv(QΣ)|^(')",
+            "3|σv(Σ), σv(QΣ)|",
             "|σh(Σ), σh(QΣ)|",
         ],
     );
@@ -5958,17 +5959,17 @@ fn test_ur_group_symmetric_benzene_grey_d6h_double_class_order() {
             "2|C6(QΣ)|",
             "2|C3(Σ)|",
             "2|C3(QΣ)|",
-            "3|C2(Σ), C2(QΣ)|",
             "3|C2(Σ), C2(QΣ)|^(')",
-            "|C2(Σ), C2(QΣ)|^('')",
+            "3|C2(Σ), C2(QΣ)|^('')",
+            "|C2(Σ), C2(QΣ)|",
             "|i(Σ)|",
             "|i(QΣ)|",
             "2|S6(Σ)|",
             "2|S6(QΣ)|",
             "2|S3(Σ)|",
             "2|S3(QΣ)|",
-            "3|σv(Σ), σv(QΣ)|",
             "3|σv(Σ), σv(QΣ)|^(')",
+            "3|σv(Σ), σv(QΣ)|",
             "|σh(Σ), σh(QΣ)|",
             "|θ(Σ)|",
             "|θ(QΣ)|",
@@ -5976,17 +5977,17 @@ fn test_ur_group_symmetric_benzene_grey_d6h_double_class_order() {
             "2|θ·C6(QΣ)|",
             "2|θ·C3(Σ)|",
             "2|θ·C3(QΣ)|",
-            "3|θ·C2(Σ), θ·C2(QΣ)|",
             "3|θ·C2(Σ), θ·C2(QΣ)|^(')",
-            "|θ·C2(Σ), θ·C2(QΣ)|^('')",
+            "3|θ·C2(Σ), θ·C2(QΣ)|^('')",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
             "|θ·i(Σ)|",
             "|θ·i(QΣ)|",
             "2|θ·S6(Σ)|",
             "2|θ·S6(QΣ)|",
             "2|θ·S3(Σ)|",
             "2|θ·S3(QΣ)|",
-            "3|θ·σv(Σ), θ·σv(QΣ)|",
             "3|θ·σv(Σ), θ·σv(QΣ)|^(')",
+            "3|θ·σv(Σ), θ·σv(QΣ)|",
             "|θ·σh(Σ), θ·σh(QΣ)|",
         ],
     );
@@ -10434,6 +10435,120 @@ fn test_ur_double_group_vector_irrep_labels_assorted() {
         let mol = Molecule::from_xyz(&path, thresh);
         for (angle, axis) in test_orientations().into_iter().take(3) {
             verify_double_group_vector_irrep_labels(&mol.rotate(angle, &axis), thresh, name);
+        }
+    }
+}
+
+/// Checks the usual naming conventions for groups with a unique principal axis of even order and
+/// perpendicular binary rotations: the binary rotation about the principal axis is undashed,
+/// $`\chi(\sigma_v) = \chi(\sigma_h)\chi(C_2')`$, $`\chi(\sigma_v') = \chi(\sigma_h)\chi(C_2'')`$, and
+/// $`B_1`$ is symmetric under $`C_2'`$.
+fn verify_dn_dnh_class_and_irrep_conventions(mol: &Molecule, thresh: f64, name: &str) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    assert_eq!(group.name(), name);
+    println!("{}", group.character_table());
+
+    let chartab = group.character_table();
+    let cols = chartab.get_all_cols();
+    let find_class = |main: &str, n_dashes: usize| {
+        cols.iter()
+            .find(|cc| {
+                let s = cc.to_string();
+                s.split('|').nth(1) == Some(main) && s.matches('\'').count() == n_dashes
+            })
+            .cloned()
+    };
+    let c2 = find_class("C2", 0).expect("No undashed C2 class.");
+    assert_eq!(
+        c2.size(),
+        1,
+        "The undashed C2 class should lie along the principal axis."
+    );
+    let c2p = find_class("C2", 1).expect("No C2' class.");
+    let c2pp = find_class("C2", 2).expect("No C2'' class.");
+    let sh = find_class("σh", 0);
+    let sv = find_class("σv", 0);
+    let svp = find_class("σv", 1);
+
+    let e = cols.get_index(0).unwrap();
+    for irrep in chartab.get_all_rows() {
+        if chartab.get_character(&irrep, e).complex_value().re > 1.0 {
+            // Degenerate irrep
+            continue;
+        }
+        let chi = |cc: &crate::symmetry::symmetry_symbols::SymmetryClassSymbol<
+            SymmetryOperation,
+        >| { chartab.get_character(&irrep, cc).complex_value() };
+        if let (Some(sh), Some(sv), Some(svp)) = (&sh, &sv, &svp) {
+            assert!(
+                (chi(sv) - chi(sh) * chi(&c2p)).norm() < 1e-8,
+                "χ(σv) ≠ χ(σh)χ(C2') for {irrep}."
+            );
+            assert!(
+                (chi(svp) - chi(sh) * chi(&c2pp)).norm() < 1e-8,
+                "χ(σv') ≠ χ(σh)χ(C2'') for {irrep}."
+            );
+        }
+        let label = irrep.to_string();
+        if label.contains("B|_(1") {
+            assert!(chi(&c2p).re > 0.0, "{irrep} should be symmetric under C2'.");
+        } else if label.contains("B|_(2") {
+            assert!(
+                chi(&c2p).re < 0.0,
+                "{irrep} should be antisymmetric under C2'."
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_dnh_class_and_irrep_conventions_benzene() {
+    use crate::auxiliary::geometry::Transform;
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    // As distributed (principal axis along x), and turned so that the principal axis lies
+    // along z.
+    verify_dn_dnh_class_and_irrep_conventions(&mol, thresh, "D6h");
+    let mol_z = mol.rotate(
+        -2.0 * std::f64::consts::PI / 3.0,
+        &Vector3::new(1.0, 1.0, 1.0),
+    );
+    verify_dn_dnh_class_and_irrep_conventions(&mol_z, thresh, "D6h");
+}
+
+#[test]
+fn test_ur_group_dnh_dn_class_and_irrep_conventions_sandwiches() {
+    use crate::auxiliary::geometry::Transform;
+    let thresh = 1e-7;
+    let mut orientations = test_orientations();
+    orientations.extend((1..8).map(|k| {
+        (
+            std::f64::consts::FRAC_PI_2 * f64::from(k) / 8.0,
+            Vector3::z(),
+        )
+    }));
+    for n in [4u32, 6, 8, 10, 12] {
+        let dnh = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
+        let dn = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
+        for (angle, axis) in orientations.iter() {
+            verify_dn_dnh_class_and_irrep_conventions(
+                &dnh.rotate(*angle, axis),
+                thresh,
+                &format!("D{n}h"),
+            );
+            verify_dn_dnh_class_and_irrep_conventions(
+                &dn.rotate(*angle, axis),
+                thresh,
+                &format!("D{n}"),
+            );
         }
     }
 }

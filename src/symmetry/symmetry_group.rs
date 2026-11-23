@@ -265,11 +265,144 @@ pub trait SymmetryGroupProperties:
         }
     }
 
+    /// Determines the priorities with which classes that share the same undashed symbol receive
+    /// dashes. Classes with lower priorities receive fewer dashes; ties are resolved by the class
+    /// order.
+    ///
+    /// The priorities implement two conventions that the class order alone does not guarantee:
+    ///
+    /// 1. A class of binary rotations about a principal axis is undashed, *e.g.* $`C_2`$ in
+    ///    $`\mathcal{D}_{6h}`$ and $`\mathcal{O}`$, ahead of classes of binary rotations about other
+    ///    axes ($`C_2'`$, $`C_2''`$).
+    /// 2. When there is a unique principal axis and a horizontal mirror plane, a class of vertical
+    ///    mirror planes inherits the dash rank of the binary rotations it contains, *i.e.*
+    ///    $`\sigma_v = \sigma_h C_2'`$ and $`\sigma_v' = \sigma_h C_2''`$, so that
+    ///    $`\chi(\sigma_v) = \chi(\sigma_h)\chi(C_2')`$ for every one-dimensional irrep.
+    ///
+    /// # Returns
+    ///
+    /// A vector of priorities, one for each class in the group.
+    fn class_dash_priorities(&self) -> Vec<usize> {
+        let n_classes = self.class_number();
+        let mut priorities = vec![0usize; n_classes];
+        let Some(first_op) = self.get_index(0) else {
+            return priorities;
+        };
+        let thresh = first_op.generating_element.threshold();
+        let parallel = |u: &Vector3<f64>, v: &Vector3<f64>| {
+            u.normalize().cross(&v.normalize()).norm() < thresh
+        };
+        let perpendicular = |u: &Vector3<f64>, v: &Vector3<f64>| {
+            u.normalize().dot(&v.normalize()).abs() < thresh
+        };
+
+        // Principal axes: axes of the unitary operations whose proper parts (in the
+        // inversion-centre convention for improper operations, so that e.g. S4 counts as a
+        // four-fold axis in D2d) have the smallest non-zero rotation angle, provided that this angle
+        // is smaller than π.
+        let rotations = self
+            .elements()
+            .clone()
+            .into_iter()
+            .filter(|op| !op.contains_time_reversal())
+            .map(|op| (op.calc_pole_angle(), op.calc_pole().coords))
+            .filter(|(angle, _)| *angle > thresh)
+            .collect_vec();
+        let Some(min_angle) = rotations
+            .iter()
+            .map(|(angle, _)| *angle)
+            .min_by(|a, b| a.total_cmp(b))
+        else {
+            return priorities;
+        };
+        if min_angle > std::f64::consts::PI - thresh {
+            return priorities;
+        }
+        let principal_axes = rotations
+            .iter()
+            .filter(|(angle, _)| (angle - min_angle).abs() < thresh)
+            .map(|(_, axis)| *axis)
+            .collect_vec();
+        let unique_principal_axis = principal_axes
+            .iter()
+            .all(|axis| parallel(axis, &principal_axes[0]))
+            .then(|| principal_axes[0]);
+
+        let rep_op = |i: usize| -> SymmetryOperation {
+            let j = *self
+                .get_cc_index(i)
+                .unwrap_or_else(|| panic!("No conjugacy class index `{i}` can be found."))
+                .iter()
+                .next()
+                .unwrap_or_else(|| panic!("Conjugacy class `{i}` is empty."));
+            self.get_index(j)
+                .unwrap_or_else(|| panic!("Element with index {j} cannot be retrieved."))
+        };
+
+        // Convention 1: C2 axes parallel to the principal axis.
+        let binary_classes = (0..n_classes)
+            .filter(|&i| rep_op(i).is_spatial_binary_rotation())
+            .collect_vec();
+        for &i in &binary_classes {
+            let axis = rep_op(i).calc_pole().coords;
+            if !principal_axes.iter().any(|paxis| parallel(&axis, paxis)) {
+                priorities[i] = 1;
+            }
+        }
+
+        // Convention 2: σv planes containing C2' axes perpendicular to the unique principal axis.
+        // This means that σv = σh C2'.
+        if let (Some(paxis), Some(ctb)) = (unique_principal_axis, self.cayley_table()) {
+            let sigma_h_index = (0..self.order()).find(|&j| {
+                let op = self
+                    .get_index(j)
+                    .unwrap_or_else(|| panic!("Element with index {j} cannot be retrieved."));
+                op.is_spatial_reflection()
+                    && !op.contains_time_reversal()
+                    && parallel(&op.calc_pole().coords, &paxis)
+            });
+            if let Some(sigma_h_index) = sigma_h_index {
+                // Rank the binary-rotation classes as they will be dashed by convention 1.
+                // Only the relative order of these ranks matters.
+                // `binary_ranks`: for each class i, this is either 0 or the number of binary
+                // classes with lower priorities, or same priority but lower cardinal index.
+                let binary_ranks = (0..n_classes)
+                    .map(|i| {
+                        binary_classes
+                            .iter()
+                            .filter(|&&k| (priorities[k], k) < (priorities[i], i))
+                            .count()
+                    })
+                    .collect_vec();
+                for i in 0..n_classes {
+                    let op = rep_op(i);
+                    if op.is_spatial_reflection() && perpendicular(&op.calc_pole().coords, &paxis) {
+                        // op is a σv, and Ki is a σv class.
+                        let op_index = self
+                            .get_index_of(&op)
+                            .expect("Unable to find the index of a group element.");
+
+                        //  σv = σh C2' => σh σv = C2'.
+                        let product_class = self
+                            .get_cc_of_element_index(ctb[(sigma_h_index, op_index)])
+                            .expect("Unable to find the class of a group element.");
+
+                        // Set the priority of σv as the priority of C2'.
+                        priorities[i] = binary_ranks[product_class];
+                    }
+                }
+            }
+        }
+        priorities
+    }
+
+
     /// Returns the conjugacy class symbols in this group based on molecular symmetry.
     fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
         log::debug!("Assigning class symbols from symmetry operations...");
         let mut undashed_class_symbols: Counter<SymmetryClassSymbol<SymmetryOperation>, usize> =
             Counter::new();
+        let dash_priorities = self.class_dash_priorities();
 
         let symmetry_class_symbols = (0..self.class_number())
             .map(|i| {
@@ -327,7 +460,7 @@ pub trait SymmetryGroupProperties:
                         panic!("Unable to construct a class symbol from `1||E{su2}||`.")
                     });
                     assert!(undashed_class_symbols.insert(id_sym.clone(), 1).is_none());
-                    id_sym
+                    Ok(id_sym)
                 } else if rep_ele.is_inversion() {
                     // i(Σ) and i(QΣ) cannot be in the same conjugacy class.
                     let inv_sym = SymmetryClassSymbol::new(
@@ -338,7 +471,7 @@ pub trait SymmetryGroupProperties:
                         panic!("Unable to construct a class symbol from `1||i{su2}||`.")
                     });
                     assert!(undashed_class_symbols.insert(inv_sym.clone(), 1).is_none());
-                    inv_sym
+                    Ok(inv_sym)
                 } else if rep_ele.is_time_reversal() {
                     // θ(Σ) and θ(QΣ) cannot be in the same conjugacy class.
                     let trev_sym = SymmetryClassSymbol::new(
@@ -349,7 +482,7 @@ pub trait SymmetryGroupProperties:
                         panic!("Unable to construct a class symbol from `1||θ{su2}||`.")
                     });
                     assert!(undashed_class_symbols.insert(trev_sym.clone(), 1).is_none());
-                    trev_sym
+                    Ok(trev_sym)
                 } else {
                     let (mult, main_symbol, reps) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1()
                     {
@@ -434,21 +567,39 @@ pub trait SymmetryGroupProperties:
                             vec![rep_ele],
                         )
                     };
-                    let undashed_sym =
-                        SymmetryClassSymbol::new(format!("1||{main_symbol}||").as_str(), None)
-                            .unwrap_or_else(|_| {
-                                panic!(
-                                    "Unable to construct a coarse class symbol from `1||{main_symbol}||`"
-                                )
-                            });
-                    undashed_class_symbols
-                        .entry(undashed_sym.clone())
-                        .and_modify(|counter| *counter += 1)
-                        .or_insert(1);
-                    let dash = undashed_class_symbols
-                        .get(&undashed_sym)
-                        .map(|&counter| "'".repeat(counter - 1))
-                        .unwrap();
+                    // Dashes are assigned once all undashed symbols are known. An `Err` therefore
+                    // signifies that these undashed class symbols are not yet disambiguated, but
+                    // will be later.
+                    Err((mult, main_symbol, reps))
+                }
+            })
+            .collect::<Vec<_>>();
+
+        // Classes sharing the same undashed symbol receive dashes in increasing order of their
+        // priorities, and then of their indices.
+        let undashed_main_symbols = symmetry_class_symbols
+            .iter()
+            .map(|res| {
+                res.as_ref()
+                    .err()
+                    .map(|(_, main_symbol, _)| main_symbol.clone())
+            })
+            .collect_vec();
+        let symmetry_class_symbols = symmetry_class_symbols
+            .into_iter()
+            .enumerate()
+            .map(|(i, res)| match res {
+                Ok(sym) => sym,
+                Err((mult, main_symbol, reps)) => {
+                    let n_dashes = undashed_main_symbols
+                        .iter()
+                        .enumerate()
+                        .filter(|(k, main_symbol_k)| {
+                            main_symbol_k.as_ref() == Some(&main_symbol)
+                                && (dash_priorities[*k], *k) < (dash_priorities[i], i)
+                        })
+                        .count();
+                    let dash = "'".repeat(n_dashes);
 
                     SymmetryClassSymbol::new(
                         format!("{mult}||{main_symbol}|^({dash})|",).as_str(),
