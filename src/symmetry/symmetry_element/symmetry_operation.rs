@@ -1823,15 +1823,20 @@ fn element_sort_key_cartesian(
 /// Determines the body axes from a sequence of symmetry operations.
 ///
 /// The symmetry elements associated with these operations will be used to determine:
-/// - the body-fixed $`z`$ axis, which corresponds to the element with the highest order, or if there
-/// are multiple such elements, then the one closest to one of the Cartesian axes, with preference
-/// given to the Cartesian $`z`$ axis, and then $`y`$, and then $`x`$, is chosen.
+/// - the body-fixed $`z`$ axis, which corresponds to the proper element with the highest order, or if
+///   there are multiple such elements, then the one whose axis is also the axis of the improper
+///   operation with the highest order (*e.g.* the $`C_2`$ axis that is also the $`S_4`$ axis in
+///   $`\mathcal{D}_{2d}`$), or if there are still multiple such elements, then the one closest to one
+///   of the Cartesian axes, with preference given to the Cartesian $`z`$ axis, and then $`y`$, and
+///   then $`x`$, is chosen. Improper orders only separate proper elements of the same order, so that,
+///   *e.g.*, the $`C_3`$ axes in $`\mathcal{O}_h`$ are not preferred over the $`C_4`$ axes just
+///   because they are also $`S_6`$ axes.
 /// - the body-fixed $`x`$ axis, which corresponds to the element perpendicular to the principal
-/// axis, where if there are multiple such elements, then the one closest to one of the Cartesian
-/// axes, with preference given to the Cartesian $`z`$ axis, and then $`y`$, and then $`x`$, is
-/// chosen, and if there are no such elements, then an axis perpendicular to the principal axis is
-/// chosen such that this axis is the Cartesian $`x`$-axis rotated by the same amount as the
-/// Cartesian $`z`$-axis should be rotated to yield the principal axis.
+///   axis, where if there are multiple such elements, then the one closest to one of the Cartesian
+///   axes, with preference given to the Cartesian $`z`$ axis, and then $`y`$, and then $`x`$, is
+///   chosen, and if there are no such elements, then an axis perpendicular to the principal axis is
+///   chosen such that this axis is the Cartesian $`x`$-axis rotated by the same amount as the
+///   Cartesian $`z`$-axis should be rotated to yield the principal axis.
 /// - the body-fixed $`y`$ axis, which is simply the cross product of the previous two.
 pub(crate) fn body_axes_from_operations(
     ops: &[&SymmetryOperation],
@@ -1841,11 +1846,35 @@ pub(crate) fn body_axes_from_operations(
     // that the choice depends only on the set of operations and not on the order in which they are
     // given. `sort_double_group_operations` relies on this to reproduce the order of the parent
     // group, whose operations are passed here in a different order.
+    let max_improper_order_along = |elem: &SymmetryElement| -> u32 {
+        let axis = elem.standard_positive_axis();
+        ops.iter()
+            .filter(|op| !op.is_proper() && !op.is_spatial_inversion())
+            .filter(|op| {
+                (op.generating_element.standard_positive_axis() - axis).norm() < elem.threshold()
+            })
+            .map(|op| op.order())
+            .max()
+            .unwrap_or(0)
+    };
+
     if let Some(principal_element) = ops
         .iter()
         .filter(|op| op.is_proper())
         .map(|op| &op.generating_element)
-        .max_by_key(|elem| element_sort_key_cartesian(elem, [2, 1, 0]))
+        .max_by_key(|elem| {
+            let (order, closeness, closest_axis, z, y, x) =
+                element_sort_key_cartesian(elem, [2, 1, 0]);
+            (
+                order,
+                max_improper_order_along(elem),
+                closeness,
+                closest_axis,
+                z,
+                y,
+                x,
+            )
+        })
     {
         let body_z = principal_element.standard_positive_axis();
         let body_x = ops

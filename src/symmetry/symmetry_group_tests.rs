@@ -6015,6 +6015,13 @@ fn test_ur_group_symmetric_b2cl4_d2d_class_order() {
         thresh,
         &["|E|", "|C2|", "2|C2|^(')", "2|S4|", "2|σd|"],
     );
+
+    let mol_rotated = mol.rotate(1.2345, &Vector3::new(0.3, -0.7, 0.4));
+    test_ur_ordinary_group_class_order(
+        &mol_rotated,
+        thresh,
+        &["|E|", "|C2|", "2|C2|^(')", "2|S4|", "2|σd|"],
+    );
 }
 
 #[test]
@@ -6032,6 +6039,24 @@ fn test_ur_group_symmetric_b2cl4_grey_d2d_class_order() {
     let mol = Molecule::from_xyz(&path, thresh);
     test_ur_magnetic_group_class_order(
         &mol,
+        thresh,
+        &[
+            "|E|",
+            "|C2|",
+            "2|C2|^(')",
+            "2|S4|",
+            "2|σd|",
+            "|θ|",
+            "|θ·C2|",
+            "2|θ·C2|^(')",
+            "2|θ·S4|",
+            "2|θ·σd|",
+        ],
+    );
+
+    let mol_rotated = mol.rotate(1.2345, &Vector3::new(0.3, -0.7, 0.4));
+    test_ur_magnetic_group_class_order(
+        &mol_rotated,
         thresh,
         &[
             "|E|",
