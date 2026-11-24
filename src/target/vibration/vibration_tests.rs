@@ -661,7 +661,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib1 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib1 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib1)
         .integrality_threshold(1e-7)
@@ -671,16 +671,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib1
+    let _ = orbit_u_d4h_xef4_spatial_vib1
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib1.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib1.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(u)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib1 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib1 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib1)
         .integrality_threshold(1e-7)
@@ -690,12 +690,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib1
+    let _ = orbit_u_c4h_xef4_spatial_vib1
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib1.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib1.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("|_(a)|Γ|_(u)| ⊕ |_(b)|Γ|_(u)|").unwrap()
     );
 
@@ -718,7 +718,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib2 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib2 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib2)
         .integrality_threshold(1e-7)
@@ -728,16 +728,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib2
+    let _ = orbit_u_d4h_xef4_spatial_vib2
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib2.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib2.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(u)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib2 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib2 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib2)
         .integrality_threshold(1e-7)
@@ -747,12 +747,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib2
+    let _ = orbit_u_c4h_xef4_spatial_vib2
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib2.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib2.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("|_(a)|Γ|_(u)| ⊕ |_(b)|Γ|_(u)|").unwrap()
     );
 
@@ -775,7 +775,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib3 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib3 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib3)
         .integrality_threshold(1e-7)
@@ -785,16 +785,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib3
+    let _ = orbit_u_d4h_xef4_spatial_vib3
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib3.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib3.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(1u)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib3 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib3 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib3)
         .integrality_threshold(1e-7)
@@ -804,12 +804,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib3
+    let _ = orbit_u_c4h_xef4_spatial_vib3
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib3.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib3.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(u)|").unwrap()
     );
 
@@ -832,7 +832,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib4 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib4 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib4)
         .integrality_threshold(1e-7)
@@ -842,16 +842,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib4
+    let _ = orbit_u_d4h_xef4_spatial_vib4
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib4.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib4.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(1g)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib4 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib4 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib4)
         .integrality_threshold(1e-7)
@@ -861,12 +861,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib4
+    let _ = orbit_u_c4h_xef4_spatial_vib4
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib4.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib4.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(g)|").unwrap()
     );
 
@@ -889,7 +889,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib5 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib5 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib5)
         .integrality_threshold(1e-7)
@@ -899,16 +899,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib5
+    let _ = orbit_u_d4h_xef4_spatial_vib5
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib5.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib5.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(2u)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib5 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib5 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib5)
         .integrality_threshold(1e-7)
@@ -918,12 +918,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib5
+    let _ = orbit_u_c4h_xef4_spatial_vib5
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib5.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib5.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(u)|").unwrap()
     );
 
@@ -946,7 +946,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib6 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib6 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib6)
         .integrality_threshold(1e-7)
@@ -956,16 +956,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib6
+    let _ = orbit_u_d4h_xef4_spatial_vib6
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib6.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib6.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(2g)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib6 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib6 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib6)
         .integrality_threshold(1e-7)
@@ -975,12 +975,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib6
+    let _ = orbit_u_c4h_xef4_spatial_vib6
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib6.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib6.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(g)|").unwrap()
     );
 
@@ -1003,7 +1003,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib7 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib7 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib7)
         .integrality_threshold(1e-7)
@@ -1013,16 +1013,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib7
+    let _ = orbit_u_d4h_xef4_spatial_vib7
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib7.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib7.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib7 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib7 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib7)
         .integrality_threshold(1e-7)
@@ -1032,12 +1032,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib7
+    let _ = orbit_u_c4h_xef4_spatial_vib7
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib7.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib7.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(g)|").unwrap()
     );
 
@@ -1060,7 +1060,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib8 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib8 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib8)
         .integrality_threshold(1e-7)
@@ -1070,16 +1070,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib8
+    let _ = orbit_u_d4h_xef4_spatial_vib8
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib8.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib8.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(u)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib8 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib8 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib8)
         .integrality_threshold(1e-7)
@@ -1089,12 +1089,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib8
+    let _ = orbit_u_c4h_xef4_spatial_vib8
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib8.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib8.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("|_(a)|Γ|_(u)| ⊕ |_(b)|Γ|_(u)|").unwrap()
     );
 
@@ -1117,7 +1117,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
 
-    let mut orbit_u_d4h_ch4_spatial_vib9 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_d4h_xef4_spatial_vib9 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_d4h)
         .origin(&vib9)
         .integrality_threshold(1e-7)
@@ -1127,16 +1127,16 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_d4h_ch4_spatial_vib9
+    let _ = orbit_u_d4h_xef4_spatial_vib9
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_d4h_ch4_spatial_vib9.analyse_rep().unwrap(),
+        orbit_u_d4h_xef4_spatial_vib9.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(u)|").unwrap()
     );
 
-    let mut orbit_u_c4h_ch4_spatial_vib9 = VibrationalCoordinateSymmetryOrbit::builder()
+    let mut orbit_u_c4h_xef4_spatial_vib9 = VibrationalCoordinateSymmetryOrbit::builder()
         .group(&group_u_c4h)
         .origin(&vib9)
         .integrality_threshold(1e-7)
@@ -1146,12 +1146,12 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    let _ = orbit_u_c4h_ch4_spatial_vib9
+    let _ = orbit_u_c4h_xef4_spatial_vib9
         .calc_smat(None, None, true)
         .unwrap()
         .calc_xmat(false);
     assert_eq!(
-        orbit_u_c4h_ch4_spatial_vib9.analyse_rep().unwrap(),
+        orbit_u_c4h_xef4_spatial_vib9.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("|_(a)|Γ|_(u)| ⊕ |_(b)|Γ|_(u)|").unwrap()
     );
 }

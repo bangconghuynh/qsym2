@@ -1,6 +1,6 @@
 use approx;
 use nalgebra::{ComplexField, Vector3};
-use ndarray::{array, Array2};
+use ndarray::{Array2, array};
 use num::{Complex, Zero};
 use proptest::prelude::*;
 
@@ -453,6 +453,177 @@ proptest! {
                 0.0,
                 epsilon = 1e-11 * angle.abs().max(1.0) * (2 * l) as f64,
                 max_relative = 1e-11 * angle.abs().max(1.0) * (2 * l) as f64
+            );
+        }
+    }
+}
+
+/// Returns the $`j = 1/2`$ matrix of the $`\mathsf{SU}(2)`$ element
+/// $`U(\phi\hat{\mathbf{n}}) = \cos\frac{\phi}{2} - i\sin\frac{\phi}{2}\,\hat{\mathbf{n}}\cdot\boldsymbol{\sigma}`$
+/// in increasing-$`m`$ order, without any normalisation of $`\phi`$.
+fn su2_closed_form(angle: f64, axis: Vector3<f64>) -> Array2<C128> {
+    let n = axis.normalize();
+    let i = C128::i();
+    let (s, c) = (0.5 * angle).sin_cos();
+    array![
+        [c + i * n.z * s, (n.y - i * n.x) * s],
+        [-(n.y + i * n.x) * s, c - i * n.z * s],
+    ]
+}
+
+/// Returns the Frobenius distance between two matrices.
+fn frobenius_distance(a: &Array2<C128>, b: &Array2<C128>) -> f64 {
+    (a - b).map(|x| x.norm_sqr()).sum().sqrt()
+}
+
+#[test]
+fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_c2_icosahedral_axis() {
+    // Regression test: the spin-1/2 matrix of a binary rotation used to have a sign decided by
+    // rounding, because the homotopy class was chosen from the sign of a scalar part that is
+    // exactly zero for binary rotations. This is a two-fold rotation axis of the icosahedral group
+    // in the Point Group Atlas (https://valbert4.github.io/point-group-atlas) frame, together with
+    // two axes moved by 1e-15.
+    let phi = (1.0 + 5f64.sqrt()) / 2.0;
+    // C2 axis (element 47) of https://valbert4.github.io/point-group-atlas/rotation/I/elements/.
+    let pole = Vector3::new(-0.5, 0.5 / phi, 0.5 * phi);
+    for n in [pole, -pole] {
+        for d in [
+            Vector3::zeros(),
+            Vector3::new(0.0, 1e-15, 0.0),
+            Vector3::new(0.0, 0.0, 1e-15),
+        ] {
+            for angle in [
+                std::f64::consts::PI,
+                2.0 * std::f64::consts::PI / 5.0,
+                4.0 * std::f64::consts::PI / 5.0,
+                2.0 * std::f64::consts::PI / 3.0,
+            ] {
+                let d_half = dmat_angleaxis_gen_single(1, angle, n + d, true);
+                let u = su2_closed_form(angle, n + d);
+                approx::assert_relative_eq!(
+                    frobenius_distance(&d_half, &u),
+                    0.0,
+                    epsilon = 1e-13,
+                    max_relative = 1e-13
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_c2_cartesian_and_diagonal_axes() {
+    let s2 = std::f64::consts::FRAC_1_SQRT_2;
+    let s3 = 1.0 / 3f64.sqrt();
+    let axes = [
+        Vector3::x(),
+        Vector3::y(),
+        Vector3::z(),
+        -Vector3::x(),
+        -Vector3::y(),
+        -Vector3::z(),
+        Vector3::new(s2, s2, 0.0),
+        Vector3::new(s2, -s2, 0.0),
+        Vector3::new(s2, 0.0, s2),
+        Vector3::new(-s2, 0.0, s2),
+        Vector3::new(0.0, s2, s2),
+        Vector3::new(0.0, s2, -s2),
+        Vector3::new(s3, s3, s3),
+        Vector3::new(s3, -s3, s3),
+        Vector3::new(-s3, -s3, s3),
+        Vector3::new(s3, s3, -s3),
+    ];
+    for axis in axes {
+        let u = su2_closed_form(std::f64::consts::PI, axis);
+        let d_half = dmat_angleaxis_gen_single(1, std::f64::consts::PI, axis, true);
+        approx::assert_relative_eq!(
+            frobenius_distance(&d_half, &u),
+            0.0,
+            epsilon = 1e-13,
+            max_relative = 1e-13
+        );
+        // A binary rotation by -π is the same rotation in homotopy class 0.
+        let d_half_neg = dmat_angleaxis_gen_single(1, -std::f64::consts::PI, axis, true);
+        approx::assert_relative_eq!(
+            frobenius_distance(&d_half_neg, &u),
+            0.0,
+            epsilon = 1e-13,
+            max_relative = 1e-13
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_matches_su2_closed_form(
+        nx in (-1.0..1.0f64),
+        ny in (-1.0..1.0f64),
+        nz in (-1.0..1.0f64),
+        frac in (-0.5..0.5f64),
+    ) {
+        let axis = Vector3::new(nx, ny, nz);
+        prop_assume!(axis.norm() > 1e-3);
+        let angle = 2.0 * std::f64::consts::PI * frac;
+        let d_half = dmat_angleaxis_gen_single(1, angle, axis, true);
+        let u = su2_closed_form(angle, axis);
+        approx::assert_relative_eq!(
+            frobenius_distance(&d_half, &u),
+            0.0,
+            epsilon = 1e-12,
+            max_relative = 1e-12
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_c2_closed_form(
+        nx in (-1.0..1.0f64),
+        ny in (-1.0..1.0f64),
+        nz in (-1.0..1.0f64),
+    ) {
+        let axis = Vector3::new(nx, ny, nz);
+        prop_assume!(axis.norm() > 1e-3);
+        let d_half = dmat_angleaxis_gen_single(1, std::f64::consts::PI, axis, true);
+        let u = su2_closed_form(std::f64::consts::PI, axis);
+        approx::assert_relative_eq!(
+            frobenius_distance(&d_half, &u),
+            0.0,
+            epsilon = 1e-12,
+            max_relative = 1e-12
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn test_spinor_rotation_3d_dmat_angleaxis_gen_single_c2_homomorphism(
+        nx in (-1.0..1.0f64),
+        ny in (-1.0..1.0f64),
+        nz in (-1.0..1.0f64),
+        mx in (-1.0..1.0f64),
+        my in (-1.0..1.0f64),
+        mz in (-1.0..1.0f64),
+    ) {
+        // For perpendicular unit vectors n and m, U(πn) U(πm) = U(π n×m) exactly in SU(2), so the
+        // same must hold for every D^(j).
+        let n = Vector3::new(nx, ny, nz);
+        prop_assume!(n.norm() > 1e-3);
+        let n = n.normalize();
+        let m = Vector3::new(mx, my, mz);
+        let m = m - n * n.dot(&m);
+        prop_assume!(m.norm() > 1e-3);
+        let m = m.normalize();
+        let nxm = n.cross(&m);
+        for twoj in 1..=6u32 {
+            let dn = dmat_angleaxis_gen_single(twoj, std::f64::consts::PI, n, true);
+            let dm = dmat_angleaxis_gen_single(twoj, std::f64::consts::PI, m, true);
+            let dnm = dmat_angleaxis_gen_single(twoj, std::f64::consts::PI, nxm, true);
+            approx::assert_relative_eq!(
+                frobenius_distance(&dn.dot(&dm), &dnm),
+                0.0,
+                epsilon = 1e-11,
+                max_relative = 1e-11
             );
         }
     }

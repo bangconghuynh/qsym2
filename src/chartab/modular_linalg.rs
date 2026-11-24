@@ -474,7 +474,7 @@ where
         // Project vi onto all uj (0 <= j < i)
         for j in 0..i {
             if Zero::is_zero(&us_sq_norm[j]) {
-                log::error!("A zero-norm vector found: {}", us[j]);
+                log::debug!("A zero-norm vector found: {}", us[j]);
                 return Err(GramSchmidtError {
                     vecs: Some(vs),
                     mat: None,

@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2024"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
@@ -29,7 +29,6 @@ indexmap = { version = "2.14", features = ["rayon", "serde"] }
 lazy_static = "1.5"
 log = "0.4"
 log4rs = { version = "1.4", features = ["file_appender", "pattern_encoder"] }
-mark-flaky-tests = "1.0"
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 ndarray = { version = "0.17", features = ["rayon", "serde"] }
 ndarray-csv = "0.5"
@@ -44,7 +43,6 @@ numpy = { version = "0.27", optional = true }
 ordered-float = "5.5"
 periodic_table = "0.5"
 phf = { version = "0.13", features = ["macros"] }
-proptest = "1.11"
 primes = "0.4"
 pyo3 = { version = "0.27", features = ["extension-module", "indexmap", "num-complex", "hashbrown", "py-clone"], optional = true }
 pyo3-log = { version = "0.13", optional = true }
@@ -54,11 +52,11 @@ regex = "1.13"
 reqwest = { version = "0.12", features = ["blocking", "json"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
-serial_test = "3.5"
-cargo-upgrades = "3.1"
 
 [dev-dependencies]
 env_logger = "0.11"
+proptest = "1.12"
+serial_test = "3.5"
 
 [features]
 intel-mkl-static = ["ndarray-linalg/intel-mkl-static"]

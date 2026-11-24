@@ -76,6 +76,12 @@ impl Default for AngularFunctionRepAnalysisParams {
 /// Determines the (co)representations of a group spanned by the angular functions (spherical/solid
 /// harmonics or Cartesian functions).
 ///
+/// The metric used for a Cartesian shell of degree $`l`$ is $`\mathbf{T}^\dagger\mathbf{T}`$,
+/// where $`\mathbf{T}`$ maps Cartesian functions onto the $`2l+1`$ solid harmonics of the same
+/// degree. Components of lower degree, such as $`r^2 Y_{l-2}^m`$, therefore have zero norm, and
+/// the symmetry reported for each Cartesian monomial is that of its degree-$`l`$ harmonic part. For
+/// example, $`x^2`$ is reported as $`E_g`$ in $`\mathcal{O}_h`$, not $`A_{1g} \oplus E_g`$.
+///
 /// # Arguments
 ///
 /// * `group` - A symmetry group.
@@ -126,9 +132,11 @@ where
                 let occs = vec![Array1::<f64>::ones(nbas)];
                 let sao = match shell_order {
                     ShellOrder::Pure(_) | ShellOrder::Spinor(_) => {
+                        // Metric for a pure shell or a spinor shell is simply the identity.
                         Array2::<f64>::eye(bao.n_funcs())
                     }
                     ShellOrder::Cart(cartorder) => {
+                        // Metric for a Cartesian shell.
                         let cart2rl =
                             sh_cart2rl_mat(l, l, cartorder, true, &PureOrder::increasingm(l));
                         cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
@@ -431,6 +439,9 @@ where
             )
         );
     }
+    qsym2_output!(
+        "Note: each Cartesian function is analysed through its degree-l harmonic part only; lower-degree parts such as r²(...) are not included."
+    );
     qsym2_output!("");
 
     Ok(())

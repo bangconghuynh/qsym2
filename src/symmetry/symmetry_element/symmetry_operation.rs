@@ -8,7 +8,8 @@ use anyhow::{self, format_err};
 use approx;
 use derive_builder::Builder;
 use fraction;
-use nalgebra::{Point3, Vector3};
+use itertools::Itertools;
+use nalgebra::{Point3, Rotation3, Unit, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
 use num::Complex;
 use num_traits::{Inv, Pow, Zero};
@@ -1639,55 +1640,266 @@ where
 /// # Arguments
 ///
 /// * `operations` - A mutable reference to a vector of symmetry operations.
-pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
-    operations.sort_by_key(|op| {
-        let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
-        let c_op = if op.is_proper()
-            || op.generating_element.kind == SIG
-            || op.generating_element.kind == TRSIG
-        {
-            op.clone()
-        } else if op.contains_time_reversal() {
-            op.convert_to_improper_kind(&TRSIG)
-        } else {
-            op.convert_to_improper_kind(&SIG)
-        };
+pub(crate) fn sort_operations(
+    operations: &mut [SymmetryOperation],
+    body_axes: Option<(&Vector3<f64>, &Vector3<f64>, &Vector3<f64>)>,
+) {
+    operations.sort_by_key(|op| operation_sort_key(op, body_axes));
+}
 
-        let total_proper_fraction = c_op
-            .total_proper_fraction
-            .expect("No total proper fractions found.");
-        let denom = i64::from(
-            *total_proper_fraction
-                .denom()
-                .expect("The denominator of the total proper fraction cannot be extracted."),
+/// Sorts the operations of a double group in-place given the order of the operations of the parent
+/// single group.
+///
+/// This function assumes that that the operation at position `i` is a lift of the operation at
+/// position `i % parent_operations.len()` of the parent group, and that `parent_operations` are in
+/// the order of the parent single group (as obtained from [`sort_operations`]).
+///
+/// Each double-group operation is sorted by the key that [`sort_operations`] gives its parent
+/// operation, with the homotopy class of the double-group operation itself in $`\mathsf{SU}'(2)`$
+/// in place of the last criterion, and then by its input position. When the double group has the
+/// same positive hemisphere as the parent group, this is the same order as [`sort_operations`] gives.
+/// When the positive hemisphere has been changed to accommodate classes of an odd number of binary
+/// rotations or reflections, the rotation senses are still evaluated with respect to the positive
+/// hemisphere of the parent group, so that the conjugacy classes of the double group are
+/// encountered in the same order as those of the parent group. Sorting by the lifts' own keys
+/// instead can swap classes that share the same symbol (*e.g.* $`4C_3`$ and $`4C_3'`$ in
+/// $`\mathcal{T}`$) relative to the parent group, and with them the labels of the vector
+/// irreducible representations.
+///
+/// # Arguments
+///
+/// * `operations` - A mutable reference to a vector of lifted symmetry operations whose length is
+///   twice that of `parent_operations`.
+/// * `parent_operations` - The operations of the parent group, in the parent group's order.
+///
+/// # Panics
+///
+/// Panics if `operations` is not twice as long as `parent_operations`.
+pub(crate) fn sort_double_group_operations(
+    operations: &mut Vec<SymmetryOperation>,
+    parent_operations: &[SymmetryOperation],
+) {
+    let n_parent = parent_operations.len();
+    assert_eq!(
+        operations.len(),
+        2 * n_parent,
+        "Each parent operation must have exactly two lifts in the double group."
+    );
+    let (body_x, body_y, body_z) =
+        body_axes_from_operations(&parent_operations.iter().collect_vec());
+    let parent_keys = parent_operations
+        .iter()
+        .map(|op| operation_sort_key(op, Some((&body_x, &body_y, &body_z))))
+        .collect::<Vec<_>>();
+    let mut keyed_operations = operations
+        .drain(..)
+        .enumerate()
+        .map(|(i, op)| {
+            let mut key = parent_keys[i % n_parent];
+            key.9 = op.is_su2_class_1();
+            (key, i, op)
+        })
+        .collect::<Vec<_>>();
+    keyed_operations.sort_by_key(|(key, i, _)| (*key, *i));
+    operations.extend(keyed_operations.into_iter().map(|(_, _, op)| op));
+}
+
+/// Returns the key by which [`sort_operations`] sorts symmetry operations. These are:
+///
+/// * whether the operation is unitary or antiunitary,
+/// * whether the operation is proper or improper,
+/// * whether the operation is the identity or inversion,
+/// * whether the operation is a spatial binary rotation or spatial reflection,
+/// * the order of the operation,
+/// * the power of the operation,
+/// * the closeness of the element to Cartesian axes,
+/// * the axes of closest inclination, and
+/// * whether the operation is of homotopy class 1 in $`\mathsf{SU}'(2)`$.
+fn operation_sort_key(
+    op: &SymmetryOperation,
+    body_axes: Option<(&Vector3<f64>, &Vector3<f64>, &Vector3<f64>)>,
+) -> (
+    bool,
+    bool,
+    bool,
+    bool,
+    i64,
+    bool,
+    i64,
+    OrderedFloat<f64>,
+    usize,
+    bool,
+) {
+    let c_op = if op.is_proper()
+        || op.generating_element.kind == SIG
+        || op.generating_element.kind == TRSIG
+    {
+        op.clone()
+    } else if op.contains_time_reversal() {
+        op.convert_to_improper_kind(&TRSIG)
+    } else {
+        op.convert_to_improper_kind(&SIG)
+    };
+
+    let total_proper_fraction = c_op
+        .total_proper_fraction
+        .expect("No total proper fractions found.");
+    let denom = i64::from(
+        *total_proper_fraction
+            .denom()
+            .expect("The denominator of the total proper fraction cannot be extracted."),
+    );
+    let numer = i64::from(
+        *total_proper_fraction
+            .numer()
+            .expect("The numerator of the total proper fraction cannot be extracted."),
+    );
+
+    let (axis_closeness, closest_axis) = if let Some((body_x, body_y, body_z)) = body_axes {
+        op.generating_element
+            .closeness_to_body_axes(body_x, body_y, body_z)
+    } else {
+        op.generating_element.closeness_to_cartesian_axes([2, 1, 0])
+    };
+    let axis_closeness = axis_closeness.round_factor(op.generating_element.threshold());
+
+    let negative_rotation = !c_op
+        .positive_hemisphere
+        .as_ref()
+        .cloned()
+        .unwrap_or_default()
+        .check_positive_pole(
+            &c_op.calc_proper_rotation_pole().coords,
+            c_op.generating_element.threshold(),
         );
-        let numer = i64::from(
-            *total_proper_fraction
-                .numer()
-                .expect("The numerator of the total proper fraction cannot be extracted."),
-        );
 
-        let negative_rotation = !c_op
-            .positive_hemisphere
-            .as_ref()
-            .cloned()
-            .unwrap_or_default()
-            .check_positive_pole(
-                &c_op.calc_proper_rotation_pole().coords,
-                c_op.generating_element.threshold(),
-            );
+    (
+        c_op.contains_time_reversal(),
+        !c_op.is_proper(),
+        !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
+        c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),
+        -denom,
+        negative_rotation,
+        if negative_rotation { -numer } else { numer },
+        OrderedFloat(axis_closeness),
+        closest_axis,
+        c_op.is_su2_class_1(),
+    )
+}
 
-        (
-            c_op.contains_time_reversal(),
-            !c_op.is_proper(),
-            !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
-            c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),
-            -denom,
-            negative_rotation,
-            if negative_rotation { -numer } else { numer },
-            OrderedFloat(axis_closeness),
-            closest_axis,
-            c_op.is_su2_class_1(),
-        )
-    });
+/// Returns keys to sort elements by
+///
+/// * their order,
+/// * their closeness to Cartesian axes,
+/// * the Cartesian axes they are closest to, with priority given by `cartesian_priorities`, and
+/// * their own Cartesian components, $`z`$ then $`y`$ then $`x`$.
+fn element_sort_key_cartesian(
+    elem: &SymmetryElement,
+    cartesian_priorities: [usize; 3],
+) -> (
+    ElementOrder,
+    OrderedFloat<f64>,
+    usize,
+    OrderedFloat<f64>,
+    OrderedFloat<f64>,
+    OrderedFloat<f64>,
+) {
+    let axis = elem.standard_positive_axis();
+    let thresh = elem.threshold();
+    let order = elem.raw_proper_order;
+    let (closeness_min, closest_axis_min) = elem.closeness_to_cartesian_axes(cartesian_priorities);
+    let closeness = (1.0 - closeness_min).round_factor(thresh);
+    let closest_axis = 2 - closest_axis_min;
+    (
+        order,
+        OrderedFloat(closeness),
+        closest_axis,
+        OrderedFloat(axis.z.round_factor(thresh)),
+        OrderedFloat(axis.y.round_factor(thresh)),
+        OrderedFloat(axis.x.round_factor(thresh)),
+    )
+}
+
+/// Determines the body axes from a sequence of symmetry operations.
+///
+/// The symmetry elements associated with these operations will be used to determine:
+/// - the body-fixed $`z`$ axis, which corresponds to the proper element with the highest order, or if
+///   there are multiple such elements, then the one whose axis is also the axis of the improper
+///   operation with the highest order (*e.g.* the $`C_2`$ axis that is also the $`S_4`$ axis in
+///   $`\mathcal{D}_{2d}`$), or if there are still multiple such elements, then the one closest to one
+///   of the Cartesian axes, with preference given to the Cartesian $`z`$ axis, and then $`y`$, and
+///   then $`x`$, is chosen. Improper orders only separate proper elements of the same order, so that,
+///   *e.g.*, the $`C_3`$ axes in $`\mathcal{O}_h`$ are not preferred over the $`C_4`$ axes just
+///   because they are also $`S_6`$ axes.
+/// - the body-fixed $`x`$ axis, which corresponds to the element perpendicular to the principal
+///   axis, where if there are multiple such elements, then the one closest to one of the Cartesian
+///   axes, with preference given to the Cartesian $`z`$ axis, and then $`y`$, and then $`x`$, is
+///   chosen, and if there are no such elements, then an axis perpendicular to the principal axis is
+///   chosen such that this axis is the Cartesian $`x`$-axis rotated by the same amount as the
+///   Cartesian $`z`$-axis should be rotated to yield the principal axis.
+/// - the body-fixed $`y`$ axis, which is simply the cross product of the previous two.
+pub(crate) fn body_axes_from_operations(
+    ops: &[&SymmetryOperation],
+) -> (Vector3<f64>, Vector3<f64>, Vector3<f64>) {
+    // Elements that are equally good candidates (e.g. the four C3 axes of T in its standard
+    // orientation) are told apart by their axes, preferring larger z, then y, then x components, so
+    // that the choice depends only on the set of operations and not on the order in which they are
+    // given. `sort_double_group_operations` relies on this to reproduce the order of the parent
+    // group, whose operations are passed here in a different order.
+    let max_improper_order_along = |elem: &SymmetryElement| -> u32 {
+        let axis = elem.standard_positive_axis();
+        ops.iter()
+            .filter(|op| !op.is_proper() && !op.is_spatial_inversion())
+            .filter(|op| {
+                (op.generating_element.standard_positive_axis() - axis).norm() < elem.threshold()
+            })
+            .map(|op| op.order())
+            .max()
+            .unwrap_or(0)
+    };
+
+    if let Some(principal_element) = ops
+        .iter()
+        .filter(|op| op.is_proper())
+        .map(|op| &op.generating_element)
+        .max_by_key(|elem| {
+            let (order, closeness, closest_axis, z, y, x) =
+                element_sort_key_cartesian(elem, [2, 1, 0]);
+            (
+                order,
+                max_improper_order_along(elem),
+                closeness,
+                closest_axis,
+                z,
+                y,
+                x,
+            )
+        })
+    {
+        let body_z = principal_element.standard_positive_axis();
+        let body_x = ops
+            .iter()
+            .map(|op| &op.generating_element)
+            .filter(|element| {
+                element.standard_positive_axis().dot(&body_z).abs() < principal_element.threshold()
+            })
+            .max_by_key(|elem| element_sort_key_cartesian(elem, [0, 1, 2]))
+            .map(|elem| elem.standard_positive_axis())
+            .unwrap_or_else(|| {
+                let z_cross_body_z = Vector3::z().cross(&body_z);
+                let z_cross_body_z_norm = z_cross_body_z.norm();
+                if z_cross_body_z_norm > principal_element.threshold() {
+                    let rotation_axis = Unit::new_normalize(z_cross_body_z);
+                    let rotation_angle = z_cross_body_z_norm.asin();
+                    Rotation3::from_axis_angle(&rotation_axis, rotation_angle)
+                        .transform_vector(&Vector3::x())
+                } else {
+                    Vector3::x()
+                }
+            });
+        let body_y = body_z.cross(&body_x);
+        (body_x, body_y, body_z)
+    } else {
+        (Vector3::x(), Vector3::y(), Vector3::z())
+    }
 }

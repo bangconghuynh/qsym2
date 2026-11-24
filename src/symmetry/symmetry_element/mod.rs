@@ -1455,6 +1455,53 @@ impl SymmetryElement {
 
     /// The closeness of the symmetry element's axis to one of the three space-fixed Cartesian axes.
     ///
+    /// # Arguments
+    ///
+    /// * `axis_priority` - An array indicating how the Cartesian axes should be prioritised in case
+    ///   a symmetry element's axis is equi-inclined to two or three Cartesian axes. The elements of
+    ///   this array are `0`, `1`, or `2` for $`x`$, $`y`$, or $`z`$, respectively. For example,
+    ///   specifying `axis_priority = [2, 1, 0]` means that the $`z`$-axis is most favoured and the
+    ///   $`x`$-axis is least favoured.
+    ///
+    /// # Returns
+    ///
+    /// A tuple of two values:
+    /// - A value $`\gamma \in [0, 1-1/\sqrt{3}]`$ indicating how close the axis is to one of the
+    ///   three Cartesian axes. The closer $`\gamma`$ is to $`0`$, the closer the alignment.
+    /// - An index for the closest axis: `0` for `axis_priority[0]`, `1` for `axis_priority[1]`, `2`
+    ///   for `axis_priority[2]`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when $`\gamma`$ is outside the required closed interval $`[0, 1-1/\sqrt{3}]`$ by
+    /// more than the threshold value in `self`.
+    #[must_use]
+    pub fn closeness_to_cartesian_axes(&self, axis_priority: [usize; 3]) -> (f64, usize) {
+        let pos_axis = self.standard_positive_axis();
+        let rev_pos_axis = Vector3::new(
+            pos_axis[axis_priority[0]],
+            pos_axis[axis_priority[1]],
+            pos_axis[axis_priority[2]],
+        );
+        let (amax_arg, amax_val) = rev_pos_axis.abs().argmax();
+        let thresh = self.threshold;
+        let axis_closeness = (1.0 - amax_val).round_factor(thresh);
+        assert!(
+            -thresh <= axis_closeness && axis_closeness <= (1.0 - 1.0 / 3.0f64.sqrt() + thresh)
+        );
+
+        // closest axis: 0 for `axis_priority[0]`, 1 for `axis_priority[1]`, 2 for `axis_priority[2]`
+        // This is so that z axes are preferred.
+        let closest_axis = amax_arg;
+        (axis_closeness, closest_axis)
+    }
+
+    /// The closeness of the symmetry element's axis to one of the three body-fixed Cartesian axes
+    /// as specified.
+    ///
+    /// The body-fixed Cartesian axes specified will be checked to ensure that they are orthogonal
+    /// and form a right-handed coordinate system.
+    ///
     /// # Returns
     ///
     /// A tuple of two values:
@@ -1467,18 +1514,34 @@ impl SymmetryElement {
     /// Panics when $`\gamma`$ is outside the required closed interval $`[0, 1-1/\sqrt{3}]`$ by
     /// more than the threshold value in `self`.
     #[must_use]
-    pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
+    pub fn closeness_to_body_axes(
+        &self,
+        body_x: &Vector3<f64>,
+        body_y: &Vector3<f64>,
+        body_z: &Vector3<f64>,
+    ) -> (f64, usize) {
+        // Check
+        let thresh = self.threshold;
+        let bx = body_x.normalize();
+        let by = body_y.normalize();
+        let bz = body_z.normalize();
+        assert!((bx.cross(&by) - bz).norm() < thresh);
+        assert!((by.cross(&bz) - bx).norm() < thresh);
+        assert!((bz.cross(&bx) - by).norm() < thresh);
+        assert!((bx.dot(&by)).abs() < thresh);
+        assert!((by.dot(&bz)).abs() < thresh);
+        assert!((bz.dot(&bx)).abs() < thresh);
+
         let pos_axis = self.standard_positive_axis();
-        let rev_pos_axis = Vector3::new(pos_axis[2], pos_axis[1], pos_axis[0]);
+        let rev_pos_axis = Vector3::new(pos_axis.dot(&bz), pos_axis.dot(&by), pos_axis.dot(&bx));
         let (amax_arg, amax_val) = rev_pos_axis.abs().argmax();
         let axis_closeness = 1.0 - amax_val;
-        let thresh = self.threshold;
         assert!(
             -thresh <= axis_closeness && axis_closeness <= (1.0 - 1.0 / 3.0f64.sqrt() + thresh)
         );
 
-        // closest axis: 0 for z, 1 for y, 2 for x
-        // This is so that z axes are preferred.
+        // closest axis: 0 for body-fixed z, 1 for body-fixed y, 2 for body-fixed x
+        // This is so that body-fixed z axes are preferred.
         let closest_axis = amax_arg;
         (axis_closeness, closest_axis)
     }

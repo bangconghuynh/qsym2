@@ -189,7 +189,7 @@ where
             us[i].t().map(|x| x.conj()).dot(&us[i])
         };
         if us_sq_norm_i.abs() < thresh {
-            log::error!("A zero-norm vector found: {}", us[i]);
+            log::warn!("A zero-norm vector found: {}", us[i]);
             return Err(GramSchmidtError {
                 mat: Some(vmat),
                 vecs: None,
@@ -216,7 +216,7 @@ where
 
     if ortho_check {
         stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec()).map_err(|err| {
-            log::error!("{}", err);
+            log::warn!("{}", err);
             GramSchmidtError {
                 mat: Some(vmat),
                 vecs: None,
@@ -458,7 +458,7 @@ where
         let (pos_i, pos_j) = (pos.div_euclid(mat.ncols()), pos.rem_euclid(mat.ncols()));
         log::debug!("{matname} matrix:\n  {mat:+.3e}");
         log::debug!("{matname} matrix complex-symmetric deviation:\n  {deviation:+.3e}",);
-        qsym2_warn!("{matname} matrix complex-symmetric deviation:\n  {deviation:+.3e}",);
+        qsym2_warn!("{matname} matrix complex-symmetric maximum deviation = {max_offdiag:.3e}",);
         ensure!(
             max_offdiag <= thresh_offdiag,
             "The {matname} matrix is not complex-symmetric: ||{matsymbol} - ({matsymbol})^T||_∞ = {max_offdiag:.3e} > {thresh_offdiag:.3e} at ({pos_i}, {pos_j})."
@@ -474,7 +474,7 @@ where
         let (pos_i, pos_j) = (pos.div_euclid(mat.ncols()), pos.rem_euclid(mat.ncols()));
         log::debug!("{matname} matrix:\n  {mat:+.3e}");
         log::debug!("{matname} matrix complex-Hermitian deviation:\n  {deviation:+.3e}",);
-        qsym2_warn!("{matname} matrix complex-Hermitian deviation:\n  {deviation:+.3e}",);
+        qsym2_warn!("{matname} matrix complex-Hermitian maximum deviation = {max_offdiag:.3e}",);
         ensure!(
             max_offdiag <= thresh_offdiag,
             "The {matname} matrix is not complex-Hermitian: ||{matsymbol} - ({matsymbol})^†||_∞ = {max_offdiag:.3e} > {thresh_offdiag:.3e} at ({pos_i}, {pos_j})."
@@ -509,7 +509,7 @@ where
         .ok_or_else(|| format_err!("Unable to find the maximum absolute value of the {matname} real-symmetric deviation matrix."))?;
     log::debug!("{matname} matrix:\n  {mat:+.3e}");
     log::debug!("{matname} matrix real-symmetric deviation:\n  {deviation:+.3e}",);
-    qsym2_warn!("{matname} matrix real-symmetric deviation:\n  {deviation:+.3e}",);
+    qsym2_warn!("{matname} matrix real-symmetric maximum deviation = {max_offdiag:.3e}",);
     let (pos_i, pos_j) = (pos.div_euclid(mat.ncols()), pos.rem_euclid(mat.ncols()));
     ensure!(
         max_offdiag <= thresh_offdiag,

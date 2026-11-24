@@ -19,7 +19,7 @@ use crate::auxiliary::geometry::{self, Transform};
 use crate::auxiliary::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation, sort_operations,
+    SpecialSymmetryTransformation, SymmetryOperation, body_axes_from_operations, sort_operations,
 };
 use crate::symmetry::symmetry_element::{
     AntiunitaryKind, ROT, SIG, SO3, SymmetryElement, SymmetryElementKind, TRROT, TRSIG,
@@ -1564,8 +1564,9 @@ impl Symmetry {
             existing_operations
         };
 
+        let (body_x, body_y, body_z) = body_axes_from_operations(&operations.iter().collect_vec());
         let mut sorted_operations: Vec<SymmetryOperation> = operations.into_iter().collect();
-        sort_operations(&mut sorted_operations);
+        sort_operations(&mut sorted_operations, Some((&body_x, &body_y, &body_z)));
         sorted_operations
     }
 }

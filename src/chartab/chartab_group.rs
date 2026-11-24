@@ -345,12 +345,14 @@ where
                                             .cloned(),
                                     );
                                 } else {
-                                    log::warn!(
+                                    // This is routine when the group has complex irreps, so
+                                    // it is not reported as a warning.
+                                    log::debug!(
                                         "Class matrix N{} failed to split degenerate subspace {}.",
                                         r,
                                         degenerate_subspaces.len()
                                     );
-                                    log::warn!(
+                                    log::debug!(
                                         "Stashing this subspace for the next class matrices..."
                                     );
                                     remaining_degenerate_subspaces.push(subspace);
@@ -358,10 +360,13 @@ where
                             }
                             degenerate_subspaces = remaining_degenerate_subspaces;
                         } else {
-                            log::warn!(
+                            // This is routine when the group has complex irreps, so it is not
+                            // reported as a warning. A genuine failure, after all cyclic
+                            // permutations of the class matrices, is logged as an error below.
+                            log::debug!(
                                 "Class matrices exhausted before degenerate subspaces are fully resolved."
                             );
-                            log::warn!(
+                            log::debug!(
                                 "Restarting the solver using a different class matrix order..."
                             );
                             break;
