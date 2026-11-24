@@ -6719,6 +6719,78 @@ fn test_ur_group_symmetric_b2cl4_d2d_double_class_order() {
             "2|σd(Σ), σd(QΣ)|",
         ],
     );
+
+    let mol_rotated = mol.rotate(1.2345, &Vector3::new(0.3, -0.7, 0.4));
+    test_ur_ordinary_double_group_class_order(
+        &mol_rotated,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|C2(Σ), C2(QΣ)|^(')",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "2|σd(Σ), σd(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_b2cl4_grey_d2d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(D2d + θ·D2d)*", 32, 14, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_b2cl4_grey_d2d_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|C2(Σ), C2(QΣ)|^(')",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "2|σd(Σ), σd(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "2|θ·C2(Σ), θ·C2(QΣ)|^(')",
+            "2|θ·S4(Σ)|",
+            "2|θ·S4(QΣ)|",
+            "2|θ·σd(Σ), θ·σd(QΣ)|",
+        ],
+    );
+
+    let mol_rotated = mol.rotate(1.2345, &Vector3::new(0.3, -0.7, 0.4));
+    test_ur_magnetic_double_group_class_order(
+        &mol_rotated,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|C2(Σ), C2(QΣ)|^(')",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "2|σd(Σ), σd(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "2|θ·C2(Σ), θ·C2(QΣ)|^(')",
+            "2|θ·S4(Σ)|",
+            "2|θ·S4(QΣ)|",
+            "2|θ·σd(Σ), θ·σd(QΣ)|",
+        ],
+    );
 }
 
 #[test]
