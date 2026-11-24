@@ -374,7 +374,7 @@ pub trait SymmetryGroupProperties:
                             .count()
                     })
                     .collect_vec();
-                for i in 0..n_classes {
+                for (i, priority) in priorities.iter_mut().enumerate().take(n_classes) {
                     let op = rep_op(i);
                     if op.is_spatial_reflection() && perpendicular(&op.calc_pole().coords, &paxis) {
                         // op is a σv, and Ki is a σv class.
@@ -388,7 +388,7 @@ pub trait SymmetryGroupProperties:
                             .expect("Unable to find the class of a group element.");
 
                         // Set the priority of σv as the priority of C2'.
-                        priorities[i] = binary_ranks[product_class];
+                        *priority = binary_ranks[product_class];
                     }
                 }
             }
