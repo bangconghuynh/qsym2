@@ -1791,7 +1791,7 @@ fn operation_sort_key(
 ///
 /// * their order,
 /// * their closeness to Cartesian axes,
-/// * the Cartesian axes they are closest to, with priority given by `cartesian_priorities`,
+/// * the Cartesian axes they are closest to, with priority given by `cartesian_priorities`, and
 /// * their own Cartesian components, $`z`$ then $`y`$ then $`x`$.
 fn element_sort_key_cartesian(
     elem: &SymmetryElement,
