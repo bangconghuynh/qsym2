@@ -158,9 +158,9 @@ fn test_deduce_mirror_parities_d6h() {
     sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
-    let sh = group.get_cc_symbol_of_index(11).unwrap();
-    let sv = group.get_cc_symbol_of_index(9).unwrap();
+    let sh = group.get_cc_symbol_of_index(9).unwrap();
     let svd = group.get_cc_symbol_of_index(10).unwrap();
+    let sv = group.get_cc_symbol_of_index(11).unwrap();
 
     let rep_a1g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap();
     let rep_a1g_ps = deduce_mirror_parities(&group, &rep_a1g);
@@ -175,14 +175,14 @@ fn test_deduce_mirror_parities_d6h() {
     let rep_b1g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(1g)|").unwrap();
     let rep_b1g_ps = deduce_mirror_parities(&group, &rep_b1g);
     assert_eq!(*rep_b1g_ps.get(&sh).unwrap(), MirrorParity::Odd);
-    assert_eq!(*rep_b1g_ps.get(&sv).unwrap(), MirrorParity::Even);
-    assert_eq!(*rep_b1g_ps.get(&svd).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_b1g_ps.get(&sv).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_b1g_ps.get(&svd).unwrap(), MirrorParity::Even);
 
     let rep_b2g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(2g)|").unwrap();
     let rep_b2g_ps = deduce_mirror_parities(&group, &rep_b2g);
     assert_eq!(*rep_b2g_ps.get(&sh).unwrap(), MirrorParity::Odd);
-    assert_eq!(*rep_b2g_ps.get(&sv).unwrap(), MirrorParity::Odd);
-    assert_eq!(*rep_b2g_ps.get(&svd).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_b2g_ps.get(&sv).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_b2g_ps.get(&svd).unwrap(), MirrorParity::Odd);
 
     let rep_e1g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(1g)|").unwrap();
     let rep_e1g_ps = deduce_mirror_parities(&group, &rep_e1g);

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use crate::auxiliary::misc;
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, TRINV, TRROT,
+    AntiunitaryKind, ElementOrder, INV, ROT, RotationGroup, SIG, SymmetryElement, TRINV, TRROT,
     TRSIG,
 };
 
@@ -2105,8 +2105,12 @@ fn test_symmetry_element_cartesian_axis_closeness() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    let (s3_closeness, s3_closest_axis) = s3.closeness_to_cartesian_axes();
-    approx::assert_relative_eq!(s3_closeness, 1.0 - 1.0 / 3f64.sqrt());
+    let (s3_closeness, s3_closest_axis) = s3.closeness_to_cartesian_axes([2, 1, 0]);
+    approx::assert_abs_diff_eq!(
+        s3_closeness,
+        1.0 - 1.0 / 3f64.sqrt(),
+        epsilon = s3.threshold()
+    );
     assert_eq!(s3_closest_axis, 0);
 
     let s4 = SymmetryElement::builder()
@@ -2118,8 +2122,12 @@ fn test_symmetry_element_cartesian_axis_closeness() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    let (s4_closeness, s4_closest_axis) = s4.closeness_to_cartesian_axes();
-    approx::assert_relative_eq!(s4_closeness, 1.0 - 2.0 / 6f64.sqrt());
+    let (s4_closeness, s4_closest_axis) = s4.closeness_to_cartesian_axes([2, 1, 0]);
+    approx::assert_abs_diff_eq!(
+        s4_closeness,
+        1.0 - 2.0 / 6f64.sqrt(),
+        epsilon = s4.threshold()
+    );
     assert_eq!(s4_closest_axis, 2);
 
     let s6 = SymmetryElement::builder()
@@ -2131,8 +2139,8 @@ fn test_symmetry_element_cartesian_axis_closeness() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    let (s6_closeness, s6_closest_axis) = s6.closeness_to_cartesian_axes();
-    approx::assert_relative_eq!(s6_closeness, 0.0);
+    let (s6_closeness, s6_closest_axis) = s6.closeness_to_cartesian_axes([2, 1, 0]);
+    approx::assert_abs_diff_eq!(s6_closeness, 0.0, epsilon = s6.threshold());
     assert_eq!(s6_closest_axis, 1);
 }
 

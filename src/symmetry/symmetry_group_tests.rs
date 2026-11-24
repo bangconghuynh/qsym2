@@ -10338,6 +10338,8 @@ fn verify_double_group_vector_irrep_labels(mol: &Molecule, thresh: f64, name: &s
             })
             .collect_vec();
         assert_eq!(matching_irreps.len(), 1);
+        println!("{}", group.character_table());
+        println!("{}", double_group.character_table());
         assert_eq!(
             matching_irreps[0].to_string(),
             double_irrep.to_string(),

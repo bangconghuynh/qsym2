@@ -8,7 +8,8 @@ use anyhow::{self, format_err};
 use approx;
 use derive_builder::Builder;
 use fraction;
-use nalgebra::{Point3, Vector3};
+use itertools::Itertools;
+use nalgebra::{Point3, Rotation3, Unit, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
 use num::Complex;
 use num_traits::{Inv, Pow, Zero};
@@ -1639,8 +1640,11 @@ where
 /// # Arguments
 ///
 /// * `operations` - A mutable reference to a vector of symmetry operations.
-pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
-    operations.sort_by_key(operation_sort_key);
+pub(crate) fn sort_operations(
+    operations: &mut [SymmetryOperation],
+    body_axes: Option<(&Vector3<f64>, &Vector3<f64>, &Vector3<f64>)>,
+) {
+    operations.sort_by_key(|op| operation_sort_key(op, body_axes));
 }
 
 /// Sorts the operations of a double group in-place given the order of the operations of the parent
@@ -1681,9 +1685,11 @@ pub(crate) fn sort_double_group_operations(
         2 * n_parent,
         "Each parent operation must have exactly two lifts in the double group."
     );
+    let (body_x, body_y, body_z) =
+        body_axes_from_operations(&parent_operations.iter().collect_vec());
     let parent_keys = parent_operations
         .iter()
-        .map(operation_sort_key)
+        .map(|op| operation_sort_key(op, Some((&body_x, &body_y, &body_z))))
         .collect::<Vec<_>>();
     let mut keyed_operations = operations
         .drain(..)
@@ -1711,6 +1717,7 @@ pub(crate) fn sort_double_group_operations(
 /// * whether the operation is of homotopy class 1 in $`\mathsf{SU}'(2)`$.
 fn operation_sort_key(
     op: &SymmetryOperation,
+    body_axes: Option<(&Vector3<f64>, &Vector3<f64>, &Vector3<f64>)>,
 ) -> (
     bool,
     bool,
@@ -1723,7 +1730,12 @@ fn operation_sort_key(
     usize,
     bool,
 ) {
-    let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
+    let (axis_closeness, closest_axis) = if let Some((body_x, body_y, body_z)) = body_axes {
+        op.generating_element
+            .closeness_to_body_axes(body_x, body_y, body_z)
+    } else {
+        op.generating_element.closeness_to_cartesian_axes([2, 1, 0])
+    };
     let c_op = if op.is_proper()
         || op.generating_element.kind == SIG
         || op.generating_element.kind == TRSIG
@@ -1771,4 +1783,67 @@ fn operation_sort_key(
         closest_axis,
         c_op.is_su2_class_1(),
     )
+}
+
+/// Determines the body axes from a sequence of symmetry operations.
+///
+/// The symmetry elements associated with these operations will be used to determine:
+/// - the body-fixed $`z`$ axis, which corresponds to the element with the highest order, or if there
+/// are multiple such elements, then the one closest to one of the Cartesian axes, with preference
+/// given to the Cartesian $`z`$ axis, and then $`y`$, and then $`x`$, is chosen.
+/// - the body-fixed $`x`$ axis, which corresponds to the element perpendicular to the principal
+/// axis, where if there are multiple such elements, then the one closest to one of the Cartesian
+/// axes, with preference given to the Cartesian $`z`$ axis, and then $`y`$, and then $`x`$, is
+/// chosen, and if there are no such elements, then an axis perpendicular to the principal axis is
+/// chosen such that this axis is the Cartesian $`x`$-axis rotated by the same amount as the
+/// Cartesian $`z`$-axis should be rotated to yield the principal axis.
+/// - the body-fixed $`y`$ axis, which is simply the cross product of the previous two.
+pub(crate) fn body_axes_from_operations(
+    ops: &[&SymmetryOperation],
+) -> (Vector3<f64>, Vector3<f64>, Vector3<f64>) {
+    if let Some(principal_element) =
+        ops.iter()
+            .map(|op| &op.generating_element)
+            .max_by_key(|elem| {
+                let order = elem.raw_proper_order;
+                let (closeness_min, closest_axis_min) = elem.closeness_to_cartesian_axes([2, 1, 0]);
+                let closeness = (1.0 - closeness_min).round_factor(elem.threshold());
+                let closest_axis = 2 - closest_axis_min;
+                (order, OrderedFloat(closeness), closest_axis)
+            })
+    {
+        let body_z = principal_element.standard_positive_axis();
+        let body_x = ops
+            .iter()
+            .map(|op| &op.generating_element)
+            .filter(|element| {
+                element.standard_positive_axis().dot(&body_z).abs() < principal_element.threshold()
+            })
+            .max_by_key(|elem| {
+                let order = elem.raw_proper_order;
+                let (closeness_min, closest_axis_min) = elem.closeness_to_cartesian_axes([0, 1, 2]);
+                let closeness = (1.0 - closeness_min).round_factor(elem.threshold());
+                let closest_axis = 2 - closest_axis_min;
+                println!("{elem}, {order}, {closeness}, {closest_axis}");
+                (order, OrderedFloat(closeness), closest_axis)
+            })
+            .map(|elem| elem.standard_positive_axis())
+            .unwrap_or_else(|| {
+                let z_cross_body_z = Vector3::z().cross(&body_z);
+                let z_cross_body_z_norm = z_cross_body_z.norm();
+                if z_cross_body_z_norm > principal_element.threshold() {
+                    let rotation_axis = Unit::new_normalize(z_cross_body_z);
+                    let rotation_angle = z_cross_body_z_norm.asin();
+                    Rotation3::from_axis_angle(&rotation_axis, rotation_angle)
+                        .transform_vector(&Vector3::x())
+                } else {
+                    Vector3::x()
+                }
+            });
+        let body_y = body_z.cross(&body_x);
+        println!("Body axes: x = {body_x}, y = {body_y}, z = {body_z}");
+        (body_x, body_y, body_z)
+    } else {
+        (Vector3::x(), Vector3::y(), Vector3::z())
+    }
 }

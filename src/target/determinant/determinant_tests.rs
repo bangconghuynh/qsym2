@@ -720,7 +720,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     );
     let sxy_tcgen_ref = concatenate![Axis(1), sxy_tcalpha_gen, sxy_tcbeta_gen];
 
-    let sxy_nsr_p1 = group.get_index(4).unwrap();
+    let sxy_nsr_p1 = group.get_index(6).unwrap();
     let tdetgen_sxy_nsr_ref = SlaterDeterminant::<C128, SpinConstraint>::builder()
         .coefficients(&[sxy_tcgen_ref.clone()])
         .occupations(&[ogen.clone()])
@@ -771,7 +771,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .threshold(1e-14)
         .build()
         .unwrap();
-    let sxyz_nsr_p1 = group.get_index(6).unwrap();
+    let sxyz_nsr_p1 = group.get_index(4).unwrap();
     let tdetgen_sxyz_nsr_p1 = detgen.sym_transform_spin(&sxyz_nsr_p1).unwrap();
     assert_eq!(tdetgen_sxyz_nsr_p1, tdetgen_sxyz_nsr_p1_ref);
 }

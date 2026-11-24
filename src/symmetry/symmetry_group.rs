@@ -19,7 +19,7 @@ use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, sort_double_group_operations,
+    SpecialSymmetryTransformation, body_axes_from_operations, sort_double_group_operations,
 };
 use crate::symmetry::symmetry_element::{SIG, SymmetryOperation};
 use crate::symmetry::symmetry_symbols::{
@@ -292,9 +292,8 @@ pub trait SymmetryGroupProperties:
         let parallel = |u: &Vector3<f64>, v: &Vector3<f64>| {
             u.normalize().cross(&v.normalize()).norm() < thresh
         };
-        let perpendicular = |u: &Vector3<f64>, v: &Vector3<f64>| {
-            u.normalize().dot(&v.normalize()).abs() < thresh
-        };
+        let perpendicular =
+            |u: &Vector3<f64>, v: &Vector3<f64>| u.normalize().dot(&v.normalize()).abs() < thresh;
 
         // Principal axes: axes of the unitary operations whose proper parts (in the
         // inversion-centre convention for improper operations, so that e.g. S4 counts as a
@@ -395,7 +394,6 @@ pub trait SymmetryGroupProperties:
         }
         priorities
     }
-
 
     /// Returns the conjugacy class symbols in this group based on molecular symmetry.
     fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
@@ -515,11 +513,7 @@ pub trait SymmetryGroupProperties:
                                     let op = self.get_index(j).unwrap_or_else(|| {
                                         panic!("Element with index {j} cannot be retrieved.")
                                     });
-                                    if op.is_su2_class_1() {
-                                        Some(op)
-                                    } else {
-                                        None
-                                    }
+                                    if op.is_su2_class_1() { Some(op) } else { None }
                                 })
                                 .expect("Unable to find a class-1 element in this class.");
                             (
@@ -1142,7 +1136,7 @@ where
                     })
                     .collect_vec();
                 all_c2s.sort_by_key(|c2| {
-                    let (axis_closeness, closest_axis) = c2.generating_element.closeness_to_cartesian_axes();
+                    let (axis_closeness, closest_axis) = c2.generating_element.closeness_to_cartesian_axes([2, 1, 0]);
                     (OrderedFloat(axis_closeness), closest_axis)
                 });
                 let c2x = all_c2s.first().expect("Unable to retrieve the last C2 operation.");
