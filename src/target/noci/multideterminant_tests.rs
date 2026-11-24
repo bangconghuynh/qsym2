@@ -14,7 +14,6 @@ use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};

@@ -10,6 +10,7 @@ use ordered_float::OrderedFloat;
 use regex::Regex;
 
 use crate::auxiliary::geometry::{self, PositiveHemisphere};
+use crate::auxiliary::misc::HashableFloat;
 use crate::chartab::chartab_group::{
     CharacterProperties, IrcorepCharTabConstruction, IrrepCharTabConstruction,
 };
@@ -19,7 +20,7 @@ use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, body_axes_from_operations, sort_double_group_operations,
+    SpecialSymmetryTransformation, sort_double_group_operations,
 };
 use crate::symmetry::symmetry_element::{SIG, SymmetryOperation};
 use crate::symmetry::symmetry_symbols::{
@@ -1137,7 +1138,7 @@ where
                     .collect_vec();
                 all_c2s.sort_by_key(|c2| {
                     let (axis_closeness, closest_axis) = c2.generating_element.closeness_to_cartesian_axes([2, 1, 0]);
-                    (OrderedFloat(axis_closeness), closest_axis)
+                    (OrderedFloat(axis_closeness.round_factor(c2.generating_element.threshold())), closest_axis)
                 });
                 let c2x = all_c2s.first().expect("Unable to retrieve the last C2 operation.");
                 let c20 = all_c2s.last().expect("Unable to retrieve the first C2 operation.");
