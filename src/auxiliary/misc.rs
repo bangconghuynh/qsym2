@@ -15,7 +15,6 @@ use num_complex::ComplexFloat;
 use num_traits::float::TotalOrder;
 
 use crate::analysis::EigenvalueComparisonMode;
-use crate::io::format::qsym2_warn;
 
 /// Trait to enable floating point numbers to be hashed.
 pub trait HashableFloat {
